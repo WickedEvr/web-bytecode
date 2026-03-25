@@ -1,3 +1,4 @@
+// ✅ App.tsx — Fix 2 & 3: Rutas /condiciones, /privacidad y fallback 404 registradas
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
@@ -8,6 +9,9 @@ import Servicios from './pages/Servicios';
 import Contacto from './pages/Contacto';
 import Confirmacion from './pages/Confirmacion';
 import LibroReclamaciones from './pages/LibroReclamaciones';
+import Condiciones from './pages/Condiciones';
+import Privacidad from './pages/Privacidad';
+import NotFound from './pages/NotFound';
 import { useEffect } from 'react';
 
 // Scroll to top on route change
@@ -32,7 +36,9 @@ const App: React.FC = () => {
           <Route path="/contacto" element={<Contacto />} />
           <Route path="/confirmacion" element={<Confirmacion />} />
           <Route path="/reclamaciones" element={<LibroReclamaciones />} />
-          {/* Add more routes as needed */}
+          <Route path="/condiciones" element={<Condiciones />} />
+          <Route path="/privacidad" element={<Privacidad />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </MainLayout>
     </Router>

@@ -1,3 +1,4 @@
+// ✅ Contacto.tsx — Fix 5 & 6: defaultValue en select, removido `selected`, agregado isLoading
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -13,11 +14,13 @@ const Contacto: React.FC = () => {
     ruc: '',
     servicio: ''
   });
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate API call
+    setIsLoading(true);
     setTimeout(() => {
+      setIsLoading(false);
       navigate('/confirmacion');
     }, 500);
   };
@@ -30,15 +33,15 @@ const Contacto: React.FC = () => {
     <div className="bg-space">
       <div className="network-overlay min-h-screen">
         <section className="section-container max-w-3xl mx-auto py-32">
-          <motion.h1 
+          <motion.h1
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-5xl font-bold mb-12 text-center"
           >
             Conecta con tu marca
           </motion.h1>
-          
-          <motion.form 
+
+          <motion.form
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             onSubmit={handleSubmit}
@@ -51,6 +54,7 @@ const Contacto: React.FC = () => {
                 placeholder="Nombre Completo"
                 className="w-full bg-white text-gray-800 p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-cyan transition-all"
                 required
+                value={formData.nombre}
                 onChange={handleChange}
               />
             </div>
@@ -61,6 +65,7 @@ const Contacto: React.FC = () => {
                 placeholder="Cargo"
                 className="w-full bg-white text-gray-800 p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-cyan transition-all"
                 required
+                value={formData.cargo}
                 onChange={handleChange}
               />
             </div>
@@ -71,6 +76,7 @@ const Contacto: React.FC = () => {
                 placeholder="Email"
                 className="w-full bg-white text-gray-800 p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-cyan transition-all"
                 required
+                value={formData.email}
                 onChange={handleChange}
               />
             </div>
@@ -85,6 +91,7 @@ const Contacto: React.FC = () => {
                 placeholder="Número de celular"
                 className="flex-grow bg-white text-gray-800 p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-cyan transition-all"
                 required
+                value={formData.celular}
                 onChange={handleChange}
               />
             </div>
@@ -95,6 +102,7 @@ const Contacto: React.FC = () => {
                 placeholder="Empresa"
                 className="w-full bg-white text-gray-800 p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-cyan transition-all"
                 required
+                value={formData.empresa}
                 onChange={handleChange}
               />
             </div>
@@ -105,30 +113,33 @@ const Contacto: React.FC = () => {
                 placeholder="RUC"
                 className="w-full bg-white text-gray-800 p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-cyan transition-all"
                 required
+                value={formData.ruc}
                 onChange={handleChange}
               />
             </div>
             <div>
               <select
                 name="servicio"
+                defaultValue=""
                 className="w-full bg-white text-gray-800 p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-cyan transition-all appearance-none"
                 required
                 onChange={handleChange}
               >
-                <option value="" disabled selected>Servicio que requiere</option>
+                <option value="" disabled>Servicio que requiere</option>
                 <option value="web">Página Web</option>
                 <option value="app">App Móvil</option>
                 <option value="ai">Inteligencia Artificial</option>
                 <option value="marketing">Marketing Digital</option>
               </select>
             </div>
-            
+
             <div className="pt-8 text-center">
-              <button 
+              <button
                 type="submit"
-                className="btn-cyan w-full text-xl py-4 uppercase tracking-widest font-bold"
+                disabled={isLoading}
+                className="btn-cyan w-full text-xl py-4 uppercase tracking-widest font-bold disabled:opacity-60"
               >
-                Conectar
+                {isLoading ? 'Enviando...' : 'Conectar'}
               </button>
             </div>
           </motion.form>

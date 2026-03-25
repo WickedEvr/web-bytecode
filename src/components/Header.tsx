@@ -1,6 +1,7 @@
+// ✅ Header.tsx — Fix 4: Links sociales con URLs reales, target="_blank" y rel="noopener noreferrer"
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, X, Facebook, Instagram, ArrowLeft } from 'lucide-react';
+import { Menu, X, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Header: React.FC = () => {
@@ -36,11 +37,27 @@ const Header: React.FC = () => {
             Conectar
           </Link>
           <div className="flex items-center space-x-4 ml-4">
-            <a href="#" className="text-white hover:text-primary-cyan">
-              <Facebook size={20} />
+            <a
+              href="https://facebook.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white hover:text-primary-cyan"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+              </svg>
             </a>
-            <a href="#" className="text-white hover:text-primary-cyan">
-              <Instagram size={20} />
+            <a
+              href="https://instagram.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white hover:text-primary-cyan"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
+                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+              </svg>
             </a>
           </div>
         </nav>
