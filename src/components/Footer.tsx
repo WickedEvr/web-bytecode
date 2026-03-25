@@ -2,49 +2,75 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Phone, Mail } from 'lucide-react';
 
+/* Isotipo Bytecode */
+const SwirlMark: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <img src="/isotipo.svg" alt="" aria-hidden="true" className={className} />
+);
+
 const Footer: React.FC = () => {
   return (
-    <footer className="bg-black text-gray-400 py-16 px-6">
-      <div className="max-w-7xl mx-auto flex flex-col items-center">
-        <h2 className="text-white text-2xl md:text-3xl font-medium mb-8 text-center">
-          Un clic para ti, un salto para tu marca.
-        </h2>
-        
-        <Link to="/contacto" className="btn-cyan mb-12">
-          Conectar
-        </Link>
-        
-        <div className="w-full flex flex-col md:flex-row justify-between items-start md:items-center border-t border-gray-800 pt-12 space-y-8 md:space-y-0">
-          {/* Contact Info */}
-          <div className="space-y-4">
-            <div className="flex items-center space-x-3">
-              <Phone size={20} className="text-primary-cyan" />
-              <span>+51 987 654 321</span>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Mail size={20} className="text-primary-cyan" />
-              <span>contacto@bytecode.com</span>
-            </div>
-          </div>
-          
-          {/* Copyright & Info */}
-          <div className="text-sm">
-            <p className="text-white font-bold mb-2 uppercase tracking-widest">BYTECODE</p>
-            <p>© 2026 Todos los derechos reservados.</p>
-          </div>
-          
-          {/* Links */}
-          <div className="flex flex-col space-y-2 text-sm uppercase tracking-wider">
-            <Link to="/condiciones" className="hover:text-primary-cyan">Condiciones</Link>
-            <Link to="/privacidad" className="hover:text-primary-cyan">Privacidad</Link>
-            <Link to="/reclamaciones" className="hover:text-primary-cyan">Libro de Reclamaciones</Link>
-          </div>
+    <footer className="bg-[#040e1f]">
+
+      {/* ── CTA PRE-FOOTER ── */}
+      <div className="border-t border-white/10 px-6 py-14">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8 relative">
+          <h2 className="text-white text-3xl md:text-4xl font-bold leading-tight max-w-sm">
+            Un clic para ti,<br />
+            un salto para tu marca.
+          </h2>
+
+          <Link to="/contacto" className="btn-cyan text-lg px-16 py-3 shrink-0">
+            Conectar
+          </Link>
+
+          {/* Swirl decorativo */}
+          <SwirlMark className="absolute bottom-0 right-0 w-6 h-9 text-white/30 hidden md:block" />
         </div>
-        
-        <div className="w-full text-right mt-12 text-xs opacity-50">
+      </div>
+
+      {/* ── FOOTER PRINCIPAL ── */}
+      <div className="border-t border-white/10 px-6 py-10">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-8 text-gray-400 text-sm">
+
+          {/* Contacto */}
+          <div className="space-y-1">
+            <p className="text-white font-semibold mb-2 text-xs uppercase tracking-widest">Contáctanos</p>
+            <div className="flex items-center gap-2">
+              <Phone size={14} className="text-primary-cyan shrink-0" />
+              <span>(+51) 946 243 145</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Mail size={14} className="text-primary-cyan shrink-0" />
+              <span>grupo@caplogistic.com.pe</span>
+            </div>
+          </div>
+
+          {/* Copyright */}
+          <p className="text-center text-gray-500 text-xs">
+            © 2026 Bytecode. Todos los derechos reservados.
+          </p>
+
+          {/* Links */}
+          <div className="flex flex-col md:flex-row gap-4 text-xs uppercase tracking-wider">
+            <Link to="/condiciones" className="hover:text-primary-cyan transition-colors">
+              Condiciones
+            </Link>
+            <Link to="/privacidad" className="hover:text-primary-cyan transition-colors">
+              Privacidad
+            </Link>
+            <Link to="/reclamaciones" className="hover:text-primary-cyan transition-colors">
+              Libro de Reclamaciones
+            </Link>
+          </div>
+
+        </div>
+
+        {/* Crédito */}
+        <div className="max-w-7xl mx-auto mt-6 text-right text-[11px] text-gray-600">
           Diseñado por Marco Román
         </div>
       </div>
+
     </footer>
   );
 };
