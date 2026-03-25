@@ -11,8 +11,8 @@
 
 @layer base {
   body {
-    @apply bg-deep-blue text-white font-sans overflow-x-hidden;
-    background: linear-gradient(135deg, #012a4a 0%, #01497c 50%, #01579b 100%);
+    @apply text-white font-sans overflow-x-hidden;
+    background: #060c1d;
     min-height: 100vh;
   }
 }
