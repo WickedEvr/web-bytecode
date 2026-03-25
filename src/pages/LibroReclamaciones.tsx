@@ -1,7 +1,47 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+// ✅ LibroReclamaciones.tsx — Fix 1 & 8: Estado controlado, handleSubmit, isLoading, radios vinculados
+import React, { useState } from 'react';
 
 const LibroReclamaciones: React.FC = () => {
+  const [formData, setFormData] = useState({
+    nombres: '',
+    apellidos: '',
+    domicilio: '',
+    tipoDoc: 'DNI',
+    numeroDoc: '',
+    telefono: '',
+    email: '',
+    personType: '',
+    goodType: '',
+    descripcionBien: '',
+    claimType: '',
+    detalleReclamo: '',
+    pedidoConsumidor: '',
+    aceptaTerminos: false,
+  });
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value, type } = e.target;
+    if (type === 'checkbox') {
+      setFormData({ ...formData, [name]: (e.target as HTMLInputElement).checked });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      alert('Reclamo enviado correctamente.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="bg-space min-h-screen">
       <div className="network-overlay py-20 px-6">
@@ -18,32 +58,93 @@ const LibroReclamaciones: React.FC = () => {
             </div>
           </div>
 
-          <form className="space-y-12">
+          <form className="space-y-12" onSubmit={handleSubmit}>
             {/* Seccion 1 */}
             <div className="space-y-6">
               <h2 className="text-2xl font-bold border-l-4 border-primary-cyan pl-4">1. Identificación del consumidor reclamante</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <input type="text" placeholder="Nombres" className="bg-white/5 border border-white/20 p-4 rounded-xl w-full" />
-                <input type="text" placeholder="Apellidos" className="bg-white/5 border border-white/20 p-4 rounded-xl w-full" />
-                <input type="text" placeholder="Domicilio" className="bg-white/5 border border-white/20 p-4 rounded-xl w-full md:col-span-2" />
-                <select className="bg-white/5 border border-white/20 p-4 rounded-xl w-full">
-                  <option>DNI</option>
-                  <option>CE</option>
-                  <option>RUC</option>
+                <input
+                  type="text"
+                  name="nombres"
+                  placeholder="Nombres"
+                  value={formData.nombres}
+                  onChange={handleChange}
+                  className="bg-white/5 border border-white/20 p-4 rounded-xl w-full"
+                />
+                <input
+                  type="text"
+                  name="apellidos"
+                  placeholder="Apellidos"
+                  value={formData.apellidos}
+                  onChange={handleChange}
+                  className="bg-white/5 border border-white/20 p-4 rounded-xl w-full"
+                />
+                <input
+                  type="text"
+                  name="domicilio"
+                  placeholder="Domicilio"
+                  value={formData.domicilio}
+                  onChange={handleChange}
+                  className="bg-white/5 border border-white/20 p-4 rounded-xl w-full md:col-span-2"
+                />
+                <select
+                  name="tipoDoc"
+                  value={formData.tipoDoc}
+                  onChange={handleChange}
+                  className="bg-white/5 border border-white/20 p-4 rounded-xl w-full"
+                >
+                  <option value="DNI">DNI</option>
+                  <option value="CE">CE</option>
+                  <option value="RUC">RUC</option>
                 </select>
-                <input type="text" placeholder="Número de documento" className="bg-white/5 border border-white/20 p-4 rounded-xl w-full" />
-                <input type="tel" placeholder="Teléfono" className="bg-white/5 border border-white/20 p-4 rounded-xl w-full" />
-                <input type="email" placeholder="Correo electrónico" className="bg-white/5 border border-white/20 p-4 rounded-xl w-full" />
+                <input
+                  type="text"
+                  name="numeroDoc"
+                  placeholder="Número de documento"
+                  value={formData.numeroDoc}
+                  onChange={handleChange}
+                  className="bg-white/5 border border-white/20 p-4 rounded-xl w-full"
+                />
+                <input
+                  type="tel"
+                  name="telefono"
+                  placeholder="Teléfono"
+                  value={formData.telefono}
+                  onChange={handleChange}
+                  className="bg-white/5 border border-white/20 p-4 rounded-xl w-full"
+                />
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="Correo electrónico"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="bg-white/5 border border-white/20 p-4 rounded-xl w-full"
+                />
               </div>
               <div className="flex items-center space-x-8">
-                 <label className="flex items-center space-x-2">
-                   <input type="radio" name="personType" className="accent-primary-cyan" />
-                   <span>Persona Natural</span>
-                 </label>
-                 <label className="flex items-center space-x-2">
-                   <input type="radio" name="personType" className="accent-primary-cyan" />
-                   <span>Empresa</span>
-                 </label>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    name="personType"
+                    value="natural"
+                    checked={formData.personType === 'natural'}
+                    onChange={handleChange}
+                    className="accent-primary-cyan"
+                  />
+                  <span>Persona Natural</span>
+                </label>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    name="personType"
+                    value="empresa"
+                    checked={formData.personType === 'empresa'}
+                    onChange={handleChange}
+                    className="accent-primary-cyan"
+                  />
+                  <span>Empresa</span>
+                </label>
               </div>
             </div>
 
@@ -51,33 +152,82 @@ const LibroReclamaciones: React.FC = () => {
             <div className="space-y-6">
               <h2 className="text-2xl font-bold border-l-4 border-primary-cyan pl-4">2. Identificación del bien contratado</h2>
               <div className="flex items-center space-x-8 mb-4">
-                 <label className="flex items-center space-x-2">
-                   <input type="radio" name="goodType" className="accent-primary-cyan" />
-                   <span>Producto</span>
-                 </label>
-                 <label className="flex items-center space-x-2">
-                   <input type="radio" name="goodType" className="accent-primary-cyan" />
-                   <span>Servicio</span>
-                 </label>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    name="goodType"
+                    value="producto"
+                    checked={formData.goodType === 'producto'}
+                    onChange={handleChange}
+                    className="accent-primary-cyan"
+                  />
+                  <span>Producto</span>
+                </label>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    name="goodType"
+                    value="servicio"
+                    checked={formData.goodType === 'servicio'}
+                    onChange={handleChange}
+                    className="accent-primary-cyan"
+                  />
+                  <span>Servicio</span>
+                </label>
               </div>
-              <textarea placeholder="Descripción del bien contratado" rows={4} className="bg-white/5 border border-white/20 p-4 rounded-xl w-full"></textarea>
+              <textarea
+                name="descripcionBien"
+                placeholder="Descripción del bien contratado"
+                rows={4}
+                value={formData.descripcionBien}
+                onChange={handleChange}
+                className="bg-white/5 border border-white/20 p-4 rounded-xl w-full"
+              />
             </div>
 
             {/* Seccion 3 */}
             <div className="space-y-6">
               <h2 className="text-2xl font-bold border-l-4 border-primary-cyan pl-4">3. Detalle de la reclamación</h2>
               <div className="flex items-center space-x-8 mb-4">
-                 <label className="flex items-center space-x-2">
-                   <input type="radio" name="claimType" className="accent-primary-cyan" />
-                   <span>Queja</span>
-                 </label>
-                 <label className="flex items-center space-x-2">
-                   <input type="radio" name="claimType" className="accent-primary-cyan" />
-                   <span>Reclamo</span>
-                 </label>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    name="claimType"
+                    value="queja"
+                    checked={formData.claimType === 'queja'}
+                    onChange={handleChange}
+                    className="accent-primary-cyan"
+                  />
+                  <span>Queja</span>
+                </label>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    name="claimType"
+                    value="reclamo"
+                    checked={formData.claimType === 'reclamo'}
+                    onChange={handleChange}
+                    className="accent-primary-cyan"
+                  />
+                  <span>Reclamo</span>
+                </label>
               </div>
-              <textarea placeholder="Detalle del reclamo o queja" rows={4} className="bg-white/5 border border-white/20 p-4 rounded-xl w-full"></textarea>
-              <textarea placeholder="Pedido del consumidor" rows={3} className="bg-white/5 border border-white/20 p-4 rounded-xl w-full"></textarea>
+              <textarea
+                name="detalleReclamo"
+                placeholder="Detalle del reclamo o queja"
+                rows={4}
+                value={formData.detalleReclamo}
+                onChange={handleChange}
+                className="bg-white/5 border border-white/20 p-4 rounded-xl w-full"
+              />
+              <textarea
+                name="pedidoConsumidor"
+                placeholder="Pedido del consumidor"
+                rows={3}
+                value={formData.pedidoConsumidor}
+                onChange={handleChange}
+                className="bg-white/5 border border-white/20 p-4 rounded-xl w-full"
+              />
             </div>
 
             {/* Adjuntar */}
@@ -94,12 +244,23 @@ const LibroReclamaciones: React.FC = () => {
             </div>
 
             <div className="flex items-start space-x-3">
-              <input type="checkbox" className="mt-1 accent-primary-cyan" required />
+              <input
+                type="checkbox"
+                name="aceptaTerminos"
+                checked={formData.aceptaTerminos}
+                onChange={handleChange}
+                className="mt-1 accent-primary-cyan"
+                required
+              />
               <p className="text-sm text-gray-400">Al enviar este formulario acepta estar de acuerdo con el contenido de su reclamo o queja.</p>
             </div>
 
-            <button type="submit" className="btn-cyan w-full py-4 text-xl uppercase tracking-widest font-bold">
-              Enviar Reclamo
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="btn-cyan w-full py-4 text-xl uppercase tracking-widest font-bold disabled:opacity-60"
+            >
+              {isLoading ? 'Enviando...' : 'Enviar Reclamo'}
             </button>
           </form>
         </section>
