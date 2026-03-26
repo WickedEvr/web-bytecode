@@ -1,8 +1,26 @@
-@import url('https://fonts.cdnfonts.com/css/sansation');
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Sansation';
+  font-style: normal;
+  font-weight: 400;
+  src: url('https://fonts.cdnfonts.com/s/13493/Sansation_Regular.woff') format('woff');
+}
+@font-face {
+  font-family: 'Sansation';
+  font-style: normal;
+  font-weight: 700;
+  src: url('https://fonts.cdnfonts.com/s/13493/Sansation_Bold.woff') format('woff');
+}
+@font-face {
+  font-family: 'Sansation';
+  font-style: normal;
+  font-weight: 300;
+  src: url('https://fonts.cdnfonts.com/s/13493/Sansation_Light.woff') format('woff');
+}
+
 @theme {
-  --color-primary-cyan: #00bcd4;
+  --color-primary-cyan: #0CA3C6;
   --color-secondary-blue: #0277bd;
   --color-deep-blue: #01579b;
   --color-text-light: #ffffff;
@@ -21,7 +39,12 @@
 
 @layer components {
   .btn-cyan {
-    @apply bg-primary-cyan text-white px-8 py-3 rounded-full font-bold hover:bg-cyan-600 transition-colors duration-300;
+    @apply text-white px-8 py-3 font-bold transition-colors duration-300;
+    background: #06CFD6;
+    border-radius: 22px;
+  }
+  .btn-cyan:hover {
+    background: #0CA3C6;
   }
   
   .glass-panel {

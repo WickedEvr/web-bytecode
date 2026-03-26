@@ -3,7 +3,13 @@
     "allow": [
       "WebFetch(domain:www.figma.com)",
       "Bash(cp \"C:/Users/laure/Downloads/DesignBytecode/logoBlancoBytecode.svg\" \"C:/Users/laure/Documents/ProyectosWeb/web-bytecode/public/logoBlancoBytecode.svg\")",
-      "Bash(cp \"C:/Users/laure/Downloads/DesignBytecode/isotipo.svg\" \"C:/Users/laure/Documents/ProyectosWeb/web-bytecode/public/isotipo.svg\")"
+      "Bash(cp \"C:/Users/laure/Downloads/DesignBytecode/isotipo.svg\" \"C:/Users/laure/Documents/ProyectosWeb/web-bytecode/public/isotipo.svg\")",
+      "Bash(node -e \":*)",
+      "Bash(for f:*)",
+      "Bash(do)",
+      "Bash(echo \"=== $f ===\")",
+      "Read(//c/Users/laure/Documents/ProyectosWeb/web-bytecode/**)",
+      "Bash(done)"
     ]
   }
 }
