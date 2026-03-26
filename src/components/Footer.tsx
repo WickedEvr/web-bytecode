@@ -65,10 +65,6 @@ const Footer: React.FC = () => {
 
         </div>
 
-        {/* Crédito */}
-        <div className="max-w-7xl mx-auto mt-6 text-right text-[11px] text-gray-600">
-          Diseñado por Marco Román
-        </div>
       </div>
 
     </footer>

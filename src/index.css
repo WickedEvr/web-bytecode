@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary-cyan: #00bcd4;
+  --color-primary-cyan: #0CA3C6;
   --color-secondary-blue: #0277bd;
   --color-deep-blue: #01579b;
   --color-text-light: #ffffff;
@@ -19,7 +19,12 @@
 
 @layer components {
   .btn-cyan {
-    @apply bg-primary-cyan text-white px-8 py-3 rounded-full font-bold hover:bg-cyan-600 transition-colors duration-300;
+    @apply text-white px-8 py-3 font-bold transition-colors duration-300;
+    background: #06CFD6;
+    border-radius: 22px;
+  }
+  .btn-cyan:hover {
+    background: #0CA3C6;
   }
   
   .glass-panel {

@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
-/* ── data ──────────────────────────────────────────── */
+const FONT = "'Sansation', sans-serif";
+const CYAN = '#0CA3C6';
+
 const services = [
   {
     title: 'Página Web',
     description: 'Te mereces un sitio web\nque haga todo lo que necesitas.',
-    // Reemplaza src con tu imagen real
-    img: 'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=800&q=80',
+    img: 'https://images.unsplash.com/photo-1515378960530-7c0da6231fb1?w=800&q=80',
   },
   {
     title: 'App Móvil',
@@ -22,9 +23,22 @@ const services = [
   },
 ];
 
-/* ── Bytecode isotipo ── */
 const SwirlMark: React.FC<{ className?: string }> = ({ className = '' }) => (
   <img src="/isotipo.svg" alt="" aria-hidden="true" className={className} />
+);
+
+/* ─── Logo grid cell ────────────────────────────────── */
+const LogoCell: React.FC<{ children: React.ReactNode; className?: string; colSpan?: boolean }> = ({
+  children,
+  className = 'bg-white',
+  colSpan = false,
+}) => (
+  <div
+    className={`flex items-center justify-center ${colSpan ? 'col-span-3 py-4' : 'aspect-square'} ${className}`}
+    style={{ borderRadius: '22px', boxShadow: '0px 0px 26.2px rgba(255,255,255,0.33)' }}
+  >
+    {children}
+  </div>
 );
 
 /* ══════════════════════════════════════════════════════
@@ -34,52 +48,61 @@ const Home: React.FC = () => {
   const [slide, setSlide] = useState(0);
 
   return (
-    <div className="overflow-x-hidden">
+    <div className="overflow-x-hidden" style={{ fontFamily: FONT }}>
 
       {/* ─────────────────────────────────────────────
-          1. HERO
+          1. HERO — dark space background
       ───────────────────────────────────────────── */}
-      <section className="relative min-h-[calc(100vh-6rem)] flex flex-col items-center justify-center text-center overflow-hidden">
+      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden">
 
-        {/* Fondo espacio */}
-        <div className="absolute inset-0">
-          <img src="/hero.png" alt="" className="w-full h-full object-cover" aria-hidden="true" />
-          <div className="absolute inset-0 bg-[#040e1f]/55" />
+        {/* Galaxy image */}
+        <div className="absolute inset-0" aria-hidden="true">
+          <img src="/hero.png" alt="" className="w-full h-full object-cover object-center" />
+          <div className="absolute inset-0" style={{ background: 'rgba(4,14,31,0.6)' }} />
         </div>
 
-        {/* Líneas de constelación */}
+        {/* Constellation — top-left */}
         <svg
-          className="absolute inset-0 w-full h-full pointer-events-none"
-          viewBox="0 0 1440 800"
-          preserveAspectRatio="xMidYMid slice"
+          className="absolute top-0 left-0 pointer-events-none"
+          style={{ width: '42%', height: '44%' }}
+          viewBox="0 0 300 280"
           aria-hidden="true"
         >
-          {/* Triángulo superior-izquierdo */}
-          <polygon points="0,0 280,0 0,340" fill="none" stroke="rgba(255,255,255,0.13)" strokeWidth="1" />
-          <line x1="0" y1="170" x2="170" y2="0" stroke="rgba(255,255,255,0.07)" strokeWidth="1" />
-          <line x1="80" y1="0" x2="280" y2="180" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-          {/* Triángulo superior-derecho */}
-          <polygon points="1440,0 1170,0 1440,310" fill="none" stroke="rgba(255,255,255,0.13)" strokeWidth="1" />
-          <line x1="1440" y1="155" x2="1300" y2="0" stroke="rgba(255,255,255,0.07)" strokeWidth="1" />
-          <line x1="1370" y1="0" x2="1440" y2="230" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-          {/* Líneas interiores */}
-          <line x1="130" y1="360" x2="390" y2="190" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-          <line x1="390" y1="190" x2="530" y2="430" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-          <line x1="1070" y1="110" x2="890" y2="330" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-          {/* Nodos */}
-          <circle cx="390" cy="190" r="2.5" fill="rgba(255,255,255,0.4)" />
-          <circle cx="130" cy="360" r="2" fill="rgba(255,255,255,0.3)" />
-          <circle cx="890" cy="330" r="2" fill="rgba(255,255,255,0.3)" />
-          <circle cx="1070" cy="110" r="2.5" fill="rgba(255,255,255,0.4)" />
+          <line x1="20" y1="130" x2="130" y2="20"  stroke="rgba(255,255,255,0.35)" strokeWidth="1.2" />
+          <line x1="130" y1="20"  x2="250" y2="85"  stroke="rgba(255,255,255,0.25)" strokeWidth="1.2" />
+          <line x1="20"  y1="130" x2="75"  y2="240" stroke="rgba(255,255,255,0.18)" strokeWidth="1.2" />
+          <line x1="130" y1="20"  x2="55"  y2="130" stroke="rgba(255,255,255,0.10)" strokeWidth="1" />
+          <circle cx="130" cy="20"  r="3"   fill="rgba(255,255,255,0.55)" />
+          <circle cx="20"  cy="130" r="2.5" fill="rgba(255,255,255,0.45)" />
+          <circle cx="250" cy="85"  r="2"   fill="rgba(255,255,255,0.35)" />
+          <circle cx="75"  cy="240" r="2"   fill="rgba(255,255,255,0.28)" />
         </svg>
 
-        {/* Contenido */}
-        <div className="relative z-10 px-4">
+        {/* Constellation — top-right */}
+        <svg
+          className="absolute top-0 right-0 pointer-events-none"
+          style={{ width: '38%', height: '40%' }}
+          viewBox="0 0 280 250"
+          aria-hidden="true"
+        >
+          <line x1="260" y1="100" x2="155" y2="18"  stroke="rgba(255,255,255,0.35)" strokeWidth="1.2" />
+          <line x1="155" y1="18"  x2="30"  y2="65"  stroke="rgba(255,255,255,0.25)" strokeWidth="1.2" />
+          <line x1="260" y1="100" x2="200" y2="210" stroke="rgba(255,255,255,0.18)" strokeWidth="1.2" />
+          <line x1="155" y1="18"  x2="225" y2="115" stroke="rgba(255,255,255,0.10)" strokeWidth="1" />
+          <circle cx="155" cy="18"  r="3"   fill="rgba(255,255,255,0.55)" />
+          <circle cx="260" cy="100" r="2.5" fill="rgba(255,255,255,0.45)" />
+          <circle cx="30"  cy="65"  r="2"   fill="rgba(255,255,255,0.35)" />
+          <circle cx="200" cy="210" r="2"   fill="rgba(255,255,255,0.28)" />
+        </svg>
+
+        {/* Text + CTA */}
+        <div className="relative z-10 px-6 max-w-xl mx-auto">
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
-            className="text-5xl md:text-7xl font-black mb-10 leading-tight"
+            className="text-5xl md:text-7xl font-bold text-white leading-tight mb-12"
+            style={{ fontFamily: FONT }}
           >
             Un sitio web<br />
             Hace tus ideas realidad
@@ -87,12 +110,9 @@ const Home: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35, duration: 0.6 }}
+            transition={{ delay: 0.35 }}
           >
-            <Link
-              to="/contacto"
-              className="btn-cyan text-lg px-12 py-3 shadow-[0_0_28px_rgba(0,188,212,0.5)]"
-            >
+            <Link to="/contacto" className="btn-cyan text-base px-12">
               Conectar
             </Link>
           </motion.div>
@@ -100,11 +120,41 @@ const Home: React.FC = () => {
       </section>
 
       {/* ─────────────────────────────────────────────
-          2. SERVICES CARD SLIDER
+          2. SERVICES CARD — dark, rounded top
       ───────────────────────────────────────────── */}
-      <section className="bg-[#060c1d] pt-4 pb-20 px-4">
+      <section
+        className="-mt-16 pb-14 px-5 pt-12"
+        style={{ background: '#0b0f1a', borderRadius: '3rem 3rem 0 0' }}
+      >
         <div className="max-w-sm mx-auto">
 
+          {/* Card header */}
+          <p
+            className="text-center mb-2"
+            style={{
+              color: CYAN,
+              fontFamily: FONT,
+              fontSize: '1.5rem',   /* text-2xl */
+              fontWeight: 800,
+              lineHeight: 1.2,
+            }}
+          >
+            Haz crecer tu negocio
+          </p>
+          <p
+            className="text-center mb-5"
+            style={{
+              color: 'rgba(255,255,255,0.9)',
+              fontFamily: FONT,
+              fontSize: '0.9rem',
+              lineHeight: 1.5,
+            }}
+          >
+            Te mereces un sitio web que haga{' '}
+            <span style={{ color: CYAN }}>todo lo que necesitas.</span>
+          </p>
+
+          {/* Image card */}
           <AnimatePresence mode="wait">
             <motion.div
               key={slide}
@@ -112,54 +162,109 @@ const Home: React.FC = () => {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.97 }}
               transition={{ duration: 0.3 }}
-              className="bg-[#0b1222] rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl"
+              style={{
+                borderRadius: '1.5rem',   /* 24px — clips badge corner */
+                overflow: 'hidden',        /* force — not Tailwind class */
+                position: 'relative',
+              }}
             >
-              {/* Header del card */}
-              <div className="px-6 pt-6 pb-3 text-center">
-                <p className="text-primary-cyan font-semibold text-sm tracking-wide">
-                  Haz crecer tu negocio
-                </p>
-                <p className="text-white/70 text-xs mt-1">
-                  Te mereces un sitio web que haga{' '}
-                  <span className="text-primary-cyan">todo lo que necesitas.</span>
-                </p>
-              </div>
-
-              {/* Imagen con overlay */}
-              <div className="relative mx-3 mb-3 rounded-2xl overflow-hidden h-60">
+              <div style={{ position: 'relative', height: '290px', minHeight: '290px' }}>
                 <img
                   src={services[slide].img}
                   alt={services[slide].title}
                   className="w-full h-full object-cover"
                 />
-                {/* Degradado oscuro */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+                {/* Gradient overlay */}
+                <div
+                  style={{
+                    position: 'absolute', inset: 0,
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.93) 0%, rgba(0,0,0,0.38) 42%, rgba(0,0,0,0.04) 68%, transparent 100%)',
+                  }}
+                />
 
-                {/* Texto en el overlay */}
-                <div className="absolute bottom-4 left-4 right-14">
-                  <p className="font-bold text-white text-sm">{services[slide].title}</p>
-                  <p className="text-gray-300 text-xs mt-1 leading-snug whitespace-pre-line">
+                {/* Text block — kept clear of the 82px badge */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: '20px',
+                    left: '16px',
+                    right: '92px',  /* badge is 82px + 10px buffer */
+                  }}
+                >
+                  <p
+                    style={{
+                      fontFamily: FONT,
+                      fontWeight: 700,
+                      fontSize: '1rem',
+                      color: '#ffffff',
+                      lineHeight: 1.25,
+                      margin: 0,
+                    }}
+                  >
+                    {services[slide].title}
+                  </p>
+                  <p
+                    style={{
+                      fontFamily: FONT,
+                      fontSize: '0.75rem',
+                      color: 'rgba(255,255,255,0.82)',
+                      lineHeight: 1.45,
+                      marginTop: '4px',
+                      whiteSpace: 'pre-line',
+                    }}
+                  >
                     {services[slide].description}
                   </p>
                 </div>
 
-                {/* Badge swirl */}
-                <div className="absolute bottom-3 right-3 w-9 h-9 bg-primary-cyan rounded-full flex items-center justify-center">
-                  <SwirlMark className="w-4 h-6" />
+                {/* Concave corner badge — 82×76, flush bottom-right */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    right: 0,
+                    width: '82px',
+                    height: '76px',
+                  }}
+                >
+                  <svg
+                    viewBox="0 0 82 76"
+                    preserveAspectRatio="none"  /* fills container exactly */
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }}
+                    aria-hidden="true"
+                  >
+                    <path d="M82,0 L82,76 L0,76 A82,76 0 0 1 82,0 Z" fill={CYAN} />
+                  </svg>
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: '14px',
+                      right: '14px',
+                    }}
+                  >
+                    <SwirlMark className="w-6 h-9" />
+                  </div>
                 </div>
               </div>
             </motion.div>
           </AnimatePresence>
 
-          {/* Puntos de paginación */}
-          <div className="flex justify-center mt-5 gap-2">
+          {/* Pagination dots */}
+          <div className="flex justify-center mt-5 gap-2 items-center">
             {services.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setSlide(i)}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  slide === i ? 'w-8 bg-gray-400' : 'w-2 bg-gray-600'
-                }`}
+                style={{
+                  height: '6px',
+                  borderRadius: '9999px',
+                  transition: 'width 0.3s, background-color 0.3s',
+                  width: slide === i ? '40px' : '8px',       /* w-10 active, w-2 inactive */
+                  background: slide === i ? '#ffffff' : 'rgba(255,255,255,0.35)',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                }}
               />
             ))}
           </div>
@@ -167,66 +272,72 @@ const Home: React.FC = () => {
       </section>
 
       {/* ─────────────────────────────────────────────
-          3. HERRAMIENTAS
+          3. HERRAMIENTAS — white section
       ───────────────────────────────────────────── */}
-      <section className="bg-white py-16 px-6">
+      <section className="bg-white py-12 px-6">
         <div className="max-w-4xl mx-auto">
-          {/* Título con líneas laterales */}
-          <div className="flex items-center gap-6 mb-12">
+
+          {/* Title with side lines */}
+          <div className="flex items-center gap-4 mb-10">
             <div className="flex-1 h-px bg-gray-200" />
-            <h2 className="text-gray-800 text-sm font-bold uppercase tracking-[0.25em] whitespace-nowrap">
+            <h2
+              className="text-gray-600 text-xs font-semibold uppercase tracking-[0.25em] whitespace-nowrap"
+              style={{ fontFamily: FONT }}
+            >
               Nuestras Herramientas
             </h2>
             <div className="flex-1 h-px bg-gray-200" />
           </div>
 
-          {/* Logos */}
-          <div className="flex flex-wrap justify-center items-center gap-10 md:gap-14">
+          {/* Brand logos */}
+          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12">
 
             {/* Laravel */}
             <div className="flex items-center gap-2">
-              <svg viewBox="0 0 50 52" className="w-7 h-7" xmlns="http://www.w3.org/2000/svg">
+              <svg viewBox="0 0 50 52" className="w-6 h-6" xmlns="http://www.w3.org/2000/svg">
                 <path fill="#FF2D20" d="M49.626 11.564a.809.809 0 0 1 .028.209v10.972a.8.8 0 0 1-.402.694l-9.209 5.302V39.68a.801.801 0 0 1-.402.694L20.42 51.01a.814.814 0 0 1-.095.043.832.832 0 0 1-.145.028.8.8 0 0 1-.147 0 .838.838 0 0 1-.14-.03.818.818 0 0 1-.096-.044L.402 40.375A.8.8 0 0 1 0 39.681V6.812a.834.834 0 0 1 .028-.21.826.826 0 0 1 .138-.24.807.807 0 0 1 .116-.1.83.83 0 0 1 .12-.069L10.14.095a.8.8 0 0 1 .8 0l9.546 5.503.084.063.115.1.086.12.052.121.028.21v21.231l8.008-4.613V7.024a.838.838 0 0 1 .028-.21.826.826 0 0 1 .138-.24.821.821 0 0 1 .116-.1.83.83 0 0 1 .12-.07l9.538-5.5a.8.8 0 0 1 .8 0l9.546 5.505a.8.8 0 0 1 .402.694v.461zm-1.572 10.667V12.2l-3.359 1.933-4.648 2.677v10.042l8.007-4.621zM39.586 48.39V38.348l-4.58 2.614-13.105 7.48V58.56l17.685-10.17zM1.6 7.701v31.88L19.285 49.75V39.645l-9.205-5.255a.822.822 0 0 1-.158-.113.801.801 0 0 1-.073-.078.808.808 0 0 1-.129-.234.812.812 0 0 1-.044-.19V12.281L1.6 7.701zm8.938-6.124L2.53 6.19l8.008 4.611 8.008-4.611L10.538 1.577zm4.55 25.252 4.648-2.676V7.024L11.38 9.96 6.732 12.64v23.131l6.357-3.942zm24.99-18.187-8.007 4.612 8.007 4.614 8.008-4.614-8.008-4.612zm-.401 10.677-4.648-2.677-3.359-1.933v10.039l4.648 2.676 3.359 1.935V19.32zm-17.28 9.651 13.105-7.546-6.196-3.566-12.604 7.26 5.695 3.852zm12.703 4.395-1.601-.921-10.846-6.239-8.008 4.611 9.203 5.248 11.252-2.699z" />
               </svg>
-              <span className="font-bold text-gray-800 text-base">Laravel</span>
+              <span className="font-bold text-gray-800 text-sm" style={{ fontFamily: FONT }}>Laravel</span>
             </div>
 
             {/* GitHub */}
             <div className="flex items-center gap-2">
-              <svg viewBox="0 0 24 24" className="w-7 h-7" fill="#181717">
+              <svg viewBox="0 0 24 24" className="w-6 h-6" fill="#181717">
                 <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
               </svg>
-              <span className="font-bold text-gray-800 text-base">GitHub</span>
+              <span className="font-bold text-gray-800 text-sm" style={{ fontFamily: FONT }}>GitHub</span>
             </div>
 
             {/* PHP */}
-            <div className="flex items-center gap-2 bg-[#8892BF] text-white font-black italic px-5 py-2 rounded-lg text-lg tracking-wider">
+            <div
+              className="text-white font-black italic px-5 py-2 rounded-full text-sm tracking-wider"
+              style={{ background: '#8892BF', fontFamily: FONT }}
+            >
               php
             </div>
 
             {/* Java */}
             <div className="flex items-center gap-2">
-              <svg viewBox="0 0 32 44" className="w-7 h-10" xmlns="http://www.w3.org/2000/svg">
+              <svg viewBox="0 0 32 44" className="w-6 h-9" xmlns="http://www.w3.org/2000/svg">
                 <path fill="#EA2D2E" d="M12.3 30.2s-1.8 1.1 1.3 1.4c3.8.5 5.7.4 9.9-.5 0 0 1.1.7 2.6 1.3C15.5 36.4 3.5 32.1 12.3 30.2z" />
                 <path fill="#EA2D2E" d="M11.2 25.7s-2 1.9 1.3 2.3c5 .5 9 .6 15.8-.8 0 0 .8.8 2 1.2C15.2 32.5-.6 28.5 11.2 25.7z" />
                 <path fill="#EA2D2E" d="M20.4 18.3c2.8 3.3-2.6 6.3-2.6 6.3s7.3-3.8 3.9-8.5C18.4 12.1 16 10 28.4 3c0 0-20.3 5-8 15.3z" />
-                <path fill="#EA2D2E" d="M34.2 33.7s1.5 1.2-1.3 2.2c-4.8 1.5-19.9 1.9-24.1.1-1.5-.7 1.4-.6 1.4-.6s1.5.3 3.6.4c0 0-1.6-.5-2.5-.7L11.3 35z" />
                 <path fill="#5382A1" d="M12.9 21.6s-5.8 1.4-2 1.9c1.6.2 4.8.2 7.7-.1 2.4-.2 4.8-.6 4.8-.6s-.8.4-1.5.8c-5.9 1.5-17.3.8-14-1.1 2.8-1.6 5-1 5-.9zM30.5 30.4c5.9-3.1 3.2-6.1 1.3-5.7-.5.1-.7.2-.7.2s.2-.3.5-.4c3.7-1.3 6.6 3.9-1.2 5.9 0 0 .09-.08.1-.01z" />
                 <path fill="#5382A1" d="M22.9 0.8s3.3 3.3-3.1 8.4c-5.2 4.1-1.2 6.4 0 9.1-3-2.7-5.3-5.1-3.8-7.3 2.2-3.4 8.3-5 6.9-10.2z" />
                 <path fill="#5382A1" d="M13.8 43.9c5.7.4 14.5-.2 14.7-2.9 0 0-.4 1-4.7 1.8-5 .9-11 .8-14.6.2 0 0 .7.6 4.6.9z" />
                 <path fill="#5382A1" d="M11.6 39.3c-6 -1.7.1-5.3.1-5.3-6.3 1.7-7.2 5.3-2 6.7 5.5 1.5 12.3.3 12.3.3s-3.9 1-10.4-1.7z" />
               </svg>
-              <span className="font-bold text-gray-800 text-base">Java</span>
+              <span className="font-bold text-gray-800 text-sm" style={{ fontFamily: FONT }}>Java</span>
             </div>
 
             {/* MongoDB */}
             <div className="flex items-center gap-2">
-              <svg viewBox="0 0 18 38" className="w-4 h-9" xmlns="http://www.w3.org/2000/svg">
+              <svg viewBox="0 0 18 38" className="w-4 h-8" xmlns="http://www.w3.org/2000/svg">
                 <path fill="#4DB33D" d="M9 0C9 0 1.5 10.5 1.5 20C1.5 24.7 4.8 28.7 9 30C13.2 28.7 16.5 24.7 16.5 20C16.5 10.5 9 0 9 0Z" />
                 <path fill="#3FA037" d="M9 30C9 30 8.4 30.4 8.4 38H9.6C9.6 30.4 9 30 9 30Z" />
                 <path fill="#1F8B4C" d="M9 30C9 30 9.6 30.4 9.6 38H9C9 38 9 30 9 30Z" />
               </svg>
-              <span className="font-bold text-gray-800 text-base">MongoDB</span>
+              <span className="font-bold text-gray-800 text-sm" style={{ fontFamily: FONT }}>MongoDB</span>
             </div>
 
           </div>
@@ -234,90 +345,134 @@ const Home: React.FC = () => {
       </section>
 
       {/* ─────────────────────────────────────────────
-          4. IA SECTION
+          4. IA SECTION — cyan blob + two panels
       ───────────────────────────────────────────── */}
-      <section className="relative bg-[#060c1d] overflow-hidden">
-        {/* Blob cyan orgánico en la parte superior */}
-        <div className="absolute top-0 left-0 right-0 pointer-events-none">
-          <svg viewBox="0 0 1440 260" className="w-full" preserveAspectRatio="none" aria-hidden="true">
+      <section
+        className="relative overflow-hidden"
+        style={{ background: '#060c1d', minHeight: '500px' }}
+      >
+        {/* Cyan organic blob — top-left */}
+        <div
+          className="absolute top-0 left-0 pointer-events-none"
+          style={{ width: '100%', height: '100%' }}
+          aria-hidden="true"
+        >
+          <svg viewBox="0 0 600 520" className="w-full h-full" preserveAspectRatio="xMinYMin slice">
             <path
-              d="M0,0 L1440,0 L1440,100 C1300,230 1000,260 700,190 C400,120 150,220 0,140 Z"
-              fill="#00bcd4"
+              d="M0,0 L360,0 C380,0 400,10 400,30 C400,80 360,140 300,185 C240,230 160,255 100,265 C50,272 10,270 0,265 Z"
+              fill={CYAN}
             />
           </svg>
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-6 py-36 md:py-48">
-          <div className="flex flex-col lg:flex-row items-center gap-16">
+        {/* Content */}
+        <div className="relative z-10 flex flex-col md:flex-row items-start px-6 pt-16 pb-20 max-w-5xl mx-auto gap-6">
 
-            {/* Texto */}
-            <div className="w-full lg:w-1/2">
-              <h2 className="text-3xl md:text-4xl font-black text-primary-cyan leading-snug mb-5">
-                Comenzar nunca ha sido<br />
-                tan fácil gracias a la IA
-              </h2>
-              <p className="text-white/80 text-base mb-3 leading-relaxed">
-                No hace falta tener experiencia.
-              </p>
-              <p className="text-white/40 text-xs italic leading-relaxed">
-                IA de diseño con IA, uno de los mejores<br />
-                inventos de TIME de 2025*
-              </p>
-            </div>
-
-            {/* Imágenes */}
-            {/* Reemplaza los src con tus imágenes reales */}
-            <div className="w-full lg:w-1/2 flex gap-4 h-80 md:h-96">
-              <div className="w-1/2 rounded-3xl overflow-hidden shadow-2xl">
-                <img
-                  src="https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=400&q=80"
-                  alt="Inteligencia artificial"
-                  className="w-full h-full object-cover object-center"
-                />
-              </div>
-              <div className="w-1/2 rounded-3xl overflow-hidden shadow-2xl mt-10">
-                <img
-                  src="https://images.unsplash.com/photo-1535378620166-273708d44e4c?w=400&q=80"
-                  alt="Desarrollo tecnológico"
-                  className="w-full h-full object-cover object-center"
-                />
-              </div>
-            </div>
-
+          {/* Left text */}
+          <div className="w-full md:w-5/12 pt-6">
+            <h2
+              className="text-2xl font-bold leading-snug mb-3"
+              style={{ color: CYAN, fontFamily: FONT }}
+            >
+              Comenzar nunca ha sido<br />
+              tan fácil gracias a la IA
+            </h2>
+            <p
+              className="text-white text-sm mb-2"
+              style={{ fontFamily: FONT }}
+            >
+              No hace falta tener experiencia.
+            </p>
+            <p
+              className="text-xs italic leading-relaxed"
+              style={{ color: 'rgba(255,255,255,0.38)', fontFamily: FONT }}
+            >
+              IA de diseño con IA, uno de los mejores<br />
+              inventos de TIME de 2025*
+            </p>
           </div>
+
+          {/* Right panels — staggered */}
+          <div className="w-full md:w-7/12 flex gap-4 items-start">
+            {/* Panel 1 — taller, starts at top */}
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="flex-1 overflow-hidden"
+              style={{
+                borderRadius: '2.25rem',
+                height: '21rem',
+                boxShadow: '0 8px 40px rgba(0,0,0,0.55)',
+              }}
+            >
+              <img
+                src="https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=400&q=80"
+                alt="Inteligencia artificial"
+                className="w-full h-full object-cover object-top"
+              />
+            </motion.div>
+            {/* Panel 2 — shorter, pushed down */}
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="flex-1 overflow-hidden"
+              style={{
+                borderRadius: '2.25rem',
+                height: '16rem',
+                marginTop: '6rem',
+                boxShadow: '0 8px 40px rgba(0,0,0,0.55)',
+              }}
+            >
+              <img
+                src="https://images.unsplash.com/photo-1535378620166-273708d44e4c?w=400&q=80"
+                alt="Desarrollo tecnológico"
+                className="w-full h-full object-cover"
+              />
+            </motion.div>
+          </div>
+
         </div>
       </section>
 
       {/* ─────────────────────────────────────────────
-          5. CLIENTES / CONFIANZA
+          5. CLIENTS — logo grid + 14 Millones
       ───────────────────────────────────────────── */}
-      <section className="bg-[#060c1d] border-t border-white/10 py-24 px-6 relative overflow-hidden">
-
-        {/* Triángulos decorativos (inferior derecha) */}
-        <div className="absolute bottom-0 right-0 pointer-events-none opacity-70" aria-hidden="true">
-          <svg viewBox="0 0 320 320" className="w-64 h-64">
-            <polygon points="160,10 310,310 10,310" fill="none" stroke="#00bcd4" strokeWidth="1.2" />
-            <polygon points="210,60 310,310 110,310" fill="none" stroke="#00bcd4" strokeWidth="0.8" />
-            <polygon points="255,115 310,310 200,310" fill="#00bcd4" opacity="0.5" />
+      <section
+        className="relative overflow-hidden py-20 px-6"
+        style={{ background: '#060c1d' }}
+      >
+        {/* Triangle decoration — bottom-right */}
+        <div
+          className="absolute bottom-0 right-0 pointer-events-none"
+          style={{ opacity: 0.75 }}
+          aria-hidden="true"
+        >
+          <svg viewBox="0 0 300 280" className="w-44 h-40">
+            <polygon points="150,10 290,270 10,270" fill="none" stroke={CYAN} strokeWidth="1.5" />
+            <polygon points="190,55 290,270 90,270" fill="none" stroke={CYAN} strokeWidth="1" />
+            <polygon points="230,105 290,270 170,270" fill={CYAN} opacity="0.5" />
           </svg>
         </div>
 
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col lg:flex-row items-center gap-20">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex flex-col lg:flex-row items-center gap-14">
 
-            {/* Grid de logos */}
-            <div className="w-full lg:w-5/12">
-              <div className="grid grid-cols-3 gap-3 max-w-xs mx-auto lg:mx-0">
+            {/* Logo grid */}
+            <div className="shrink-0">
+              <div className="grid grid-cols-3 gap-3" style={{ width: '285px' }}>
 
-                {/* Fila 1 */}
-                <div className="bg-white rounded-2xl p-3 flex items-center justify-center aspect-square shadow-lg">
-                  {/* Apple */}
-                  <svg viewBox="0 0 814 1000" className="w-9 h-9" fill="#111">
+                {/* Apple */}
+                <LogoCell>
+                  <svg viewBox="0 0 814 1000" className="w-10 h-10" fill="#111">
                     <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105-42.8-157.2-113.8C200 432.4 200 208.9 205.5 127.3 212.7 45.7 267.2 0 320.4 0c68.5 0 140.9 41.8 184.4 41.8 27.4 0 90.4-41.8 167.7-41.8 29.4 0 116.4 12.5 179.4 99.3zm-61.3-192.7c24.6-29.6 41.3-71.7 41.3-113.9 0-1.5-.1-3-.2-4.5-39.4 1.5-86.7 26.1-114.7 58-21.6 24.6-41.3 66.7-41.3 109.4 0 1.8.2 3.6.3 4.2.3 0 .8.1 1.3.1 35.5 0 79.7-23.8 113.3-53.3z" />
                   </svg>
-                </div>
-                <div className="bg-white rounded-2xl p-2 flex items-center justify-center aspect-square shadow-lg">
-                  {/* Pepsi */}
+                </LogoCell>
+
+                {/* Pepsi */}
+                <LogoCell>
                   <svg viewBox="0 0 100 100" className="w-10 h-10">
                     <circle cx="50" cy="50" r="48" fill="#004B93" />
                     <path d="M50 2 A48 48 0 0 1 98 50 L50 50 Z" fill="#EE1C23" />
@@ -325,30 +480,40 @@ const Home: React.FC = () => {
                     <path d="M50 50 A48 48 0 0 1 2 50 Z" fill="white" />
                     <ellipse cx="50" cy="50" rx="12" ry="48" fill="white" opacity="0.6" />
                   </svg>
-                </div>
-                <div className="bg-primary-cyan rounded-2xl aspect-square shadow-lg" />
+                </LogoCell>
 
-                {/* Fila 2 */}
-                <div className="bg-primary-cyan rounded-2xl aspect-square shadow-lg" />
-                <div className="bg-white rounded-2xl p-2 flex items-center justify-center aspect-square shadow-lg">
-                  {/* Burger King */}
+                {/* Cyan square */}
+                <div
+                  className="aspect-square"
+                  style={{ background: CYAN, borderRadius: '22px', boxShadow: '0px 0px 26.2px rgba(255,255,255,0.33)' }}
+                />
+
+                {/* Cyan square */}
+                <div
+                  className="aspect-square"
+                  style={{ background: CYAN, borderRadius: '22px', boxShadow: '0px 0px 26.2px rgba(255,255,255,0.33)' }}
+                />
+
+                {/* Burger King */}
+                <LogoCell>
                   <div className="text-center leading-tight">
                     <div className="bg-[#C8102E] text-white text-[7px] font-black rounded-full px-2 py-0.5 mb-0.5 tracking-tight">
                       BURGER
                     </div>
                     <div className="text-[#F5A623] font-black text-[11px] tracking-tight">KING</div>
                   </div>
-                </div>
-                <div className="bg-white rounded-2xl p-3 flex items-center justify-center aspect-square shadow-lg">
-                  {/* Nike swoosh */}
+                </LogoCell>
+
+                {/* Nike */}
+                <LogoCell>
                   <svg viewBox="0 0 100 40" className="w-12" fill="#111">
                     <path d="M0 38 L92 2 C97 -0.5 103 2.5 101 9 C100 13 94 17 88 19 L16 38 Z" />
                   </svg>
-                </div>
+                </LogoCell>
 
-                {/* Fila 3 — Google span 3 */}
-                <div className="col-span-3 bg-white rounded-2xl px-4 py-3 flex items-center justify-center shadow-lg">
-                  <span className="text-2xl font-bold">
+                {/* Google — full width */}
+                <LogoCell colSpan>
+                  <span className="text-2xl font-bold" style={{ fontFamily: FONT }}>
                     <span className="text-[#4285F4]">G</span>
                     <span className="text-[#EA4335]">o</span>
                     <span className="text-[#FBBC05]">o</span>
@@ -356,20 +521,29 @@ const Home: React.FC = () => {
                     <span className="text-[#34A853]">l</span>
                     <span className="text-[#EA4335]">e</span>
                   </span>
-                </div>
+                </LogoCell>
 
               </div>
             </div>
 
-            {/* Texto "14 Millones" */}
-            <div className="w-full lg:w-7/12 text-center lg:text-left">
-              <p className="text-white/50 uppercase tracking-[0.3em] text-sm mb-3">
+            {/* "14 Millones" */}
+            <div className="text-center lg:text-left">
+              <p
+                className="uppercase tracking-[0.3em] text-sm mb-2"
+                style={{ color: 'rgba(255,255,255,0.5)', fontFamily: FONT }}
+              >
                 Con la confianza de
               </p>
-              <h2 className="text-6xl md:text-8xl font-black text-white leading-none mb-4">
+              <h2
+                className="text-6xl md:text-8xl font-bold leading-none mb-3"
+                style={{ color: CYAN, fontFamily: FONT }}
+              >
                 14 Millones
               </h2>
-              <p className="text-white/70 text-xl md:text-2xl leading-relaxed">
+              <p
+                className="text-xl leading-relaxed"
+                style={{ color: 'rgba(255,255,255,0.72)', fontFamily: FONT }}
+              >
                 de emprendedores en todo el mundo
               </p>
             </div>
