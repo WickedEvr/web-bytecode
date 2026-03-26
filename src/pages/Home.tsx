@@ -53,56 +53,60 @@ const Home: React.FC = () => {
       {/* ─────────────────────────────────────────────
           1. HERO — dark space background
       ───────────────────────────────────────────── */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden">
+      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden select-none" style={{ marginTop: 0 }}>
 
         {/* Galaxy image */}
-        <div className="absolute inset-0" aria-hidden="true">
-          <img src="/hero.png" alt="" className="w-full h-full object-cover object-center" />
-          <div className="absolute inset-0" style={{ background: 'rgba(4,14,31,0.6)' }} />
+        <div className="absolute inset-0" style={{ top: 0 }} aria-hidden="true">
+          <img src="/hero.png" alt="" className="w-full h-full object-cover" style={{ objectPosition: 'center 20%', transform: 'scale(1.1)', transformOrigin: 'top center' }} />
+          <div className="absolute inset-0" style={{ background: 'rgba(4,14,31,0.45)' }} />
         </div>
 
-        {/* Constellation — top-left */}
-        <svg
-          className="absolute top-0 left-0 pointer-events-none"
-          style={{ width: '42%', height: '44%' }}
-          viewBox="0 0 300 280"
+        {/* Esquina superior derecha */}
+        <img
+          src="/esquina-arriba.svg"
           aria-hidden="true"
-        >
-          <line x1="20" y1="130" x2="130" y2="20"  stroke="rgba(255,255,255,0.35)" strokeWidth="1.2" />
-          <line x1="130" y1="20"  x2="250" y2="85"  stroke="rgba(255,255,255,0.25)" strokeWidth="1.2" />
-          <line x1="20"  y1="130" x2="75"  y2="240" stroke="rgba(255,255,255,0.18)" strokeWidth="1.2" />
-          <line x1="130" y1="20"  x2="55"  y2="130" stroke="rgba(255,255,255,0.10)" strokeWidth="1" />
-          <circle cx="130" cy="20"  r="3"   fill="rgba(255,255,255,0.55)" />
-          <circle cx="20"  cy="130" r="2.5" fill="rgba(255,255,255,0.45)" />
-          <circle cx="250" cy="85"  r="2"   fill="rgba(255,255,255,0.35)" />
-          <circle cx="75"  cy="240" r="2"   fill="rgba(255,255,255,0.28)" />
-        </svg>
+          className="absolute top-0 left-0 pointer-events-none z-10"
+          style={{ width: '40%' }}
+        />
 
-        {/* Constellation — top-right */}
-        <svg
-          className="absolute top-0 right-0 pointer-events-none"
-          style={{ width: '38%', height: '40%' }}
-          viewBox="0 0 280 250"
+        {/* Esquina inferior derecha */}
+        <img
+          src="/esquina-abajo.svg"
           aria-hidden="true"
-        >
-          <line x1="260" y1="100" x2="155" y2="18"  stroke="rgba(255,255,255,0.35)" strokeWidth="1.2" />
-          <line x1="155" y1="18"  x2="30"  y2="65"  stroke="rgba(255,255,255,0.25)" strokeWidth="1.2" />
-          <line x1="260" y1="100" x2="200" y2="210" stroke="rgba(255,255,255,0.18)" strokeWidth="1.2" />
-          <line x1="155" y1="18"  x2="225" y2="115" stroke="rgba(255,255,255,0.10)" strokeWidth="1" />
-          <circle cx="155" cy="18"  r="3"   fill="rgba(255,255,255,0.55)" />
-          <circle cx="260" cy="100" r="2.5" fill="rgba(255,255,255,0.45)" />
-          <circle cx="30"  cy="65"  r="2"   fill="rgba(255,255,255,0.35)" />
-          <circle cx="200" cy="210" r="2"   fill="rgba(255,255,255,0.28)" />
-        </svg>
+          className="absolute bottom-0 right-0 pointer-events-none z-10"
+          style={{ width: '40%' }}
+        />
+
+        {/* Sombra general arriba — debajo de sombra-arriba */}
+        <img
+          src="/sombra-general.svg"
+          aria-hidden="true"
+          className="absolute top-0 left-0 w-full pointer-events-none z-[9]"
+        />
+
+        {/* Sombra arriba */}
+        <img
+          src="/sombra-arriba.svg"
+          aria-hidden="true"
+          className="absolute top-0 left-0 w-full pointer-events-none z-10"
+        />
+        <img
+          src="/sombra-arriba.svg"
+          aria-hidden="true"
+          className="absolute top-0 left-0 w-full pointer-events-none z-10"
+          style={{ opacity: 0.5 }}
+        />
+
+
 
         {/* Text + CTA */}
-        <div className="relative z-10 px-6 max-w-xl mx-auto">
+        <div className="relative z-10 w-full px-4 flex flex-col items-center text-center select-none">
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
-            className="text-5xl md:text-7xl font-bold text-white leading-tight mb-12"
-            style={{ fontFamily: FONT }}
+            className="font-bold text-white leading-tight mb-14 text-center w-full"
+            style={{ fontFamily: FONT, fontSize: 'clamp(2.6rem, 9.1vw, 6.5rem)' }}
           >
             Un sitio web<br />
             Hace tus ideas realidad
@@ -111,165 +115,115 @@ const Home: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.35 }}
+            className="flex justify-center"
           >
-            <Link to="/contacto" className="btn-cyan text-base px-12">
-              Conectar
+            <Link to="/contacto" className="btn-cyan not-italic" style={{ width: '340px', height: '92px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Sansation'", fontStyle: 'normal', fontWeight: 400, fontSize: '44px', lineHeight: '49px', textAlign: 'center', color: '#FFFFFF' }}>
+              <span style={{ fontFamily: 'Sansation', fontWeight: 400, fontStyle: 'normal', fontSize: '52px', lineHeight: '100%', letterSpacing: '0', textAlign: 'center' }}>Conectar</span>
             </Link>
           </motion.div>
         </div>
       </section>
 
       {/* ─────────────────────────────────────────────
-          2. SERVICES CARD — dark, rounded top
+          2. SEGUNDA SECCIÓN — sombra-segunda como fondo
       ───────────────────────────────────────────── */}
-      <section
-        className="-mt-16 pb-14 px-5 pt-12"
-        style={{ background: '#0b0f1a', borderRadius: '3rem 3rem 0 0' }}
-      >
-        <div className="max-w-sm mx-auto">
+      <div className="relative z-10" style={{ marginTop: '-8%' }}>
+        <img
+          src="/sombra-segunda.svg"
+          aria-hidden="true"
+          className="w-full pointer-events-none select-none block"
+        />
 
-          {/* Card header */}
-          <p
-            className="text-center mb-2"
-            style={{
-              color: CYAN,
-              fontFamily: FONT,
-              fontSize: '1.5rem',   /* text-2xl */
-              fontWeight: 800,
-              lineHeight: 1.2,
-            }}
-          >
+        {/* Contenido encima del fondo */}
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-start px-5 select-none"
+          style={{ paddingTop: '4%' }}
+        >
+          {/* Títulos */}
+          <p style={{ color: CYAN, fontFamily: FONT, fontSize: 'clamp(2.24rem, 5.6vw, 3.36rem)', fontWeight: 800, lineHeight: 1.2, marginBottom: '0.6rem', textAlign: 'center' }}>
             Haz crecer tu negocio
           </p>
-          <p
-            className="text-center mb-5"
-            style={{
-              color: 'rgba(255,255,255,0.9)',
-              fontFamily: FONT,
-              fontSize: '0.9rem',
-              lineHeight: 1.5,
-            }}
-          >
+          <p style={{ color: '#ffffff', fontFamily: FONT, fontSize: 'clamp(1.4rem, 3.5vw, 2.03rem)', fontWeight: 400, lineHeight: 1.5, textAlign: 'center', marginBottom: '1.5rem' }}>
             Te mereces un sitio web que haga{' '}
             <span style={{ color: CYAN }}>todo lo que necesitas.</span>
           </p>
 
-          {/* Image card */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={slide}
-              initial={{ opacity: 0, scale: 0.97 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.97 }}
-              transition={{ duration: 0.3 }}
-              style={{
-                borderRadius: '1.5rem',   /* 24px — clips badge corner */
-                overflow: 'hidden',        /* force — not Tailwind class */
-                position: 'relative',
-              }}
-            >
-              <div style={{ position: 'relative', height: '290px', minHeight: '290px' }}>
-                <img
-                  src={services[slide].img}
-                  alt={services[slide].title}
-                  className="w-full h-full object-cover"
-                />
-                {/* Gradient overlay */}
-                <div
-                  style={{
-                    position: 'absolute', inset: 0,
-                    background: 'linear-gradient(to top, rgba(0,0,0,0.93) 0%, rgba(0,0,0,0.38) 42%, rgba(0,0,0,0.04) 68%, transparent 100%)',
-                  }}
-                />
+          {/* Tarjeta de servicio */}
+          <div className="w-full" style={{ maxWidth: '85%' }}>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={slide}
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.97 }}
+                transition={{ duration: 0.3 }}
+                style={{ borderRadius: '1.5rem', overflow: 'hidden', position: 'relative', zIndex: 10 }}
+              >
+                {/* Imagen */}
+                <div style={{ position: 'relative', height: '738px' }}>
+                  <img
+                    src={services[slide].img}
+                    alt={services[slide].title}
+                    className="w-full h-full object-cover"
+                    style={{ objectPosition: 'center 20%' }}
+                  />
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.93) 0%, rgba(0,0,0,0.38) 42%, rgba(0,0,0,0.04) 68%, transparent 100%)' }} />
 
-                {/* Text block — kept clear of the 82px badge */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    bottom: '20px',
-                    left: '16px',
-                    right: '92px',  /* badge is 82px + 10px buffer */
-                  }}
-                >
-                  <p
-                    style={{
-                      fontFamily: FONT,
-                      fontWeight: 700,
-                      fontSize: '1rem',
-                      color: '#ffffff',
-                      lineHeight: 1.25,
-                      margin: 0,
-                    }}
-                  >
-                    {services[slide].title}
-                  </p>
-                  <p
-                    style={{
-                      fontFamily: FONT,
-                      fontSize: '0.75rem',
-                      color: 'rgba(255,255,255,0.82)',
-                      lineHeight: 1.45,
-                      marginTop: '4px',
-                      whiteSpace: 'pre-line',
-                    }}
-                  >
-                    {services[slide].description}
-                  </p>
-                </div>
+                  {/* Texto inferior izquierdo */}
+                  <div style={{ position: 'absolute', bottom: '60px', left: '60px', right: '150px' }}>
+                    <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: '3.8rem', color: '#fff', lineHeight: 1.25, margin: 0 }}>
+                      {services[slide].title}
+                    </p>
+                    <p style={{ fontFamily: FONT, fontSize: '2.5rem', color: 'rgba(255,255,255,0.9)', lineHeight: 1.15, marginTop: '14px', whiteSpace: 'pre-line' }}>
+                      {services[slide].description}
+                    </p>
+                  </div>
 
-                {/* Concave corner badge — 82×76, flush bottom-right */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    bottom: 0,
-                    right: 0,
-                    width: '82px',
-                    height: '76px',
-                  }}
-                >
-                  <svg
-                    viewBox="0 0 82 76"
-                    preserveAspectRatio="none"  /* fills container exactly */
-                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }}
-                    aria-hidden="true"
-                  >
-                    <path d="M82,0 L82,76 L0,76 A82,76 0 0 1 82,0 Z" fill={CYAN} />
-                  </svg>
-                  <div
-                    style={{
-                      position: 'absolute',
-                      bottom: '14px',
-                      right: '14px',
-                    }}
-                  >
-                    <SwirlMark className="w-6 h-9" />
+                  {/* Badge isotipo — esquina inferior derecha */}
+                  <div style={{ position: 'absolute', bottom: 0, right: 0, width: '110px', height: '100px' }}>
+                    <svg viewBox="0 0 110 100" preserveAspectRatio="none" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }}>
+                      <path d="M110,0 L110,100 L0,100 A110,100 0 0 1 110,0 Z" fill={CYAN} />
+                    </svg>
+                    <div style={{ position: 'absolute', bottom: '16px', right: '16px' }}>
+                      <SwirlMark className="w-9 h-12" />
+                    </div>
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          </AnimatePresence>
 
-          {/* Pagination dots */}
-          <div className="flex justify-center mt-5 gap-2 items-center">
-            {services.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setSlide(i)}
-                style={{
-                  height: '6px',
-                  borderRadius: '9999px',
-                  transition: 'width 0.3s, background-color 0.3s',
-                  width: slide === i ? '40px' : '8px',       /* w-10 active, w-2 inactive */
-                  background: slide === i ? '#ffffff' : 'rgba(255,255,255,0.35)',
-                  border: 'none',
-                  padding: 0,
-                  cursor: 'pointer',
-                }}
-              />
-            ))}
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Dots de paginación */}
+            <div className="flex justify-center mt-5 gap-2 items-center">
+              {services.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setSlide(i)}
+                  style={{
+                    height: '6px',
+                    borderRadius: '9999px',
+                    transition: 'width 0.3s, background-color 0.3s',
+                    width: slide === i ? '40px' : '8px',
+                    background: slide === i ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.25)',
+                    border: 'none',
+                    padding: 0,
+                    cursor: 'pointer',
+                  }}
+                />
+              ))}
+            </div>
           </div>
+
+          {/* SVG blanco — ancho completo, encima del fondo negro */}
+          <img
+            src="/segunda-blanca.svg"
+            aria-hidden="true"
+            className="pointer-events-none select-none"
+            style={{ position: 'absolute', bottom: '-32%', left: 0, width: '100%', zIndex: 5 }}
+          />
         </div>
-      </section>
+      </div>
+
 
       {/* ─────────────────────────────────────────────
           3. HERRAMIENTAS — white section

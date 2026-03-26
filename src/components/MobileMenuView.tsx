@@ -75,10 +75,10 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
             
             {/* Texto Central */}
             <div className="z-20 -mt-12 md:-mt-20 md:ml-24"> 
-              <h2 className="text-white text-6xl md:text-8xl font-normal leading-[1.05] tracking-tight inline-block" style={{ fontStyle: 'normal', transform: 'skewX(0deg)', display: 'inline-block' }}>
-                <span style={{ display: 'block', transform: 'skewX(+11deg)' }}>Prepárate</span>
-                <span style={{ display: 'block', transform: 'skewX(+11deg)' }}>para el</span>
-                <span className="text-[#06CFD6] font-bold" style={{ display: 'block', transform: 'skewX(+0deg)' }}>despegue!</span>
+              <h2 className="text-white text-6xl md:text-8xl font-light leading-[1.05] tracking-tight inline-block" style={{ fontStyle: 'normal', display: 'inline-block' }}>
+                <span style={{ display: 'block' }}>Prepárate</span>
+                <span style={{ display: 'block' }}>para el</span>
+                <span className="text-[#06CFD6] font-bold" style={{ display: 'block' }}>despegue!</span>
               </h2>
               <p className="text-white mt-8 text-2xl md:text-4xl font-light italic opacity-95">
                 Conoce sobre nosotros
