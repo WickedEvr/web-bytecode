@@ -182,7 +182,7 @@ const Home: React.FC = () => {
                   {/* Badge isotipo — esquina inferior derecha */}
                   <div style={{ position: 'absolute', bottom: 0, right: 0, width: '110px', height: '100px' }}>
                     <svg viewBox="0 0 110 100" preserveAspectRatio="none" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }}>
-                      <path d="M110,0 L110,100 L0,100 A110,100 0 0 1 110,0 Z" fill={CYAN} />
+                      <path d="M0,100 C0,30 70,0 110,0 L110,100 Z" fill={CYAN} />
                     </svg>
                     <div style={{ position: 'absolute', bottom: '16px', right: '16px' }}>
                       <SwirlMark className="w-9 h-12" />
