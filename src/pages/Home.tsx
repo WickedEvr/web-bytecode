@@ -106,7 +106,7 @@ const Home: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
             className="font-bold text-white leading-tight mb-14 text-center w-full"
-            style={{ fontFamily: FONT, fontSize: 'clamp(2.6rem, 9.1vw, 6.5rem)' }}
+            style={{ fontFamily: FONT, fontSize: 'clamp(1.8rem, 6vw, 4.2rem)' }}
           >
             Un sitio web<br />
             Hace tus ideas realidad
@@ -117,8 +117,8 @@ const Home: React.FC = () => {
             transition={{ delay: 0.35 }}
             className="flex justify-center"
           >
-            <Link to="/contacto" className="btn-cyan not-italic" style={{ width: '340px', height: '92px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Sansation'", fontStyle: 'normal', fontWeight: 400, fontSize: '44px', lineHeight: '49px', textAlign: 'center', color: '#FFFFFF' }}>
-              <span style={{ fontFamily: 'Sansation', fontWeight: 400, fontStyle: 'normal', fontSize: '52px', lineHeight: '100%', letterSpacing: '0', textAlign: 'center' }}>Conectar</span>
+            <Link to="/contacto" className="btn-cyan not-italic" style={{ width: '220px', height: '62px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Sansation'", fontStyle: 'normal', fontWeight: 400, fontSize: '28px', lineHeight: '34px', textAlign: 'center', color: '#FFFFFF' }}>
+              <span style={{ fontFamily: 'Sansation', fontWeight: 400, fontStyle: 'normal', fontSize: '32px', lineHeight: '100%', letterSpacing: '0', textAlign: 'center' }}>Conectar</span>
             </Link>
           </motion.div>
         </div>
@@ -157,17 +157,17 @@ const Home: React.FC = () => {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.97 }}
                 transition={{ duration: 0.3 }}
-                style={{ borderRadius: '1.5rem', overflow: 'hidden', position: 'relative', zIndex: 10 }}
+                style={{ borderRadius: '28px', overflow: 'hidden', position: 'relative', zIndex: 10, boxShadow: '0px 4px 20.4px 9px rgba(0,0,0,0.22)' }}
               >
                 {/* Imagen */}
-                <div style={{ position: 'relative', height: '738px' }}>
+                <div style={{ position: 'relative', height: 'clamp(320px, 44vw, 554px)' }}>
                   <img
                     src={services[slide].img}
                     alt={services[slide].title}
                     className="w-full h-full object-cover"
                     style={{ objectPosition: 'center 20%' }}
                   />
-                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.93) 0%, rgba(0,0,0,0.38) 42%, rgba(0,0,0,0.04) 68%, transparent 100%)' }} />
+                  <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.28)' }} />
 
                   {/* Texto inferior izquierdo */}
                   <div style={{ position: 'absolute', bottom: '60px', left: '60px', right: '150px' }}>
@@ -180,14 +180,8 @@ const Home: React.FC = () => {
                   </div>
 
                   {/* Badge isotipo — esquina inferior derecha */}
-                  <div style={{ position: 'absolute', bottom: 0, right: 0, width: '110px', height: '100px' }}>
-                    <svg viewBox="0 0 110 100" preserveAspectRatio="none" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }}>
-                      <path d="M0,100 C0,30 70,0 110,0 L110,100 Z" fill={CYAN} />
-                    </svg>
-                    <div style={{ position: 'absolute', bottom: '16px', right: '16px' }}>
-                      <SwirlMark className="w-9 h-12" />
-                    </div>
-                  </div>
+                  <img src="/esquina-derecha.svg" alt="" aria-hidden="true" style={{ position: 'absolute', bottom: 0, right: 0, pointerEvents: 'none' }} />
+                  <img src="/isotipo.svg" alt="" aria-hidden="true" style={{ position: 'absolute', bottom: '5%', right: '3%', width: 'clamp(28px, 4vw, 56px)', height: 'auto', pointerEvents: 'none', zIndex: 2 }} />
                 </div>
 
               </motion.div>
@@ -228,166 +222,103 @@ const Home: React.FC = () => {
       {/* ─────────────────────────────────────────────
           3. HERRAMIENTAS — white section
       ───────────────────────────────────────────── */}
-      <section className="bg-white py-12 px-6">
-        <div className="max-w-4xl mx-auto">
+      <section className="bg-white pb-12 px-6" style={{ position: 'relative', zIndex: 20, marginTop: '-13rem', borderRadius: '2rem 2rem 0 0', paddingTop: '0' }}>
+        <div className="max-w-4xl mx-auto flex flex-col items-center">
 
           {/* Title with side lines */}
-          <div className="flex items-center gap-4 mb-10">
-            <div className="flex-1 h-px bg-gray-200" />
+          <div className="flex items-center gap-4 mb-10 w-full">
+            <div style={{ flex: 1, height: 0, border: '2px solid rgba(60, 60, 59, 0.69)' }} />
             <h2
-              className="text-gray-600 text-xs font-semibold uppercase tracking-[0.25em] whitespace-nowrap"
-              style={{ fontFamily: FONT }}
+              style={{ fontFamily: 'Sansation', fontStyle: 'normal', fontWeight: 700, fontSize: '40px', lineHeight: '45px', textAlign: 'center', color: '#3C3C3B', width: '420px', flexShrink: 0 }}
             >
               Nuestras Herramientas
             </h2>
-            <div className="flex-1 h-px bg-gray-200" />
+            <div style={{ flex: 1, height: 0, border: '2px solid rgba(60, 60, 59, 0.69)' }} />
           </div>
 
           {/* Brand logos */}
-          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12">
-
-            {/* Laravel */}
-            <div className="flex items-center gap-2">
-              <svg viewBox="0 0 50 52" className="w-6 h-6" xmlns="http://www.w3.org/2000/svg">
-                <path fill="#FF2D20" d="M49.626 11.564a.809.809 0 0 1 .028.209v10.972a.8.8 0 0 1-.402.694l-9.209 5.302V39.68a.801.801 0 0 1-.402.694L20.42 51.01a.814.814 0 0 1-.095.043.832.832 0 0 1-.145.028.8.8 0 0 1-.147 0 .838.838 0 0 1-.14-.03.818.818 0 0 1-.096-.044L.402 40.375A.8.8 0 0 1 0 39.681V6.812a.834.834 0 0 1 .028-.21.826.826 0 0 1 .138-.24.807.807 0 0 1 .116-.1.83.83 0 0 1 .12-.069L10.14.095a.8.8 0 0 1 .8 0l9.546 5.503.084.063.115.1.086.12.052.121.028.21v21.231l8.008-4.613V7.024a.838.838 0 0 1 .028-.21.826.826 0 0 1 .138-.24.821.821 0 0 1 .116-.1.83.83 0 0 1 .12-.07l9.538-5.5a.8.8 0 0 1 .8 0l9.546 5.505a.8.8 0 0 1 .402.694v.461zm-1.572 10.667V12.2l-3.359 1.933-4.648 2.677v10.042l8.007-4.621zM39.586 48.39V38.348l-4.58 2.614-13.105 7.48V58.56l17.685-10.17zM1.6 7.701v31.88L19.285 49.75V39.645l-9.205-5.255a.822.822 0 0 1-.158-.113.801.801 0 0 1-.073-.078.808.808 0 0 1-.129-.234.812.812 0 0 1-.044-.19V12.281L1.6 7.701zm8.938-6.124L2.53 6.19l8.008 4.611 8.008-4.611L10.538 1.577zm4.55 25.252 4.648-2.676V7.024L11.38 9.96 6.732 12.64v23.131l6.357-3.942zm24.99-18.187-8.007 4.612 8.007 4.614 8.008-4.614-8.008-4.612zm-.401 10.677-4.648-2.677-3.359-1.933v10.039l4.648 2.676 3.359 1.935V19.32zm-17.28 9.651 13.105-7.546-6.196-3.566-12.604 7.26 5.695 3.852zm12.703 4.395-1.601-.921-10.846-6.239-8.008 4.611 9.203 5.248 11.252-2.699z" />
-              </svg>
-              <span className="font-bold text-gray-800 text-sm" style={{ fontFamily: FONT }}>Laravel</span>
-            </div>
-
-            {/* GitHub */}
-            <div className="flex items-center gap-2">
-              <svg viewBox="0 0 24 24" className="w-6 h-6" fill="#181717">
-                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
-              </svg>
-              <span className="font-bold text-gray-800 text-sm" style={{ fontFamily: FONT }}>GitHub</span>
-            </div>
-
-            {/* PHP */}
-            <div
-              className="text-white font-black italic px-5 py-2 rounded-full text-sm tracking-wider"
-              style={{ background: '#8892BF', fontFamily: FONT }}
-            >
-              php
-            </div>
-
-            {/* Java */}
-            <div className="flex items-center gap-2">
-              <svg viewBox="0 0 32 44" className="w-6 h-9" xmlns="http://www.w3.org/2000/svg">
-                <path fill="#EA2D2E" d="M12.3 30.2s-1.8 1.1 1.3 1.4c3.8.5 5.7.4 9.9-.5 0 0 1.1.7 2.6 1.3C15.5 36.4 3.5 32.1 12.3 30.2z" />
-                <path fill="#EA2D2E" d="M11.2 25.7s-2 1.9 1.3 2.3c5 .5 9 .6 15.8-.8 0 0 .8.8 2 1.2C15.2 32.5-.6 28.5 11.2 25.7z" />
-                <path fill="#EA2D2E" d="M20.4 18.3c2.8 3.3-2.6 6.3-2.6 6.3s7.3-3.8 3.9-8.5C18.4 12.1 16 10 28.4 3c0 0-20.3 5-8 15.3z" />
-                <path fill="#5382A1" d="M12.9 21.6s-5.8 1.4-2 1.9c1.6.2 4.8.2 7.7-.1 2.4-.2 4.8-.6 4.8-.6s-.8.4-1.5.8c-5.9 1.5-17.3.8-14-1.1 2.8-1.6 5-1 5-.9zM30.5 30.4c5.9-3.1 3.2-6.1 1.3-5.7-.5.1-.7.2-.7.2s.2-.3.5-.4c3.7-1.3 6.6 3.9-1.2 5.9 0 0 .09-.08.1-.01z" />
-                <path fill="#5382A1" d="M22.9 0.8s3.3 3.3-3.1 8.4c-5.2 4.1-1.2 6.4 0 9.1-3-2.7-5.3-5.1-3.8-7.3 2.2-3.4 8.3-5 6.9-10.2z" />
-                <path fill="#5382A1" d="M13.8 43.9c5.7.4 14.5-.2 14.7-2.9 0 0-.4 1-4.7 1.8-5 .9-11 .8-14.6.2 0 0 .7.6 4.6.9z" />
-                <path fill="#5382A1" d="M11.6 39.3c-6 -1.7.1-5.3.1-5.3-6.3 1.7-7.2 5.3-2 6.7 5.5 1.5 12.3.3 12.3.3s-3.9 1-10.4-1.7z" />
-              </svg>
-              <span className="font-bold text-gray-800 text-sm" style={{ fontFamily: FONT }}>Java</span>
-            </div>
-
-            {/* MongoDB */}
-            <div className="flex items-center gap-2">
-              <svg viewBox="0 0 18 38" className="w-4 h-8" xmlns="http://www.w3.org/2000/svg">
-                <path fill="#4DB33D" d="M9 0C9 0 1.5 10.5 1.5 20C1.5 24.7 4.8 28.7 9 30C13.2 28.7 16.5 24.7 16.5 20C16.5 10.5 9 0 9 0Z" />
-                <path fill="#3FA037" d="M9 30C9 30 8.4 30.4 8.4 38H9.6C9.6 30.4 9 30 9 30Z" />
-                <path fill="#1F8B4C" d="M9 30C9 30 9.6 30.4 9.6 38H9C9 38 9 30 9 30Z" />
-              </svg>
-              <span className="font-bold text-gray-800 text-sm" style={{ fontFamily: FONT }}>MongoDB</span>
-            </div>
-
+          <div className="flex flex-nowrap justify-center items-center gap-6 md:gap-10 w-full" style={{ opacity: 0.8 }}>
+            <img src="/logos/laravel.svg"  alt="Laravel" style={{ height: 'clamp(30px, 4.7vw, 54px)',  width: 'auto', opacity: 0.9, filter: 'grayscale(100%)' }} />
+            <img src="/logos/github.svg"   alt="GitHub"  style={{ height: 'clamp(32px, 4.9vw, 56px)',  width: 'auto', opacity: 0.9, filter: 'grayscale(100%)' }} />
+            <img src="/logos/php.svg"      alt="PHP"     style={{ height: 'clamp(40px, 6.6vw, 76px)',  width: 'auto', opacity: 0.9, filter: 'grayscale(100%)' }} />
+            <img src="/logos/JAVA.svg"     alt="Java"    style={{ height: 'clamp(44px, 7.5vw, 86px)',  width: 'auto', opacity: 0.9, filter: 'grayscale(100%)' }} />
+            <img src="/logos/mongodb.svg"  alt="MongoDB" style={{ height: 'clamp(48px, 8vw, 92px)',    width: 'auto', opacity: 0.9, filter: 'grayscale(100%)' }} />
           </div>
         </div>
       </section>
 
+      {/* ═══════════════════════════════════════════
+          FONDO COMPARTIDO — secciones 4, 5 y 6
+      ═══════════════════════════════════════════ */}
+      <div className="relative">
+
       {/* ─────────────────────────────────────────────
-          4. IA SECTION — cyan blob + two panels
+          4. IA SECTION
       ───────────────────────────────────────────── */}
       <section
-        className="relative overflow-hidden"
-        style={{ background: '#060c1d', minHeight: '500px' }}
+        className="relative"
+        style={{ minHeight: '700px', paddingBottom: '4rem', overflowX: 'hidden' }}
       >
-        {/* Cyan organic blob — top-left */}
-        <div
-          className="absolute top-0 left-0 pointer-events-none"
-          style={{ width: '100%', height: '100%' }}
-          aria-hidden="true"
-        >
-          <svg viewBox="0 0 600 520" className="w-full h-full" preserveAspectRatio="xMinYMin slice">
-            <path
-              d="M0,0 L360,0 C380,0 400,10 400,30 C400,80 360,140 300,185 C240,230 160,255 100,265 C50,272 10,270 0,265 Z"
-              fill={CYAN}
-            />
-          </svg>
-        </div>
+        {/* Forma celeste izquierda */}
+        <img src="/forma1celeste.svg" aria-hidden="true" className="absolute pointer-events-none"
+          style={{ left: 0, top: '-5%', width: 'clamp(600px, 80vw, 1200px)', zIndex: 5 }} />
 
-        {/* Content */}
-        <div className="relative z-10 flex flex-col md:flex-row items-start px-6 pt-16 pb-20 max-w-5xl mx-auto gap-6">
+        {/* Forma celeste derecha */}
+        <img src="/forma2celeste.svg" aria-hidden="true" className="absolute pointer-events-none"
+          style={{ right: 0, top: '3%', width: 'clamp(180px, 24vw, 360px)', zIndex: 3 }} />
 
-          {/* Left text */}
-          <div className="w-full md:w-5/12 pt-6">
-            <h2
-              className="text-2xl font-bold leading-snug mb-3"
-              style={{ color: CYAN, fontFamily: FONT }}
-            >
-              Comenzar nunca ha sido<br />
-              tan fácil gracias a la IA
+        {/* Contenido */}
+        <div className="relative z-10 flex flex-col md:flex-row items-center justify-center px-6 pt-16 pb-8 max-w-[85vw] gap-8" style={{ marginLeft: 'auto', marginRight: '2%' }}>
+
+          {/* Texto izquierda */}
+          <div className="w-full md:w-4/12 flex flex-col gap-3" style={{ marginLeft: '-3rem' }}>
+            <h2 style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(1.6rem, 3vw, 2.5rem)', lineHeight: 1.15, color: CYAN }}>
+              Comenzar nunca ha sido<br />tan fácil gracias a la IA
             </h2>
-            <p
-              className="text-white text-sm mb-2"
-              style={{ fontFamily: FONT }}
-            >
+            <p style={{ fontFamily: 'Sansation', fontWeight: 400, fontSize: '1.5rem', color: '#ffffff' }}>
               No hace falta tener experiencia.
             </p>
-            <p
-              className="text-xs italic leading-relaxed"
-              style={{ color: 'rgba(255,255,255,0.38)', fontFamily: FONT }}
-            >
-              IA de diseño con IA, uno de los mejores<br />
-              inventos de TIME de 2025*
+            <p style={{ fontFamily: 'Sansation', fontStyle: 'italic', fontWeight: 300, fontSize: '1rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.4 }}>
+              Kit de diseño con IA, uno de los mejores<br />inventos de TIME de 2025*
             </p>
           </div>
 
-          {/* Right panels — staggered */}
-          <div className="w-full md:w-7/12 flex gap-4 items-start">
-            {/* Panel 1 — taller, starts at top */}
+          {/* Tarjetas */}
+          <div className="w-full md:w-8/12 flex gap-5 items-end justify-center" style={{ paddingLeft: '8rem', paddingRight: '8rem', overflow: 'visible' }}>
+
+            {/* Círculo blanco decorativo */}
+            <div className="absolute pointer-events-none" style={{ width: '143px', height: '137px', background: '#fff', borderRadius: '85px', left: '30%', top: '8%', zIndex: 0, opacity: 0.9 }} />
+
+            {/* Tarjeta chica (izquierda, más alta) */}
             <motion.div
-              initial={{ opacity: 0, y: 24 }}
+              initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="flex-1 overflow-hidden"
-              style={{
-                borderRadius: '2.25rem',
-                height: '21rem',
-                boxShadow: '0 8px 40px rgba(0,0,0,0.55)',
-              }}
+              className="relative flex-shrink-0"
+              style={{ width: 'clamp(200px, 24vw, 346px)', height: 'clamp(340px, 46vw, 613px)', zIndex: 10 }}
             >
-              <img
-                src="https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=400&q=80"
-                alt="Inteligencia artificial"
-                className="w-full h-full object-cover object-top"
-              />
+              {/* Fondo y overlay con clip */}
+              <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: '68px', boxShadow: '0px 4px 27.8px rgba(0,0,0,0.42)', background: '#D9D9D9' }}>
+                <img src="/blank.svg" alt="" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} />
+                <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.22)' }} />
+              </div>
+              {/* Chica al frente sin clip */}
+              <img src="/chica.svg" alt="IA" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'right bottom', transform: 'scale(1.045)', transformOrigin: 'right bottom', zIndex: 100 }} />
             </motion.div>
-            {/* Panel 2 — shorter, pushed down */}
+
+            {/* Tarjeta hombre (derecha) */}
             <motion.div
-              initial={{ opacity: 0, y: 24 }}
+              initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="flex-1 overflow-hidden"
-              style={{
-                borderRadius: '2.25rem',
-                height: '16rem',
-                marginTop: '6rem',
-                boxShadow: '0 8px 40px rgba(0,0,0,0.55)',
-              }}
+              className="relative overflow-hidden flex-shrink-0"
+              style={{ width: 'clamp(200px, 24vw, 346px)', height: 'clamp(340px, 46vw, 613px)', borderRadius: '68px', boxShadow: '0px 4px 27.8px rgba(0,0,0,0.42)', background: '#D9D9D9' }}
             >
-              <img
-                src="https://images.unsplash.com/photo-1535378620166-273708d44e4c?w=400&q=80"
-                alt="Desarrollo tecnológico"
-                className="w-full h-full object-cover"
-              />
+              <img src="/hombre.svg" alt="Tecnología" className="absolute w-full h-full object-cover object-top" />
             </motion.div>
-          </div>
 
+          </div>
         </div>
       </section>
 
@@ -395,116 +326,118 @@ const Home: React.FC = () => {
           5. CLIENTS — logo grid + 14 Millones
       ───────────────────────────────────────────── */}
       <section
-        className="relative overflow-hidden py-20 px-6"
-        style={{ background: '#060c1d' }}
+        className="relative overflow-hidden"
       >
-        {/* Triangle decoration — bottom-right */}
-        <div
-          className="absolute bottom-0 right-0 pointer-events-none"
-          style={{ opacity: 0.75 }}
-          aria-hidden="true"
-        >
-          <svg viewBox="0 0 300 280" className="w-44 h-40">
-            <polygon points="150,10 290,270 10,270" fill="none" stroke={CYAN} strokeWidth="1.5" />
-            <polygon points="190,55 290,270 90,270" fill="none" stroke={CYAN} strokeWidth="1" />
-            <polygon points="230,105 290,270 170,270" fill={CYAN} opacity="0.5" />
-          </svg>
-        </div>
 
-        <div className="max-w-5xl mx-auto">
-          <div className="flex flex-col lg:flex-row items-center gap-14">
+        {/* Línea superior */}
+        <div style={{ width: '86.6%', margin: '0 auto', borderTop: '1px solid #FFFFFF', marginBottom: '6rem' }} />
 
-            {/* Logo grid */}
-            <div className="shrink-0">
-              <div className="grid grid-cols-3 gap-3" style={{ width: '285px' }}>
+        {/* Contenido */}
+        <div className="relative flex items-center justify-between" style={{ zIndex: 1, minHeight: '400px' }}>
 
-                {/* Apple */}
-                <LogoCell>
-                  <svg viewBox="0 0 814 1000" className="w-10 h-10" fill="#111">
-                    <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105-42.8-157.2-113.8C200 432.4 200 208.9 205.5 127.3 212.7 45.7 267.2 0 320.4 0c68.5 0 140.9 41.8 184.4 41.8 27.4 0 90.4-41.8 167.7-41.8 29.4 0 116.4 12.5 179.4 99.3zm-61.3-192.7c24.6-29.6 41.3-71.7 41.3-113.9 0-1.5-.1-3-.2-4.5-39.4 1.5-86.7 26.1-114.7 58-21.6 24.6-41.3 66.7-41.3 109.4 0 1.8.2 3.6.3 4.2.3 0 .8.1 1.3.1 35.5 0 79.7-23.8 113.3-53.3z" />
-                  </svg>
-                </LogoCell>
+          {/* Pepsi gráfico — pegado a la izquierda */}
+          <div className="absolute left-0 top-1/2 -translate-y-1/2">
+            <img src="/pepsi.svg" alt="" aria-hidden="true" style={{ height: 'clamp(300px, 40vw, 570px)', width: 'auto' }} />
+          </div>
 
-                {/* Pepsi */}
-                <LogoCell>
-                  <svg viewBox="0 0 100 100" className="w-10 h-10">
-                    <circle cx="50" cy="50" r="48" fill="#004B93" />
-                    <path d="M50 2 A48 48 0 0 1 98 50 L50 50 Z" fill="#EE1C23" />
-                    <path d="M2 50 A48 48 0 0 1 50 2 L50 50 Z" fill="white" />
-                    <path d="M50 50 A48 48 0 0 1 2 50 Z" fill="white" />
-                    <ellipse cx="50" cy="50" rx="12" ry="48" fill="white" opacity="0.6" />
-                  </svg>
-                </LogoCell>
-
-                {/* Cyan square */}
-                <div
-                  className="aspect-square"
-                  style={{ background: CYAN, borderRadius: '22px', boxShadow: '0px 0px 26.2px rgba(255,255,255,0.33)' }}
-                />
-
-                {/* Cyan square */}
-                <div
-                  className="aspect-square"
-                  style={{ background: CYAN, borderRadius: '22px', boxShadow: '0px 0px 26.2px rgba(255,255,255,0.33)' }}
-                />
-
-                {/* Burger King */}
-                <LogoCell>
-                  <div className="text-center leading-tight">
-                    <div className="bg-[#C8102E] text-white text-[7px] font-black rounded-full px-2 py-0.5 mb-0.5 tracking-tight">
-                      BURGER
-                    </div>
-                    <div className="text-[#F5A623] font-black text-[11px] tracking-tight">KING</div>
-                  </div>
-                </LogoCell>
-
-                {/* Nike */}
-                <LogoCell>
-                  <svg viewBox="0 0 100 40" className="w-12" fill="#111">
-                    <path d="M0 38 L92 2 C97 -0.5 103 2.5 101 9 C100 13 94 17 88 19 L16 38 Z" />
-                  </svg>
-                </LogoCell>
-
-                {/* Google — full width */}
-                <LogoCell colSpan>
-                  <span className="text-2xl font-bold" style={{ fontFamily: FONT }}>
-                    <span className="text-[#4285F4]">G</span>
-                    <span className="text-[#EA4335]">o</span>
-                    <span className="text-[#FBBC05]">o</span>
-                    <span className="text-[#4285F4]">g</span>
-                    <span className="text-[#34A853]">l</span>
-                    <span className="text-[#EA4335]">e</span>
-                  </span>
-                </LogoCell>
-
-              </div>
-            </div>
-
-            {/* "14 Millones" */}
-            <div className="text-center lg:text-left">
-              <p
-                className="uppercase tracking-[0.3em] text-sm mb-2"
-                style={{ color: 'rgba(255,255,255,0.5)', fontFamily: FONT }}
-              >
+          {/* Columna derecha: texto arriba, gráfico abajo */}
+          <div className="ml-auto flex flex-col items-end" style={{ position: 'relative', zIndex: 2 }}>
+            {/* Texto */}
+            <div className="text-right" style={{ maxWidth: '560px', marginRight: '8rem' , margin: '5rem' }}>
+              <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: 'clamp(20px, 2.2vw, 32px)', lineHeight: '36px', color: '#FFFFFF', textAlign: 'right' }}>
                 Con la confianza de
               </p>
-              <h2
-                className="text-6xl md:text-8xl font-bold leading-none mb-3"
-                style={{ color: CYAN, fontFamily: FONT }}
-              >
+              <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: 'clamp(60px, 7.3vw, 105px)', lineHeight: '1.12', color: CYAN, textAlign: 'right' }}>
                 14 Millones
               </h2>
-              <p
-                className="text-xl leading-relaxed"
-                style={{ color: 'rgba(255,255,255,0.72)', fontFamily: FONT }}
-              >
-                de emprendedores en todo el mundo
+              <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: 'clamp(18px, 2.2vw, 32px)', lineHeight: '36px', color: '#FFFFFF', textAlign: 'right' }}>
+                de emprendedores en todo el Perú
               </p>
             </div>
-
+            {/* Gráfico debajo del texto, pegado al borde derecho */}
+            <img src="/grafico-derecha.svg" alt="" aria-hidden="true"
+              style={{ width: 'clamp(200px, 35vw, 800px)', height: 'auto', opacity: 0.7, marginRight: 0 }} />
           </div>
+
         </div>
+
+        {/* Línea inferior — también sirve de línea superior de la siguiente sección */}
+        <div style={{ width: '86.6%', margin: '6rem auto 0', borderTop: '1px solid #FFFFFF' }} />
       </section>
+
+      {/* ─────────────────────────────────────────────
+          6. CTA PRE-FOOTER
+      ───────────────────────────────────────────── */}
+      <section className="relative overflow-hidden">
+
+        {/* Logo absoluto izquierda — sangra fuera del borde */}
+        <img src="/logo-footer.svg" alt="Bytecode" aria-hidden="true" className="absolute pointer-events-none"
+          style={{ left: '-60px', top: '50%', transform: 'translateY(-50%)', width: '310px', height: 'auto', objectFit: 'contain', opacity: 0.7, zIndex: 1 }} />
+
+        {/* Group 94 — 913px centrado, texto izquierda + botón derecha */}
+        <div className="relative" style={{
+          zIndex: 2,
+          width: '980px',
+          maxWidth: '100%',
+          margin: '0 auto',
+          padding: '150px 0',
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+
+          {/* "Un clic para ti, un salto para tu marca." — 354px izquierda */}
+          <h2 style={{
+            fontFamily: 'Sansation',
+            fontStyle: 'normal',
+            fontWeight: 700,
+            fontSize: '48px',
+            lineHeight: '54px',
+            color: '#FFFFFF',
+            width: '354px',
+            flexShrink: 0,
+          }}>
+            Un clic para ti,<br />un salto para tu marca.
+          </h2>
+
+          {/* Rectangle 14 — botón Conectar — 504×79px derecha */}
+          <Link to="/contacto" style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '504px',
+            height: '79px',
+            background: '#06CFD6',
+            borderRadius: '22px',
+            flexShrink: 0,
+            textDecoration: 'none',
+          }}>
+            <span style={{
+              fontFamily: 'Sansation',
+              fontStyle: 'normal',
+              fontWeight: 400,
+              fontSize: '44px',
+              lineHeight: '49px',
+              textAlign: 'center',
+              color: '#FFFFFF',
+            }}>
+              Conectar
+            </span>
+          </Link>
+
+        </div>
+
+        {/* Isotipo esquina inferior derecha */}
+        <img src="/isotipo.svg" alt="" aria-hidden="true" className="absolute pointer-events-none"
+          style={{ right: '7%', bottom: '8%', width: '46px', height: 'auto', zIndex: 2, opacity: 0.85 }} />
+
+        {/* Línea inferior */}
+        <div style={{ width: '86.6%', margin: '0 auto', borderTop: '1px solid #FFFFFF' }} />
+
+      </section>
+
+      </div>{/* fin fondo compartido secciones 4-5-6 */}
 
     </div>
   );
