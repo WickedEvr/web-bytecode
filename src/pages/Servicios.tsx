@@ -41,7 +41,7 @@ const Servicios: React.FC = () => {
   const next = () => setCurrent((c) => (c + 1) % total);
 
   return (
-    <div className="overflow-x-hidden">
+    <div className="overflow-x-hidden font-sansation">
 
       {/* ── HERO CAROUSEL ── */}
       <section className="relative min-h-[calc(100vh-6rem)] overflow-hidden">

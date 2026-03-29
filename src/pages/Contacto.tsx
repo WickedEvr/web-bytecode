@@ -44,7 +44,7 @@ const Contacto: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative min-h-screen overflow-hidden font-sansation">
       {/* Fondo espacio */}
       <div className="absolute inset-0">
         <img src="/hero.png" alt="" className="w-full h-full object-cover" aria-hidden="true" />

@@ -21,7 +21,7 @@ const mvv = [
 
 const Nosotros: React.FC = () => {
   return (
-    <div className="overflow-x-hidden">
+    <div className="overflow-x-hidden font-sansation">
 
       {/* ── HERO ── */}
       <section className="relative min-h-[80vh] flex items-stretch overflow-hidden bg-[#060c1d]">
