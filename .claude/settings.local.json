@@ -9,7 +9,11 @@
       "Bash(do)",
       "Bash(echo \"=== $f ===\")",
       "Read(//c/Users/laure/Documents/ProyectosWeb/web-bytecode/**)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(cp \"C:/Users/laure/Downloads/CHICA.svg\" \"C:/Users/laure/Documents/ProyectosWeb/web-bytecode/public/chica.svg\")",
+      "Bash(cp \"C:/Users/laure/Downloads/hombre.svg\" \"C:/Users/laure/Documents/ProyectosWeb/web-bytecode/public/hombre.svg\")",
+      "Bash(cp \"C:/Users/laure/Downloads/forma1celeste.svg\" \"C:/Users/laure/Documents/ProyectosWeb/web-bytecode/public/forma1celeste.svg\")",
+      "Bash(cp \"C:/Users/laure/Downloads/forma2celeste.svg\" \"C:/Users/laure/Documents/ProyectosWeb/web-bytecode/public/forma2celeste.svg\")"
     ]
   }
 }
