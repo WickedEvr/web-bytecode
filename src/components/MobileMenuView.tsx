@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import stardustPattern from '../desings/stardust.png';
 
 interface MobileMenuViewProps {
   isOpen: boolean;
@@ -49,8 +48,8 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
           <div className="absolute inset-0 z-0 bg-black">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,_rgba(12,163,198,0.25)_0%,_transparent_50%)]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,_rgba(6,207,214,0.2)_0%,_transparent_40%)]" />
-            <div className="absolute inset-0 opacity-70 mix-blend-screen" style={{ backgroundImage: `url(${stardustPattern})` }} />
-            <div className="absolute inset-0 opacity-50 rotate-180 mix-blend-screen" style={{ backgroundImage: `url(${stardustPattern})` }} />
+            <div className="absolute inset-0 opacity-70 mix-blend-screen" style={{ backgroundImage: `url(/designs/stardust.png)` }} />
+            <div className="absolute inset-0 opacity-50 rotate-180 mix-blend-screen" style={{ backgroundImage: `url(/designs/stardust.png)` }} />
           </div>
 
           {/* Lado Izquierdo: Espacio / Logo / Gráfico */}
@@ -68,7 +67,7 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
               aria-label="Ir a inicio"
             >
               <img 
-                src="/desings/logo_en_blanco.svg" 
+                src="/designs/logo_en_blanco.svg" 
                 alt="Bytecode Logo" 
                 className="h-15 md:h-22 w-auto object-contain pointer-events-none" 
               />
@@ -94,7 +93,7 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
               transition={{ delay: 0.5, duration: 0.8 }}
             >
               <img 
-                src="/desings/elemento_inferior_menu_interactivo.svg" 
+                src="/designs/elemento_inferior_menu_interactivo.svg" 
                 alt="Elemento Decorativo Inferior" 
                 className="w-full h-auto object-contain opacity-100 mix-blend-screen transform translate-y-1/4"
                 style={{ 
