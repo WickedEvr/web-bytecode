@@ -286,17 +286,20 @@ const Home: React.FC = () => {
           {/* Tarjetas */}
           <div className="w-full md:w-8/12 flex gap-5 items-end justify-center" style={{ paddingLeft: '8rem', paddingRight: '8rem', overflow: 'visible' }}>
 
-            {/* Círculo blanco decorativo */}
-            <div className="absolute pointer-events-none" style={{ width: '143px', height: '137px', background: '#fff', borderRadius: '85px', left: '30%', top: '8%', zIndex: 0, opacity: 0.9 }} />
-
             {/* Tarjeta chica (izquierda, más alta) */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               className="relative flex-shrink-0"
-              style={{ width: 'clamp(200px, 24vw, 346px)', height: 'clamp(340px, 46vw, 613px)', zIndex: 10 }}
+              style={{ width: 'clamp(200px, 24vw, 346px)', height: 'clamp(340px, 46vw, 613px)', zIndex: 10, overflow: 'visible' }}
             >
+              {/* Círculo — posición relativa a esta tarjeta (Figma: left -101px, top 82px sobre tarjeta 346×613) */}
+              <img src="/circulo.svg" aria-hidden="true" className="absolute pointer-events-none"
+                style={{ left: '-29.2%', top: '13.4%', width: '143px', height: '137px', zIndex: 0 }} />
+              {/* RectangleMedio — posición relativa a esta tarjeta (Figma: left 125px, top 403px) */}
+              <img src="/RectangleMedio.svg" aria-hidden="true" className="absolute pointer-events-none"
+                style={{ left: '36.1%', top: '65.7%', width: '329px', height: '237px', zIndex: 0 }} />
               {/* Fondo y overlay con clip */}
               <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: '68px', boxShadow: '0px 4px 27.8px rgba(0,0,0,0.42)', background: '#D9D9D9' }}>
                 <img src="/blank.svg" alt="" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} />
@@ -312,10 +315,16 @@ const Home: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="relative overflow-hidden flex-shrink-0"
-              style={{ width: 'clamp(200px, 24vw, 346px)', height: 'clamp(340px, 46vw, 613px)', borderRadius: '68px', boxShadow: '0px 4px 27.8px rgba(0,0,0,0.42)', background: '#D9D9D9' }}
+              className="relative flex-shrink-0"
+              style={{ width: 'clamp(200px, 24vw, 346px)', height: 'clamp(340px, 46vw, 613px)', borderRadius: '68px', boxShadow: '0px 4px 27.8px rgba(0,0,0,0.42)', background: '#D9D9D9', overflow: 'visible', zIndex: 11 }}
             >
-              <img src="/hombre.svg" alt="Tecnología" className="absolute w-full h-full object-cover object-top" />
+              {/* RectangleDerecha — posición relativa a esta tarjeta (Figma: left 173px, top 246px sobre tarjeta 345×613) */}
+              <img src="/RectangleDerecha.svg" aria-hidden="true" className="absolute pointer-events-none"
+                style={{ left: '50.1%', top: '40.1%', width: '214px', height: '246px', zIndex: 0 }} />
+              {/* Imagen clipeada con border-radius */}
+              <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: '68px' }}>
+                <img src="/hombre.svg" alt="Tecnología" className="absolute w-full h-full object-cover object-top" />
+              </div>
             </motion.div>
 
           </div>
@@ -392,8 +401,8 @@ const Home: React.FC = () => {
             fontFamily: 'Sansation',
             fontStyle: 'normal',
             fontWeight: 700,
-            fontSize: '48px',
-            lineHeight: '54px',
+            fontSize: '53px',
+            lineHeight: '60px',
             color: '#FFFFFF',
             width: '354px',
             flexShrink: 0,

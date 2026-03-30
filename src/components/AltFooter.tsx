@@ -23,7 +23,7 @@ const AltFooter: React.FC = () => {
       <footer className="bg-gradient-to-t from-[#022131] to-[#010b10] text-white rounded-t-[40px] md:rounded-t-[80px] pt-20 pb-12 px-8 md:px-16 lg:px-24 relative overflow-hidden flex flex-col mt-auto mx-auto w-full max-w-[1920px]">
         {/* Decorativo Fondo Footer (Geométrico) */}
         <img
-          src="/src/desings/elemento_footer.svg"
+          src="/desings/elemento_footer.svg"
           alt=""
           className="absolute top-[5%] left-[-1.1%] w-42 md:w-62 opacity-60 pointer-events-none object-contain z-0"
           style={{
@@ -59,7 +59,7 @@ const AltFooter: React.FC = () => {
               {/* Contenedor Animado (Flote continuo + Glow al pasar el mouse) */}
               <div className="animate-float-logo hover:drop-shadow-[0_0_20px_rgba(6,207,214,0.9)] transition-all duration-300">
                 <img
-                  src="/src/desings/elemento_logo.svg" 
+                  src="/desings/elemento_logo.svg" 
                   alt="Bytecode Element"
                   className="w-8 md:w-11 h-auto object-contain opacity-90"
                   style={{

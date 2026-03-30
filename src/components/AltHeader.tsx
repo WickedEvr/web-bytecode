@@ -20,7 +20,7 @@ const AltHeader: React.FC = () => {
             <div className="flex items-center gap-6">
             <Link to="/" className="group outline-none">
                 <img 
-                src="/src/desings/variante_logo_color1.svg" 
+                src="/desings/variante_logo_color1.svg" 
                 alt="Bytecode Logo" 
                 className="h-10 md:h-12 w-auto object-contain transition-all duration-300 ease-out group-hover:scale-105 group-hover:drop-shadow-[0_0_12px_rgba(6,207,214,0.4)] active:scale-95" 
                 />
