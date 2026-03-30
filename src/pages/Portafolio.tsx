@@ -84,7 +84,7 @@ const Portafolio: React.FC = () => {
               
               {/* Elemento Decorativo Esquina Inferior Izquierda */}
               <img 
-                src="/desings/elemento_esquina_inferior_izquierda_de_portafolio.svg" 
+                src="/designs/elemento_esquina_inferior_izquierda_de_portafolio.svg" 
                 alt="" 
                 className="absolute bottom-0 left-0 w-36 h-36 md:w-48 md:h-48 object-contain pointer-events-none opacity-80"
               />
