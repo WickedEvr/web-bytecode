@@ -1,8 +1,6 @@
-
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import AltHeader from '../components/AltHeader';
-import AltFooter from '../components/AltFooter';
 
 const AltLayout: React.FC = () => {
     return (
@@ -11,7 +9,6 @@ const AltLayout: React.FC = () => {
         <main className="flex-grow">
             <Outlet />
         </main>
-        <AltFooter />
         </div>
     );
 };

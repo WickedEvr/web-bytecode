@@ -2,12 +2,11 @@ import React, { useRef, useEffect, useCallback, useState } from 'react';
 import gsap from 'gsap';
 
 /* ─────────────────────────────────────────────────────
-   Types
+  Types
 ───────────────────────────────────────────────────── */
 export interface Project {
   id: number;
   name: string;
-  description: string;
   img: string;
   url?: string;
   tags?: string[];
@@ -18,13 +17,14 @@ interface Props {
 }
 
 /* ─────────────────────────────────────────────────────
-   Constants
+  Constants
 ───────────────────────────────────────────────────── */
 const DRAG_SENSITIVITY = 0.28;   // degrees per pixel of horizontal drag
 const MOMENTUM_MS      = 200;    // window (ms) used to project snap target
+const AUTO_PLAY_SPEED  = -0.08;  // Velocidad de auto-rotación (negativo = derecha a izquierda)
 
 /* ─────────────────────────────────────────────────────
-   Component
+  Component
 ───────────────────────────────────────────────────── */
 const Carousel3D: React.FC<Props> = ({ projects }) => {
   const N         = projects.length;
@@ -54,11 +54,11 @@ const Carousel3D: React.FC<Props> = ({ projects }) => {
     () => typeof window !== 'undefined' ? window.innerWidth < 768 : false,
   );
 
-  /* ── Layout (reactive to viewport) ─────────────── */
-  const RADIUS      = isMobile ? 240  : 460;
-  const CARD_W      = isMobile ? 248  : 352;
-  const CARD_H      = Math.round(CARD_W * 10 / 16);   // 16 : 10 ratio
-  const PERSPECTIVE = isMobile ? 820  : 1300;
+  /* ── Layout (Escala Aumentada) ─────────────────── */
+  const RADIUS      = isMobile ? 300  : 550;  
+  const CARD_W      = isMobile ? 280  : 520;  
+  const CARD_H      = Math.round(CARD_W * 10 / 16);   
+  const PERSPECTIVE = isMobile ? 900  : 1600; 
   const WRAPPER_H   = CARD_H + 108;
 
   useEffect(() => {
@@ -68,8 +68,7 @@ const Carousel3D: React.FC<Props> = ({ projects }) => {
   }, []);
 
   /* ──────────────────────────────────────────────────
-     Core: apply a rotation value to the whole track
-     and update per-card opacity / brightness.
+    Core: apply a rotation value to the whole track
   ────────────────────────────────────────────────── */
   const applyRotation = useCallback((rot: number) => {
     rotObj.current.value = rot;
@@ -84,7 +83,6 @@ const Carousel3D: React.FC<Props> = ({ projects }) => {
     cardRefs.current.forEach((card, i) => {
       if (!card) return;
 
-      // Angular distance from the front face (0 = front, 180 = back)
       let dist = ((stepAngle * i + rot) % 360 + 360) % 360;
       if (dist > 180) dist = 360 - dist;
 
@@ -99,22 +97,32 @@ const Carousel3D: React.FC<Props> = ({ projects }) => {
   }, [stepAngle]);
 
   /* ──────────────────────────────────────────────────
-     Entry animation – runs once on mount.
-     Fades each card in from opacity 0 to its correct
-     opacity, staggered. No scale (avoids transform
-     conflicts between React inline style and GSAP).
+    Auto-rotación
   ────────────────────────────────────────────────── */
   useEffect(() => {
-    // 1. Hide all cards immediately
+    if (isDragging) return;
+
+    const tick = () => {
+      if (!gsap.isTweening(rotObj.current)) {
+        applyRotation(rotObj.current.value + AUTO_PLAY_SPEED);
+      }
+    };
+
+    gsap.ticker.add(tick);
+    return () => gsap.ticker.remove(tick);
+  }, [isDragging, applyRotation]);
+
+  /* ──────────────────────────────────────────────────
+    Entry animation
+  ────────────────────────────────────────────────── */
+  useEffect(() => {
     cardRefs.current.forEach(card => {
       if (card) gsap.set(card, { opacity: 0 });
     });
 
-    // 2. Staggered fade-in to the correct opacity per angle
     const ctx = gsap.context(() => {
-      const tl = gsap.timeline({
-        onComplete: () => applyRotation(0),  // ensure state is consistent afterward
-      });
+      // Quitamos el onComplete para que no reinicie la rotación al terminar el fade-in
+      const tl = gsap.timeline(); 
 
       cardRefs.current.forEach((card, i) => {
         if (!card) return;
@@ -135,8 +143,7 @@ const Carousel3D: React.FC<Props> = ({ projects }) => {
   }, []);
 
   /* ──────────────────────────────────────────────────
-     Snap: after drag ends, animate rotation to the
-     nearest card position using expo.out easing.
+    Snap
   ────────────────────────────────────────────────── */
   const snapToNearest = useCallback((currentRot: number, velContrib: number) => {
     const projected   = currentRot + velContrib;
@@ -152,7 +159,7 @@ const Carousel3D: React.FC<Props> = ({ projects }) => {
   }, [applyRotation, stepAngle]);
 
   /* ──────────────────────────────────────────────────
-     Pointer handlers (mouse + touch via pointer events)
+    Pointer handlers
   ────────────────────────────────────────────────── */
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     gsap.killTweensOf(rotObj.current);
@@ -188,7 +195,7 @@ const Carousel3D: React.FC<Props> = ({ projects }) => {
   }, [snapToNearest]);
 
   /* ──────────────────────────────────────────────────
-     Render
+    Render
   ────────────────────────────────────────────────── */
   return (
     <div
@@ -210,8 +217,6 @@ const Carousel3D: React.FC<Props> = ({ projects }) => {
         userSelect:        'none',
       }}
     >
-
-      {/* ── Cylinder track: rotates as a single unit ── */}
       <div
         ref={trackRef}
         style={{
@@ -240,13 +245,13 @@ const Carousel3D: React.FC<Props> = ({ projects }) => {
                 height:       `${CARD_H}px`,
                 top:          `${-CARD_H / 2}px`,
                 left:         `${-CARD_W / 2}px`,
-                // React owns the 3D positioning transform; GSAP owns opacity/filter only
                 transform:    `rotateY(${baseAngle}deg) translateZ(${RADIUS}px)`,
                 borderRadius: '18px',
-                overflow:     'hidden',
+                overflow:     'hidden', // Asegura el recorte en las esquinas
                 willChange:   'opacity, filter',
+                border:       '2px solid rgba(6,207,214,0.4)',
                 boxShadow:    isActive
-                  ? '0 0 42px 12px rgba(6,207,214,0.32), 0 22px 52px rgba(0,0,0,0.7)'
+                  ? '0 0 42px 12px rgba(6,207,214,0.4), inset 0 0 20px rgba(6,207,214,0.2)'
                   : '0 12px 34px rgba(0,0,0,0.55)',
                 transition:   'box-shadow 0.42s ease',
               }}
@@ -275,7 +280,7 @@ const Carousel3D: React.FC<Props> = ({ projects }) => {
                   display:        'flex',
                   flexDirection:  'column',
                   justifyContent: 'flex-end',
-                  padding:        isMobile ? '13px 13px' : '19px 16px',
+                  padding:        isMobile ? '13px 13px' : '24px 24px',
                   pointerEvents:  'none',
                 }}
               >
@@ -283,9 +288,9 @@ const Carousel3D: React.FC<Props> = ({ projects }) => {
                   style={{
                     fontFamily:   'Sansation, sans-serif',
                     fontWeight:   700,
-                    fontSize:     isMobile ? '0.9rem' : '1.05rem',
+                    fontSize:     isMobile ? '1.1rem' : '1.4rem',
                     color:        isActive ? '#06CFD6' : '#ffffff',
-                    margin:       '0 0 3px',
+                    margin:       '0 0 8px',
                     transition:   'color 0.38s ease',
                     lineHeight:   1.2,
                   }}
@@ -293,32 +298,18 @@ const Carousel3D: React.FC<Props> = ({ projects }) => {
                   {project.name}
                 </h3>
 
-                <p
-                  className="carousel-desc"
-                  style={{
-                    fontFamily: 'Inter, sans-serif',
-                    fontWeight: 400,
-                    fontSize:   isMobile ? '0.68rem' : '0.76rem',
-                    color:      'rgba(255,255,255,0.68)',
-                    lineHeight: 1.45,
-                    margin:     0,
-                  }}
-                >
-                  {project.description}
-                </p>
-
                 {project.tags && project.tags.length > 0 && (
-                  <div style={{ display: 'flex', gap: '5px', marginTop: '7px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '7px', flexWrap: 'wrap' }}>
                     {project.tags.map(tag => (
                       <span
                         key={tag}
                         style={{
                           fontFamily:   'Inter, sans-serif',
-                          fontSize:     '0.6rem',
+                          fontSize:     '0.75rem',
                           color:        '#06CFD6',
                           border:       '1px solid rgba(6,207,214,0.38)',
-                          borderRadius: '5px',
-                          padding:      '1px 5px',
+                          borderRadius: '6px',
+                          padding:      '3px 8px',
                         }}
                       >
                         {tag}
@@ -328,49 +319,38 @@ const Carousel3D: React.FC<Props> = ({ projects }) => {
                 )}
               </div>
 
-              {/* ── Cyan border glow on active card ─── */}
-              {isActive && (
-                <div
-                  aria-hidden="true"
-                  style={{
-                    position:      'absolute',
-                    inset:         0,
-                    borderRadius:  '18px',
-                    border:        '1.5px solid rgba(6,207,214,0.55)',
-                    pointerEvents: 'none',
-                  }}
-                />
-              )}
+              {/* ── Elementos Decorativos Esquina Inferior Derecha ── */}
+              {/* Borde Decorativo */}
+              <img
+                src="/designs/elemento_esquina_inferior_izquierda_de_portafolio.svg"
+                alt=""
+                style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  right: 0,
+                  width: isMobile ? '90px' : '145px',
+                  height: 'auto',
+                  pointerEvents: 'none',
+                  opacity: 1, // Puedes ajustar la opacidad si quieres que sea más sutil
+                }}
+              />
+              
+              {/* Isotipo */}
+              <img
+                src="/designs/elemento_logo.svg"
+                alt=""
+                style={{
+                  position: 'absolute',
+                  bottom: isMobile ? '10px' : '15px',
+                  right: isMobile ? '10px' : '15px',
+                  width: isMobile ? '20px' : '32px',
+                  height: 'auto',
+                  pointerEvents: 'none',
+                }}
+              />
             </div>
           );
         })}
-      </div>
-
-      {/* ── Progress dots ──────────────────────────── */}
-      <div
-        aria-hidden="true"
-        style={{
-          position:   'absolute',
-          bottom:     '8px',
-          left:       '50%',
-          transform:  'translateX(-50%)',
-          display:    'flex',
-          gap:        '8px',
-          alignItems: 'center',
-        }}
-      >
-        {projects.map((_, i) => (
-          <div
-            key={i}
-            style={{
-              width:        i === activeIdx ? '22px' : '8px',
-              height:       '7px',
-              borderRadius: '4px',
-              background:   i === activeIdx ? '#06CFD6' : 'rgba(255,255,255,0.25)',
-              transition:   'all 0.38s ease',
-            }}
-          />
-        ))}
       </div>
     </div>
   );

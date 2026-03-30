@@ -5,7 +5,7 @@ import { FaWhatsapp } from 'react-icons/fa6';
 
 const AltFooter: React.FC = () => {
   return (
-    <div className="bg-[#024F79] pt-10 px-4 md:px-8 lg:px-12 font-sansation select-none">
+    <div className="bg-transparent px-4 md:px-8 lg:px-12 font-sansation select-none">
       
       {/* 1. INYECTAMOS LA ANIMACIÓN FLOTANTE */}
       <style>
