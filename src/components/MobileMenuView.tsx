@@ -48,8 +48,8 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
           <div className="absolute inset-0 z-0 bg-black">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,_rgba(12,163,198,0.25)_0%,_transparent_50%)]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,_rgba(6,207,214,0.2)_0%,_transparent_40%)]" />
-            <div className="absolute inset-0 opacity-70 mix-blend-screen" style={{ backgroundImage: `url(/designs/stardust.png)` }} />
-            <div className="absolute inset-0 opacity-50 rotate-180 mix-blend-screen" style={{ backgroundImage: `url(/designs/stardust.png)` }} />
+            <div className="absolute inset-0 opacity-70 mix-blend-screen" style={{ backgroundImage: `url(${import.meta.env.BASE_URL}designs/stardust.png)` }} />
+            <div className="absolute inset-0 opacity-50 rotate-180 mix-blend-screen" style={{ backgroundImage: `url(${import.meta.env.BASE_URL}designs/stardust.png)` }} />
           </div>
 
           {/* Lado Izquierdo: Espacio / Logo / Gráfico */}
