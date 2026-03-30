@@ -1,5 +1,6 @@
 // ✅ ErrorBoundary.tsx — Fix 7: Error Boundary global como class component
-import React, { type ErrorInfo } from 'react';
+import React from 'react';
+import type { ErrorInfo } from 'react';
 
 interface State {
   hasError: boolean;
