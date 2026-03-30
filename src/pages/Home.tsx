@@ -23,12 +23,12 @@ const services = [
   },
 ];
 
-const SwirlMark: React.FC<{ className?: string }> = ({ className = '' }) => (
+export const SwirlMark: React.FC<{ className?: string }> = ({ className = '' }) => (
   <img src="/isotipo.svg" alt="" aria-hidden="true" className={className} />
 );
 
 /* ─── Logo grid cell ────────────────────────────────── */
-const LogoCell: React.FC<{ children: React.ReactNode; className?: string; colSpan?: boolean }> = ({
+export const LogoCell: React.FC<{ children: React.ReactNode; className?: string; colSpan?: boolean }> = ({
   children,
   className = 'bg-white',
   colSpan = false,
