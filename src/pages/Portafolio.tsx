@@ -57,6 +57,7 @@ const Portafolio: React.FC = () => {
         </motion.p>
       </section>
 
+
       {/* 2. CARRUSEL 3D — reemplaza el grid estático */}
       <section className="w-full pb-32 relative z-10">
         <Carousel3D projects={projects} />
