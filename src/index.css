@@ -61,6 +61,14 @@
   }
 }
 
+/* Carousel 3D — clamp description text to 2 lines */
+.carousel-desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 /* Custom background for space nebula effect */
 .bg-space {
   position: relative;

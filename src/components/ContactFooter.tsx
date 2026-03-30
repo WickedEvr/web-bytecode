@@ -9,7 +9,7 @@ const ContactFooter: React.FC = () => {
         
         {/* Decorativo Fondo Footer */}
         <img 
-            src="/desings/elemento_footer.svg" 
+            src="/designs/elemento_footer.svg" 
             alt="" 
             className="absolute top-0 left-0 w-full md:w-[60%] h-full object-cover md:object-contain object-left opacity-30 pointer-events-none"
         />
