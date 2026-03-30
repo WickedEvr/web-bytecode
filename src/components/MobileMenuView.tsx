@@ -68,7 +68,7 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
               aria-label="Ir a inicio"
             >
               <img 
-                src="/src/desings/logo_en_blanco.svg" 
+                src="/desings/logo_en_blanco.svg" 
                 alt="Bytecode Logo" 
                 className="h-15 md:h-22 w-auto object-contain pointer-events-none" 
               />
@@ -94,7 +94,7 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
               transition={{ delay: 0.5, duration: 0.8 }}
             >
               <img 
-                src="/src/desings/elemento_inferior_menu_interactivo.svg" 
+                src="/desings/elemento_inferior_menu_interactivo.svg" 
                 alt="Elemento Decorativo Inferior" 
                 className="w-full h-auto object-contain opacity-100 mix-blend-screen transform translate-y-1/4"
                 style={{ 

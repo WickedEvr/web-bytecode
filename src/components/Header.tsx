@@ -11,7 +11,7 @@ const Header: React.FC = () => {
       <header className="absolute top-0 left-0 right-0 z-50 px-5 pt-16 pb-6 flex items-center justify-center bg-transparent">
         <div className="flex items-center gap-10">
           <Link to="/" className="flex items-center">
-            <img src="/src/desings/logo_en_blanco.svg" alt="Bytecode" className="h-14 w-auto" />
+            <img src="/desings/logo_en_blanco.svg" alt="Bytecode" className="h-14 w-auto" />
           </Link>
           <button
             onClick={() => setIsMenuOpen(true)}
