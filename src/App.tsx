@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 
-// Importamos ambos Layouts
+// Importamos ambos Layouts 1
 import MainLayout from './layouts/MainLayout';
 import AltLayout from './layouts/AltLayout';
 import ContactLayout from './layouts/ContactLayout';
