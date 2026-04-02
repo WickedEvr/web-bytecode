@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Mail } from "lucide-react";
 import { FaWhatsapp } from 'react-icons/fa6';
+import SpotlightText from "./SpotlightText";
 
 const AltFooter: React.FC = () => {
   return (
@@ -21,6 +22,19 @@ const AltFooter: React.FC = () => {
       </style>
 
       <footer className="bg-gradient-to-t from-[#022131] to-[#010b10] text-white rounded-t-[40px] md:rounded-t-[80px] pt-20 pb-12 px-8 md:px-16 lg:px-24 relative overflow-hidden flex flex-col mt-auto mx-auto w-full max-w-[1920px]">
+        {/* --- NUEVO: Decorativo Fondo de Estrellas (Stardust) --- */}
+        <div 
+          className="absolute inset-0 z-0 pointer-events-none opacity-40 mix-blend-screen"
+          style={{
+            backgroundImage: "url('/designs/stardust.png')",
+            // 1. Le damos un tamaño fijo donde se vea nítida (ajusta este número)
+            backgroundSize: '525px', 
+            // 2. Le decimos que se repita para llenar el espacio vacío
+            backgroundRepeat: 'repeat',
+            backgroundPosition: 'top left',
+          }}
+        />
+        
         {/* Decorativo Fondo Footer (Geométrico) */}
         <img
           src="/designs/elemento_footer.svg"
@@ -39,11 +53,11 @@ const AltFooter: React.FC = () => {
           {/* Lado Izquierdo: Texto Principal */}
           <div className="flex-1 text-left">
             <h2 className="text-3xl md:text-5xl lg:text-5xl font-bold leading-tight md:leading-[1.15] pl-15">
-              Un clic para ti,
+              <SpotlightText> Un clic para ti,
               <br />
               un salto para tu
               <br />
-              marca.
+              marca. </SpotlightText>
             </h2>
           </div>
 
