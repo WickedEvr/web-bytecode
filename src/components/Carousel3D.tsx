@@ -54,11 +54,11 @@ const Carousel3D: React.FC<Props> = ({ projects }) => {
     () => typeof window !== 'undefined' ? window.innerWidth < 768 : false,
   );
 
-  /* ── Layout (Escala Aumentada) ─────────────────── */
-  const RADIUS      = isMobile ? 300  : 550;  
-  const CARD_W      = isMobile ? 280  : 520;  
-  const CARD_H      = Math.round(CARD_W * 10 / 16);   
-  const PERSPECTIVE = isMobile ? 900  : 1600; 
+  /* ── Layout (Escala Intermedia) ─────────────────── */
+  const RADIUS      = isMobile ? 270  : 490;   // Distancia al centro (Punto medio)
+  const CARD_W      = isMobile ? 260  : 460;   // Ancho de la tarjeta (Punto medio)
+  const CARD_H      = Math.round(CARD_W * 10 / 16); 
+  const PERSPECTIVE = isMobile ? 850  : 1400;  // Profundidad de cámara equilibrada
   const WRAPPER_H   = CARD_H + 108;
 
   useEffect(() => {
@@ -67,7 +67,7 @@ const Carousel3D: React.FC<Props> = ({ projects }) => {
     return () => window.removeEventListener('resize', fn);
   }, []);
 
-  /* ──────────────────────────────────────────────────
+  /* ───────────────────────────────────or───────────────
     Core: apply a rotation value to the whole track
   ────────────────────────────────────────────────── */
   const applyRotation = useCallback((rot: number) => {

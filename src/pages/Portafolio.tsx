@@ -61,7 +61,7 @@ const Portafolio: React.FC = () => {
         </section>
 
         {/* CARRUSEL 3D */}
-        <section className="w-full pb-32 relative z-10 pointer-events-auto">
+        <section className="w-full pb-41 relative z-10 pointer-events-auto">
           <Carousel3D projects={projects} />
         </section>
       </div>

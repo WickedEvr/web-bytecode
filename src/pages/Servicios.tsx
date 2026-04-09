@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import AltFooter from '../components/AltFooter'; // 1. IMPORTAMOS EL FOOTER
+import AltFooter from '../components/AltFooter';
 
 const services = [
   {
@@ -9,28 +9,25 @@ const services = [
     title: 'Página Web',
     description:
       'Creamos soluciones digitales multiplataforma que fusionan estética de vanguardia con arquitectura técnica robusta y escalable.',
-    img: 'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=1400&q=80',
+    // Imagen: Un espacio de trabajo moderno enfocado en código web y diseño
+    img: 'https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?auto=format&fit=crop&w=2560&q=90',
   },
   {
     label: 'Servicios',
     title: 'App Móvil',
     description:
       'Desarrollamos aplicaciones nativas e híbridas con experiencias de usuario excepcionales para iOS y Android.',
-    img: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=1400&q=80',
+    // Imagen: Alguien interactuando con el diseño de interfaz de una aplicación en un smartphone
+    img: 'https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=2560&q=90',
   },
   {
     label: 'Servicios',
-    title: 'Inteligencia Artificial',
+    title: 'App de Escritorio',
     description:
-      'Integramos modelos de IA para automatizar procesos complejos y potenciar la toma de decisiones estratégicas.',
-    img: 'https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=1400&q=80',
-  },
-  {
-    label: 'Servicios',
-    title: 'Marketing Digital',
-    description:
-      'Estrategias basadas en datos para maximizar tu visibilidad online y convertir audiencias en clientes fieles.',
-    img: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1400&q=80',
+      'Desarrollamos aplicaciones de escritorio con interfaces intuitivas y funcionalidades avanzadas.',
+    // Nueva Imagen: Setup profesional de monitor ultra-wide donde se ve el IDE (código) 
+    // a la izquierda y el programa de escritorio con una interfaz de usuario real a la derecha.
+    img: '/DesktopApp.webp',
   },
 ];
 
@@ -49,8 +46,8 @@ const Servicios: React.FC = () => {
       <div className="flex-grow flex flex-col">
         
         {/* ── HERO CAROUSEL ── */}
-        {/* Sin bg-white aquí, el carrusel se encarga de su propio fondo oscuro */}
-        <section className="relative min-h-[calc(100vh-6rem)] overflow-hidden">
+        {/* EL CAMBIO: Añadimos bg-[#020611] a este section para que el fundido revele oscuridad y no luz */}
+        <section className="relative min-h-[calc(100vh-6rem)] overflow-hidden bg-[#020611]">
 
           {/* Imagen de fondo */}
           <AnimatePresence mode="wait">
@@ -59,7 +56,8 @@ const Servicios: React.FC = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.6 }}
+              // Si quieres que el fundido sea un poco más ágil, puedes bajar la duración de 0.6 a 0.4
+              transition={{ duration: 0.4 }}
               className="absolute inset-0"
             >
               <img
@@ -67,30 +65,55 @@ const Servicios: React.FC = () => {
                 alt={services[current].title}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20" />
+              
+              {/* Capa base sutil */}
+              <div className="absolute inset-0 bg-black/10" />
+
+              {/* EL DARK FADE */}
+              <div className="absolute bottom-0 left-0 right-0 h-3/4 bg-gradient-to-t from-[#020611] via-[#020611]/80 to-transparent" />
+              
             </motion.div>
           </AnimatePresence>
 
           {/* Flecha izquierda */}
           <button
             onClick={prev}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 text-white/70 hover:text-white transition-colors"
+            className="absolute left-10 top-1/2 -translate-y-1/2 z-20 text-white/70 hover:text-[#06CFD6] hover:scale-110 hover:drop-shadow-[0_0_18px_rgba(6,207,214,0.8)] transition-all duration-300 group"
             aria-label="Anterior"
           >
-            <svg viewBox="0 0 24 24" className="w-10 h-10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
+            <motion.div
+              animate={{ y: [0, -6, 0] }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            >
+              <svg viewBox="7 4 10 16" className="w-16 h-28" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </motion.div>
           </button>
 
           {/* Flecha derecha */}
           <button
             onClick={next}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 text-white/70 hover:text-white transition-colors"
+            className="absolute right-10 top-1/2 -translate-y-1/2 z-20 text-white/70 hover:text-[#06CFD6] hover:scale-110 hover:drop-shadow-[0_0_18px_rgba(6,207,214,0.8)] transition-all duration-300 group"
             aria-label="Siguiente"
           >
-            <svg viewBox="0 0 24 24" className="w-10 h-10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
+            <motion.div
+              animate={{ y: [0, -6, 0] }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "easeInOut"
+                // Eliminamos el 'delay: 1.5' para que floten al mismo tiempo
+              }}
+            >
+              <svg viewBox="7 4 10 16" className="w-16 h-28" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </motion.div>
           </button>
 
           {/* Contenido inferior */}
@@ -101,31 +124,37 @@ const Servicios: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.45 }}
-              className="absolute bottom-0 left-0 right-0 z-10 px-8 md:px-16 pb-12"
+              className="absolute bottom-0 left-0 right-0 z-10 px-8 md:px-16 pb-20" 
             >
-              <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-end justify-between gap-8">
+              <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8 md:gap-16">
 
-                {/* Izquierda — info del servicio */}
-                <div className="max-w-xs md:max-w-sm">
-                  <p className="text-white/50 text-xs uppercase tracking-widest mb-1">
-                    {services[current].label}
-                  </p>
-                  <h2 className="text-4xl md:text-5xl font-black text-primary-cyan mb-4 leading-tight">
-                    {services[current].title}
-                  </h2>
-                  <p className="text-white/75 text-sm leading-relaxed">
-                    {services[current].description}
-                  </p>
-                </div>
+                  {/* IZQUIERDA — Info del servicio */}
+                  <div className="flex-1 max-w-2xl w-full">
+                    <p className="text-white text-xl md:text-2xl font-light tracking-wide mb-2">
+                      {services[current].label}
+                    </p>
+                    <h2 className="text-6xl md:text-[5rem] font-black text-[#0CA3C6] mb-6 leading-none tracking-tight">
+                      {services[current].title}
+                    </h2>
+                    <p className="text-white/90 text-lg md:text-xl leading-relaxed font-light">
+                      {services[current].description}
+                    </p>
+                  </div>
 
-                {/* Derecha — CTA */}
-                <div className="shrink-0 text-center md:text-right">
-                  <p className="text-white font-bold text-lg md:text-xl mb-4">
+                {/* CENTRO — Línea separadora vertical MÁS GRUESA */}
+                {/* Cambiamos w-[1px] a w-[2px] y bg-white/30 a bg-white/50 */}
+                <div className="hidden md:block w-[1.5px] self-stretch bg-white/50 mx-4"></div>
+
+                {/* DERECHA — CTA (Botón) */}
+                <div className="shrink-0 flex flex-col justify-center items-center text-center w-full md:w-auto md:min-w-[300px]">
+                  <p className="text-white font-bold text-2xl md:text-3xl mb-6 leading-tight">
                     Obtén mucha más<br />información
                   </p>
                   <Link
                     to="/contacto"
-                    className="inline-block bg-primary-cyan text-white font-bold px-10 py-3 rounded-full hover:bg-cyan-500 transition-colors"
+                    // Mantenemos el tamaño y padding (text-3xl, px-24, py-5, rounded-[20px])
+                    // Pero añadimos los colores, sombras y transformaciones exactas del AltHeader
+                    className="w-full md:w-auto inline-block bg-[#06CFD6] hover:bg-[#0CA3C6] text-white font-bold text-2xl md:text-3xl px-24 py-5 rounded-[20px] shadow-[0_4px_15px_rgba(6,207,214,0.4)] hover:shadow-[0_8px_25px_rgba(6,207,214,0.6)] hover:-translate-y-1 active:translate-y-0 transition-all duration-300 outline-none"
                   >
                     Conectar
                   </Link>
@@ -196,11 +225,21 @@ const Servicios: React.FC = () => {
             </div>
           </div>
         </section>
+        
+        
 
       </div>
 
-      {/* 3. EL FOOTER: Ahora sus lados transparentes mostrarán el bg-white de esta vista */}
-      <AltFooter />
+      {/* LA MAGIA SUCEDE AQUÍ: Contenedor relativo para el footer */}
+      <div className="relative w-full">
+        {/* Fondo detrás del footer: Es blanco hasta la mitad (from-50%), luego hace el fade a #020611 */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white from-50% to-[#020611] z-0" aria-hidden="true"></div>
+
+        {/* El footer se renderiza encima (z-10) y deja ver el degradado por sus bordes transparentes */}
+        <div className="relative z-10">
+          <AltFooter />
+        </div>
+      </div>
 
     </div>
   );
