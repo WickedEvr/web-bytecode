@@ -28,8 +28,8 @@ const Confirmacion: React.FC = () => {
   return (
     <div className="relative min-h-[calc(100vh-6rem)] flex flex-col items-center justify-center overflow-hidden font-sansation">
       {/* Fondo espacio */}
-      <div className="absolute inset-0">
-        <img src="/hero.png" alt="" className="w-full h-full object-cover" aria-hidden="true" />
+      <div className="absolute inset-0" style={{ backgroundColor: '#040e1f' }}>
+        <video src="/final.mp4" autoPlay loop muted playsInline preload="auto" className="w-full h-full object-cover" aria-hidden="true" />
         <div className="absolute inset-0 bg-[#040e1f]/72" />
       </div>
 

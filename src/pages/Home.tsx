@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
@@ -41,11 +41,89 @@ export const LogoCell: React.FC<{ children: React.ReactNode; className?: string;
   </div>
 );
 
+/* ─── Testimonial Card ─────────────────────────────── */
+const CARD_W = 'clamp(280px, 28vw, 380px)';
+const AVATAR = 'clamp(100px, 11vw, 140px)';
+
+const testimonials = [
+  { name: 'María García',   role: 'Emprendedora', text: 'Excelente servicio, mi negocio creció enormemente. Totalmente conforme.', stars: 4 },
+  { name: 'Dante Gallardo', role: 'CEO',          text: 'Muy bueno con el trabajo! Totalmente conforme.',                          stars: 5 },
+  { name: 'Carlos Ruiz',    role: 'Director',     text: 'Profesionales de primer nivel, los recomiendo.',                          stars: 5 },
+];
+
+const StarIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="#F5A523" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+  </svg>
+);
+
+// slot: 0=centro(main)  1=derecha(atrás)  2=izquierda(atrás)
+const TestimonialCard: React.FC<{ name: string; role: string; text: string; stars: number; slot: 0|1|2 }> = ({
+  name, role, text, stars, slot,
+}) => {
+  const isMain = slot === 0;
+  const slotStyle: React.CSSProperties =
+    slot === 0 ? { transform: 'translate(-50%, -50%) scale(1)',     opacity: 1,    zIndex: 3 } :
+    slot === 1 ? { transform: 'translate(22%,  -50%) scale(0.78)',  opacity: 0.52, zIndex: 1 } :
+                 { transform: 'translate(-122%, -50%) scale(0.78)', opacity: 0.62, zIndex: 1 };
+  return (
+    <div style={{
+      position: 'absolute', left: '50%', top: '50%',
+      width: CARD_W,
+      borderRadius: '26px',
+      overflow: 'hidden',
+      border: isMain ? '2px solid rgba(255,255,255,0.85)' : '1.5px solid rgba(255,255,255,0.25)',
+      boxShadow: isMain
+        ? '0 0 18px rgba(255,255,255,0.35), 0 0 36px rgba(12,163,198,0.35), 0 8px 28px rgba(0,0,0,0.5)'
+        : '0 4px 16px rgba(0,0,0,0.4)',
+      background: 'rgba(15,28,48,0.92)',
+      transition: 'transform 0.65s cubic-bezier(0.4,0,0.2,1), opacity 0.55s ease, box-shadow 0.55s ease',
+      ...slotStyle,
+    }}>
+      {/* Zona oscura superior */}
+      <div style={{ height: 'clamp(110px, 12vw, 160px)', position: 'relative', background: 'linear-gradient(160deg,#0d1e35 0%,#162d4a 100%)' }}>
+        <div style={{
+          position: 'absolute',
+          bottom: `calc(-${AVATAR} / 2)`,
+          left: '50%', transform: 'translateX(-50%)',
+          width: AVATAR, height: AVATAR,
+          borderRadius: '50%',
+          border: isMain ? '3px solid #0CA3C6' : '2px solid rgba(12,163,198,0.5)',
+          boxShadow: isMain ? '0 0 14px rgba(12,163,198,0.8)' : 'none',
+          background: 'linear-gradient(135deg, #1a3a5c 0%, #0d1f33 100%)',
+          zIndex: 2,
+        }} />
+      </div>
+      {/* Zona blanca con arco */}
+      <div style={{
+        background: 'white',
+        borderRadius: '50% 50% 0 0 / 32px 32px 0 0',
+        paddingTop: `calc(${AVATAR} / 2 + 16px)`,
+        paddingBottom: '28px', paddingLeft: '22px', paddingRight: '22px',
+        textAlign: 'center',
+      }}>
+        <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: 'clamp(16px,1.7vw,22px)', color: CYAN, margin: '0 0 4px' }}>{name}</p>
+        <p style={{ fontFamily: FONT, fontWeight: 400, fontSize: 'clamp(13px,1.4vw,18px)', color: CYAN, margin: '0 0 12px' }}>{role}</p>
+        <p style={{ fontFamily: FONT, fontSize: 'clamp(12px,1.3vw,16px)', color: '#444', lineHeight: 1.5, margin: '0 0 18px' }}>{text}</p>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '3px' }}>
+          {Array.from({ length: stars }).map((_, i) => <StarIcon key={i} />)}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ══════════════════════════════════════════════════════
    HOME
 ══════════════════════════════════════════════════════ */
 const Home: React.FC = () => {
   const [slide, setSlide] = useState(0);
+  const [activeCard, setActiveCard] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setActiveCard(p => (p + 1) % testimonials.length), 3500);
+    return () => clearInterval(t);
+  }, []);
 
   return (
     <div className="overflow-x-hidden" style={{ fontFamily: FONT }}>
@@ -55,9 +133,18 @@ const Home: React.FC = () => {
       ───────────────────────────────────────────── */}
       <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden select-none" style={{ marginTop: 0 }}>
 
-        {/* Galaxy image */}
-        <div className="absolute inset-0" style={{ top: 0 }} aria-hidden="true">
-          <img src="/hero.png" alt="" className="w-full h-full object-cover" style={{ objectPosition: 'center 20%', transform: 'scale(1.1)', transformOrigin: 'top center' }} />
+        {/* Galaxy video */}
+        <div className="absolute inset-0" style={{ top: 0, backgroundColor: '#040e1f' }} aria-hidden="true">
+          <video
+            src="/final.mp4"
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="auto"
+            className="w-full h-full object-cover"
+            style={{ objectPosition: 'center 20%', transform: 'scale(1.1)', transformOrigin: 'top center' }}
+          />
           <div className="absolute inset-0" style={{ background: 'rgba(4,14,31,0.45)' }} />
         </div>
 
@@ -236,15 +323,48 @@ const Home: React.FC = () => {
             <div style={{ flex: 1, height: 0, border: '2px solid rgba(60, 60, 59, 0.69)' }} />
           </div>
 
-          {/* Brand logos */}
-          <div className="flex flex-nowrap justify-center items-center gap-6 md:gap-10 w-full" style={{ opacity: 0.8 }}>
-            <img src="/logos/laravel.svg"  alt="Laravel" style={{ height: 'clamp(30px, 4.7vw, 54px)',  width: 'auto', opacity: 0.9, filter: 'grayscale(100%)' }} />
-            <img src="/logos/github.svg"   alt="GitHub"  style={{ height: 'clamp(32px, 4.9vw, 56px)',  width: 'auto', opacity: 0.9, filter: 'grayscale(100%)' }} />
-            <img src="/logos/php.svg"      alt="PHP"     style={{ height: 'clamp(40px, 6.6vw, 76px)',  width: 'auto', opacity: 0.9, filter: 'grayscale(100%)' }} />
-            <img src="/logos/JAVA.svg"     alt="Java"    style={{ height: 'clamp(44px, 7.5vw, 86px)',  width: 'auto', opacity: 0.9, filter: 'grayscale(100%)' }} />
-            <img src="/logos/mongodb.svg"  alt="MongoDB" style={{ height: 'clamp(48px, 8vw, 92px)',    width: 'auto', opacity: 0.9, filter: 'grayscale(100%)' }} />
-          </div>
         </div>
+
+        {/* Brand logos — infinite carousel — 80vw */}
+          <style>{`
+            @keyframes marquee-scroll {
+              0%   { transform: translateX(0); }
+              100% { transform: translateX(-50%); }
+            }
+            .logos-track {
+              display: flex;
+              flex-wrap: nowrap;
+              align-items: center;
+              gap: clamp(2rem, 5vw, 4rem);
+              width: max-content;
+              animation: marquee-scroll 16s linear infinite;
+            }
+          `}</style>
+          <div
+            style={{
+              position: 'relative',
+              width: '80vw',
+              margin: '0 auto',
+              overflow: 'hidden',
+              maskImage: 'linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)',
+              WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)',
+              opacity: 0.8,
+            }}
+          >
+            <div className="logos-track">
+              <img src="/logos/laravel.svg" alt="Laravel" style={{ height: 'clamp(30px, 4.7vw, 54px)', width: 'auto', opacity: 0.9, filter: 'grayscale(100%)', flexShrink: 0 }} />
+              <img src="/logos/github.svg"  alt="GitHub"  style={{ height: 'clamp(32px, 4.9vw, 56px)', width: 'auto', opacity: 0.9, filter: 'grayscale(100%)', flexShrink: 0 }} />
+              <img src="/logos/php.svg"     alt="PHP"     style={{ height: 'clamp(40px, 6.6vw, 76px)', width: 'auto', opacity: 0.9, filter: 'grayscale(100%)', flexShrink: 0 }} />
+              <img src="/logos/JAVA.svg"    alt="Java"    style={{ height: 'clamp(44px, 7.5vw, 86px)', width: 'auto', opacity: 0.9, filter: 'grayscale(100%)', flexShrink: 0 }} />
+              <img src="/logos/mongodb.svg" alt="MongoDB" style={{ height: 'clamp(48px, 8vw, 92px)',   width: 'auto', opacity: 0.9, filter: 'grayscale(100%)', flexShrink: 0 }} />
+              {/* Duplicado para loop seamless */}
+              <img src="/logos/laravel.svg" alt="" aria-hidden="true" style={{ height: 'clamp(30px, 4.7vw, 54px)', width: 'auto', opacity: 0.9, filter: 'grayscale(100%)', flexShrink: 0 }} />
+              <img src="/logos/github.svg"  alt="" aria-hidden="true" style={{ height: 'clamp(32px, 4.9vw, 56px)', width: 'auto', opacity: 0.9, filter: 'grayscale(100%)', flexShrink: 0 }} />
+              <img src="/logos/php.svg"     alt="" aria-hidden="true" style={{ height: 'clamp(40px, 6.6vw, 76px)', width: 'auto', opacity: 0.9, filter: 'grayscale(100%)', flexShrink: 0 }} />
+              <img src="/logos/JAVA.svg"    alt="" aria-hidden="true" style={{ height: 'clamp(44px, 7.5vw, 86px)', width: 'auto', opacity: 0.9, filter: 'grayscale(100%)', flexShrink: 0 }} />
+              <img src="/logos/mongodb.svg" alt="" aria-hidden="true" style={{ height: 'clamp(48px, 8vw, 92px)',   width: 'auto', opacity: 0.9, filter: 'grayscale(100%)', flexShrink: 0 }} />
+            </div>
+          </div>
       </section>
 
       {/* ═══════════════════════════════════════════
@@ -305,8 +425,7 @@ const Home: React.FC = () => {
                 <img src="/blank.svg" alt="" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} />
                 <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.22)' }} />
               </div>
-              {/* Chica al frente sin clip */}
-              <img src="/chica.svg" alt="IA" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'right bottom', transform: 'scale(1.045)', transformOrigin: 'right bottom', zIndex: 100 }} />
+              <img src="/chica.svg" alt="IA" style={{ position: 'absolute', left: '7%', bottom: 0, width: 'auto', height: '120%', maxWidth: 'none', transform: 'translateX(-50%)', transformOrigin: 'center bottom', zIndex: 120, pointerEvents: 'none' }} />
             </motion.div>
 
             {/* Tarjeta hombre (derecha) */}
@@ -344,23 +463,26 @@ const Home: React.FC = () => {
         {/* Contenido */}
         <div className="relative flex items-center justify-between" style={{ zIndex: 1, minHeight: '400px' }}>
 
-          {/* Pepsi gráfico — pegado a la izquierda */}
-          <div className="absolute left-0 top-1/2 -translate-y-1/2">
-            <img src="/pepsi.svg" alt="" aria-hidden="true" style={{ height: 'clamp(300px, 40vw, 570px)', width: 'auto' }} />
+          {/* Tarjetas testimonios — carrusel */}
+          <div className="absolute left-0 top-1/2 -translate-y-1/2" style={{ paddingLeft: 'clamp(4rem, 8vw, 10rem)' }}>
+            <div style={{ position: 'relative', width: 'clamp(500px, 62vw, 860px)', height: 'clamp(440px, 56vw, 720px)' }}>
+              {testimonials.map((t, i) => {
+                const slot = ((i - activeCard + testimonials.length) % testimonials.length) as 0|1|2;
+                return <TestimonialCard key={i} slot={slot} name={t.name} role={t.role} text={t.text} stars={t.stars} />;
+              })}
+            </div>
           </div>
 
           {/* Columna derecha: texto arriba, gráfico abajo */}
-          <div className="ml-auto flex flex-col items-end" style={{ position: 'relative', zIndex: 2 }}>
+          <div className="ml-auto flex flex-col items-end" style={{ position: 'relative', zIndex: 2, alignSelf: 'flex-start' }}>
             {/* Texto */}
-            <div className="text-right" style={{ maxWidth: '560px', marginRight: '8rem' , margin: '5rem' }}>
-              <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: 'clamp(20px, 2.2vw, 32px)', lineHeight: '36px', color: '#FFFFFF', textAlign: 'right' }}>
-                Con la confianza de
-              </p>
-              <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: 'clamp(60px, 7.3vw, 105px)', lineHeight: '1.12', color: CYAN, textAlign: 'right' }}>
-                14 Millones
+            <div className="text-right" style={{ maxWidth: '480px', marginRight: '18%', marginTop: 0, marginBottom: '2rem', marginLeft: 0 }}>
+              <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: 'clamp(28px, 3.5vw, 52px)', lineHeight: 1.15, color: '#FFFFFF', textAlign: 'right', marginBottom: '1.2rem' }}>
+                CONSTRUYENDO EL FUTURO,{' '}
+                <span style={{ color: CYAN }}>CASO POR CASO</span>
               </h2>
-              <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: 'clamp(18px, 2.2vw, 32px)', lineHeight: '36px', color: '#FFFFFF', textAlign: 'right' }}>
-                de emprendedores en todo el Perú
+              <p style={{ fontFamily: FONT, fontWeight: 400, fontSize: 'clamp(14px, 1.5vw, 20px)', lineHeight: 1.6, color: 'rgba(255,255,255,0.75)', textAlign: 'right' }}>
+                Testimonios veraces de nuestros primeros usuarios piloto que ya están transformando sus industrias.
               </p>
             </div>
             {/* Gráfico debajo del texto, pegado al borde derecho */}
