@@ -1,25 +1,32 @@
-// App.tsx
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 
-// Importamos ambos Layouts cambio
+// 1. Importación de Layouts (Se mantienen estáticos porque son compartidos y ligeros)
 import MainLayout from './layouts/MainLayout';
 import AltLayout from './layouts/AltLayout';
 import ContactLayout from './layouts/ContactLayout';
 
-// Importamos las páginas
-import Home from './pages/Home';
-import Nosotros from './pages/Nosotros';
-import Portafolio from './pages/Portafolio';
-import Servicios from './pages/Servicios';
-import Contacto from './pages/Contacto';
-import Confirmacion from './pages/Confirmacion';
-import LibroReclamaciones from './pages/LibroReclamaciones';
-import Condiciones from './pages/Condiciones';
-import Privacidad from './pages/Privacidad';
-import NotFound from './pages/NotFound';
+// 2. Code Splitting: Importamos las páginas de forma dinámica
+// Esto genera archivos .js separados que solo se descargan cuando el usuario visita la ruta.
+const Home = lazy(() => import('./pages/Home'));
+const Nosotros = lazy(() => import('./pages/Nosotros'));
+const Portafolio = lazy(() => import('./pages/Portafolio'));
+const Servicios = lazy(() => import('./pages/Servicios'));
+const Contacto = lazy(() => import('./pages/Contacto'));
+const Confirmacion = lazy(() => import('./pages/Confirmacion'));
+const LibroReclamaciones = lazy(() => import('./pages/LibroReclamaciones'));
+const Condiciones = lazy(() => import('./pages/Condiciones'));
+const Privacidad = lazy(() => import('./pages/Privacidad'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
-// Scroll to top on route change
+// Componente de carga (Fallback)
+// Puedes personalizarlo con un Spinner o un esqueleto de carga
+const PageLoader = () => (
+  <div className="h-screen w-full flex items-center justify-center bg-[#060c1d]">
+    <div className="animate-pulse text-cyan-400 font-sansation text-xl">Cargando...</div>
+  </div>
+);
+
 const ScrollToTop = () => {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -33,31 +40,34 @@ const App: React.FC = () => {
     <Router>
       <ScrollToTop />
       
-      <Routes>
-        {/* 🟢 GRUPO 1: Header Normal + Footer Normal */}
-        <Route element={<MainLayout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/condiciones" element={<Condiciones />} />
-          <Route path="/privacidad" element={<Privacidad />} />
-        </Route>
-        
-        {/* 🔵 GRUPO 2: AltHeader + AltFooter */}
-        <Route element={<AltLayout />}>
-          <Route path="/nosotros" element={<Nosotros />} />
-          <Route path="/portafolio" element={<Portafolio />} />
-          <Route path="/servicios" element={<Servicios />} />
-        </Route>
+      {/* 3. Suspense envuelve las rutas para manejar el estado de carga de los componentes lazy */}
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          {/* 🟢 GRUPO 1: Header Normal + Footer Normal */}
+          <Route element={<MainLayout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/condiciones" element={<Condiciones />} />
+            <Route path="/privacidad" element={<Privacidad />} />
+          </Route>
+          
+          {/* 🔵 GRUPO 2: AltHeader + AltFooter */}
+          <Route element={<AltLayout />}>
+            <Route path="/nosotros" element={<Nosotros />} />
+            <Route path="/portafolio" element={<Portafolio />} />
+            <Route path="/servicios" element={<Servicios />} />
+          </Route>
 
-        {/* 🟠 GRUPO 3: AltHeader + ContactFooter */}
-        <Route element={<ContactLayout />}>
-          <Route path="/contacto" element={<Contacto />} />
-          <Route path="/confirmacion" element={<Confirmacion />} />
-          <Route path="/reclamaciones" element={<LibroReclamaciones />} />
-        </Route>
+          {/* 🟠 GRUPO 3: AltHeader + ContactFooter */}
+          <Route element={<ContactLayout />}>
+            <Route path="/contacto" element={<Contacto />} />
+            <Route path="/confirmacion" element={<Confirmacion />} />
+            <Route path="/reclamaciones" element={<LibroReclamaciones />} />
+          </Route>
 
-        {/* 🔴 SIN LAYOUT (Pantalla completa) */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+          {/* 🔴 SIN LAYOUT (Pantalla completa) */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
     </Router>
   );
 };

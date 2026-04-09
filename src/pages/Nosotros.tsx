@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import AltFooter from '../components/AltFooter'; // 1. IMPORTAMOS EL FOOTER
 
 const mvv = [
   {
@@ -21,7 +22,9 @@ const mvv = [
 
 const Nosotros: React.FC = () => {
   return (
-    <div className="overflow-x-hidden font-sansation">
+    // 2. CONTENEDOR PRINCIPAL: Le damos el color de la última sección (#0a4a5a)
+    // para que sea el que se vea por los lados del footer.
+    <div className="w-full min-h-screen font-sansation overflow-x-hidden flex flex-col bg-[#0a4a5a]">
 
       {/* 3. CONTENEDOR DE CONTENIDO (empuja el footer hacia abajo) */}
       <div className="flex-grow flex flex-col">

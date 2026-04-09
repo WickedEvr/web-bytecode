@@ -17,7 +17,7 @@ const AltHeader: React.FC = () => {
         <header className="bg-white w-full py-5 px-6 md:px-12 flex items-center justify-between shadow-sm relative z-50 font-sansation select-none">
             
             {/* Lado Izquierdo: Logo y Menú */}
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-6 select-none">
             <Link to="/" className="group outline-none">
                 <img 
                 src="/designs/variante_logo_color1.svg" 
