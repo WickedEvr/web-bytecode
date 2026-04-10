@@ -25,12 +25,12 @@ const AltHeader: React.FC = () => {
                 className="h-10 md:h-12 w-auto object-contain transition-all duration-300 ease-out group-hover:scale-105 group-hover:drop-shadow-[0_0_12px_rgba(6,207,214,0.4)] active:scale-95" 
                 />
             </Link>
-            <button 
+            <button
                 onClick={openMenu}
-                className="text-[#06CFD6] hover:text-[#0CA3C6] hover:scale-110 active:scale-95 transition-all duration-300 p-1 outline-none"
+                className="group text-[#06CFD6] hover:text-[#0CA3C6] hover:scale-110 active:scale-95 transition-all duration-300 p-1 outline-none"
                 aria-label="Menú principal"
             >
-                <Menu size={36} strokeWidth={2.5} />
+                <Menu size={36} strokeWidth={2.5} className="transition-transform duration-300 group-hover:rotate-90" />
             </button>
             </div>
             
