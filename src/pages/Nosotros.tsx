@@ -1,139 +1,177 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import AltFooter from '../components/AltFooter'; // 1. IMPORTAMOS EL FOOTER
+import AltFooter from '../components/AltFooter';
 
-const mvv = [
+const infoBlocks = [
   {
     title: 'Misión',
-    content:
-      'Transformar retos de negocio en productos digitales funcionales, estéticos y técnicamente excelentes.',
+    text: 'Transformar retos de negocio en productos digitales funcionales, estéticos y técnicamente excelentes.',
   },
   {
     title: 'Visión',
-    content:
-      'Ser el aliado tecnológico referente en la región, elevando los estándares de desarrollo y escalabilidad en productos de clase mundial.',
+    text: 'Ser el aliado tecnológico referente en la región, elevando los estándares de desarrollo y escalabilidad en productos de clase mundial.',
   },
   {
     title: 'Valores',
-    content:
-      'Precisión técnica, Innovación disruptiva, Escalabilidad multiplataforma, Transparencia operativa y Calidad de código.',
+    text: 'Precisión técnica, Innovación disruptiva, Escalabilidad multiplataforma, Transparencia operativa y Calidad de código.',
   },
 ];
 
 const Nosotros: React.FC = () => {
   return (
-    // 2. CONTENEDOR PRINCIPAL: Le damos el color de la última sección (#0a4a5a)
-    // para que sea el que se vea por los lados del footer.
-    <div className="w-full min-h-screen font-sansation overflow-x-hidden flex flex-col bg-[#0a4a5a]">
+    <div className="flex w-full flex-col overflow-x-clip bg-[#044553] font-sansation">
+      <section className="relative w-full lg:hidden">
+        <div className="relative h-[13.75rem] overflow-hidden bg-black sm:h-[17rem]">
+          <img
+            src="/nosotros/imagenchicalaptoparriba.png"
+            alt="Fondo Laptop"
+            className="h-full w-full object-cover object-center opacity-70"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/90 via-black/45 to-[#0CA3C6]" />
 
-      {/* 3. CONTENEDOR DE CONTENIDO (empuja el footer hacia abajo) */}
-      <div className="flex-grow flex flex-col">
+          <div className="absolute inset-x-0 bottom-0 z-10 px-5 pb-6 text-center sm:px-8 sm:pb-8">
+            <motion.h1
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-[clamp(2rem,8.5vw,3.2rem)] font-bold leading-none text-[#0CA3C6]"
+            >
+              Nosotros
+            </motion.h1>
 
-        {/* ── HERO ── */}
-        {/* El Hero mantiene su propio fondo oscuro, tapando el teal de arriba */}
-        <section className="relative min-h-[80vh] flex items-stretch overflow-hidden bg-[#060c1d]">
-          {/* Fondo espacio + overlay */}
-          <div className="absolute inset-0" style={{ backgroundColor: '#040e1f' }}>
-            <video src="/final.mp4" autoPlay loop muted playsInline preload="auto" className="w-full h-full object-cover opacity-40" aria-hidden="true" />
-            <div className="absolute inset-0 bg-[#040e1f]/60" />
+            <motion.p
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="mx-auto mt-3 max-w-[19rem] text-[0.9rem] leading-[1.05rem] text-white/90 sm:mt-4 sm:max-w-[24rem] sm:text-[1rem] sm:leading-[1.2rem]"
+            >
+              Nos especializamos en ingeniería de software multiplataforma y automatización inteligente para
+              negocios escalables.
+            </motion.p>
           </div>
+        </div>
 
-          {/* Puntos de constelación (izquierda) */}
-          <svg
-            className="absolute left-0 top-0 h-full w-1/3 pointer-events-none opacity-60"
-            viewBox="0 0 300 600"
-            preserveAspectRatio="xMinYMid meet"
-            aria-hidden="true"
+        <div className="relative overflow-hidden bg-[#0CA3C6] px-4 pb-16 pt-5 sm:px-6 sm:pb-20 sm:pt-8">
+          <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#0CA3C6] to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-b from-transparent to-[#044553]/55" />
+
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15, duration: 0.5 }}
+            className="relative mx-auto mb-12 aspect-[0.72] w-full max-w-[18rem] sm:mb-14 sm:max-w-[21rem]"
           >
-            <circle cx="30" cy="80" r="2" fill="rgba(0,188,212,0.8)" />
-            <circle cx="80" cy="200" r="1.5" fill="rgba(255,255,255,0.6)" />
-            <circle cx="20" cy="320" r="2" fill="rgba(0,188,212,0.6)" />
-            <circle cx="110" cy="420" r="1.5" fill="rgba(255,255,255,0.5)" />
-            <circle cx="60" cy="500" r="2" fill="rgba(0,188,212,0.7)" />
-            <line x1="30" y1="80" x2="80" y2="200" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-            <line x1="80" y1="200" x2="20" y2="320" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-            <line x1="20" y1="320" x2="110" y2="420" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
-            <line x1="110" y1="420" x2="60" y2="500" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
-          </svg>
+            <div className="absolute left-[13%] top-[7%] h-[72%] w-[58%] rounded-[1.75rem] bg-gradient-to-b from-[#06CFD6] to-[#036C70]" />
+            <div className="absolute right-[10%] top-[9%] h-[27%] w-[27%] rounded-full border border-white/20 bg-[#90F7FF]/25 backdrop-blur-[2px]" />
+            <div className="absolute left-[4%] top-[17%] h-[17%] w-[30%] rounded-[1.4rem] bg-[#024F79]/88" />
+            <div className="absolute left-[1%] bottom-[16%] h-[18%] w-[31%] rounded-[1.4rem] bg-[#026B9B]/86" />
 
-          {/* Contenido */}
-          <div className="relative z-10 w-full flex flex-col md:flex-row items-center">
+            <img
+              src="/nosotros/hombredepie.png"
+              alt="Tecnología y Escalabilidad"
+              className="absolute left-1/2 top-[5%] z-10 w-[92%] -translate-x-1/2 drop-shadow-2xl"
+            />
 
-            {/* Columna izquierda — texto */}
-            <motion.div
+            <img
+              src="/nosotros/sombrapisohombre.png"
+              alt=""
+              className="absolute bottom-[9%] left-1/2 z-0 w-[62%] -translate-x-1/2 opacity-85"
+            />
+          </motion.div>
+
+          <div className="relative z-10 mx-auto flex max-w-[20rem] flex-col items-center gap-11 text-center sm:max-w-[24rem] sm:gap-14">
+            {infoBlocks.map((block, index) => (
+              <motion.div
+                key={block.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.08 }}
+                className="flex flex-col items-center"
+              >
+                <h2 className="text-[clamp(2.2rem,9vw,3.3rem)] font-bold leading-none text-white">{block.title}</h2>
+                <p className="mt-4 max-w-[18rem] text-[0.95rem] leading-[1.2rem] text-white/85 sm:max-w-[22rem] sm:text-[1rem] sm:leading-[1.35rem]">
+                  {block.text}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="relative hidden w-full pb-[100px] lg:block lg:pb-[150px]">
+        <div className="absolute left-0 top-0 h-[1000px] w-full bg-[#000]">
+          <img
+            src="/nosotros/imagenchicalaptoparriba.png"
+            alt="Fondo Laptop"
+            className="h-full w-full object-cover object-center opacity-70"
+          />
+          <div className="absolute inset-0 w-full bg-gradient-to-r from-black/90 via-black/50 to-transparent md:w-[80%]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0CA3C6]" />
+        </div>
+
+        <div className="absolute left-0 top-[750px] bottom-0 w-full overflow-hidden rounded-tr-[143px] bg-[#0CA3C6] shadow-2xl">
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0CA3C6]/0 via-[#0CA3C6]/10 to-[#044553]/90" />
+        </div>
+
+        <div className="relative mx-auto w-full max-w-[1440px] px-12 pt-[250px] lg:min-h-[1600px] lg:px-[100px]">
+          <div className="relative z-10 w-full lg:w-1/2">
+            <motion.h1
               initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.7 }}
-              className="w-full md:w-1/2 px-8 md:px-16 py-20 flex flex-col justify-center"
+              className="mb-6 text-6xl font-bold leading-tight text-[#0CA3C6] md:text-[85px] md:leading-[95px]"
             >
-              <h1 className="text-5xl md:text-6xl font-black text-primary-cyan mb-6">
-                Nosotros
-              </h1>
-              <p className="text-white/80 text-base md:text-lg leading-relaxed max-w-sm">
-                Nos especializamos en ingeniería de software multiplataforma y automatización
-                inteligente para negocios escalables.
-              </p>
-            </motion.div>
+              Nosotros
+            </motion.h1>
 
-            {/* Columna derecha — imagen */}
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
+            <motion.p
+              initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.7, delay: 0.15 }}
-              className="w-full md:w-1/2 h-72 md:h-auto md:min-h-[80vh] relative overflow-hidden"
+              transition={{ delay: 0.1 }}
+              className="mb-24 max-w-[670px] text-justify text-xl leading-snug text-white md:mb-[150px] md:text-[32px] md:leading-[36px]"
             >
-              <img
-                src="https://images.unsplash.com/photo-1637143396528-d6106f629e1a?w=700&q=80"
-                alt="Tecnología"
-                className="w-full h-full object-cover object-top"
-              />
-              {/* Overlay degradado izquierdo para fusión con el texto */}
-              <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[#040e1f] to-transparent" />
-              {/* Overlay degradado inferior */}
-              <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#040e1f] to-transparent" />
-            </motion.div>
-          </div>
-        </section>
+              Nos especializamos en ingeniería de software multiplataforma y automatización inteligente para
+              negocios escalables.
+            </motion.p>
 
-        {/* ── MISIÓN / VISIÓN / VALORES ── */}
-        <section className="bg-[#0a4a5a] relative overflow-hidden py-20 px-6">
-
-          {/* Triángulo decorativo (izquierda) */}
-          <div className="absolute left-0 bottom-0 pointer-events-none opacity-60" aria-hidden="true">
-            <svg viewBox="0 0 300 400" className="w-48 md:w-64">
-              <polygon points="0,400 150,100 300,400" fill="none" stroke="rgba(0,188,212,0.4)" strokeWidth="1.2" />
-              <polygon points="0,400 80,220 160,400" fill="none" stroke="rgba(0,188,212,0.3)" strokeWidth="1" />
-              <polygon points="160,400 240,250 300,400" fill="rgba(0,188,212,0.15)" />
-            </svg>
-          </div>
-
-          <div className="max-w-4xl mx-auto relative z-10">
-            <div className="space-y-12">
-              {mvv.map((item, i) => (
+            <div className="relative mt-[50px] flex flex-col gap-20 pl-0 md:gap-[120px] md:pl-20">
+              {infoBlocks.map((block, index) => (
                 <motion.div
-                  key={item.title}
+                  key={block.title}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: i * 0.12 }}
+                  transition={{ delay: index * 0.1 }}
                 >
-                  <h2 className="text-3xl md:text-4xl font-black text-white mb-3">
-                    {item.title}
-                  </h2>
-                  <p className="text-white/70 text-sm md:text-base leading-relaxed max-w-md">
-                    {item.content}
+                  <h2 className="mb-4 text-4xl font-bold text-white md:mb-8 md:text-[64px]">{block.title}</h2>
+                  <p className="max-w-[495px] text-justify text-lg leading-relaxed text-white md:text-[24px] md:leading-[27px]">
+                    {block.text}
                   </p>
                 </motion.div>
               ))}
             </div>
           </div>
-        </section>
 
-      </div>
-
+          <div className="pointer-events-none absolute right-[-50px] top-[100px] z-20 h-[1700px] w-[800px]">
+            <div className="absolute right-0 top-[50px] h-[258px] w-[402px] rounded-l-[60px] rounded-r-none bg-[#024F79]" />
+            <div className="absolute left-[20px] top-[1000px] h-[403px] w-[414px] rounded-[59px] bg-[#026B9B]" />
+            <div className="absolute left-[157px] top-[113px] h-[1240px] w-[456px] rounded-[60px] bg-gradient-to-b from-[#06CFD6] to-[#036C70]" />
+            <div className="absolute right-[30px] top-[140px] h-[435px] w-[435px] rounded-full bg-[#0CA3C6]" />
+            <img
+              src="/nosotros/hombredepie.png"
+              alt="Tecnología y Escalabilidad"
+              className="absolute left-[60px] top-[100px] z-10 w-[750px] drop-shadow-2xl"
+            />
+            <img
+              src="/nosotros/sombrapisohombre.png"
+              alt=""
+              className="absolute left-[200px] top-[1450px] z-0 w-[400px] opacity-90"
+            />
+          </div>
+        </div>
+      </section>
+      <AltFooter />
       {/* 4. EL FOOTER: Se ubica al final y absorbe el bg-[#0a4a5a] por sus lados transparentes */}
       <AltFooter />
-
     </div>
   );
 };
