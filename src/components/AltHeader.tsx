@@ -14,32 +14,33 @@ const AltHeader: React.FC = () => {
 
     return (
         <>
-        <header className="bg-white w-full py-5 px-6 md:px-12 flex items-center justify-between shadow-sm relative z-50 font-sansation select-none">
-            
+        <header className="bg-white w-full py-3 md:py-5 px-4 md:px-12 flex items-center justify-between shadow-sm relative z-50 font-sansation select-none">
+
             {/* Lado Izquierdo: Logo y Menú */}
-            <div className="flex items-center gap-6 select-none">
+            <div className="flex items-center gap-3 md:gap-6 select-none">
             <Link to="/" className="group outline-none">
-                <img 
-                src="/designs/variante_logo_color1.svg" 
-                alt="Bytecode Logo" 
-                className="h-10 md:h-12 w-auto object-contain transition-all duration-300 ease-out group-hover:scale-105 group-hover:drop-shadow-[0_0_12px_rgba(6,207,214,0.4)] active:scale-95" 
+                <img
+                src="/designs/variante_logo_color1.svg"
+                alt="Bytecode Logo"
+                className="h-7 md:h-12 w-auto object-contain transition-all duration-300 ease-out group-hover:scale-105 group-hover:drop-shadow-[0_0_12px_rgba(6,207,214,0.4)] active:scale-95"
                 />
             </Link>
             <button
                 onClick={openMenu}
-                className="group text-[#06CFD6] hover:text-[#0CA3C6] hover:scale-110 active:scale-95 transition-all duration-300 p-1 outline-none"
+                className="group text-[#06CFD6] hover:text-[#0CA3C6] hover:scale-110 active:scale-95 transition-all duration-300 p-0.5 outline-none"
                 aria-label="Menú principal"
             >
-                <Menu size={36} strokeWidth={2.5} className="transition-transform duration-300 group-hover:rotate-90" />
+                <Menu size={26} strokeWidth={2.5} className="transition-transform duration-300 group-hover:rotate-90 md:hidden" />
+                <Menu size={36} strokeWidth={2.5} className="transition-transform duration-300 group-hover:rotate-90 hidden md:block" />
             </button>
             </div>
-            
+
             {/* Lado Derecho: Contacto, Redes Sociales y Botón Conectar */}
-            <div className="flex items-center gap-6 md:gap-8">
-                
+            <div className="flex items-center gap-3 md:gap-8">
+
                 {/* Contenedor Oculto en Móvil */}
                 <div className="hidden md:flex items-center gap-6 lg:gap-8">
-                    
+
                     {/* Número de Teléfono */}
                     <a href="tel:+15551234567" className="flex items-center gap-2 text-[#06CFD6] hover:text-[#0CA3C6] hover:scale-105 transition-all duration-300 text-lg outline-none whitespace-nowrap">
                         <Phone size={20} className="text-[#06CFD6]" />
@@ -49,40 +50,35 @@ const AltHeader: React.FC = () => {
                     {/* Separador Visual */}
                     <div className="w-[1px] h-6 bg-gray-200"></div>
 
-                    {/* REDES SOCIALES (Ahora con iconos oficiales) */}
+                    {/* REDES SOCIALES */}
                     <div className="flex items-center gap-4">
-                        <a href="https://www.facebook.com/bytecodesystems/" target="_blank" rel="noopener noreferrer" 
+                        <a href="https://www.facebook.com/bytecodesystems/" target="_blank" rel="noopener noreferrer"
                             className="text-[#06CFD6] hover:text-[#06CFD6] hover:-translate-y-1 transition-all duration-300 outline-none"
                             aria-label="Facebook">
-                            {/* 2. USAMOS LOS COMPONENTES DE REACT-ICONS */}
                             <FaFacebook size={23} />
                         </a>
-                        
-                        <a href="https://www.instagram.com/bytecodesw" target="_blank" rel="noopener noreferrer" 
+                        <a href="https://www.instagram.com/bytecodesw" target="_blank" rel="noopener noreferrer"
                             className="text-[#06CFD6] hover:text-[#06CFD6] hover:-translate-y-1 transition-all duration-300 outline-none"
                             aria-label="Instagram">
                             <FaInstagram size={23} />
                         </a>
-
-                        <a href="https://tiktok.com" target="_blank" rel="noopener noreferrer" 
+                        <a href="https://tiktok.com" target="_blank" rel="noopener noreferrer"
                             className="text-[#06CFD6] hover:text-[#06CFD6] hover:-translate-y-1 transition-all duration-300 outline-none"
                             aria-label="TikTok">
-                            <FaTiktok size={23} /> {/* Un pelín más pequeño para equilibrar visualmente */}
+                            <FaTiktok size={23} />
                         </a>
-
-                        <a href="https://www.linkedin.com/company/bytecodesw" target="_blank" rel="noopener noreferrer" 
+                        <a href="https://www.linkedin.com/company/bytecodesw" target="_blank" rel="noopener noreferrer"
                             className="text-[#06CFD6] hover:text-[#06CFD6] hover:-translate-y-1 transition-all duration-300 outline-none"
                             aria-label="LinkedIn">
                             <FaLinkedinIn size={23} />
                         </a>
                     </div>
-
                 </div>
 
                 {/* Botón Conectar */}
-                <Link 
+                <Link
                     to="/contacto"
-                    className="bg-[#06CFD6] hover:bg-[#0CA3C6] hover:-translate-y-1 text-white font-bold text-lg py-3 px-8 md:px-10 rounded-full transition-all duration-300 shadow-[0_4px_15px_rgba(6,207,214,0.4)] hover:shadow-[0_8px_25px_rgba(6,207,214,0.6)] active:translate-y-0 outline-none shrink-0"
+                    className="bg-[#06CFD6] hover:bg-[#0CA3C6] hover:-translate-y-1 text-white font-bold rounded-full transition-all duration-300 shadow-[0_4px_15px_rgba(6,207,214,0.4)] hover:shadow-[0_8px_25px_rgba(6,207,214,0.6)] active:translate-y-0 outline-none shrink-0 text-sm py-2 px-5 md:text-lg md:py-3 md:px-10"
                 >
                     Conectar
                 </Link>
