@@ -122,7 +122,8 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
                 paddingBottom: 'max(2rem, env(safe-area-inset-bottom))',
               }}
             >
-              <div className="mx-auto flex w-full max-w-[22rem] flex-1 flex-col items-center justify-start gap-8 text-center pt-[clamp(2rem,8vh,5rem)] pb-[clamp(7rem,18vh,12rem)]">
+              <div className="mx-auto flex w-full max-w-[22rem] flex-1 flex-col items-center justify-start text-center"
+                style={{ gap: 'clamp(1rem, 3.5vh, 2.5rem)', paddingTop: 'clamp(1.5rem, 6vh, 4rem)', paddingBottom: 'clamp(6rem, 16vh, 11rem)' }}>
                 <motion.div
                   initial={{ opacity: 0, y: -24 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -142,7 +143,7 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
                   </Link>
                 </motion.div>
 
-                <nav className="flex w-full flex-col items-center gap-5">
+                <nav className="flex w-full flex-col items-center" style={{ gap: 'clamp(0.5rem, 2vh, 1.25rem)' }}>
                   {navLinks.map((link, i) => (
                     <motion.div
                       key={link.name}
@@ -153,7 +154,8 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
                       <Link
                         to={link.path}
                         onClick={onClose}
-                        className="block text-center text-[clamp(2rem,8.2vw,2.8rem)] font-bold tracking-[0.08em] text-white transition-all duration-300 hover:scale-105 hover:text-[#06CFD6] hover:drop-shadow-[0_0_8px_rgba(6,207,214,0.8)] outline-none"
+                        className="block text-center font-bold tracking-[0.08em] text-white transition-all duration-300 hover:scale-105 hover:text-[#06CFD6] hover:drop-shadow-[0_0_8px_rgba(6,207,214,0.8)] outline-none"
+                        style={{ fontSize: 'clamp(1.6rem, 7vh, 2.8rem)' }}
                       >
                         {link.name}
                       </Link>
@@ -170,7 +172,8 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
                   <Link
                     to="/contacto"
                     onClick={onClose}
-                    className="block w-full rounded-full border-2 border-[#0CA3C6] bg-transparent px-8 py-4 text-[clamp(1rem,4.8vw,1.35rem)] font-extrabold tracking-[0.22em] text-white shadow-[0_0_20px_rgba(12,163,198,0.22)] transition-all duration-300 ease-in-out hover:bg-[#0CA3C6] hover:shadow-[0_0_36px_rgba(12,163,198,0.55)] active:scale-95 outline-none"
+                    className="block w-full rounded-full border-2 border-[#0CA3C6] bg-transparent px-8 font-extrabold tracking-[0.22em] text-white shadow-[0_0_20px_rgba(12,163,198,0.22)] transition-all duration-300 ease-in-out hover:bg-[#0CA3C6] hover:shadow-[0_0_36px_rgba(12,163,198,0.55)] active:scale-95 outline-none"
+                    style={{ fontSize: 'clamp(0.9rem, 4.5vw, 1.35rem)', padding: 'clamp(0.6rem, 1.8vh, 1rem) 2rem' }}
                   >
                     Conectar
                   </Link>
