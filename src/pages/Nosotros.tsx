@@ -169,7 +169,8 @@ const Nosotros: React.FC = () => {
           </div>
         </div>
       </section>
-
+      <AltFooter />
+      {/* 4. EL FOOTER: Se ubica al final y absorbe el bg-[#0a4a5a] por sus lados transparentes */}
       <AltFooter />
     </div>
   );
