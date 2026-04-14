@@ -249,7 +249,7 @@ const Home: React.FC = () => {
       {/* ─────────────────────────────────────────────
           2. SEGUNDA SECCIÓN — sombra-segunda como fondo
       ───────────────────────────────────────────── */}
-      <div className="relative z-10" style={{ marginTop: '-8%' }}>
+      <div className="relative" style={{ marginTop: '-8%' }}>
         <img
           src="/sombra-segunda.svg"
           aria-hidden="true"
@@ -261,14 +261,16 @@ const Home: React.FC = () => {
           className="absolute inset-0 flex flex-col items-center justify-start px-5 select-none"
           style={{ paddingTop: '4%' }}
         >
-          {/* Títulos */}
-          <p style={{ color: CYAN, fontFamily: FONT, fontSize: 'clamp(2.24rem, 5.6vw, 3.36rem)', fontWeight: 800, lineHeight: 1.2, marginBottom: '0.6rem', textAlign: 'center' }}>
-            Haz crecer tu negocio
-          </p>
-          <p style={{ color: '#ffffff', fontFamily: FONT, fontSize: 'clamp(1.4rem, 3.5vw, 2.03rem)', fontWeight: 400, lineHeight: 1.5, textAlign: 'center', marginBottom: '1.5rem' }}>
-            Te mereces un sitio web que haga{' '}
-            <span style={{ color: CYAN }}>todo lo que necesitas.</span>
-          </p>
+          {/* Títulos — z-index propio para quedar encima del blob blanco */}
+          <div style={{ position: 'relative', zIndex: 15, textAlign: 'center' }}>
+            <p style={{ color: CYAN, fontFamily: FONT, fontSize: 'clamp(2.24rem, 5.6vw, 3.36rem)', fontWeight: 800, lineHeight: 1.2, marginBottom: '0.6rem' }}>
+              Haz crecer tu negocio
+            </p>
+            <p style={{ color: '#ffffff', fontFamily: FONT, fontSize: 'clamp(1.4rem, 3.5vw, 2.03rem)', fontWeight: 400, lineHeight: 1.5, marginBottom: '1.5rem' }}>
+              Te mereces un sitio web que haga{' '}
+              <span style={{ color: CYAN }}>todo lo que necesitas.</span>
+            </p>
+          </div>
 
           {/* Tarjeta de servicio */}
           <style>{`
@@ -338,21 +340,52 @@ const Home: React.FC = () => {
             </div>
           </div>
 
-          {/* SVG blanco — ancho completo, encima del fondo negro */}
-          <img
-            src="/segunda-blanca.svg"
-            aria-hidden="true"
-            className="pointer-events-none select-none"
-            style={{ position: 'absolute', bottom: '-32%', left: 0, width: '100%', zIndex: 5 }}
-          />
+          {/* SVG blanco — eliminado, ahora es fondo inline compartido con sección 3 */}
         </div>
       </div>
 
 
       {/* ─────────────────────────────────────────────
-          3. HERRAMIENTAS — white section
+          FONDO BLANCO ORGÁNICO — elemento de fondo independiente
       ───────────────────────────────────────────── */}
-      <section className="bg-white pb-12 px-6" style={{ position: 'relative', zIndex: 20, marginTop: 'clamp(-10rem, -18vw, -20rem)', borderRadius: '2rem 2rem 0 0', paddingTop: '0' }}>
+      <div aria-hidden="true" style={{ position: 'relative', marginTop: 'clamp(-37.2rem, -60.8vw, -84.5rem)', height: 0, overflow: 'visible', zIndex: 8, pointerEvents: 'none' }}>
+        <svg
+          viewBox="0 0 1440 700.2353"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', overflow: 'visible' }}
+        >
+          <defs>
+            <clipPath id="segblanca-clip">
+              <rect width="1440" height="700.2353" />
+            </clipPath>
+            <linearGradient id="blob-f1-grad" x1="-40" y1="634" x2="744" y2="634" gradientUnits="userSpaceOnUse">
+              <stop offset="0.3125" stopColor="#0CA3C6" />
+              <stop offset="1" stopColor="#026B9B" />
+            </linearGradient>
+          </defs>
+
+          {/* forma1celeste — debajo de la figura blanca para asegurar encaje perfecto sin huecos */}
+          <g clipPath="url(#segblanca-clip)">
+            <path fill="url(#blob-f1-grad)" d="M -40.31 574.16 C 52.86 492.49 340.09 378.16 743.69 574.16 C 340.09 498.16 52.86 612.49 -40.31 694.16 Z"/>
+          </g>
+
+          {/* forma2celeste — Borde superior EXACTAMENTE IGUAL a la curva blanca para encaje de rompecabezas 100% perfecto. El borde inferior replica las proporciones de Vector 9. */}
+          <g>
+            <path fill="#026B9B" d="M 743.6898 574.1586 C 1147.2898 770.1586 1396.1896 655.8253 1470.1896 574.1586 L 1470.1896 798 C 1350 800 1200 750 1000 600 Z"/>
+          </g>
+
+          {/* Forma blanca orgánica */}
+          <g clipPath="url(#segblanca-clip)">
+            <path fill="#fff" d="m743.6898,574.1586c-403.6-196-690.8334-81.6665-784.0001,0v-205.0007S-192.8104,10.1581,654.1897,10.1581c627.5.0002,815.9999,220.0007,815.9999,220.0007v343.9998c-74,81.6667-322.8998,196-726.4998,0Z"/>
+          </g>
+        </svg>
+      </div>
+
+      {/* ─────────────────────────────────────────────
+          3. HERRAMIENTAS — elemento independiente
+      ───────────────────────────────────────────── */}
+      <section className="pb-12 px-6" style={{ position: 'relative', zIndex: 22, marginTop: 'clamp(4rem, 20.4vw, 24rem)', borderRadius: '2rem 2rem 0 0', paddingTop: '0' }}>
         <div className="max-w-4xl mx-auto flex flex-col items-center">
 
           {/* Title with side lines */}
@@ -415,22 +448,15 @@ const Home: React.FC = () => {
       {/* ═══════════════════════════════════════════
           FONDO COMPARTIDO — secciones 4, 5 y 6
       ═══════════════════════════════════════════ */}
-      <div className="relative">
+      <div className="relative" style={{ zIndex: 22, marginTop: 'clamp(3rem, 8vw, 8rem)' }}>
 
       {/* ─────────────────────────────────────────────
           4. IA SECTION
       ───────────────────────────────────────────── */}
       <section
         className="relative"
-        style={{ minHeight: '700px', paddingBottom: '4rem', overflowX: 'hidden' }}
+        style={{ minHeight: '800px', paddingBottom: '2rem', overflowX: 'hidden' }}
       >
-        {/* Forma celeste izquierda */}
-        <img src="/forma1celeste.svg" aria-hidden="true" className="absolute pointer-events-none"
-          style={{ left: 0, top: '-5%', width: 'clamp(600px, 80vw, 1200px)', zIndex: 5 }} />
-
-        {/* Forma celeste derecha */}
-        <img src="/forma2celeste.svg" aria-hidden="true" className="absolute pointer-events-none"
-          style={{ right: 0, top: '3%', width: 'clamp(180px, 24vw, 360px)', zIndex: 3 }} />
 
         {/* Contenido — en móvil: tarjeta arriba, texto abajo */}
         <div className="relative z-10 flex flex-col-reverse md:flex-row items-center justify-center px-6 pt-8 md:pt-16 pb-8 w-full max-w-[1200px] mx-auto gap-8 md:gap-6">
