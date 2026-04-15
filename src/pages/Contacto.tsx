@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import SEO from '../components/SEO';
 
 const ghostInput =
   'w-full bg-white/5 border border-white/25 rounded-full px-5 py-3 text-white placeholder-white/35 focus:outline-none focus:border-primary-cyan transition-colors text-sm';

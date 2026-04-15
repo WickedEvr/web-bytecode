@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import AltFooter from '../components/AltFooter';
+import SEO from '../components/SEO';
 
 const services = [
   {
