@@ -20,6 +20,10 @@ const infoBlocks = [
 const Nosotros: React.FC = () => {
   return (
     <div className="flex w-full flex-col overflow-x-clip bg-[#044553] font-sansation">
+      <SEO 
+        title="Nosotros" 
+        description="Conoce a Bytecode, especialistas en ingeniería de software multiplataforma y automatización inteligente para negocios escalables."
+      />
       <section className="relative w-full lg:hidden">
         <div className="relative h-[13.75rem] overflow-hidden bg-black sm:h-[17rem]">
           <img
@@ -169,7 +173,6 @@ const Nosotros: React.FC = () => {
           </div>
         </div>
       </section>
-      <AltFooter />
       {/* 4. EL FOOTER: Se ubica al final y absorbe el bg-[#0a4a5a] por sus lados transparentes */}
       <AltFooter />
     </div>

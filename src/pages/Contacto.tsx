@@ -45,6 +45,10 @@ const Contacto: React.FC = () => {
 
   return (
     <div className="relative min-h-screen overflow-hidden font-sansation">
+      <SEO 
+        title="Contacto" 
+        description="Ponte en contacto con Bytecode para iniciar tu proyecto de transformación digital hoy mismo."
+      />
       {/* Fondo espacio */}
       <div className="absolute inset-0" style={{ backgroundColor: '#040e1f' }}>
         <video src="/final.mp4" autoPlay loop muted playsInline preload="auto" className="w-full h-full object-cover" aria-hidden="true" />

@@ -36,6 +36,10 @@ const Servicios: React.FC = () => {
 
   return (
     <div className="w-full min-h-screen bg-white font-sansation overflow-x-hidden flex flex-col">
+      <SEO 
+        title="Servicios" 
+        description="Descubre nuestros servicios de desarrollo de páginas web, aplicaciones móviles y software de escritorio a medida."
+      />
 
       <div className="flex-grow flex flex-col">
 
