@@ -143,7 +143,7 @@ const HeroSection: React.FC = () => (
 
     {/* Esquinas y Sombras */}
     <img src="/esquina-arriba.svg" aria-hidden="true" className="absolute top-0 left-0 pointer-events-none z-10" style={{ width: '40%' }} />
-    <img src="/esquina-abajo.svg" aria-hidden="true" className="absolute bottom-0 right-0 pointer-events-none z-10" style={{ width: '40%' }} />
+    <img src="/esquina-abajo.svg" aria-hidden="true" className="absolute bottom-0 right-0 pointer-events-none z-0" style={{ width: '40%' }} />
     <img src="/sombra-general.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-[9]" />
     <img src="/sombra-arriba.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-10" />
     <img src="/sombra-arriba.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-10" style={{ opacity: 0.5 }} />
@@ -239,18 +239,31 @@ const ServiciosSection: React.FC = () => {
 
   return (
     <div className="relative" style={{ marginTop: '-8%' }}>
-      {/* Fondo como capa absoluta para que el contenido dicte la altura en móvil */}
-      <div className="absolute inset-0 w-full h-full pointer-events-none select-none z-0 overflow-hidden">
+      {/* IMAGEN DE FONDO:
+          - En escritorio (md:block): es relativa y dicta la altura total de la sección.
+          - En móvil (md:hidden): se oculta la imagen relativa. */}
+      <img
+        src="/sombra-segunda.svg"
+        aria-hidden="true"
+        className="hidden md:block w-full pointer-events-none select-none"
+      />
+
+      {/* FONDO MÓVIL:
+          - Capa absoluta para que el contenido dicte la altura en móvil.
+          - Oculto en escritorio. */}
+      <div className="md:hidden absolute inset-0 w-full h-full pointer-events-none select-none z-0 overflow-hidden">
         <img
           src="/sombra-segunda.svg"
           aria-hidden="true"
-          className="w-full h-full object-cover md:object-fill object-top"
+          className="w-full h-full object-cover object-top"
         />
       </div>
 
+      {/* CONTENEDOR DE CONTENIDO:
+          - En escritorio (md:absolute md:inset-0): se superpone sobre la imagen relativa.
+          - En móvil (relative): fluye normalmente y dicta la altura. */}
       <div
-        className="relative z-10 flex flex-col items-center justify-start px-5 select-none pb-16 md:pb-0"
-        style={{ paddingTop: 'clamp(3rem, 12vw, 8rem)' }}
+        className="relative md:absolute md:inset-0 z-10 flex flex-col items-center justify-start px-5 select-none pb-16 md:pb-0 pt-[clamp(3rem,12vw,8rem)] md:pt-[4%]"
       >
         <div style={{ position: 'relative', zIndex: 15, textAlign: 'center' }}>
           <p style={{ color: CYAN, fontFamily: FONT, fontSize: 'clamp(2.24rem, 5.6vw, 3.36rem)', fontWeight: 800, lineHeight: 1.2, marginBottom: '0.6rem' }}>
@@ -329,7 +342,7 @@ const WhiteOrganicBackground: React.FC = () => (
     <style>{`
       .organic-bg-wrapper {
         position: relative;
-        margin-top: clamp(-84.5rem, -60.8vw, -37.2rem);
+        margin-top: clamp(-37.2rem, -60.8vw, -84.5rem);
         height: 0;
         overflow: visible;
         z-index: 8;
@@ -337,7 +350,7 @@ const WhiteOrganicBackground: React.FC = () => (
       }
       @media (max-width: 767px) {
         .organic-bg-wrapper {
-          margin-top: -2rem; /* Empuja el fondo orgánico mucho más abajo para no solaparse */
+          margin-top: 2rem; /* Posiciona las ondas azules en su posición original */
         }
       }
     `}</style>
@@ -357,6 +370,12 @@ const WhiteOrganicBackground: React.FC = () => (
           <stop offset="1" stopColor="#026B9B" />
         </linearGradient>
       </defs>
+      
+      {/* ─── FUSIÓN MÓVIL ─── 
+          Al estar como primer elemento del SVG, se dibuja DETRÁS de las ondas azules.
+          Esto fusiona visualmente la parte superior recta con las ondas orgánicas inferiores. */}
+      <rect className="md:hidden" x="-1000" y="-1430" width="3440" height="2000" fill="#ffffff" />
+
       <g clipPath="url(#segblanca-clip)">
         <path fill="url(#blob-f1-grad)" d="M -40.31 574.16 C 52.86 492.49 340.09 378.16 743.69 574.16 C 340.09 438.16 52.86 612.49 -40.31 694.16 Z" />
       </g>
@@ -461,10 +480,10 @@ const IASection: React.FC = () => (
         <h2 style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', lineHeight: 1.15, color: CYAN }}>
           Comenzar nunca ha sido<br />tan fácil gracias a la IA
         </h2>
-        <p className="text-black md:text-white" style={{ fontFamily: 'Sansation', fontWeight: 400, fontSize: 'clamp(1rem, 1.8vw, 1.5rem)' }}>
+        <p style={{ color: '#ffffff', fontFamily: 'Sansation', fontWeight: 400, fontSize: 'clamp(1rem, 1.8vw, 1.5rem)' }}>
           No hace falta tener experiencia.
         </p>
-        <p className="text-black md:text-white/70" style={{ fontFamily: 'Sansation', fontStyle: 'italic', fontWeight: 300, fontSize: 'clamp(0.8rem, 1.2vw, 1rem)', lineHeight: 1.4 }}>
+        <p style={{ color: 'rgba(255,255,255,0.7)', fontFamily: 'Sansation', fontStyle: 'italic', fontWeight: 300, fontSize: 'clamp(0.8rem, 1.2vw, 1rem)', lineHeight: 1.4 }}>
           Kit de diseño con IA, uno de los mejores<br />inventos de TIME de 2025*
         </p>
       </div>
