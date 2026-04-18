@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import AltFooter from '../components/AltFooter';
+import SEO from '../components/SEO';
 
 const infoBlocks = [
   {
