@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import Carousel3D, { type Project } from '../components/Carousel3D';
 import AltFooter from '../components/AltFooter';
 import SpotlightText from '../components/SpotlightText';
-
+import SEO from '../components/SEO';
 
 // 1. IMPORTACIÓN DIFERIDA (Mejora drásticamente el rendimiento de carga inicial)
 const AuroraBackground = lazy(() => import('../components/AuroraBackground'));

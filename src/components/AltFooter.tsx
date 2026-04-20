@@ -104,27 +104,40 @@ const AltFooter: React.FC = () => {
               </span>
 
               {/* 2. WhatsApp */}
-              <div className="flex items-center gap-3">
-                <FaWhatsapp className="text-[#06CFD6]" size={22} /> 
-                <span className="text-gray-300 whitespace-nowrap" aria-label="WhatsApp">
-                  (+51) 936 281 147
+              <a 
+                href="https://wa.me/51936281137?text=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 group outline-none"
+              >
+                <FaWhatsapp className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300" size={22} /> 
+                <span className="text-gray-300 group-hover:text-white transition-colors duration-300 whitespace-nowrap" aria-label="WhatsApp">
+                  (+51) 936 281 137
                 </span>
-              </div>
+              </a>
 
-              <div className="flex items-center gap-3">
-                <FaWhatsapp className="text-[#06CFD6]" size={22} /> 
-                <span className="text-gray-300 whitespace-nowrap" aria-label="WhatsApp">
+              <a 
+                href="https://wa.me/51970199434?text=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 group outline-none"
+              >
+                <FaWhatsapp className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300" size={22} /> 
+                <span className="text-gray-300 group-hover:text-white transition-colors duration-300 whitespace-nowrap" aria-label="WhatsApp">
                   (+51) 970 199 434
                 </span>
-              </div>
+              </a>
 
               {/* 3. Correo */}
-              <div className="flex items-center gap-3">
-                <Mail className="text-[#06CFD6]" size={22} />
-                <span className="text-gray-300 whitespace-nowrap">
+              <a 
+                href="mailto:contacto@bytecode.com.pe?subject=Cotizaci%C3%B3n%20de%20desarrollo%20de%20software&body=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
+                className="flex items-center gap-3 group outline-none"
+              >
+                <Mail className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300" size={22} />
+                <span className="text-gray-300 group-hover:text-white transition-colors duration-300 whitespace-nowrap">
                   contacto@bytecode.com.pe
                 </span>
-              </div>
+              </a>
 
               {/* 4. BLOQUE DERECHO AGRUPADO (Copyright + Diseñador) */}
               <div className="flex flex-col items-center lg:items-end gap-1 shrink-0 mt-[19px]" >
