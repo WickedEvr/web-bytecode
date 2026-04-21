@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import SEO from '../components/SEO';
 import Stack from '../components/Stack';
+import GalaxyBackground from '../components/GalaxyBackground';
 
 const FONT = "'Sansation', sans-serif";
 const CYAN = '#0CA3C6';
@@ -127,15 +128,10 @@ const TestimonialCard: React.FC<{ name: string; role: string; text: string; star
 
 const HeroSection: React.FC = () => (
   <section className="relative h-screen overflow-hidden select-none" style={{ marginTop: 0 }}>
-    {/* Galaxy GIF background */}
+    {/* Galaxy canvas background */}
     <div className="absolute inset-0" style={{ backgroundColor: '#040e1f' }} aria-hidden="true">
-      <img
-        src="/galaxia.gif"
-        alt=""
-        className="w-full h-full object-cover"
-        style={{ objectPosition: 'center 20%', transform: 'scale(1.1)', transformOrigin: 'top center' }}
-      />
-      <div className="absolute inset-0" style={{ background: 'rgba(4,14,31,0.45)' }} />
+      <GalaxyBackground />
+      <div className="absolute inset-0" style={{ background: 'rgba(4,14,31,0.30)' }} />
     </div>
 
     {/* Esquinas y Sombras */}
@@ -384,7 +380,7 @@ const ServiciosSection: React.FC = () => {
                 </motion.div>
               </AnimatePresence>
               <img className="svc-esquina" src="/esquina-derecha.svg" alt="" aria-hidden="true" style={{ position: 'absolute', bottom: 0, right: 0, pointerEvents: 'none' }} />
-              <img className="svc-isotipo" src="/isotipo.svg" alt="" aria-hidden="true" style={{ position: 'absolute', bottom: '5%', right: '3%', width: 'clamp(28px, 4vw, 56px)', height: 'auto', pointerEvents: 'none', zIndex: 2 }} />
+              <img className="svc-isotipo" src="/isotipo.svg" alt="" aria-hidden="true" style={{ position: 'absolute', bottom: '5%', right: '2%', width: 'clamp(25px, 4vw, 50px)', height: 'auto', pointerEvents: 'none', zIndex: 2 }} />
             </div>
           </div>
           <div className="flex justify-center mt-5 gap-2 items-center" style={{ position: 'relative', zIndex: 20 }}>
@@ -594,9 +590,9 @@ const TestimonialsSection: React.FC = () => {
     <section className="relative overflow-hidden">
       <div className="hidden md:block" style={{ width: '86.6%', margin: '0 auto', borderTop: '1px solid #FFFFFF', marginBottom: '6rem' }} />
 
-      <div className="flex flex-col md:flex-row items-center justify-center md:justify-between px-6 md:px-0 py-10 md:py-0 w-full max-w-[1440px] mx-auto relative gap-10 md:gap-0" style={{ zIndex: 1, minHeight: 'clamp(500px, 60vw, 400px)' }}>
-        
-        <div className="w-full md:w-5/12 flex flex-col items-center md:items-end order-1 md:order-2 text-center md:text-right relative z-20 md:ml-auto">
+      <div className="flex flex-col md:flex-row items-center justify-center md:justify-between px-6 md:pl-0 md:pr-0 py-10 md:py-0 w-full relative gap-10 md:gap-0" style={{ zIndex: 1, minHeight: 'clamp(500px, 60vw, 400px)' }}>
+
+        <div className="w-full md:w-5/12 flex flex-col items-center md:items-end order-1 md:order-2 text-center md:text-right relative z-20 md:ml-auto md:pr-0">
           <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: 'clamp(28px, 3.5vw, 52px)', lineHeight: 1.15, color: '#FFFFFF', textAlign: 'right', marginBottom: '1.2rem' }}>
             CONSTRUYENDO EL FUTURO,{' '}
             <span style={{ color: CYAN }}>CASO POR CASO</span>
