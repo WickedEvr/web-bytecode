@@ -12,7 +12,7 @@ const MainLayout: React.FC = () => {
         {/* Aquí React Router inyectará mágicamente la página correspondiente */}
         <Outlet />
       </main>
-      <Footer />
+      <div className="hidden md:block"><Footer /></div>
     </div>
   );
 };

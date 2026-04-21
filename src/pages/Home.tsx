@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import SEO from '../components/SEO';
+import Stack from '../components/Stack';
+import GalaxyBackground from '../components/GalaxyBackground';
 
 const FONT = "'Sansation', sans-serif";
 const CYAN = '#0CA3C6';
@@ -43,80 +45,89 @@ export const LogoCell: React.FC<{ children: React.ReactNode; className?: string;
 );
 
 /* ─── Testimonial Card ─────────────────────────────── */
-const CARD_W = 'clamp(280px, 28vw, 380px)';
-const AVATAR = 'clamp(100px, 11vw, 140px)';
-
 const testimonials = [
   { name: 'María García', role: 'Emprendedora', text: 'Excelente servicio, mi negocio creció enormemente. Totalmente conforme.', stars: 4 },
   { name: 'Dante Gallardo', role: 'CEO', text: 'Muy bueno con el trabajo! Totalmente conforme.', stars: 5 },
   { name: 'Carlos Ruiz', role: 'Director', text: 'Profesionales de primer nivel, los recomiendo.', stars: 5 },
 ];
 
-const StarIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="#F5A523" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-  </svg>
-);
-
-// slot: 0=centro(main)  1=derecha(atrás)  2=izquierda(atrás)
+// slot: 0=front(main)  1=right-back  2=left-back
+// All cards share the same fixed dimensions; back cards shrink via CSS scale so
+// the resize and reposition animate together in a single transition.
 const TestimonialCard: React.FC<{ name: string; role: string; text: string; stars: number; slot: 0 | 1 | 2 }> = ({
   name, role, text, stars, slot,
 }) => {
-  const isMain = slot === 0;
+  const slotProps = [
+    { left: 111.08, top: 0,     opacity: 1,    zIndex: 3, scale: 1     },
+    { left: 223,    top: 42.06, opacity: 0.54, zIndex: 1, scale: 0.736 },
+    { left: 50,     top: 42.06, opacity: 0.54, zIndex: 1, scale: 0.736 },
+  ] as const;
+  const { left, top, opacity, zIndex, scale } = slotProps[slot];
+
   return (
-    <>
-      <style>{`
-        .testim-card.testim-slot-0 { transform: translate(-50%, -50%) scale(1); opacity: 1; z-index: 3; }
-        .testim-card.testim-slot-1 { transform: translate(22%, -50%) scale(0.78); opacity: 0.52; z-index: 1; }
-        .testim-card.testim-slot-2 { transform: translate(-122%, -50%) scale(0.78); opacity: 0.62; z-index: 1; }
-        @media (max-width: 767px) {
-          .testim-card.testim-slot-1 { transform: translate(10%, -50%) scale(0.85); opacity: 0.4; }
-          .testim-card.testim-slot-2 { transform: translate(-110%, -50%) scale(0.85); opacity: 0.4; }
-        }
-      `}</style>
-      <div className={`testim-card testim-slot-${slot}`} style={{
-        position: 'absolute', left: '50%', top: '50%',
-        width: CARD_W,
-        borderRadius: '26px',
-        overflow: 'hidden',
-        border: isMain ? '2px solid rgba(255,255,255,0.85)' : '1.5px solid rgba(255,255,255,0.25)',
-        boxShadow: isMain
-          ? '0 0 18px rgba(255,255,255,0.35), 0 0 36px rgba(12,163,198,0.35), 0 8px 28px rgba(0,0,0,0.5)'
-          : '0 4px 16px rgba(0,0,0,0.4)',
-        background: 'rgba(15,28,48,0.92)',
-        transition: 'transform 0.65s cubic-bezier(0.4,0,0.2,1), opacity 0.55s ease, box-shadow 0.55s ease',
-      }}>
-      {/* Zona oscura superior */}
-      <div style={{ height: 'clamp(110px, 12vw, 160px)', position: 'relative', background: 'linear-gradient(160deg,#0d1e35 0%,#162d4a 100%)' }}>
-        <div style={{
-          position: 'absolute',
-          bottom: `calc(-${AVATAR} / 2)`,
-          left: '50%', transform: 'translateX(-50%)',
-          width: AVATAR, height: AVATAR,
-          borderRadius: '50%',
-          border: isMain ? '3px solid #0CA3C6' : '2px solid rgba(12,163,198,0.5)',
-          boxShadow: isMain ? '0 0 14px rgba(12,163,198,0.8)' : 'none',
-          background: 'linear-gradient(135deg, #1a3a5c 0%, #0d1f33 100%)',
-          zIndex: 2,
-        }} />
-      </div>
-      {/* Zona blanca con arco */}
+    <div style={{
+      position: 'absolute',
+      left, top,
+      width: 189.51, height: 305.14,
+      opacity, zIndex,
+      transform: `scale(${scale})`,
+      transformOrigin: 'top left',
+      transition: 'left 0.7s cubic-bezier(0.4,0,0.2,1), top 0.7s cubic-bezier(0.4,0,0.2,1), transform 0.7s cubic-bezier(0.4,0,0.2,1), opacity 0.6s ease',
+      filter: 'drop-shadow(0px 4px 18px rgba(178,250,255,0.62))',
+    }}>
       <div style={{
-        background: 'white',
-        borderRadius: '50% 50% 0 0 / 32px 32px 0 0',
-        paddingTop: `calc(${AVATAR} / 2 + 16px)`,
-        paddingBottom: '28px', paddingLeft: '22px', paddingRight: '22px',
-        textAlign: 'center',
+        width: '100%', height: '100%',
+        borderRadius: 37,
+        border: '4px solid #FFFFFF',
+        background: 'rgba(255,255,255,0.13)',
+        backdropFilter: 'blur(9.85px)',
+        WebkitBackdropFilter: 'blur(9.85px)',
+        overflow: 'hidden',
+        position: 'relative',
       }}>
-        <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: 'clamp(16px,1.7vw,22px)', color: CYAN, margin: '0 0 4px' }}>{name}</p>
-        <p style={{ fontFamily: FONT, fontWeight: 400, fontSize: 'clamp(13px,1.4vw,18px)', color: CYAN, margin: '0 0 12px' }}>{role}</p>
-        <p style={{ fontFamily: FONT, fontSize: 'clamp(12px,1.3vw,16px)', color: '#444', lineHeight: 1.5, margin: '0 0 18px' }}>{text}</p>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '3px' }}>
-          {Array.from({ length: stars }).map((_, i) => <StarIcon key={i} />)}
+        {/* Top glass area */}
+        <div style={{ height: 122, position: 'relative', background: 'rgba(0,15,35,0.45)' }}>
+          <div style={{
+            position: 'absolute',
+            bottom: -44.43,
+            left: '50%', transform: 'translateX(-50%)',
+            width: 88.86, height: 88.86,
+            borderRadius: '50%',
+            border: '6px solid #06CFD6',
+            filter: 'drop-shadow(0px 0px 16.6px #FFFFFF)',
+            background: 'linear-gradient(135deg,#1a3a5c 0%,#0d1f33 100%)',
+            zIndex: 2,
+            overflow: 'hidden',
+          }} />
+        </div>
+
+        {/* White bottom */}
+        <div style={{
+          height: 183,
+          background: '#FFFFFF',
+          boxShadow: '0px -4px 18px rgba(135,247,255,0.48)',
+          borderRadius: '177px 177px 37px 37px',
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          paddingTop: 54,
+          paddingBottom: 16,
+          paddingLeft: 14,
+          paddingRight: 14,
+          textAlign: 'center',
+          overflow: 'hidden',
+        }}>
+          <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: 16, color: '#06CFD6', margin: '0 0 1px', lineHeight: 1.2 }}>{name}</p>
+          <p style={{ fontFamily: FONT, fontWeight: 400, fontSize: 10, color: '#06CFD6', margin: '0 0 4px', lineHeight: 1.2 }}>{role}</p>
+          <p style={{ fontFamily: FONT, fontSize: 11, color: '#000000', lineHeight: 1.4, margin: '0 0 8px', flex: 1 }}>{text}</p>
+          <div style={{ display: 'flex', gap: 3 }}>
+            {Array.from({ length: stars }).map((_, i) => (
+              <svg key={i} width={29.23} height={29.23} viewBox="0 0 24 24" fill="#FF9D00">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+            ))}
+          </div>
         </div>
       </div>
     </div>
-    </>
   );
 };
 
@@ -126,19 +137,10 @@ const TestimonialCard: React.FC<{ name: string; role: string; text: string; star
 
 const HeroSection: React.FC = () => (
   <section className="relative h-screen overflow-hidden select-none" style={{ marginTop: 0 }}>
-    {/* Galaxy video */}
+    {/* Galaxy canvas background */}
     <div className="absolute inset-0" style={{ backgroundColor: '#040e1f' }} aria-hidden="true">
-      <video
-        src="/final.mp4"
-        autoPlay
-        loop
-        muted
-        playsInline
-        preload="auto"
-        className="w-full h-full object-cover"
-        style={{ objectPosition: 'center 20%', transform: 'scale(1.1)', transformOrigin: 'top center' }}
-      />
-      <div className="absolute inset-0" style={{ background: 'rgba(4,14,31,0.45)' }} />
+      <GalaxyBackground />
+      <div className="absolute inset-0" style={{ background: 'rgba(4,14,31,0.30)' }} />
     </div>
 
     {/* Esquinas y Sombras */}
@@ -237,6 +239,28 @@ const ServiciosSection: React.FC = () => {
     return () => clearInterval(t);
   }, []);
 
+  const stackCards = useMemo(() => services.map((svc, i) => (
+    <div key={i} style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <img
+        src={svc.img}
+        alt={svc.title}
+        className="object-cover"
+        style={{ objectPosition: 'center 20%', position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+      />
+      <div className="svc-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.28)' }} />
+      <div className="svc-teal-shape" style={{ position: 'absolute', inset: 0 }} />
+      <div style={{ position: 'absolute', bottom: 24, left: 20, right: 60 }}>
+        <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: '1.5rem', color: '#fff', lineHeight: 1.25, margin: 0 }}>
+          {svc.title}
+        </p>
+        <p style={{ fontFamily: FONT, fontSize: '0.95rem', color: 'rgba(255,255,255,0.9)', lineHeight: 1.15, marginTop: '8px', whiteSpace: 'pre-line' }}>
+          {svc.description}
+        </p>
+      </div>
+      <img src="/isotipo.svg" alt="" aria-hidden="true" style={{ position: 'absolute', bottom: 24, right: 16, width: 25, height: 'auto', pointerEvents: 'none', zIndex: 2 }} />
+    </div>
+  )), []);
+
   return (
     <div className="relative" style={{ marginTop: '-8%' }}>
       {/* IMAGEN DE FONDO:
@@ -281,16 +305,56 @@ const ServiciosSection: React.FC = () => {
           .svc-card-img   { height: clamp(320px, 44vw, 554px); }
           .svc-isotipo    { display: block; }
           .svc-esquina    { display: block; }
+          .svc-teal-shape { display: none; }
           @media (max-width: 767px) {
-            .svc-card-wrap { max-width: min(306px, 90vw); margin: 0 auto; }
-            .svc-card      { border-radius: 28px; }
-            .svc-card-img  { height: 409px; }
-            .svc-isotipo   { display: none; }
+            .svc-card-wrap  { max-width: min(306px, 90vw); margin: 0 auto; }
+            .svc-card       { border-radius: 28px; }
+            .svc-card-img   { height: 409px; }
+            .svc-card-img img.object-cover {
+              width: 100% !important;
+              height: 100% !important;
+              inset: 0 !important;
+            }
+            .svc-overlay    { background: rgba(0,0,0,0.15) !important; }
+            .svc-esquina    { display: none; }
             .svc-text-title { font-size: 1.5rem !important; }
             .svc-text-desc  { font-size: 0.95rem !important; }
+            .svc-teal-shape {
+              display: block;
+              background-image: url('/formaazul.svg');
+              background-size: cover;
+              background-position: center;
+              background-repeat: no-repeat;
+            }
+            .svc-isotipo {
+              display: block !important;
+              width: 40px !important;
+              height: auto !important;
+              bottom: 24px !important;
+              right: 16px !important;
+              top: auto !important;
+              left: auto !important;
+              transform: none !important;
+            }
           }
         `}</style>
-        <div className="svc-card-wrap w-full">
+        {/* ── Mobile: Stack animation ─────────────────────── */}
+        <div className="md:hidden" style={{ width: 'min(306px, 90vw)', height: '409px', margin: '0 auto' }}>
+          <Stack
+            randomRotation={false}
+            sensitivity={80}
+            sendToBackOnClick={false}
+            mobileClickOnly={true}
+            autoplay={true}
+            autoplayDelay={3000}
+            pauseOnHover={false}
+            animationConfig={{ stiffness: 260, damping: 22 }}
+            cards={stackCards}
+          />
+        </div>
+
+        {/* ── Desktop: slide carousel ──────────────────────── */}
+        <div className="svc-card-wrap w-full hidden md:block">
           <div className="svc-card" style={{ overflow: 'hidden', position: 'relative', zIndex: 10, boxShadow: '0px 4px 20.4px 9px rgba(0,0,0,0.22)' }}>
             <div className="svc-card-img" style={{ position: 'relative' }}>
               <AnimatePresence>
@@ -306,7 +370,7 @@ const ServiciosSection: React.FC = () => {
                   transition={{ duration: 0.7, ease: 'easeInOut' }}
                 />
               </AnimatePresence>
-              <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.28)' }} />
+              <div className="svc-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.28)' }} />
               <AnimatePresence mode="wait">
                 <motion.div
                   key={`text-${slide}`}
@@ -325,7 +389,7 @@ const ServiciosSection: React.FC = () => {
                 </motion.div>
               </AnimatePresence>
               <img className="svc-esquina" src="/esquina-derecha.svg" alt="" aria-hidden="true" style={{ position: 'absolute', bottom: 0, right: 0, pointerEvents: 'none' }} />
-              <img className="svc-isotipo" src="/isotipo.svg" alt="" aria-hidden="true" style={{ position: 'absolute', bottom: '5%', right: '3%', width: 'clamp(28px, 4vw, 56px)', height: 'auto', pointerEvents: 'none', zIndex: 2 }} />
+              <img className="svc-isotipo" src="/isotipo.svg" alt="" aria-hidden="true" style={{ position: 'absolute', bottom: '5%', right: '2%', width: 'clamp(25px, 4vw, 50px)', height: 'auto', pointerEvents: 'none', zIndex: 2 }} />
             </div>
           </div>
           <div className="flex justify-center mt-5 gap-2 items-center" style={{ position: 'relative', zIndex: 20 }}>
@@ -413,9 +477,26 @@ const WhiteOrganicBackground: React.FC = () => (
 );
 
 const HerramientasSection: React.FC = () => (
-  <section className="pb-12 px-6" style={{ position: 'relative', zIndex: 22, marginTop: 'clamp(4rem, 20.4vw, 24rem)', borderRadius: '2rem 2rem 0 0', paddingTop: '0' }}>
+  <section className="pb-12 px-6 herramientas-sec" style={{ position: 'relative', zIndex: 22, borderRadius: '2rem 2rem 0 0', paddingTop: '0' }}>
+    <style>{`
+      .herramientas-sec { margin-top: -3rem; }
+      @media (min-width: 768px) { .herramientas-sec { margin-top: clamp(4rem, 20.4vw, 24rem); } }
+    `}</style>
     <div className="max-w-4xl mx-auto flex flex-col items-center">
-      <div className="flex items-center gap-3 mb-8 md:mb-10 w-full">
+      {/* Mobile exact group */}
+      <div className="md:hidden relative w-[358px] flex items-center justify-center mb-8">
+        <div className="absolute left-0 w-[93px]" style={{ height: 0, border: '2px solid rgba(60, 60, 59, 0.69)' }} />
+        <h2
+          className="w-[178px]"
+          style={{ fontFamily: 'Sansation', fontStyle: 'normal', fontWeight: 700, fontSize: '24px', lineHeight: '27px', textAlign: 'center', color: '#3C3C3B', flexShrink: 0, zIndex: 1 }}
+        >
+          Nuestras Herramientas
+        </h2>
+        <div className="absolute right-0 w-[93px]" style={{ height: 0, border: '2px solid rgba(60, 60, 59, 0.69)' }} />
+      </div>
+
+      {/* Desktop fluid group */}
+      <div className="hidden md:flex items-center gap-3 mb-10 w-full">
         <div style={{ flex: 1, height: 0, border: '2px solid rgba(60, 60, 59, 0.69)' }} />
         <h2
           style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(1.2rem, 3.5vw, 2.5rem)', lineHeight: 1.2, textAlign: 'center', color: '#3C3C3B', flexShrink: 0, padding: '0 0.5rem' }}
@@ -473,33 +554,48 @@ const IASection: React.FC = () => (
     className="relative"
     style={{ minHeight: '800px', paddingBottom: '2rem', overflowX: 'hidden' }}
   >
+    <div className="md:hidden absolute left-0 right-0" style={{ top: 258, bottom: 258, background: '#ffffff', zIndex: 0 }} />
     <div className="relative z-10 flex flex-col md:flex-row items-end justify-center px-6 pt-8 md:pt-16 pb-8 w-full max-w-[1200px] mx-auto gap-8 md:gap-6">
       <div className="w-full md:w-4/12 flex justify-center order-1 md:order-2">
+        <style>{`
+          .chica-wrap { width: 258.04px; height: 453.17px; }
+          .chica-bg { border-radius: 30px !important; }
+          .chica-bg-img { position: absolute !important; inset: auto !important; left: -26.17px !important; top: -10.85px !important; width: 307.96px !important; height: 564.64px !important; object-fit: cover; }
+          .chica-overlay { position: absolute !important; inset: auto !important; left: -12.68px !important; top: -12.57px !important; width: 320.69px !important; height: 511.57px !important; }
+          .chica-circle { left: -20.65% !important; }
+          @media (min-width: 768px) {
+            .chica-circle { left: -29.2% !important; }
+            .chica-wrap { width: clamp(140px, 38vw, 346px); height: clamp(240px, 65vw, 613px); }
+            .chica-bg { border-radius: 68px !important; }
+            .chica-bg-img { position: absolute !important; inset: 0 !important; left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important; }
+            .chica-overlay { position: absolute !important; inset: 0 !important; left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important; }
+          }
+        `}</style>
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="relative flex-shrink-0"
-          style={{ width: 'clamp(140px, 38vw, 346px)', height: 'clamp(240px, 65vw, 613px)', zIndex: 10, overflow: 'visible' }}
+          className="chica-wrap relative flex-shrink-0"
+          style={{ zIndex: 10, overflow: 'visible' }}
         >
-          <div aria-hidden="true" style={{ position: 'absolute', left: '-29.2%', top: '13.4%', width: '41.3%', paddingBottom: '41.3%', borderRadius: '50%', background: '#ffffff', zIndex: 0, pointerEvents: 'none' }} />
+          <div aria-hidden="true" className="chica-circle" style={{ position: 'absolute', left: '-29.2%', top: '13.4%', width: '41.3%', paddingBottom: '41.3%', borderRadius: '50%', background: '#ffffff', zIndex: 0, pointerEvents: 'none' }} />
           <div aria-hidden="true" style={{ position: 'absolute', left: '36.1%', top: '65.7%', width: '95.1%', height: '38.7%', borderRadius: '20px', background: '#ffffff', zIndex: 0, pointerEvents: 'none' }} />
-          <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: '68px', boxShadow: '0px 4px 27.8px rgba(0,0,0,0.42)', background: '#D9D9D9' }}>
-            <img src="/blank.svg" alt="" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} />
-            <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.22)' }} />
+          <div className="chica-bg absolute inset-0 overflow-hidden" style={{ boxShadow: '0px 4px 27.8px rgba(0,0,0,0.42)', background: '#D9D9D9' }}>
+            <img src="/blank.svg" alt="" aria-hidden="true" className="chica-bg-img" />
+            <div className="chica-overlay" style={{ background: 'rgba(0,0,0,0.22)' }} />
+            <img src="/chica.svg" alt="IA" style={{ position: 'absolute', left: '7%', bottom: 0, width: 'auto', height: '120%', maxWidth: 'none', transform: 'translateX(-50%)', transformOrigin: 'center bottom', zIndex: 10, pointerEvents: 'none' }} />
           </div>
-          <img src="/chica.svg" alt="IA" style={{ position: 'absolute', left: '7%', bottom: 0, width: 'auto', height: '120%', maxWidth: 'none', transform: 'translateX(-50%)', transformOrigin: 'center bottom', zIndex: 120, pointerEvents: 'none' }} />
         </motion.div>
       </div>
 
       <div className="w-full md:w-4/12 flex flex-col gap-3 text-center md:text-left items-center md:items-start order-2 md:order-1 mb-auto md:mt-auto z-20">
-        <h2 style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', lineHeight: 1.15, color: CYAN }}>
+        <h2 style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(24px, 3vw, 2.5rem)', lineHeight: '27px', color: CYAN, maxWidth: 296 }}>
           Comenzar nunca ha sido<br />tan fácil gracias a la IA
         </h2>
-        <p style={{ color: '#ffffff', fontFamily: 'Sansation', fontWeight: 400, fontSize: 'clamp(1rem, 1.8vw, 1.5rem)' }}>
+        <p style={{ fontFamily: 'Sansation', fontWeight: 400, fontSize: 'clamp(16px, 1.8vw, 1.5rem)', lineHeight: '18px', color: '#000000', maxWidth: 309 }}>
           No hace falta tener experiencia.
         </p>
-        <p style={{ color: 'rgba(255,255,255,0.7)', fontFamily: 'Sansation', fontStyle: 'italic', fontWeight: 300, fontSize: 'clamp(0.8rem, 1.2vw, 1rem)', lineHeight: 1.4 }}>
+        <p style={{ fontFamily: 'Sansation', fontStyle: 'italic', fontWeight: 300, fontSize: 'clamp(10px, 1.2vw, 1rem)', lineHeight: '11px', color: '#000000', maxWidth: 214 }}>
           Kit de diseño con IA, uno de los mejores<br />inventos de TIME de 2025*
         </p>
       </div>
@@ -511,10 +607,10 @@ const IASection: React.FC = () => (
           viewport={{ once: true }}
           transition={{ delay: 0.1 }}
           className="relative flex-shrink-0 block"
-          style={{ width: 'clamp(140px, 24vw, 346px)', height: 'clamp(240px, 46vw, 613px)', borderRadius: '68px', boxShadow: '0px 4px 27.8px rgba(0,0,0,0.42)', background: '#D9D9D9', overflow: 'visible', zIndex: 11 }}
+          style={{ width: 'clamp(266px, 64vw, 346px)', height: 'clamp(461px, 112vw, 613px)', borderRadius: '30px', boxShadow: '0px 4px 27.8px rgba(0,0,0,0.42)', background: '#D9D9D9', overflow: 'visible', zIndex: 11 }}
         >
-          <div aria-hidden="true" style={{ position: 'absolute', left: '50.1%', top: '40.1%', width: '62%', height: '40.1%', borderRadius: '20px', background: '#ffffff', zIndex: 0, pointerEvents: 'none' }} />
-          <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: '68px' }}>
+          <div aria-hidden="true" style={{ position: 'absolute', left: '50.1%', top: '66%', width: '62%', height: '40.1%', borderRadius: '20px', background: '#ffffff', zIndex: 0, pointerEvents: 'none' }} />
+          <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: '30px' }}>
             <img src="/hombre.svg" alt="Tecnología" className="absolute w-full h-full object-cover object-top" />
           </div>
         </motion.div>
@@ -535,14 +631,14 @@ const TestimonialsSection: React.FC = () => {
     <section className="relative overflow-hidden">
       <div className="hidden md:block" style={{ width: '86.6%', margin: '0 auto', borderTop: '1px solid #FFFFFF', marginBottom: '6rem' }} />
 
-      <div className="flex flex-col md:flex-row items-center justify-center md:justify-between px-6 md:px-0 py-10 md:py-0 w-full max-w-[1440px] mx-auto relative gap-10 md:gap-0" style={{ zIndex: 1, minHeight: 'clamp(500px, 60vw, 400px)' }}>
-        
-        <div className="w-full md:w-5/12 flex flex-col items-center md:items-end order-1 md:order-2 text-center md:text-right relative z-20 md:ml-auto">
-          <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: 'clamp(28px, 3.5vw, 52px)', lineHeight: 1.15, color: '#FFFFFF', textAlign: 'right', marginBottom: '1.2rem' }}>
+      <div className="flex flex-col md:flex-row items-center justify-center md:justify-between md:pl-0 md:pr-0 py-10 md:py-0 w-full relative gap-10 md:gap-0" style={{ zIndex: 1, minHeight: 'clamp(500px, 60vw, 400px)' }}>
+
+        <div className="w-full md:w-[32%] flex flex-col items-center justify-center md:items-end order-1 md:order-2 text-center md:text-right relative z-20 md:ml-auto px-6 md:px-0 md:pr-[6.7%]">
+          <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: 'clamp(34px, 4.5vw, 68px)', lineHeight: 1.15, color: '#FFFFFF', marginBottom: '1.2rem' }}>
             CONSTRUYENDO EL FUTURO,{' '}
             <span style={{ color: CYAN }}>CASO POR CASO</span>
           </h2>
-          <p style={{ fontFamily: FONT, fontWeight: 400, fontSize: 'clamp(14px, 1.5vw, 20px)', lineHeight: 1.6, color: 'rgba(255,255,255,0.75)', textAlign: 'right' }}>
+          <p style={{ fontFamily: FONT, fontWeight: 400, fontSize: 'clamp(16px, 1.9vw, 26px)', lineHeight: 1.6, color: 'rgba(255,255,255,0.75)' }}>
             Testimonios veraces de nuestros primeros usuarios piloto que ya están transformando sus industrias.
           </p>
 
@@ -550,12 +646,22 @@ const TestimonialsSection: React.FC = () => {
             className="hidden md:block absolute" style={{ width: 'clamp(200px, 35vw, 800px)', height: 'auto', opacity: 0.7, top: '50%', right: 0, transform: 'translateY(-50%)', zIndex: -1 }} />
         </div>
 
-        <div className="w-full md:w-7/12 order-2 md:order-1 flex justify-center md:justify-start" style={{ position: 'relative', zIndex: 2, paddingLeft: 'clamp(0px, 4vw, 6rem)' }}>
-          <div style={{ position: 'relative', width: 'clamp(300px, 85vw, 860px)', height: 'clamp(400px, 56vw, 720px)' }}>
-            {testimonials.map((t, i) => {
-              const slot = ((i - activeCard + testimonials.length) % testimonials.length) as 0 | 1 | 2;
-              return <TestimonialCard key={i} slot={slot} name={t.name} role={t.role} text={t.text} stars={t.stars} />;
-            })}
+        <div className="w-full md:w-7/12 order-2 md:order-1 flex justify-center" style={{ position: 'relative', zIndex: 2 }}>
+          <style>{`
+            .testim-outer { width: 316px; height: 310px; }
+            .testim-group { margin-left: -48px; transform-origin: top left; }
+            @media (min-width: 768px) {
+              .testim-outer { width: 608px; height: 496px; }
+              .testim-group { margin-left: 0; transform: scale(1.6); }
+            }
+          `}</style>
+          <div className="testim-outer" style={{ position: 'relative', flexShrink: 0 }}>
+            <div className="testim-group" style={{ position: 'relative', width: 380, height: 310, overflow: 'visible' }}>
+              {testimonials.map((t, i) => {
+                const slot = ((i - activeCard + testimonials.length) % testimonials.length) as 0 | 1 | 2;
+                return <TestimonialCard key={i} slot={slot} name={t.name} role={t.role} text={t.text} stars={t.stars} />;
+              })}
+            </div>
           </div>
         </div>
 
@@ -568,55 +674,91 @@ const TestimonialsSection: React.FC = () => {
 
 const CTASection: React.FC = () => (
   <section className="relative overflow-hidden pb-20 md:pb-0">
-    <img src="/logo-footer.svg" alt="Bytecode" aria-hidden="true" className="absolute pointer-events-none"
+
+    {/* ── DESKTOP ─────────────────────────────────────── */}
+    <img src="/logo-footer.svg" alt="Bytecode" aria-hidden="true" className="hidden md:block absolute pointer-events-none"
       style={{ left: '-60px', top: '50%', transform: 'translateY(-50%)', width: '310px', height: 'auto', objectFit: 'contain', opacity: 0.7, zIndex: 1 }} />
 
-    <div className="relative flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 px-6 md:px-0" style={{
-      zIndex: 2,
-      width: 'min(980px, 100%)',
-      maxWidth: '100%',
-      margin: '0 auto',
+    <div className="hidden md:flex flex-row items-center justify-between gap-8" style={{
+      zIndex: 2, width: 'min(980px, 100%)', maxWidth: '100%', margin: '0 auto',
       padding: 'clamp(3rem, 8vh, 9rem) clamp(1.5rem, 4vw, 3rem)',
     }}>
-      <h2 style={{
-        fontFamily: 'Sansation',
-        fontWeight: 700,
-        fontSize: 'clamp(1.8rem, 4vw, 3.3rem)',
-        lineHeight: 1.15,
-        color: '#FFFFFF',
-        textAlign: 'center',
-        flexShrink: 0,
-      }}>
+      <h2 style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(1.8rem, 4vw, 3.3rem)', lineHeight: 1.15, color: '#FFFFFF', textAlign: 'center', flexShrink: 0 }}>
         Un clic para ti,<br />un salto para tu marca.
       </h2>
-
-      <Link to="/contacto" style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '100%',
-        maxWidth: '504px',
-        height: 'clamp(56px, 6vw, 79px)',
-        background: '#06CFD6',
-        borderRadius: '22px',
-        flexShrink: 0,
-        textDecoration: 'none',
-      }}>
-        <span style={{
-          fontFamily: 'Sansation',
-          fontWeight: 400,
-          fontSize: 'clamp(1.5rem, 3vw, 2.75rem)',
-          color: '#FFFFFF',
-        }}>
-          Conectar
-        </span>
+      <Link to="/contacto" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', maxWidth: '504px', height: 'clamp(56px, 6vw, 79px)', background: '#06CFD6', borderRadius: '22px', flexShrink: 0, textDecoration: 'none' }}>
+        <span style={{ fontFamily: 'Sansation', fontWeight: 400, fontSize: 'clamp(1.5rem, 3vw, 2.75rem)', color: '#FFFFFF' }}>Conectar</span>
       </Link>
     </div>
 
-    <img src="/isotipo.svg" alt="" aria-hidden="true" className="absolute pointer-events-none right-[6.7%] bottom-1 md:right-[7%] md:bottom-[8%]"
-      style={{ width: '46px', height: 'auto', zIndex: 2, opacity: 0.85 }} />
+    <img src="/isotipo.svg" alt="" aria-hidden="true" className="hidden md:block absolute pointer-events-none"
+      style={{ right: '7%', bottom: '8%', width: '46px', height: 'auto', zIndex: 2, opacity: 0.85 }} />
+    <div className="hidden md:block" style={{ width: '86.6%', margin: '0 auto', borderTop: '1px solid #FFFFFF' }} />
 
-    <div style={{ width: '86.6%', margin: '0 auto', borderTop: '1px solid #FFFFFF' }} />
+    {/* ── MOBILE ──────────────────────────────────────── */}
+    <div className="md:hidden relative" style={{ overflow: 'hidden' }}>
+      {/* Logo rotado, parcialmente fuera de pantalla */}
+      <img src="/logo-footer.svg" alt="" aria-hidden="true" style={{
+        position: 'absolute', left: -58, bottom: -194,
+        width: 202, height: 194, opacity: 0.7,
+        transform: 'rotate(-90deg)', transformOrigin: 'left top',
+        pointerEvents: 'none', zIndex: 0,
+      }} />
+
+      {/* Línea superior */}
+      <div style={{ width: 358, margin: '0 auto', borderTop: '1px solid #FFFFFF' }} />
+
+      {/* Contenido centrado */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '80px 0 0', gap: 20, position: 'relative', zIndex: 1 }}>
+        <h2 style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 24, lineHeight: '27px', color: '#FFFFFF', textAlign: 'center', width: 272, margin: 0 }}>
+          Un clic para ti,<br />un salto para tu marca.
+        </h2>
+
+        <Link to="/contacto" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 358, height: 57, background: '#06CFD6', borderRadius: 22, textDecoration: 'none', flexShrink: 0 }}>
+          <span style={{ fontFamily: 'Sansation', fontWeight: 400, fontSize: 32, lineHeight: '36px', color: '#FFFFFF' }}>Conectar</span>
+        </Link>
+
+        {/* Isotipo derecha */}
+        <img src="/isotipo.svg" alt="" aria-hidden="true" style={{ position: 'absolute', left: 'calc(50% - 12px + 164px)', top: 135, width: 24, height: 31, opacity: 0.85 }} />
+
+        {/* Espaciado hasta la línea inferior */}
+        <div style={{ height: 90 }} />
+      </div>
+
+      {/* Línea inferior */}
+      <div style={{ width: 358, margin: '0 auto', borderTop: '1px solid #FFFFFF' }} />
+
+      {/* Sección de contacto */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px 0 2px', gap: 8 }}>
+        <p style={{ fontFamily: 'Helvetica Neue, sans-serif', fontWeight: 500, fontSize: 16, lineHeight: '19px', color: '#FFFFFF', margin: 0 }}>Contáctanos</p>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <img src="/logos/wsp8.svg" alt="" aria-hidden="true" width={14} height={14} />
+          <span style={{ fontFamily: 'Helvetica Neue, sans-serif', fontWeight: 300, fontSize: 14, lineHeight: '17px', color: '#FFFFFF' }}>(+51) 946 243 145</span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <img src="/logos/wsp8.svg" alt="" aria-hidden="true" width={14} height={14} />
+          <span style={{ fontFamily: 'Helvetica Neue, sans-serif', fontWeight: 300, fontSize: 14, lineHeight: '17px', color: '#FFFFFF' }}>(+51) 946 243 145</span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <img src="/logos/correo1.svg" alt="" aria-hidden="true" width={16} height={12} />
+          <span style={{ fontFamily: 'Helvetica Neue, sans-serif', fontWeight: 300, fontSize: 14, lineHeight: '17px', color: '#FFFFFF' }}>grupo@caplogistic.com.pe</span>
+        </div>
+
+        <div style={{ display: 'flex', gap: 20, opacity: 0.5, marginTop: 12 }}>
+          <Link to="/condiciones" style={{ fontFamily: 'Helvetica Neue, sans-serif', fontWeight: 300, fontSize: 14, color: '#FFFFFF', textDecoration: 'none' }}>Condiciones</Link>
+          <Link to="/privacidad" style={{ fontFamily: 'Helvetica Neue, sans-serif', fontWeight: 300, fontSize: 14, color: '#FFFFFF', textDecoration: 'none' }}>Privacidad</Link>
+          <Link to="/reclamaciones" style={{ fontFamily: 'Helvetica Neue, sans-serif', fontWeight: 300, fontSize: 14, color: '#FFFFFF', textDecoration: 'none' }}>Libro de Reclamaciones</Link>
+        </div>
+
+        <p style={{ fontFamily: 'Helvetica Neue, sans-serif', fontWeight: 300, fontSize: 14, lineHeight: '17px', color: '#FFFFFF', textAlign: 'center', margin: '8px 0 0' }}>
+          © 2026 Bytecode. Todos los derechos reservados.
+        </p>
+      </div>
+    </div>
+
   </section>
 );
 
