@@ -171,10 +171,10 @@ const Contacto: React.FC = () => {
         description="Ponte en contacto con Bytecode para iniciar tu proyecto de transformación digital hoy mismo."
       />
       
-      {/* Fondo espacio + Video + Red Cibernética */}
+      {/* Fondo espacio + Image + Red Cibernética */}
       <div className="absolute inset-0" style={{ backgroundColor: '#040e1f' }}>
-        {/* 1. Video de fondo */}
-        <video src="/final.mp4" autoPlay loop muted playsInline preload="auto" className="w-full h-full object-cover" aria-hidden="true" />
+        {/* 1. GIF de fondo */}
+        <img src="/galaxia.gif" alt="" className="w-full h-full object-cover" aria-hidden="true" />
         
         {/* 2. Capa oscura para asegurar legibilidad del formulario */}
         <div className="absolute inset-0 bg-[#040e1f]/75" />

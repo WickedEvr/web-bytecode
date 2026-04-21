@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import SEO from '../components/SEO';
+import Stack from '../components/Stack';
 
 const FONT = "'Sansation', sans-serif";
 const CYAN = '#0CA3C6';
@@ -126,15 +127,11 @@ const TestimonialCard: React.FC<{ name: string; role: string; text: string; star
 
 const HeroSection: React.FC = () => (
   <section className="relative h-screen overflow-hidden select-none" style={{ marginTop: 0 }}>
-    {/* Galaxy video */}
+    {/* Galaxy GIF background */}
     <div className="absolute inset-0" style={{ backgroundColor: '#040e1f' }} aria-hidden="true">
-      <video
-        src="/final.mp4"
-        autoPlay
-        loop
-        muted
-        playsInline
-        preload="auto"
+      <img
+        src="/galaxia.gif"
+        alt=""
         className="w-full h-full object-cover"
         style={{ objectPosition: 'center 20%', transform: 'scale(1.1)', transformOrigin: 'top center' }}
       />
@@ -281,16 +278,75 @@ const ServiciosSection: React.FC = () => {
           .svc-card-img   { height: clamp(320px, 44vw, 554px); }
           .svc-isotipo    { display: block; }
           .svc-esquina    { display: block; }
+          .svc-teal-shape { display: none; }
           @media (max-width: 767px) {
-            .svc-card-wrap { max-width: min(306px, 90vw); margin: 0 auto; }
-            .svc-card      { border-radius: 28px; }
-            .svc-card-img  { height: 409px; }
-            .svc-isotipo   { display: none; }
+            .svc-card-wrap  { max-width: min(306px, 90vw); margin: 0 auto; }
+            .svc-card       { border-radius: 28px; }
+            .svc-card-img   { height: 409px; }
+            .svc-card-img img.object-cover {
+              width: 100% !important;
+              height: 100% !important;
+              inset: 0 !important;
+            }
+            .svc-overlay    { background: rgba(0,0,0,0.15) !important; }
+            .svc-esquina    { display: none; }
             .svc-text-title { font-size: 1.5rem !important; }
             .svc-text-desc  { font-size: 0.95rem !important; }
+            .svc-teal-shape {
+              display: block;
+              background-image: url('/formaazul.svg');
+              background-size: cover;
+              background-position: center;
+              background-repeat: no-repeat;
+            }
+            .svc-isotipo {
+              display: block !important;
+              width: 40px !important;
+              height: auto !important;
+              bottom: 24px !important;
+              right: 16px !important;
+              top: auto !important;
+              left: auto !important;
+              transform: none !important;
+            }
           }
         `}</style>
-        <div className="svc-card-wrap w-full">
+        {/* ── Mobile: Stack animation ─────────────────────── */}
+        <div className="md:hidden" style={{ width: 'min(306px, 90vw)', height: '409px', margin: '0 auto' }}>
+          <Stack
+            randomRotation={true}
+            sensitivity={80}
+            sendToBackOnClick={true}
+            autoplay={true}
+            autoplayDelay={3000}
+            pauseOnHover={true}
+            animationConfig={{ stiffness: 260, damping: 22 }}
+            cards={services.map((svc, i) => (
+              <div key={i} style={{ position: 'relative', width: '100%', height: '100%' }}>
+                <img
+                  src={svc.img}
+                  alt={svc.title}
+                  className="object-cover"
+                  style={{ objectPosition: 'center 20%', position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+                />
+                <div className="svc-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.28)' }} />
+                <div className="svc-teal-shape" style={{ position: 'absolute', inset: 0 }} />
+                <div style={{ position: 'absolute', bottom: 24, left: 20, right: 60 }}>
+                  <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: '1.5rem', color: '#fff', lineHeight: 1.25, margin: 0 }}>
+                    {svc.title}
+                  </p>
+                  <p style={{ fontFamily: FONT, fontSize: '0.95rem', color: 'rgba(255,255,255,0.9)', lineHeight: 1.15, marginTop: '8px', whiteSpace: 'pre-line' }}>
+                    {svc.description}
+                  </p>
+                </div>
+                <img src="/isotipo.svg" alt="" aria-hidden="true" style={{ position: 'absolute', bottom: 24, right: 16, width: 40, height: 'auto', pointerEvents: 'none', zIndex: 2 }} />
+              </div>
+            ))}
+          />
+        </div>
+
+        {/* ── Desktop: slide carousel ──────────────────────── */}
+        <div className="svc-card-wrap w-full hidden md:block">
           <div className="svc-card" style={{ overflow: 'hidden', position: 'relative', zIndex: 10, boxShadow: '0px 4px 20.4px 9px rgba(0,0,0,0.22)' }}>
             <div className="svc-card-img" style={{ position: 'relative' }}>
               <AnimatePresence>
@@ -306,7 +362,7 @@ const ServiciosSection: React.FC = () => {
                   transition={{ duration: 0.7, ease: 'easeInOut' }}
                 />
               </AnimatePresence>
-              <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.28)' }} />
+              <div className="svc-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.28)' }} />
               <AnimatePresence mode="wait">
                 <motion.div
                   key={`text-${slide}`}
