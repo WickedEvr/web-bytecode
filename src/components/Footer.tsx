@@ -35,9 +35,6 @@ const Footer: React.FC = () => {
               <p style={{ fontFamily: FONT, fontWeight: 300, fontSize: '16px', lineHeight: '22px', color: '#FFFFFF', textAlign: 'right' }}>
                 © 2026 Bytecode. Todos los derechos reservados.
               </p>
-              <p style={{ fontFamily: FONT, fontWeight: 300, fontSize: '13px', lineHeight: '17px', color: '#FFFFFF', textAlign: 'right' }}>
-                Diseñado por Marco Román
-              </p>
             </div>
 
           </div>

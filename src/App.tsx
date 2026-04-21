@@ -19,13 +19,6 @@ const Condiciones = lazy(() => import('./pages/Condiciones'));
 const Privacidad = lazy(() => import('./pages/Privacidad'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
-// Componente de carga (Fallback)
-// Puedes personalizarlo con un Spinner o un esqueleto de carga
-const PageLoader = () => (
-  <div className="h-screen w-full flex items-center justify-center bg-[#060c1d]">
-    <div className="animate-pulse text-cyan-400 font-sansation text-xl">Cargando...</div>
-  </div>
-);
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -41,7 +34,7 @@ const App: React.FC = () => {
       <ScrollToTop />
       
       {/* 3. Suspense envuelve las rutas para manejar el estado de carga de los componentes lazy */}
-      <Suspense fallback={<PageLoader />}>
+      <Suspense fallback={null}>
         <Routes>
           {/* 🟢 GRUPO 1: Header Normal + Footer Normal */}
           <Route element={<MainLayout />}>
