@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import Carousel3D, { type Project } from '../components/Carousel3D';
 import AltFooter from '../components/AltFooter';
 import SpotlightText from '../components/SpotlightText';
-
+import SEO from '../components/SEO';
 
 // 1. IMPORTACIÓN DIFERIDA (Mejora drásticamente el rendimiento de carga inicial)
 const AuroraBackground = lazy(() => import('../components/AuroraBackground'));
@@ -19,6 +19,10 @@ const Portafolio: React.FC = () => {
   return (
     // 2. Quitamos el color de fondo sólido para que el 3D respire
     <div className="w-full min-h-screen font-sansation overflow-x-hidden flex flex-col relative bg-[#020611]">
+      <SEO 
+        title="Portafolio" 
+        description="Explora nuestros proyectos destacados y descubre cómo ayudamos a marcas y empresas a consolidar su presencia tecnológica."
+      />
 
       {/* 3. FONDO 3D FIJO: Se queda quieto mientras el usuario hace scroll */}
       <div className="fixed inset-0 z-0">

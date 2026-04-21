@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import AltFooter from '../components/AltFooter';
+import SEO from '../components/SEO';
 
 const services = [
   {
@@ -35,21 +36,25 @@ const Servicios: React.FC = () => {
   const next = () => setCurrent((c) => (c + 1) % total);
 
   return (
-    <div className="w-full min-h-screen bg-white font-sansation overflow-x-hidden flex flex-col">
+    <div className="w-full bg-white font-sansation overflow-x-hidden flex flex-col">
+      <SEO 
+        title="Servicios" 
+        description="Descubre nuestros servicios de desarrollo de páginas web, aplicaciones móviles y software de escritorio a medida."
+      />
 
       <div className="flex-grow flex flex-col">
 
         {/* ── HERO CAROUSEL ── */}
-        <section className="relative min-h-[calc(100vh-6rem)] overflow-hidden bg-[#020611]">
+        <section className="relative h-[calc(100vh-3.25rem)] md:h-[calc(100vh-5.5rem)] overflow-hidden bg-[#020611]">
 
           {/* Imagen de fondo */}
-          <AnimatePresence mode="wait">
+          <AnimatePresence>
             <motion.div
               key={current}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
+              initial={{ opacity: 0, scale: 1.04 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.97 }}
+              transition={{ duration: 0.7, ease: 'easeInOut' }}
               className="absolute inset-0"
             >
               <img
@@ -98,10 +103,10 @@ const Servicios: React.FC = () => {
           <AnimatePresence mode="wait">
             <motion.div
               key={`content-${current}`}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.45 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.5, ease: 'easeInOut' }}
               className="absolute bottom-0 left-0 right-0 z-10 px-8 md:px-16 pb-20"
             >
               <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8 md:gap-16">
@@ -144,9 +149,9 @@ const Servicios: React.FC = () => {
         {/* ── HERRAMIENTAS ── */}
         <section className="bg-white pb-12 px-6" style={{ position: 'relative', zIndex: 20, paddingTop: '3rem' }}>
           <div className="max-w-4xl mx-auto flex flex-col items-center">
-            <div className="flex items-center gap-4 mb-10 w-full">
+            <div className="flex items-center gap-3 mb-8 md:mb-10 w-full">
               <div style={{ flex: 1, height: 0, border: '2px solid rgba(60, 60, 59, 0.69)' }} />
-              <h2 style={{ fontFamily: 'Sansation', fontStyle: 'normal', fontWeight: 700, fontSize: '40px', lineHeight: '45px', textAlign: 'center', color: '#3C3C3B', width: '420px', flexShrink: 0 }}>
+              <h2 style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(1.2rem, 3.5vw, 2.5rem)', lineHeight: 1.2, textAlign: 'center', color: '#3C3C3B', flexShrink: 0, padding: '0 0.5rem' }}>
                 Nuestras Herramientas
               </h2>
               <div style={{ flex: 1, height: 0, border: '2px solid rgba(60, 60, 59, 0.69)' }} />
@@ -156,29 +161,31 @@ const Servicios: React.FC = () => {
           <style>{`
             @keyframes marquee-scroll {
               0%   { transform: translateX(0); }
-              100% { transform: translateX(-50%); }
+              100% { transform: translateX(-25%); }
             }
             .logos-track {
               display: flex;
               flex-wrap: nowrap;
               align-items: center;
-              gap: clamp(2rem, 5vw, 4rem);
               width: max-content;
-              animation: marquee-scroll 16s linear infinite;
+              animation: marquee-scroll 18s linear infinite;
+            }
+            .logos-track img {
+              margin: 0 clamp(1.2rem, 3vw, 2.5rem);
+              flex-shrink: 0;
             }
           `}</style>
-          <div style={{ position: 'relative', width: '80vw', margin: '0 auto', overflow: 'hidden', maskImage: 'linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)', opacity: 0.8 }}>
+          <div style={{ position: 'relative', width: '90vw', margin: '0 auto', overflow: 'hidden', maskImage: 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)', opacity: 0.8 }}>
             <div className="logos-track">
-              <img src="/logos/laravel.svg" alt="Laravel" style={{ height: 'clamp(30px, 4.7vw, 54px)', width: 'auto', opacity: 0.9, filter: 'grayscale(100%)', flexShrink: 0 }} />
-              <img src="/logos/github.svg"  alt="GitHub"  style={{ height: 'clamp(32px, 4.9vw, 56px)', width: 'auto', opacity: 0.9, filter: 'grayscale(100%)', flexShrink: 0 }} />
-              <img src="/logos/php.svg"     alt="PHP"     style={{ height: 'clamp(40px, 6.6vw, 76px)', width: 'auto', opacity: 0.9, filter: 'grayscale(100%)', flexShrink: 0 }} />
-              <img src="/logos/JAVA.svg"    alt="Java"    style={{ height: 'clamp(44px, 7.5vw, 86px)', width: 'auto', opacity: 0.9, filter: 'grayscale(100%)', flexShrink: 0 }} />
-              <img src="/logos/mongodb.svg" alt="MongoDB" style={{ height: 'clamp(48px, 8vw, 92px)',   width: 'auto', opacity: 0.9, filter: 'grayscale(100%)', flexShrink: 0 }} />
-              <img src="/logos/laravel.svg" alt="" aria-hidden="true" style={{ height: 'clamp(30px, 4.7vw, 54px)', width: 'auto', opacity: 0.9, filter: 'grayscale(100%)', flexShrink: 0 }} />
-              <img src="/logos/github.svg"  alt="" aria-hidden="true" style={{ height: 'clamp(32px, 4.9vw, 56px)', width: 'auto', opacity: 0.9, filter: 'grayscale(100%)', flexShrink: 0 }} />
-              <img src="/logos/php.svg"     alt="" aria-hidden="true" style={{ height: 'clamp(40px, 6.6vw, 76px)', width: 'auto', opacity: 0.9, filter: 'grayscale(100%)', flexShrink: 0 }} />
-              <img src="/logos/JAVA.svg"    alt="" aria-hidden="true" style={{ height: 'clamp(44px, 7.5vw, 86px)', width: 'auto', opacity: 0.9, filter: 'grayscale(100%)', flexShrink: 0 }} />
-              <img src="/logos/mongodb.svg" alt="" aria-hidden="true" style={{ height: 'clamp(48px, 8vw, 92px)',   width: 'auto', opacity: 0.9, filter: 'grayscale(100%)', flexShrink: 0 }} />
+              {[0, 1, 2, 3].map(copy => (
+                <React.Fragment key={copy}>
+                  <img src="/logos/laravel.svg" alt={copy === 0 ? 'Laravel' : ''} aria-hidden={copy !== 0} style={{ height: 'clamp(28px, 4.7vw, 54px)', width: 'auto', filter: 'grayscale(100%)' }} />
+                  <img src="/logos/github.svg"  alt={copy === 0 ? 'GitHub' : ''}  aria-hidden={copy !== 0} style={{ height: 'clamp(30px, 4.9vw, 56px)', width: 'auto', filter: 'grayscale(100%)' }} />
+                  <img src="/logos/php.svg"     alt={copy === 0 ? 'PHP' : ''}     aria-hidden={copy !== 0} style={{ height: 'clamp(36px, 6.6vw, 76px)', width: 'auto', filter: 'grayscale(100%)' }} />
+                  <img src="/logos/JAVA.svg"    alt={copy === 0 ? 'Java' : ''}    aria-hidden={copy !== 0} style={{ height: 'clamp(40px, 7.5vw, 86px)', width: 'auto', filter: 'grayscale(100%)' }} />
+                  <img src="/logos/mongodb.svg" alt={copy === 0 ? 'MongoDB' : ''} aria-hidden={copy !== 0} style={{ height: 'clamp(44px, 8vw, 92px)',   width: 'auto', filter: 'grayscale(100%)' }} />
+                </React.Fragment>
+              ))}
             </div>
           </div>
         </section>
