@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import SEO from '../components/SEO';
@@ -234,6 +234,28 @@ const ServiciosSection: React.FC = () => {
     return () => clearInterval(t);
   }, []);
 
+  const stackCards = useMemo(() => services.map((svc, i) => (
+    <div key={i} style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <img
+        src={svc.img}
+        alt={svc.title}
+        className="object-cover"
+        style={{ objectPosition: 'center 20%', position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+      />
+      <div className="svc-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.28)' }} />
+      <div className="svc-teal-shape" style={{ position: 'absolute', inset: 0 }} />
+      <div style={{ position: 'absolute', bottom: 24, left: 20, right: 60 }}>
+        <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: '1.5rem', color: '#fff', lineHeight: 1.25, margin: 0 }}>
+          {svc.title}
+        </p>
+        <p style={{ fontFamily: FONT, fontSize: '0.95rem', color: 'rgba(255,255,255,0.9)', lineHeight: 1.15, marginTop: '8px', whiteSpace: 'pre-line' }}>
+          {svc.description}
+        </p>
+      </div>
+      <img src="/isotipo.svg" alt="" aria-hidden="true" style={{ position: 'absolute', bottom: 24, right: 16, width: 25, height: 'auto', pointerEvents: 'none', zIndex: 2 }} />
+    </div>
+  )), []);
+
   return (
     <div className="relative" style={{ marginTop: '-8%' }}>
       {/* IMAGEN DE FONDO:
@@ -314,34 +336,15 @@ const ServiciosSection: React.FC = () => {
         {/* ── Mobile: Stack animation ─────────────────────── */}
         <div className="md:hidden" style={{ width: 'min(306px, 90vw)', height: '409px', margin: '0 auto' }}>
           <Stack
-            randomRotation={true}
+            randomRotation={false}
             sensitivity={80}
-            sendToBackOnClick={true}
+            sendToBackOnClick={false}
+            mobileClickOnly={true}
             autoplay={true}
             autoplayDelay={3000}
-            pauseOnHover={true}
+            pauseOnHover={false}
             animationConfig={{ stiffness: 260, damping: 22 }}
-            cards={services.map((svc, i) => (
-              <div key={i} style={{ position: 'relative', width: '100%', height: '100%' }}>
-                <img
-                  src={svc.img}
-                  alt={svc.title}
-                  className="object-cover"
-                  style={{ objectPosition: 'center 20%', position: 'absolute', inset: 0, width: '100%', height: '100%' }}
-                />
-                <div className="svc-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.28)' }} />
-                <div className="svc-teal-shape" style={{ position: 'absolute', inset: 0 }} />
-                <div style={{ position: 'absolute', bottom: 24, left: 20, right: 60 }}>
-                  <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: '1.5rem', color: '#fff', lineHeight: 1.25, margin: 0 }}>
-                    {svc.title}
-                  </p>
-                  <p style={{ fontFamily: FONT, fontSize: '0.95rem', color: 'rgba(255,255,255,0.9)', lineHeight: 1.15, marginTop: '8px', whiteSpace: 'pre-line' }}>
-                    {svc.description}
-                  </p>
-                </div>
-                <img src="/isotipo.svg" alt="" aria-hidden="true" style={{ position: 'absolute', bottom: 24, right: 16, width: 40, height: 'auto', pointerEvents: 'none', zIndex: 2 }} />
-              </div>
-            ))}
+            cards={stackCards}
           />
         </div>
 

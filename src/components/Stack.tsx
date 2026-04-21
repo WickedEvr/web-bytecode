@@ -88,7 +88,7 @@ export default function Stack({
   }, [mobileBreakpoint]);
 
   const shouldDisableDrag = mobileClickOnly && isMobile;
-  const shouldEnableClick = sendToBackOnClick || shouldDisableDrag;
+  const shouldEnableClick = sendToBackOnClick;
 
   const [stack, setStack] = useState<StackCard[]>(() =>
     cards.map((content, index) => ({ id: index + 1, content }))
@@ -109,14 +109,18 @@ export default function Stack({
   };
 
   useEffect(() => {
-    if (autoplay && stack.length > 1 && !isPaused) {
-      const interval = setInterval(() => {
-        const topCardId = stack[stack.length - 1].id;
-        sendToBack(topCardId);
-      }, autoplayDelay);
-      return () => clearInterval(interval);
-    }
-  }, [autoplay, autoplayDelay, stack, isPaused]);
+    if (!autoplay || isPaused) return;
+    const interval = setInterval(() => {
+      setStack(prev => {
+        if (prev.length <= 1) return prev;
+        const newStack = [...prev];
+        const [card] = newStack.splice(newStack.length - 1, 1);
+        newStack.unshift(card);
+        return newStack;
+      });
+    }, autoplayDelay);
+    return () => clearInterval(interval);
+  }, [autoplay, autoplayDelay, isPaused]);
 
   return (
     <div
