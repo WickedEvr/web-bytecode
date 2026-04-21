@@ -39,7 +39,7 @@ const AltFooter: React.FC = () => {
         <img
           src="/designs/elemento_footer.svg"
           alt=""
-          className="absolute top-[5%] left-[-1.1%] w-42 md:w-62 opacity-60 pointer-events-none object-contain z-0"
+          className="absolute top-[35%] sm:top-[20%] md:top-[5%] left-[-1.1%] w-32 sm:w-42 md:w-62 opacity-60 pointer-events-none object-contain z-0"
           style={{
             filter:
               "brightness(0) saturate(100%) invert(20%) sepia(54%) saturate(2973%) hue-rotate(183deg) brightness(97%) contrast(98%)",
@@ -49,10 +49,10 @@ const AltFooter: React.FC = () => {
         {/* ========================================= */}
         {/* SECCIÓN SUPERIOR */}
         {/* ========================================= */}
-        <div className="max-w-7xl mx-auto w-full relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-10 mb-16">
+        <div className="max-w-7xl mx-auto w-full relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8 lg:gap-10 mb-16">
           {/* Lado Izquierdo: Texto Principal */}
           <div className="flex-1 text-left">
-            <h2 className="text-3xl md:text-5xl lg:text-5xl font-bold leading-tight md:leading-[1.15] pl-15">
+            <h2 className="text-3xl md:text-5xl lg:text-5xl font-bold leading-tight md:leading-[1.15]">
               <SpotlightText> Un clic para ti,
               <br />
               un salto para tu
@@ -62,20 +62,19 @@ const AltFooter: React.FC = () => {
           </div>
 
           {/* Lado Derecho: Botón CTA e Isotipo */}
-          <div className="flex items-center gap-4 sm:gap-8 mt-6 lg:mt-0 ">
+          <div className="flex items-center gap-6 lg:gap-8">
             <Link
               to="/contacto"
-              className="bg-gradient-to-r from-[#06CFD6] to-[#026B9B] text-white font-bold text-xl md:text-3xl uppercase py-5 px-10 md:px-16 rounded-full shadow-[0_10px_30px_rgba(6,207,214,0.3)] hover:scale-105 transition-transform duration-300 lg:mr-16"
+              className="bg-[#06CFD6] hover:bg-[#0CA3C6] text-white font-bold text-lg md:text-2xl lg:text-3xl uppercase py-4 px-8 md:py-5 md:px-14 rounded-full shadow-[0_10px_30px_rgba(6,207,214,0.3)] hover:scale-105 transition-all duration-300"
             >
               CONECTAR
             </Link>
-            <div className="shrink-0 transform translate-y-17 md:translate-y-21 translate-x-28 md:translate-x-32">
-              {/* Contenedor Animado (Flote continuo + Glow al pasar el mouse) */}
+            <div className="hidden lg:block shrink-0 transform translate-y-20 translate-x-8">
               <div className="animate-float-logo hover:drop-shadow-[0_0_20px_rgba(6,207,214,0.9)] transition-all duration-300">
                 <img
-                  src="/designs/elemento_logo.svg" 
+                  src="/designs/elemento_logo.svg"
                   alt="Bytecode Element"
-                  className="w-8 md:w-11 h-auto object-contain opacity-90"
+                  className="w-11 h-auto object-contain opacity-90"
                   style={{
                     filter:
                       "brightness(0) saturate(100%) invert(68%) sepia(35%) saturate(3821%) hue-rotate(143deg) brightness(96%) contrast(94%)",
@@ -92,69 +91,66 @@ const AltFooter: React.FC = () => {
           {/* Línea Separadora */}
           <div className="w-full border-t border-white mb-8" />
 
-          {/* Contenedor que da el GAP VERTICAL (gap-10) entre la Fila 1 y la Fila 2 */}
-          <div className="flex flex-col gap-2">
-            
-            {/* --- FILA 1: Distribución Perfecta Horizontal --- */}
-            {/* Al usar lg:flex-row justify-between, estos 4 bloques toman distancias iguales */}
-            <div className="flex flex-col lg:flex-row items-center justify-between w-full gap-6 text-white font-normal text-base md:text-lg">
-              {/* 1. Contáctanos */}
-              <span className="font-semibold text-xl md:text-2xl whitespace-nowrap">
+          {/* Contenedor inferior */}
+          <div className="flex flex-col gap-6">
+
+            {/* --- FILA 1: Contacto + Copyright --- */}
+            <div className="flex flex-col lg:flex-row items-center lg:justify-between w-full gap-4 lg:gap-6 text-white font-normal text-base md:text-lg">
+              {/* Contáctanos */}
+              <span className="font-semibold text-xl md:text-2xl">
                 Contáctanos
               </span>
 
-              {/* 2. WhatsApp */}
-              <a 
+              {/* WhatsApp 1 */}
+              <a
                 href="https://wa.me/51936281137?text=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 group outline-none"
               >
-                <FaWhatsapp className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300" size={22} /> 
-                <span className="text-gray-300 group-hover:text-white transition-colors duration-300 whitespace-nowrap" aria-label="WhatsApp">
+                <FaWhatsapp className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300 shrink-0" size={22} />
+                <span className="text-gray-300 group-hover:text-white transition-colors duration-300" aria-label="WhatsApp">
                   (+51) 936 281 137
                 </span>
               </a>
 
-              <a 
+              {/* WhatsApp 2 */}
+              <a
                 href="https://wa.me/51970199434?text=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 group outline-none"
               >
-                <FaWhatsapp className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300" size={22} /> 
-                <span className="text-gray-300 group-hover:text-white transition-colors duration-300 whitespace-nowrap" aria-label="WhatsApp">
+                <FaWhatsapp className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300 shrink-0" size={22} />
+                <span className="text-gray-300 group-hover:text-white transition-colors duration-300" aria-label="WhatsApp">
                   (+51) 970 199 434
                 </span>
               </a>
 
-              {/* 3. Correo */}
-              <a 
+              {/* Correo */}
+              <a
                 href="mailto:contacto@bytecode.com.pe?subject=Cotizaci%C3%B3n%20de%20desarrollo%20de%20software&body=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
                 className="flex items-center gap-3 group outline-none"
               >
-                <Mail className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300" size={22} />
-                <span className="text-gray-300 group-hover:text-white transition-colors duration-300 whitespace-nowrap">
+                <Mail className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300 shrink-0" size={22} />
+                <span className="text-gray-300 group-hover:text-white transition-colors duration-300 break-all">
                   contacto@bytecode.com.pe
                 </span>
               </a>
 
-              {/* 4. BLOQUE DERECHO AGRUPADO (Copyright + Diseñador) */}
-              <div className="flex flex-col items-center lg:items-end gap-1 shrink-0 mt-[19px]" >
-                <span className="text-gray-300 whitespace-nowrap">
+              {/* Copyright */}
+              <div className="flex flex-col items-center lg:items-end gap-1 shrink-0">
+                <span className="text-gray-300 text-sm md:text-base text-center lg:text-right">
                   © 2026 Bytecode. Todos los derechos reservados.
-                </span>
-                <span className="text-xs text-gray-500 whitespace-nowrap">
-                  Diseñado por Marco Román
                 </span>
               </div>
             </div>
 
-            {/* --- FILA 2: Enlaces Legales Centrados --- */}
-            <div className="flex flex-wrap items-center justify-center gap-8 md:gap-14 text-gray-400 text-sm md:text-base font-normal w-full">
-              <Link to="/condiciones" className="hover:text-[#06CFD6] transition-colors whitespace-nowrap">Condiciones</Link>
-              <Link to="/privacidad" className="hover:text-[#06CFD6] transition-colors whitespace-nowrap">Privacidad</Link>
-              <Link to="/reclamaciones" className="hover:text-[#06CFD6] transition-colors whitespace-nowrap">Libro de Reclamaciones</Link>
+            {/* --- FILA 2: Enlaces Legales --- */}
+            <div className="flex flex-wrap items-center justify-center gap-6 md:gap-14 text-gray-400 text-sm md:text-base font-normal w-full">
+              <Link to="/condiciones" className="hover:text-[#06CFD6] transition-colors">Condiciones</Link>
+              <Link to="/privacidad" className="hover:text-[#06CFD6] transition-colors">Privacidad</Link>
+              <Link to="/reclamaciones" className="hover:text-[#06CFD6] transition-colors">Libro de Reclamaciones</Link>
             </div>
           </div>
       </footer>

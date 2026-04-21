@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import SEO from '../components/SEO';
 
@@ -293,21 +293,37 @@ const ServiciosSection: React.FC = () => {
         <div className="svc-card-wrap w-full">
           <div className="svc-card" style={{ overflow: 'hidden', position: 'relative', zIndex: 10, boxShadow: '0px 4px 20.4px 9px rgba(0,0,0,0.22)' }}>
             <div className="svc-card-img" style={{ position: 'relative' }}>
-              <img
-                src={services[slide].img}
-                alt={services[slide].title}
-                className="w-full h-full object-cover"
-                style={{ objectPosition: 'center 20%' }}
-              />
+              <AnimatePresence>
+                <motion.img
+                  key={slide}
+                  src={services[slide].img}
+                  alt={services[slide].title}
+                  className="w-full h-full object-cover"
+                  style={{ objectPosition: 'center 20%', position: 'absolute', inset: 0 }}
+                  initial={{ opacity: 0, scale: 1.04 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.97 }}
+                  transition={{ duration: 0.7, ease: 'easeInOut' }}
+                />
+              </AnimatePresence>
               <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.28)' }} />
-              <div style={{ position: 'absolute', bottom: 'clamp(24px, 4vw, 60px)', left: 'clamp(20px, 4vw, 60px)', right: 'clamp(60px, 12vw, 150px)' }}>
-                <p className="svc-text-title" style={{ fontFamily: FONT, fontWeight: 700, fontSize: 'clamp(1.4rem, 3.2vw, 3.8rem)', color: '#fff', lineHeight: 1.25, margin: 0 }}>
-                  {services[slide].title}
-                </p>
-                <p className="svc-text-desc" style={{ fontFamily: FONT, fontSize: 'clamp(0.9rem, 2vw, 2.5rem)', color: 'rgba(255,255,255,0.9)', lineHeight: 1.15, marginTop: '8px', whiteSpace: 'pre-line' }}>
-                  {services[slide].description}
-                </p>
-              </div>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={`text-${slide}`}
+                  style={{ position: 'absolute', bottom: 'clamp(24px, 4vw, 60px)', left: 'clamp(20px, 4vw, 60px)', right: 'clamp(60px, 12vw, 150px)' }}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.45, ease: 'easeInOut' }}
+                >
+                  <p className="svc-text-title" style={{ fontFamily: FONT, fontWeight: 700, fontSize: 'clamp(1.4rem, 3.2vw, 3.8rem)', color: '#fff', lineHeight: 1.25, margin: 0 }}>
+                    {services[slide].title}
+                  </p>
+                  <p className="svc-text-desc" style={{ fontFamily: FONT, fontSize: 'clamp(0.9rem, 2vw, 2.5rem)', color: 'rgba(255,255,255,0.9)', lineHeight: 1.15, marginTop: '8px', whiteSpace: 'pre-line' }}>
+                    {services[slide].description}
+                  </p>
+                </motion.div>
+              </AnimatePresence>
               <img className="svc-esquina" src="/esquina-derecha.svg" alt="" aria-hidden="true" style={{ position: 'absolute', bottom: 0, right: 0, pointerEvents: 'none' }} />
               <img className="svc-isotipo" src="/isotipo.svg" alt="" aria-hidden="true" style={{ position: 'absolute', bottom: '5%', right: '3%', width: 'clamp(28px, 4vw, 56px)', height: 'auto', pointerEvents: 'none', zIndex: 2 }} />
             </div>
@@ -374,7 +390,7 @@ const WhiteOrganicBackground: React.FC = () => (
       {/* ─── FUSIÓN MÓVIL ─── 
           Al estar como primer elemento del SVG, se dibuja DETRÁS de las ondas azules.
           Esto fusiona visualmente la parte superior recta con las ondas orgánicas inferiores. */}
-      <rect className="md:hidden" x="-1000" y="-1430" width="3440" height="2000" fill="#ffffff" />
+      <rect className="md:hidden" x="-1000" y="-1430" width="3440" height="1800" fill="#ffffff" />
 
       <g clipPath="url(#segblanca-clip)">
         <path fill="url(#blob-f1-grad)" d="M -40.31 574.16 C 52.86 492.49 340.09 378.16 743.69 574.16 C 340.09 438.16 52.86 612.49 -40.31 694.16 Z" />
@@ -551,7 +567,7 @@ const TestimonialsSection: React.FC = () => {
 };
 
 const CTASection: React.FC = () => (
-  <section className="relative overflow-hidden">
+  <section className="relative overflow-hidden pb-20 md:pb-0">
     <img src="/logo-footer.svg" alt="Bytecode" aria-hidden="true" className="absolute pointer-events-none"
       style={{ left: '-60px', top: '50%', transform: 'translateY(-50%)', width: '310px', height: 'auto', objectFit: 'contain', opacity: 0.7, zIndex: 1 }} />
 
@@ -597,8 +613,8 @@ const CTASection: React.FC = () => (
       </Link>
     </div>
 
-    <img src="/isotipo.svg" alt="" aria-hidden="true" className="absolute pointer-events-none"
-      style={{ right: '7%', bottom: '8%', width: '46px', height: 'auto', zIndex: 2, opacity: 0.85 }} />
+    <img src="/isotipo.svg" alt="" aria-hidden="true" className="absolute pointer-events-none right-[6.7%] bottom-1 md:right-[7%] md:bottom-[8%]"
+      style={{ width: '46px', height: 'auto', zIndex: 2, opacity: 0.85 }} />
 
     <div style={{ width: '86.6%', margin: '0 auto', borderTop: '1px solid #FFFFFF' }} />
   </section>

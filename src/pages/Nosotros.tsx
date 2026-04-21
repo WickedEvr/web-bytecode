@@ -76,7 +76,7 @@ const Nosotros: React.FC = () => {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15, duration: 0.5 }}
-            className="relative mx-auto mb-12 aspect-[0.72] w-full max-w-[18rem] sm:mb-14 sm:max-w-[21rem]"
+            className="relative mx-auto mb-24 aspect-[0.72] w-full max-w-[18rem] sm:mb-14 sm:max-w-[21rem]"
           >
             <div className="absolute left-[13%] top-[7%] h-[72%] w-[58%] rounded-[1.75rem] bg-gradient-to-b from-[#06CFD6] to-[#036C70]" />
             <div className="absolute right-[10%] top-[9%] h-[27%] w-[27%] rounded-full border border-white/20 bg-[#90F7FF]/25 backdrop-blur-[2px]" />
