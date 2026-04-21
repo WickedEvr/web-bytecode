@@ -69,7 +69,7 @@ const AltFooter: React.FC = () => {
             >
               CONECTAR
             </Link>
-            <div className="hidden lg:block shrink-0 transform translate-y-20 translate-x-8">
+            <div className=" lg:block shrink-0 transform translate-y-11 md:translate-y-21 translate-x-15 md:translate-x-41">
               <div className="animate-float-logo hover:drop-shadow-[0_0_20px_rgba(6,207,214,0.9)] transition-all duration-300">
                 <img
                   src="/designs/elemento_logo.svg"
