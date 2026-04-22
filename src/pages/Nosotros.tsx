@@ -85,7 +85,7 @@ const Nosotros: React.FC = () => {
           </div>
 
           {/* Contenedor de Decorativos */}
-          <div className="relative z-10 mx-auto mb-24 aspect-[0.72] w-full max-w-[18rem] sm:mb-14 sm:max-w-[21rem]">    
+          <div className="relative w-full z-10 mx-auto mb-24 aspect-[0.72] w-full max-w-[18rem] sm:mb-14 sm:max-w-[21rem]">    
             {/* 1. Rectángulo azul oscuro (Entra deslizándose desde la derecha) */}
             <motion.div 
               initial={{ opacity: 0, x: 80 }}

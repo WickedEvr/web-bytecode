@@ -7,7 +7,7 @@ const ghost =
 const ghostArea =
   'w-full bg-transparent border border-white/25 rounded-2xl px-4 py-3 text-white placeholder-white/35 text-sm focus:outline-none focus:border-primary-cyan transition-colors resize-none';
 
-const ghostSelect =
+const solidSelect =
   'w-full bg-[#060c1d] border border-white/25 rounded-full px-4 py-2.5 text-white/50 text-sm focus:outline-none focus:border-primary-cyan transition-colors appearance-none cursor-pointer';
 
 const Radio: React.FC<{
@@ -130,7 +130,7 @@ const LibroReclamaciones: React.FC = () => {
               value={formData.domicilio} onChange={handleChange} className={ghost} />
             <div className="grid grid-cols-2 gap-3">
               <div className="relative">
-                <select name="tipoDoc" value={formData.tipoDoc} onChange={handleChange} className={ghostSelect}>
+                <select name="tipoDoc" value={formData.tipoDoc} onChange={handleChange} className={solidSelect}>
                   <option value="">Tipo de documento</option>
                   <option value="DNI">DNI</option>
                   <option value="CE">CE</option>
@@ -173,7 +173,7 @@ const LibroReclamaciones: React.FC = () => {
               <input name="nombreUnidad" type="text" placeholder="Nombre de la unidad, programada o curso"
                 value={formData.nombreUnidad} onChange={handleChange} className={ghost} />
               <div className="relative">
-                <select name="opcionBien" value={formData.opcionBien} onChange={handleChange} className={ghostSelect}>
+                <select name="opcionBien" value={formData.opcionBien} onChange={handleChange} className={solidSelect}>
                   <option value="">Seleccione una opción</option>
                   <option value="opt1">Opción 1</option>
                   <option value="opt2">Opción 2</option>
