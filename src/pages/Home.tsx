@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { FaWhatsapp } from 'react-icons/fa6';
+import { Mail } from "lucide-react";
 import SEO from '../components/SEO';
 import Stack from '../components/Stack';
 import GalaxyBackground from '../components/GalaxyBackground';
@@ -132,104 +134,140 @@ const TestimonialCard: React.FC<{ name: string; role: string; text: string; star
 };
 
 /* ══════════════════════════════════════════════════════
-   SECTIONS COMPONENTS
+  SECTIONS COMPONENTS
 ══════════════════════════════════════════════════════ */
 
-const HeroSection: React.FC = () => (
-  <section className="relative h-screen overflow-hidden select-none" style={{ marginTop: 0 }}>
-    {/* Galaxy canvas background */}
-    <div className="absolute inset-0" style={{ backgroundColor: '#040e1f' }} aria-hidden="true">
-      <GalaxyBackground />
-      <div className="absolute inset-0" style={{ background: 'rgba(4,14,31,0.30)' }} />
-    </div>
-
-    {/* Esquinas y Sombras */}
-    <img src="/esquina-arriba.svg" aria-hidden="true" className="absolute top-0 left-0 pointer-events-none z-10" style={{ width: '40%' }} />
-    <img src="/esquina-abajo.svg" aria-hidden="true" className="absolute bottom-0 right-0 pointer-events-none z-0" style={{ width: '40%' }} />
-    <img src="/sombra-general.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-[9]" />
-    <img src="/sombra-arriba.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-10" />
-    <img src="/sombra-arriba.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-10" style={{ opacity: 0.5 }} />
-
-    {/* Layout principal */}
-    <div className="relative z-10 w-full h-full max-w-[1440px] mx-auto flex flex-col md:flex-row items-center justify-center md:justify-between px-6 md:px-12 lg:px-20 gap-2 md:gap-0 pt-20 md:pt-0">
-      
-      {/* TEXTO + BOTONES */}
-      <div className="order-1 md:order-2 flex flex-col items-center md:items-start text-center md:text-left z-20 w-full md:w-[52%]">
-        <h1
-          className="font-bold text-white uppercase mb-2 md:mb-4"
-          style={{
-            fontFamily: FONT,
-            fontSize: 'clamp(2.2rem, 4.8vw, 4.875rem)',
-            lineHeight: '1.08',
-            textShadow: '0px 4px 7.3px rgba(0,0,0,0.51)',
-          }}
-        >
-          UN GRAN SITIO WEB,<br />HACE IDEAS REALIDAD
-        </h1>
-
-        <p
-          className="text-white mb-5 md:mb-10"
-          style={{
-            fontFamily: FONT,
-            fontWeight: 400,
-            fontSize: 'clamp(0.9rem, 1.8vw, 1.75rem)',
-            lineHeight: '1.3',
-            textShadow: '0px 4px 8.8px rgba(0,0,0,0.81)',
-          }}
-        >
-          Adquiere tu consulta <span className="font-bold text-[#06CFD6]">GRATIS</span>
-        </p>
-
-        {/* BOTONES */}
-        <div className="flex flex-col md:flex-row gap-3 md:gap-5 w-full md:w-auto" style={{ maxWidth: '520px' }}>
-          <Link
-            to="/contacto"
-            className="flex items-center justify-center bg-[#06CFD6] rounded-full font-bold transition-all hover:scale-105 hover:shadow-[0px_0px_25px_rgba(6,207,214,0.5)]"
-            style={{
-              width: '100%',
-              maxWidth: '100%',
-              height: 'clamp(48px, 5vw, 68px)',
-              fontSize: 'clamp(1rem, 1.5vw, 1.5rem)',
-              fontFamily: FONT,
-              color: '#fff',
-              minWidth: 'clamp(180px, 20vw, 260px)',
-            }}
-          >
-            Conectar
-          </Link>
-          <Link
-            to="/servicios"
-            className="flex items-center justify-center bg-white rounded-full font-bold transition-all hover:scale-105"
-            style={{
-              width: '100%',
-              maxWidth: '100%',
-              height: 'clamp(48px, 5vw, 68px)',
-              fontSize: 'clamp(1rem, 1.5vw, 1.5rem)',
-              fontFamily: FONT,
-              color: '#0CA3C6',
-              border: '2px solid #0CA3C6',
-              minWidth: 'clamp(180px, 20vw, 260px)',
-            }}
-          >
-            Servicios
-          </Link>
-        </div>
-      </div>
-
-      {/* ASTRONAUTA */}
-      <div className="order-2 md:order-1 flex items-center justify-center md:justify-start w-full md:w-[48%] flex-shrink-0">
-        <motion.img
-          src="/astronauta.png"
-          alt="Astronauta"
-          animate={{ y: [0, -20, 0], rotate: [0, 2, 0] }}
-          transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-          className="pointer-events-none drop-shadow-2xl"
-          style={{ width: 'clamp(160px, 38vw, 560px)', height: 'auto' }}
+const HeroSection: React.FC = () => {
+  const [isHovered, setIsHovered] = React.useState(false);
+  
+  return (
+    <section className="relative h-screen overflow-hidden select-none" style={{ marginTop: 0 }}>
+      {/* Galaxy canvas background */}
+      <div className="absolute inset-0" style={{ backgroundColor: '#040e1f' }} aria-hidden="true">
+        <GalaxyBackground /> 
+        <div className="absolute inset-0" style={{ background: 'rgba(4,14,31,0.30)' }} />
+        <div
+          className="absolute inset-0 opacity-70 mix-blend-screen"
+          style={{ backgroundImage: `url(${import.meta.env.BASE_URL}designs/stardust.png)` }}
+        />
+        <div
+          className="absolute inset-0 opacity-50 rotate-180 mix-blend-screen"
+          style={{ backgroundImage: `url(${import.meta.env.BASE_URL}designs/stardust.png)` }}
         />
       </div>
-    </div>
-  </section>
-);
+
+      {/* Esquinas y Sombras */}
+      <img src="/esquina-arriba.svg" aria-hidden="true" className="absolute top-0 left-0 pointer-events-none z-10" style={{ width: '40%' }} />
+      <img src="/esquina-abajo.svg" aria-hidden="true" className="absolute bottom-0 right-0 pointer-events-none z-0" style={{ width: '40%' }} />
+      <img src="/sombra-general.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-[9]" />
+      <img src="/sombra-arriba.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-10" />
+      <img src="/sombra-arriba.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-10" style={{ opacity: 0.5 }} />
+
+      {/* Layout principal */}
+      <div className="relative z-10 w-full h-full max-w-[1440px] mx-auto flex flex-col md:flex-row items-center justify-center md:justify-between px-6 md:px-12 lg:px-20 gap-2 md:gap-0 pt-20 md:pt-0 md:-translate-x-[40px] lg:-translate-x-[80px]">
+        
+        {/* TEXTO + BOTONES */}
+        <div className="order-1 md:order-2 flex flex-col items-center md:items-start text-center md:text-left z-20 w-full md:w-[65%] lg:w-[60%]">
+          <h1
+            className="text-white uppercase mb-2 md:mb-4"
+            style={{
+              fontFamily: FONT,
+              lineHeight: '1.08',
+              textShadow: '0px 4px 7.3px rgba(0,0,0,0.51)',
+            }}
+          >
+            <span className="font-bold md:whitespace-nowrap text-[clamp(2.2rem,4.8vw,4.875rem)]">UN GRAN SITIO WEB,</span>
+            <br />
+            <span className="md:whitespace-nowrap text-[clamp(1.8rem,3.8vw,4rem)]">HACE IDEAS REALIDAD</span>
+          </h1>
+
+          <p
+            className="text-white mb-5 md:mb-10"
+            style={{
+              fontFamily: FONT,
+              fontWeight: 400,
+              fontSize: 'clamp(0.9rem, 1.8vw, 1.75rem)',
+              lineHeight: '1.3',
+              textShadow: '0px 4px 8.8px rgba(0,0,0,0.81)',
+            }}
+          >
+            Adquiere tu consulta <span className="font-bold text-[#06CFD6]">GRATIS</span>
+          </p>
+
+          {/* BOTONES */}
+          <div className="flex flex-col md:flex-row gap-3 md:gap-5 w-full md:w-auto" style={{ maxWidth: '520px' }}>
+            <Link
+              to="/contacto"
+              className="flex items-center justify-center bg-[#06CFD6] rounded-full font-bold transition-all hover:scale-105 hover:shadow-[0px_0px_25px_rgba(6,207,214,0.5)]"
+              style={{
+                width: '100%',
+                maxWidth: '100%',
+                height: 'clamp(48px, 5vw, 68px)',
+                fontSize: 'clamp(1rem, 1.5vw, 1.5rem)',
+                fontFamily: FONT,
+                color: '#fff',
+                minWidth: 'clamp(180px, 20vw, 260px)',
+              }}
+            >
+              Conectar
+            </Link>
+            <Link
+              to="/servicios"
+              className="flex items-center justify-center bg-white rounded-full font-bold transition-all hover:scale-105 hover:shadow-[0px_0px_25px_rgba(6,207,214,0.5)]"
+              style={{
+                width: '100%',
+                maxWidth: '100%',
+                height: 'clamp(48px, 5vw, 68px)',
+                fontSize: 'clamp(1rem, 1.5vw, 1.5rem)',
+                fontFamily: FONT,
+                color: '#0CA3C6',
+                border: '2px solid #0CA3C6',
+                minWidth: 'clamp(180px, 20vw, 260px)',
+              }}
+            >
+              Servicios
+            </Link>
+          </div>
+        </div>
+
+        {/* ASTRONAUTA */}
+        <div className="order-2 md:order-1 flex items-center justify-center md:justify-start w-full md:w-[48%] flex-shrink-0">
+          
+          {/* ENVOLTORIO DE LEVITACIÓN: Se encarga exclusivamente de flotar infinitamente */}
+          <motion.div
+            animate={{ y: [0, -20, 0], rotate: [0, 2, 0] }}
+            transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+            // El 'relative' es crucial para que el Hitbox se posicione respecto a este tamaño
+            className="relative"
+            style={{ width: 'clamp(160px, 38vw, 560px)', height: 'auto' }}
+          >
+            {/* IMAGEN DEL ASTRONAUTA: Se encarga de la escala y el brillo dinámico */}
+            <motion.img
+              src="/astronauta.png"
+              alt="Astronauta"
+              className="pointer-events-none w-full h-auto"
+              animate={{
+                scale: isHovered ? 1.05 : 1, // Un ligero pop 3D al pasar el ratón
+                filter: isHovered
+                  ? `drop-shadow(0px 0px 40px rgba(6,207,214,0.30)) brightness(1.1)`
+                  : `drop-shadow(0px 25px 50px rgba(0,0,0,0.25)) brightness(1)`,
+              }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            />
+
+            {/* HITBOX PORCENTUAL: Al usar porcentajes, crece y se encoge junto con el clamp del padre */}
+            <div 
+              className="absolute left-[10%] top-[10%] h-[80%] w-[80%] z-20 cursor-crosshair pointer-events-auto"
+              onMouseEnter={() => setIsHovered(true)}
+              // EL CAMBIO: Simplificamos el onMouseLeave y borramos el onMouseMove
+              onMouseLeave={() => setIsHovered(false)}
+            />
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  )
+};
 
 const ServiciosSection: React.FC = () => {
   const [slide, setSlide] = useState(0);
@@ -673,7 +711,7 @@ const TestimonialsSection: React.FC = () => {
 };
 
 const CTASection: React.FC = () => (
-  <section className="relative overflow-hidden pb-20 md:pb-0">
+  <section className="relative overflow-hidden pb-8 md:pb-0">
 
     {/* ── DESKTOP ─────────────────────────────────────── */}
     <img src="/logo-footer.svg" alt="Bytecode" aria-hidden="true" className="hidden md:block absolute pointer-events-none"
@@ -729,33 +767,52 @@ const CTASection: React.FC = () => (
       <div style={{ width: 358, margin: '0 auto', borderTop: '1px solid #FFFFFF' }} />
 
       {/* Sección de contacto */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px 0 2px', gap: 8 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px 0 2px', gap: 8 }}>
         <p style={{ fontFamily: 'Helvetica Neue, sans-serif', fontWeight: 500, fontSize: 16, lineHeight: '19px', color: '#FFFFFF', margin: 0 }}>Contáctanos</p>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <img src="/logos/wsp8.svg" alt="" aria-hidden="true" width={14} height={14} />
-          <span style={{ fontFamily: 'Helvetica Neue, sans-serif', fontWeight: 300, fontSize: 14, lineHeight: '17px', color: '#FFFFFF' }}>(+51) 946 243 145</span>
+        <a 
+          href="https://wa.me/51936281137?text=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 group outline-none shrink-0 text-[14px]"
+        >
+          <FaWhatsapp className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300" size={16} />
+          <span className="text-gray-300 group-hover:text-white transition-colors duration-300" aria-label="WhatsApp">
+            (+51) 936 281 137
+          </span>
+        </a>
+
+        <a
+          href="https://wa.me/51970199434?text=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 group outline-none shrink-0 text-[14px]"
+        >
+          <FaWhatsapp className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300" size={16} />
+          <span className="text-gray-300 group-hover:text-white transition-colors duration-300" aria-label="WhatsApp">
+            (+51) 970 199 434
+          </span>
+        </a>
+
+        <a
+          href="mailto:contacto@bytecode.com.pe?subject=Cotizaci%C3%B3n%20de%20desarrollo%20de%20software&body=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
+          className="flex items-center gap-3 group outline-none shrink-0"
+        >
+          <Mail className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300" size={16} />
+          <span className="text-gray-300 group-hover:text-white transition-colors duration-300 break-all">
+            contacto@bytecode.com.pe
+          </span>
+        </a>
+
+        <div className="flex flex-wrap items-center justify-center gap-6 md:gap-14 text-gray-400 text-sm md:text-base font-normal w-full pt-4">
+          <Link to="/condiciones" className="hover:text-[#06CFD6] transition-colors">Condiciones</Link>
+          <Link to="/privacidad" className="hover:text-[#06CFD6] transition-colors">Privacidad</Link>
+          <Link to="/reclamaciones" className="hover:text-[#06CFD6] transition-colors">Libro de Reclamaciones</Link>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <img src="/logos/wsp8.svg" alt="" aria-hidden="true" width={14} height={14} />
-          <span style={{ fontFamily: 'Helvetica Neue, sans-serif', fontWeight: 300, fontSize: 14, lineHeight: '17px', color: '#FFFFFF' }}>(+51) 946 243 145</span>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <img src="/logos/correo1.svg" alt="" aria-hidden="true" width={16} height={12} />
-          <span style={{ fontFamily: 'Helvetica Neue, sans-serif', fontWeight: 300, fontSize: 14, lineHeight: '17px', color: '#FFFFFF' }}>grupo@caplogistic.com.pe</span>
-        </div>
-
-        <div style={{ display: 'flex', gap: 20, opacity: 0.5, marginTop: 12 }}>
-          <Link to="/condiciones" style={{ fontFamily: 'Helvetica Neue, sans-serif', fontWeight: 300, fontSize: 14, color: '#FFFFFF', textDecoration: 'none' }}>Condiciones</Link>
-          <Link to="/privacidad" style={{ fontFamily: 'Helvetica Neue, sans-serif', fontWeight: 300, fontSize: 14, color: '#FFFFFF', textDecoration: 'none' }}>Privacidad</Link>
-          <Link to="/reclamaciones" style={{ fontFamily: 'Helvetica Neue, sans-serif', fontWeight: 300, fontSize: 14, color: '#FFFFFF', textDecoration: 'none' }}>Libro de Reclamaciones</Link>
-        </div>
-
-        <p style={{ fontFamily: 'Helvetica Neue, sans-serif', fontWeight: 300, fontSize: 14, lineHeight: '17px', color: '#FFFFFF', textAlign: 'center', margin: '8px 0 0' }}>
+        <span className="mt-4 text-gray-300 text-sm md:text-base text-center lg:text-right">
           © 2026 Bytecode. Todos los derechos reservados.
-        </p>
+        </span>
       </div>
     </div>
 
@@ -763,7 +820,7 @@ const CTASection: React.FC = () => (
 );
 
 /* ══════════════════════════════════════════════════════
-   HOME PAGE
+  HOME PAGE
 ══════════════════════════════════════════════════════ */
 
 const Home: React.FC = () => {

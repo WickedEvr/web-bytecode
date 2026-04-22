@@ -69,7 +69,7 @@ const AltFooter: React.FC = () => {
             >
               CONECTAR
             </Link>
-            <div className=" lg:block shrink-0 transform translate-y-11 md:translate-y-21 translate-x-15 md:translate-x-41">
+            <div className=" lg:block shrink-0 transform translate-y-11 md:translate-y-21 translate-x-15 md:translate-x-31">
               <div className="animate-float-logo hover:drop-shadow-[0_0_20px_rgba(6,207,214,0.9)] transition-all duration-300">
                 <img
                   src="/designs/elemento_logo.svg"
@@ -104,7 +104,6 @@ const AltFooter: React.FC = () => {
 
               {/* 2. WhatsApp */}
               <a 
-
                 href="https://wa.me/51936281137?text=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
                 target="_blank"
                 rel="noopener noreferrer"
@@ -116,7 +115,6 @@ const AltFooter: React.FC = () => {
                   (+51) 936 281 137
                 </span>
               </a>
-
 
               <a
                 href="https://wa.me/51970199434?text=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."

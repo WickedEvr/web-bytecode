@@ -1,63 +1,76 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-
-const FONT = "'Sansation', sans-serif";
+import { FaWhatsapp } from 'react-icons/fa6';
+import { Mail } from "lucide-react";
 
 const Footer: React.FC = () => {
   return (
     <footer style={{ position: 'relative' }}>
-
-      <div className="relative px-6 py-8" style={{ zIndex: 1 }}>
-        <div className="max-w-7xl mx-auto flex flex-col gap-4">
-
-          {/* Fila única: Contáctanos | teléfono | email | copyright */}
-          <div className="flex flex-row items-center justify-between gap-6 flex-wrap">
-
-            <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: '20px', lineHeight: '24px', color: '#FFFFFF', flexShrink: 0 }}>
+      <div className="relative mx-auto w-full max-w-[1700px] px-6 md:px-12 py-8 font-sansation" style={{ zIndex: 1 }}>
+        
+        {/* Fila única: Contáctanos | teléfono | email | copyright */}
+        <div className="flex flex-col gap-4">
+          { /* --- FILA 1: Contacto + Copyright --- */}
+          <div className="flex flex-col lg:flex-row items-center lg:justify-between w-full gap-4 lg:gap-6 text-white font-normal text-base md:text-lg">
+            
+            {/* Contáctanos */}
+            <span className="font-semibold text-xl md:text-2xl shrink-0">
               Contáctanos
             </span>
 
-            <div className="flex items-center gap-2" style={{ flexShrink: 0 }}>
-              <img src="/logos/wsp8.svg" alt="" aria-hidden="true" style={{ width: '22px', height: '22px' }} />
-              <span style={{ fontFamily: FONT, fontWeight: 300, fontSize: '18px', lineHeight: '24px', color: '#FFFFFF' }}>
-                (+51) 946 243 145
+            {/* 2. WhatsApp 1 */}
+            <a 
+              href="https://wa.me/51936281137?text=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 group outline-none shrink-0"
+            >
+              <FaWhatsapp className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300" size={22} />
+              <span className="text-gray-300 group-hover:text-white transition-colors duration-300" aria-label="WhatsApp">
+                (+51) 936 281 137
               </span>
-            </div>
+            </a>
 
-            <div className="flex items-center gap-2" style={{ flexShrink: 0 }}>
-              <img src="/logos/correo1.svg" alt="" aria-hidden="true" style={{ width: '25px', height: '18px' }} />
-              <span style={{ fontFamily: FONT, fontWeight: 300, fontSize: '18px', lineHeight: '24px', color: '#FFFFFF' }}>
-                grupo@caplogistic.com.pe
+            {/* 2. WhatsApp 2 */}
+            <a
+              href="https://wa.me/51970199434?text=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 group outline-none shrink-0"
+            >
+              <FaWhatsapp className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300" size={22} />
+              <span className="text-gray-300 group-hover:text-white transition-colors duration-300" aria-label="WhatsApp">
+                (+51) 970 199 434
               </span>
-            </div>
+            </a>
 
-            <div className="flex flex-col items-end" style={{ flexShrink: 0 }}>
-              <p style={{ fontFamily: FONT, fontWeight: 300, fontSize: '16px', lineHeight: '22px', color: '#FFFFFF', textAlign: 'right' }}>
+            {/* 3. Correo */}
+            <a
+              href="mailto:contacto@bytecode.com.pe?subject=Cotizaci%C3%B3n%20de%20desarrollo%20de%20software&body=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
+              className="flex items-center gap-3 group outline-none shrink-0"
+            >
+              <Mail className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300" size={22} />
+              <span className="text-gray-300 group-hover:text-white transition-colors duration-300 break-all">
+                contacto@bytecode.com.pe
+              </span>
+            </a>
+
+            {/* Copyright */}
+            <div className="flex flex-col items-center lg:items-end gap-1 shrink-0">
+              <span className="text-gray-300 text-sm md:text-base text-center lg:text-right">
                 © 2026 Bytecode. Todos los derechos reservados.
-              </p>
+              </span>
             </div>
-
           </div>
 
-          {/* Fila inferior: Links centrados */}
-          <div className="flex justify-center gap-8">
-            <Link to="/condiciones" style={{ fontFamily: FONT, fontWeight: 300, fontSize: '18px', lineHeight: '24px', color: '#FFFFFF' }}
-              className="hover:text-primary-cyan transition-colors">
-              Condiciones
-            </Link>
-            <Link to="/privacidad" style={{ fontFamily: FONT, fontWeight: 300, fontSize: '18px', lineHeight: '24px', color: '#FFFFFF' }}
-              className="hover:text-primary-cyan transition-colors">
-              Privacidad
-            </Link>
-            <Link to="/reclamaciones" style={{ fontFamily: FONT, fontWeight: 300, fontSize: '18px', lineHeight: '24px', color: '#FFFFFF' }}
-              className="hover:text-primary-cyan transition-colors">
-              Libro de Reclamaciones
-            </Link>
+          {/* --- FILA 2: Enlaces Legales --- */}
+          <div className="flex flex-wrap items-center justify-center gap-6 md:gap-14 text-gray-400 text-sm md:text-base font-normal w-full pt-4">
+            <Link to="/condiciones" className="hover:text-[#06CFD6] transition-colors">Condiciones</Link>
+            <Link to="/privacidad" className="hover:text-[#06CFD6] transition-colors">Privacidad</Link>
+            <Link to="/reclamaciones" className="hover:text-[#06CFD6] transition-colors">Libro de Reclamaciones</Link>
           </div>
-
         </div>
       </div>
-
     </footer>
   );
 };

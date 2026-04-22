@@ -70,76 +70,85 @@ const Nosotros: React.FC = () => {
           </div>
         </div>
 
-        {/* Contenedor de Decorativos */}
         <div className="relative overflow-hidden bg-[#0CA3C6] px-4 pb-16 pt-5 sm:px-6 sm:pb-20 sm:pt-8">
+          {/* Contenedores de Transicion principal */}
           <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#0CA3C6] to-transparent" />
           <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-b from-transparent to-[#044553]" />
           
-          {/* 1. Rectángulo azul oscuro (Entra deslizándose desde la derecha) */}
-          <motion.div 
-            initial={{ opacity: 0, x: 80 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-            className="absolute right-0 top-[0px] h-[104px] w-[191px] rounded-l-[20px] rounded-r-none bg-[#024F79]" 
-          />
-          
-          {/* 2. Cuadrado inferior izquierdo (Entra desde la diagonal inferior-izquierda) */}
-          <motion.div 
-            initial={{ opacity: 0, x: -80, y: 80 }}
-            whileInView={{ opacity: 1, x: 0, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-            className="absolute left-0 top-[356px] h-[149px] w-[215.2px] rounded-r-[34px] rounded-l-none bg-[#026B9B]" 
-          />
+          {/* Elemento intermedio */}
+          <div className="pointer-events-none absolute inset-0 z-0 opacity-80 top-[225px]">
+            <img
+              src="/designs/elemento_intermedio_nosotros_vista_movil.svg"
+              alt="Patrón de Red Decorativo"
+              className="h-[434px] w-[648px] object-cover object-left-top"
+            />
+          </div>
 
-          {/* 3. Rectángulo vertical cian principal (Entra deslizándose suavemente desde arriba) */}
-          <motion.div 
-            initial={{ opacity: 0, y: -80 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
-            className="absolute left-[118px] top-[27px] h-[441.3px] w-[161px] rounded-[25px] bg-gradient-to-b from-[#06CFD6] to-[#036C70]" 
-          />
-
-          {/* 4. Círculo cian (Entra desde la diagonal superior-derecha) */}
-          <motion.div 
-            initial={{ opacity: 0, x: 60, y: -60 }}
-            whileInView={{ opacity: 1, x: 0, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
-            className="absolute right-[81px] top-[46px] h-[153px] w-[153px] rounded-full bg-[#0CA3C6] shadow-[0_0_80px_-20px_rgba(0,0,0,1)]" 
-          />
-
-          {/* 5. El Hombre (Emerge hacia arriba al final de la coreografía) */}
-          <motion.img
-            src="/nosotros/hombredepie.png"
-            alt="Tecnología y Escalabilidad"
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.15, duration: 0.5, ease: "easeOut" }}
-            className="absolute left-1/2 top-[3.8%] z-10 w-[68%] -translate-x-1/2 drop-shadow-2xl"
-          />
-
-          {/* 5. Sombra del piso (Aparece desvaneciéndose suavemente desde abajo) */}
-          <div className="relative mx-auto mb-24 aspect-[0.72] w-full max-w-[18rem] sm:mb-14 sm:max-w-[21rem]">
+          {/* Contenedor de Decorativos */}
+          <div className="relative z-10 mx-auto mb-24 aspect-[0.72] w-full max-w-[18rem] sm:mb-14 sm:max-w-[21rem]">    
+            {/* 1. Rectángulo azul oscuro (Entra deslizándose desde la derecha) */}
+            <motion.div 
+              initial={{ opacity: 0, x: 80 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+              className="absolute -right-[51px] -top-[20px] h-[104px] w-[191px] rounded-l-[20px] rounded-r-none bg-[#024F79]" 
+            />
             
+            {/* 2. Cuadrado inferior izquierdo (Entra desde la diagonal inferior-izquierda) */}
+            <motion.div 
+              initial={{ opacity: 0, x: -80, y: 80 }}
+              whileInView={{ opacity: 1, x: 0, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+              className="absolute -left-[51px] top-[336px] h-[149px] w-[215.2px] rounded-r-[34px] rounded-l-none bg-[#026B9B]" 
+            />
+
+            {/* 3. Rectángulo vertical cian principal (Entra deslizándose suavemente desde arriba) */}
+            <motion.div 
+              initial={{ opacity: 0, y: -80 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
+              className="absolute left-[66px] top-[7px] h-[441.3px] w-[161px] rounded-[25px] bg-gradient-to-b from-[#06CFD6] to-[#036C70]" 
+            />
+
+            {/* 4. Círculo cian (Entra desde la diagonal superior-derecha) */}
+            <motion.div 
+              initial={{ opacity: 0, x: 60, y: -60 }}
+              whileInView={{ opacity: 1, x: 0, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
+              className="absolute right-[29px] top-[20px] h-[153px] w-[153px] rounded-full bg-[#0CA3C6] shadow-[0_0_80px_-20px_rgba(0,0,0,1)]" 
+            />
+
+            {/* 5. El Hombre (Emerge hacia arriba al final de la coreografía) */}
+            <motion.img
+              src="/nosotros/hombredepie.png"
+              alt="Tecnología y Escalabilidad"
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.15, duration: 0.5, ease: "easeOut" }}
+              className="absolute left-1/2 top-[3.8%] z-10 w-[93%] -translate-x-1/2 drop-shadow-2xl"
+            />
             
+            {/* 6. Sombra del piso (Aparece desvaneciéndose suavemente desde abajo) */}
             <motion.img
               src="/nosotros/sombrapisohombre.png"
               alt=""
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              whileInView={{ opacity: 1, x: 0, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.6, duration: 0.8, ease: "easeOut" }}
               className="absolute top-[430px] left-[140px] z-0 w-[85%] -translate-x-1/2 opacity-85"
             />
           </div>
 
-          <div className="relative z-10 mx-auto flex max-w-[20rem] flex-col items-center gap-11 text-center sm:max-w-[24rem] sm:gap-14">
+          {/* Contenedor de Textos */}
+          <div className="relative z-10 mt-[300px] mb-[250px] sm:mt-0 mx-auto flex max-w-[20rem] flex-col items-center gap-11 text-center sm:max-w-[24rem] sm:gap-14">
             {infoBlocks.map((block, index) => (
               <motion.div
                 key={block.title}
@@ -149,7 +158,7 @@ const Nosotros: React.FC = () => {
                 transition={{ delay: index * 0.08 }}
                 className="flex flex-col items-center"
               >
-                <h2 className="text-[clamp(2.2rem,9vw,3.3rem)] font-bold leading-none text-white">{block.title}</h2>
+                <h2 className="text-[clamp(2.2rem,9vw,3.3rem)] font-bold leading-none text-white [text-shadow:0px_4px_10.7px_rgba(255,255,255,0.49)]">{block.title}</h2>
                 <p className="mt-4 max-w-[18rem] text-[0.95rem] leading-[1.2rem] text-white/85 sm:max-w-[22rem] sm:text-[1rem] sm:leading-[1.35rem]">
                   {block.text}
                 </p>
@@ -201,7 +210,7 @@ const Nosotros: React.FC = () => {
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.1 }}
                 >
-                  <h2 className="mb-4 text-4xl font-bold md:mb-8 md:text-[64px] text-white">{block.title}</h2>
+                  <h2 className="mb-4 text-4xl font-bold md:mb-8 md:text-[64px] text-white [text-shadow:0px_4px_10.7px_rgba(255,255,255,0.49)]">{block.title}</h2>
                   <p className="max-w-[550px] text-justify text-lg leading-relaxed text-white md:text-[24px] md:leading-[27px]">
                     {block.text}
                   </p>
@@ -312,11 +321,19 @@ const Nosotros: React.FC = () => {
         </div>
       </section>
 
-      <div className="pointer-events-none absolute bottom-0 left-0 top-[750px] z-0 hidden w-[20vw] max-w-[250px] lg:block opacity-90">
+      <div className="pointer-events-none absolute bottom-0 left-0 top-[750px] z-0 hidden w-[20vw] max-w-[250px] lg:block opacity-100">
         <img
           src="/designs/elemento_lateral_fondo_nosotros.svg"
           alt="Patrón de Red Lateral"
           className="h-full w-full object-contain object-left-top"
+        />
+      </div>
+      
+      <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-0 h-[950px] w-full lg:hidden">
+        <img
+          src="/designs/elemento_final_nosotros_vista_movil.svg"
+          alt="Fondo Red Inferior Móvil"
+          className="h-full w-full object-cover object-bottom"
         />
       </div>
 

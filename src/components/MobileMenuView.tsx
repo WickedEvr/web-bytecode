@@ -132,13 +132,13 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
                   <Link
                     to="/"
                     onClick={onClose}
-                    className="block outline-none transition-transform duration-300 hover:scale-105 active:scale-95"
+                    className="group block outline-none transition-transform duration-300 hover:scale-105 active:scale-95"
                     aria-label="Ir a inicio"
                   >
                     <img
                       src="/designs/logo_en_blanco.svg"
                       alt="Bytecode Logo"
-                      className="h-auto w-[min(38vw,8.4rem)] object-contain"
+                      className="h-auto w-[min(38vw,8.4rem)] object-contain transition-all duration-300 group-hover:drop-shadow-[0_0_15px_rgba(6,207,214,0.8)]"
                     />
                   </Link>
                 </motion.div>
@@ -212,13 +212,13 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
               <Link
                 to="/"
                 onClick={onClose}
-                className="absolute left-8 top-8 z-20 outline-none transition-transform duration-300 hover:scale-105 active:scale-95 lg:left-12 lg:top-10 xl:left-24 xl:top-16"
+                className="group absolute left-8 top-8 z-20 outline-none transition-transform duration-300 hover:scale-105 active:scale-95 lg:left-12 lg:top-10 xl:left-24 xl:top-16"
                 aria-label="Ir a inicio"
               >
                 <img
                   src="/designs/logo_en_blanco.svg"
                   alt="Bytecode Logo"
-                  className="h-auto w-[clamp(10rem,15vw,15rem)] object-contain pointer-events-none"
+                  className="h-auto w-[clamp(10rem,15vw,15rem)] object-contain pointer-events-none transition-all duration-300 group-hover:drop-shadow-[0_0_15px_rgba(6,207,214,0.8)]"
                 />
               </Link>
 
