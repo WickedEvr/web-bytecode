@@ -7,7 +7,6 @@ const Footer: React.FC = () => {
   return (
     <footer style={{ position: 'relative' }}>
       <div className="relative mx-auto w-full max-w-[1700px] px-6 md:px-12 py-8 font-sansation" style={{ zIndex: 1 }}>
-        
         {/* Fila única: Contáctanos | teléfono | email | copyright */}
         <div className="flex flex-col gap-4">
           { /* --- FILA 1: Contacto + Copyright --- */}

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ContactFooter from '../components/ContactFooter';
 
 /* ── estilos compartidos ── */
 const ghost =
@@ -255,6 +256,10 @@ const LibroReclamaciones: React.FC = () => {
           </button>
 
         </form>
+      </div>
+
+      <div className="relative z-10 pointer-events-auto">
+        <ContactFooter />
       </div>
     </div>
   );

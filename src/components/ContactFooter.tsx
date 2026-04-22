@@ -1,52 +1,78 @@
-// src/components/ContactFooter.tsx
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Phone, Mail } from 'lucide-react';
+import { Mail } from 'lucide-react';
+import { FaWhatsapp } from 'react-icons/fa6';
 
 const ContactFooter: React.FC = () => {
     return (
-        <footer className="bg-[#060C1D] text-white py-12 px-8 md:px-16 relative overflow-hidden flex flex-col mt-auto shadow-[0_-20px_60px_rgba(0,0,0,0.4)] font-sansation">
-        
-        {/* Decorativo Fondo Footer */}
-        <img 
-            src="/designs/elemento_footer.svg" 
-            alt="" 
-            className="absolute top-0 left-0 w-full md:w-[60%] h-full object-cover md:object-contain object-left opacity-30 pointer-events-none"
-        />
+        // Se añadió bg-transparent, mt-auto para que baje al final de la vista, y border-t para la línea separadora
+        <footer className="relative w-full mt-auto bg-transparent border-white/10 font-sansation">
+            <div className="relative mx-auto w-full max-w-[1700px] px-6 md:px-12 py-8" style={{ zIndex: 1 }}>
+                {/* LA LÍNEA SEPARADORA: Ahora está contenida dentro de los márgenes y no toca los bordes */}
+                <div className="w-full h-px bg-white/100 mb-8" />
 
-        {/* Barra de Contacto e Información Legal */}
-        <div className="max-w-7xl mx-auto w-full relative z-10 flex flex-col lg:flex-row justify-between items-center gap-8">
-            
-            {/* Contáctanos */}
-            <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10">
-            <span className="font-bold text-xl md:text-2xl text-white">Contáctanos</span>
-            <div className="flex flex-col sm:flex-row gap-6">
-                <a href="tel:+15551234567" className="flex items-center gap-3 text-white/80 hover:text-[#06CFD6] transition-colors text-lg">
-                <div className="bg-[#06CFD6]/10 p-2 rounded-full">
-                    <Phone size={20} className="text-[#06CFD6]" />
+                <div className="flex flex-col gap-4">
+                    { /* --- FILA 1: Contacto + Copyright --- */}
+                    <div className="flex flex-col lg:flex-row items-center lg:justify-between w-full gap-4 lg:gap-6 text-white font-normal text-base md:text-lg">
+                        
+                        {/* Contáctanos */}
+                        <span className="font-semibold text-xl md:text-2xl shrink-0">
+                            Contáctanos
+                        </span>
+
+                        {/* 2. WhatsApp 1 */}
+                        <a 
+                        href="https://wa.me/51936281137?text=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 group outline-none shrink-0"
+                        >
+                            <FaWhatsapp className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300" size={22} />
+                            <span className="text-gray-300 group-hover:text-white transition-colors duration-300" aria-label="WhatsApp">
+                                (+51) 936 281 137
+                            </span>
+                        </a>
+
+                        {/* 2. WhatsApp 2 */}
+                        <a
+                        href="https://wa.me/51970199434?text=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 group outline-none shrink-0"
+                        >
+                            <FaWhatsapp className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300" size={22} />
+                            <span className="text-gray-300 group-hover:text-white transition-colors duration-300" aria-label="WhatsApp">
+                                (+51) 970 199 434
+                            </span>
+                        </a>
+
+                        {/* 3. Correo */}
+                        <a
+                        href="mailto:contacto@bytecode.com.pe?subject=Cotizaci%C3%B3n%20de%20desarrollo%20de%20software&body=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
+                        className="flex items-center gap-3 group outline-none shrink-0"
+                        >
+                            <Mail className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300" size={22} />
+                            <span className="text-gray-300 group-hover:text-white transition-colors duration-300 break-all">
+                                contacto@bytecode.com.pe
+                            </span>
+                        </a>
+
+                        {/* Copyright */}
+                        <div className="flex flex-col items-center lg:items-end gap-1 shrink-0">
+                            <span className="text-gray-300 text-sm md:text-base text-center lg:text-right">
+                                © {new Date().getFullYear()} Bytecode. Todos los derechos reservados.
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* --- FILA 2: Enlaces Legales --- */}
+                    <div className="flex flex-wrap items-center justify-center gap-6 md:gap-14 text-gray-400 text-sm md:text-base font-normal w-full pt-4">
+                        <Link to="/condiciones" className="hover:text-[#06CFD6] transition-colors">Condiciones</Link>
+                        <Link to="/privacidad" className="hover:text-[#06CFD6] transition-colors">Privacidad</Link>
+                        <Link to="/reclamaciones" className="hover:text-[#06CFD6] transition-colors">Libro de Reclamaciones</Link>
+                    </div>
                 </div>
-                <span>+1 (555) 123-4567</span>
-                </a>
-                <a href="mailto:hola@bytecode.dev" className="flex items-center gap-3 text-white/80 hover:text-[#06CFD6] transition-colors text-lg">
-                <div className="bg-[#06CFD6]/10 p-2 rounded-full">
-                    <Mail size={20} className="text-[#06CFD6]" />
-                </div>
-                <span>hola@bytecode.dev</span>
-                </a>
             </div>
-            </div>
-
-            {/* Copyright y Enlaces */}
-            <div className="flex flex-col xl:flex-row items-center gap-6 xl:gap-10 text-sm md:text-base text-white/60">
-            <p className="text-center">© {new Date().getFullYear()} Bytecode. Todos los derechos reservados.</p>
-            <div className="flex flex-wrap justify-center gap-6 font-medium">
-                <Link to="/condiciones" className="hover:text-[#06CFD6] transition-colors">Condiciones</Link>
-                <Link to="/privacidad" className="hover:text-[#06CFD6] transition-colors">Privacidad</Link>
-                <Link to="/reclamaciones" className="hover:text-[#06CFD6] transition-colors">Libro de Reclamaciones</Link>
-            </div>
-            </div>
-
-        </div>
         </footer>
     );
 };

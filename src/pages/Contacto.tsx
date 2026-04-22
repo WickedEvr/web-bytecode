@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import SEO from '../components/SEO';
 import GalaxyBackground from '../components/GalaxyBackground';
+import ContactFooter from '../components/ContactFooter';
 
 const solidInput =
   'w-full bg-white rounded-full px-6 py-[0.85rem] text-[#333] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06CFD6] transition-all text-[20px] shadow-sm';
@@ -360,6 +361,10 @@ const Contacto: React.FC = () => {
             </button>
           </div>
         </motion.form>
+      </div>
+
+      <div className="relative z-10 pointer-events-auto">
+        <ContactFooter />
       </div>
     </div>
   );

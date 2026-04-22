@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import ContactFooter from '../components/ContactFooter';
 
 const RocketIcon = () => (
   <svg
@@ -26,7 +27,9 @@ const RocketIcon = () => (
 
 const Confirmacion: React.FC = () => {
   return (
-    <div className="relative min-h-[calc(100vh-6rem)] flex flex-col items-center justify-center overflow-hidden font-sansation">
+    // CAMBIO 1: Se quitó 'justify-center' de este contenedor padre
+    <div className="relative min-h-screen flex flex-col overflow-hidden font-sansation">
+      
       {/* Fondo espacio */}
       <div className="absolute inset-0" style={{ backgroundColor: '#040e1f' }}>
         <img src="/galaxia.gif" alt="" className="w-full h-full object-cover" aria-hidden="true" />
@@ -34,54 +37,63 @@ const Confirmacion: React.FC = () => {
       </div>
 
       {/* Estrellas decorativas */}
-      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-        {[
-          [12, 15], [25, 70], [75, 20], [88, 65], [50, 85],
-          [35, 40], [65, 10], [10, 50], [90, 40], [60, 75],
-        ].map(([x, y], i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 rounded-full bg-white/40"
-            style={{ left: `${x}%`, top: `${y}%` }}
-          />
-        ))}
-      </div>
+        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+          {[
+            [12, 15], [25, 70], [75, 20], [88, 65], [50, 85],
+            [35, 40], [65, 10], [10, 50], [90, 40], [60, 75],
+          ].map(([x, y], i) => (
+            <div
+              key={i}
+              className="absolute w-1 h-1 rounded-full bg-white/40"
+              style={{ left: `${x}%`, top: `${y}%` }}
+            />
+          ))}
+        </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-        className="relative z-10 text-center px-6 max-w-lg"
-      >
+      {/* CAMBIO 2: Se añadió 'flex-1' y 'justify-center' al contenedor del texto. 
+          Esto obliga a este bloque a expandirse y ocupar todo el espacio libre, 
+          empujando al footer hacia el fondo, y centrando el cohete en el espacio sobrante. */}
+      <div className="relative z-10 w-full max-w-[750px] mx-auto px-6 py-20 pointer-events-auto flex-1 flex flex-col justify-center items-center">
         <motion.div
-          initial={{ scale: 0.5, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.2, type: 'spring', stiffness: 120 }}
-          className="flex justify-center mb-8"
-        >
-          <RocketIcon />
-        </motion.div>
-
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="text-4xl md:text-5xl font-black text-primary-cyan mb-6"
+          transition={{ duration: 0.8 }}
+          className="relative z-10 text-center px-6 max-w-lg"
         >
-          Solicitud enviada
-        </motion.h1>
+          <motion.div
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2, type: 'spring', stiffness: 120 }}
+            className="flex justify-center mb-8"
+          >
+            <RocketIcon />
+          </motion.div>
 
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.7 }}
-          className="text-white/75 text-base md:text-lg leading-relaxed"
-        >
-          Hemos recibido tus datos correctamente.<br />
-          Un asesor se comunicará contigo en breve para<br />
-          brindarte más información.
-        </motion.p>
-      </motion.div>
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="text-4xl md:text-5xl font-black text-primary-cyan mb-6"
+          >
+            Solicitud enviada
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.7 }}
+            className="text-white/75 text-base md:text-lg leading-relaxed"
+          >
+            Hemos recibido tus datos correctamente.<br />
+            Un asesor se comunicará contigo en breve para<br />
+            brindarte más información.
+          </motion.p>
+        </motion.div>
+      </div>
+      
+      <div className="relative z-10 pointer-events-auto">
+        <ContactFooter />
+      </div>
     </div>
   );
 };

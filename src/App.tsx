@@ -48,13 +48,14 @@ const App: React.FC = () => {
             <Route path="/nosotros" element={<Nosotros />} />
             <Route path="/portafolio" element={<Portafolio />} />
             <Route path="/servicios" element={<Servicios />} />
+            <Route path="/contacto" element={<Contacto />} />
+            <Route path="/confirmacion" element={<Confirmacion />} />
+            <Route path="/reclamaciones" element={<LibroReclamaciones />} />
           </Route>
 
           {/* 🟠 GRUPO 3: AltHeader + ContactFooter */}
           <Route element={<ContactLayout />}>
-            <Route path="/contacto" element={<Contacto />} />
-            <Route path="/confirmacion" element={<Confirmacion />} />
-            <Route path="/reclamaciones" element={<LibroReclamaciones />} />
+            
           </Route>
 
           {/* 🔴 SIN LAYOUT (Pantalla completa) */}
