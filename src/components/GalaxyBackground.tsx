@@ -36,7 +36,7 @@ export default function GalaxyBackground() {
       spin: 1,
       randomness: 0.3,
       randomnessPower: 3,
-      insideColor: '#d4803a',
+      insideColor: '#ffbb44', // Color más sutil y anaranjado
       outsideColor: '#1a99ee',
     };
 
@@ -53,8 +53,8 @@ export default function GalaxyBackground() {
       const i3 = i * 3;
       let radius = Math.random() * parameters.radius;
       
-      // EL CAMBIO: Reducimos el hueco central para que se forme un núcleo luminoso
-      if (radius < 0.2) radius += 0.2;
+      // Permitimos que algunas estrellas estén más cerca del centro
+      if (radius < 0.1) radius += 0.05;
 
       const spinAngle   = radius * parameters.spin;
       const branchAngle = (i % parameters.branches) / parameters.branches * Math.PI * 2;
@@ -79,6 +79,35 @@ export default function GalaxyBackground() {
     });
     const galaxyPoints = new THREE.Points(geoGalaxy, matGalaxy);
     scene.add(galaxyPoints);
+
+    // ─────────────────────────────────────────
+    // Glowing Core
+    // ─────────────────────────────────────────
+    const coreCanvas = document.createElement('canvas');
+    coreCanvas.width = 256;
+    coreCanvas.height = 256;
+    const ctx = coreCanvas.getContext('2d');
+    if (ctx) {
+      const gradient = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+      gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+      gradient.addColorStop(0.05, 'rgba(255, 230, 120, 0.5)');
+      gradient.addColorStop(0.15, 'rgba(255, 180, 40, 0.2)');
+      gradient.addColorStop(0.3, 'rgba(200, 100, 20, 0.05)');
+      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 256, 256);
+    }
+    const coreTexture = new THREE.CanvasTexture(coreCanvas);
+    const coreMaterial = new THREE.SpriteMaterial({
+      map: coreTexture,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      opacity: 0.6
+    });
+    const coreSprite = new THREE.Sprite(coreMaterial);
+    coreSprite.scale.set(4.5, 0.8, 1);
+    scene.add(coreSprite);
 
     // ─────────────────────────────────────────
     // Background stars
@@ -136,6 +165,7 @@ export default function GalaxyBackground() {
       renderer.dispose();
       geoGalaxy.dispose(); matGalaxy.dispose();
       starGeo.dispose();   starMat.dispose();
+      coreTexture.dispose(); coreMaterial.dispose();
     };
   }, []);
 
