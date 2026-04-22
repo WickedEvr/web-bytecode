@@ -8,9 +8,6 @@ import ContactFooter from '../components/ContactFooter';
 const solidInput =
   'w-full bg-white rounded-full px-6 py-[0.85rem] text-[#333] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06CFD6] transition-all text-[20px] shadow-sm';
 
-const solidSelect =
-  'w-full bg-white rounded-full px-6 py-[0.85rem] text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#06CFD6] transition-all text-[20px] appearance-none cursor-pointer shadow-sm';
-
 // Label ajustado: Texto más gris/blanco sutil, sin asterisco obligatorio visual y con un ligero padding izquierdo para alinear con la curvatura del input.
 const Label: React.FC<{ text: string; required?: boolean }> = ({ text, required }) => (
   <label className="block text-white/70 text-[24px] font-bold mb-1.5 pl-5 tracking-wide">
