@@ -41,68 +41,6 @@ export default function GalaxyBackground() {
     };
 
     // ─────────────────────────────────────────
-    // Black Hole + Accretion Disk
-    // ─────────────────────────────────────────
-    const bhGeometry = new THREE.SphereGeometry(0.3, 64, 64);
-    const bhMaterial  = new THREE.MeshBasicMaterial({ color: 0x000000 });
-    const blackHole   = new THREE.Mesh(bhGeometry, bhMaterial);
-    scene.add(blackHole);
-
-    const diskGeometry = new THREE.RingGeometry(0.35, 0.85, 64, 8);
-    const diskMaterial = new THREE.MeshBasicMaterial({
-      color: 0xd4802a,
-      side: THREE.DoubleSide,
-      transparent: true,
-      opacity: 0.7,
-      blending: THREE.AdditiveBlending,
-    });
-    const accretionMesh = new THREE.Mesh(diskGeometry, diskMaterial);
-    accretionMesh.rotation.x = Math.PI / 2;
-    scene.add(accretionMesh);
-
-    const haloGeometry = new THREE.RingGeometry(0.32, 0.55, 64, 8);
-    const haloMaterial = new THREE.MeshBasicMaterial({
-      color: 0xc86018,
-      side: THREE.DoubleSide,
-      transparent: true,
-      opacity: 0.4,
-      blending: THREE.AdditiveBlending,
-    });
-    const accretionHalo = new THREE.Mesh(haloGeometry, haloMaterial);
-    accretionHalo.rotation.y = Math.PI / 3;
-    scene.add(accretionHalo);
-
-    // Accretion particles
-    const accCount = 6000;
-    const accGeo   = new THREE.BufferGeometry();
-    const accPos   = new Float32Array(accCount * 3);
-    const accCol   = new Float32Array(accCount * 3);
-    const baseColor = new THREE.Color(0xd4882a);
-
-    for (let i = 0; i < accCount; i++) {
-      const i3    = i * 3;
-      const r     = 0.32 + Math.random() * 0.45;
-      const angle = Math.random() * Math.PI * 2;
-      accPos[i3]     = Math.cos(angle) * r;
-      accPos[i3 + 1] = (Math.random() - 0.5) * 0.02;
-      accPos[i3 + 2] = Math.sin(angle) * r;
-      const heat   = 1 - (r - 0.32) / 0.45;
-      const pColor = baseColor.clone();
-      pColor.offsetHSL(0, 0, heat * 0.5);
-      accCol[i3]     = pColor.r;
-      accCol[i3 + 1] = pColor.g;
-      accCol[i3 + 2] = pColor.b;
-    }
-    accGeo.setAttribute('position', new THREE.BufferAttribute(accPos, 3));
-    accGeo.setAttribute('color',    new THREE.BufferAttribute(accCol, 3));
-    const accMat = new THREE.PointsMaterial({
-      size: 0.012, vertexColors: true,
-      blending: THREE.AdditiveBlending, depthWrite: false,
-    });
-    const accretionPoints = new THREE.Points(accGeo, accMat);
-    scene.add(accretionPoints);
-
-    // ─────────────────────────────────────────
     // Galaxy
     // ─────────────────────────────────────────
     const geoGalaxy = new THREE.BufferGeometry();
@@ -114,7 +52,9 @@ export default function GalaxyBackground() {
     for (let i = 0; i < parameters.count; i++) {
       const i3 = i * 3;
       let radius = Math.random() * parameters.radius;
-      if (radius < 1.2) radius += 1.2;
+      
+      // EL CAMBIO: Reducimos el hueco central para que se forme un núcleo luminoso
+      if (radius < 0.2) radius += 0.2;
 
       const spinAngle   = radius * parameters.spin;
       const branchAngle = (i % parameters.branches) / parameters.branches * Math.PI * 2;
@@ -170,10 +110,10 @@ export default function GalaxyBackground() {
 
     const tick = () => {
       const t = clock.getElapsedTime();
-      galaxyPoints.rotation.y   = t * 0.05;
-      accretionPoints.rotation.y = t * 2.0;
-      accretionMesh.rotation.z   = t * 1.5;
-      accretionHalo.rotation.z   = -t * 0.5;
+      
+      // Rotación suave de la galaxia principal
+      galaxyPoints.rotation.y = t * 0.05;
+      
       renderer.render(scene, camera);
       animId = requestAnimationFrame(tick);
     };
@@ -195,11 +135,7 @@ export default function GalaxyBackground() {
       window.removeEventListener('resize', onResize);
       renderer.dispose();
       geoGalaxy.dispose(); matGalaxy.dispose();
-      accGeo.dispose();    accMat.dispose();
       starGeo.dispose();   starMat.dispose();
-      bhGeometry.dispose(); bhMaterial.dispose();
-      diskGeometry.dispose(); diskMaterial.dispose();
-      haloGeometry.dispose(); haloMaterial.dispose();
     };
   }, []);
 

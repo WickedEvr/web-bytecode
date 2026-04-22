@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import SEO from '../components/SEO';
+import GalaxyBackground from '../components/GalaxyBackground';
 
 // --- RED CIBERNÉTICA EXTRAÍDA ---
 const CyberNetwork = ({ count = 80, maxDistance = 14, color = "#06CFD6" }) => {
@@ -173,11 +174,19 @@ const Contacto: React.FC = () => {
       
       {/* Fondo espacio + Image + Red Cibernética */}
       <div className="absolute inset-0" style={{ backgroundColor: '#040e1f' }}>
-        {/* 1. GIF de fondo */}
-        <img src="/galaxia.gif" alt="" className="w-full h-full object-cover" aria-hidden="true" />
+        <GalaxyBackground /> 
+        <div className="absolute inset-0" style={{ background: 'rgba(4,14,31,0.30)' }} />
+        <div
+          className="absolute inset-0 mix-blend-screen"
+          style={{ backgroundImage: `url(${import.meta.env.BASE_URL}designs/stardust.png)` }}
+        />
+        <div
+          className="absolute inset-0 rotate-180 mix-blend-screen"
+          style={{ backgroundImage: `url(${import.meta.env.BASE_URL}designs/stardust.png)` }}
+        />
         
         {/* 2. Capa oscura para asegurar legibilidad del formulario */}
-        <div className="absolute inset-0 bg-[#040e1f]/75" />
+        <div className="absolute inset-0 bg-[#040e1f]/70" />
 
         {/* 3. Canvas con la Red 3D (Se coloca encima del video y la capa oscura, pero debajo del formulario) */}
         <div className="absolute inset-0 z-0">
