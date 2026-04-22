@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import SEO from '../components/SEO';
 import GalaxyBackground from '../components/GalaxyBackground';
 import ContactFooter from '../components/ContactFooter';
@@ -133,31 +133,40 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
         />
       </div>
 
-      {/* Menú Desplegable (Dropdown) */}
-      {isDropdownOpen && (
-        <div className="absolute top-full left-0 mt-2 w-[280px] bg-white border border-gray-100 shadow-xl rounded-xl overflow-hidden z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
-          <div className="max-h-[240px] overflow-y-auto py-2 custom-scrollbar">
-            {countries.map((country) => (
-              <div
-                key={country.id}
-                onClick={() => handleSelectCountry(country)}
-                className={`flex items-center justify-between px-5 py-3 hover:bg-gray-50 cursor-pointer transition-colors ${selectedCountry.id === country.id ? 'bg-[#06CFD6]/10 text-[#06CFD6]' : 'text-gray-600'}`}
-              >
-                <div className="flex items-center gap-3">
-                  <img
-                    src={`https://flagcdn.com/w20/${country.iso.toLowerCase()}.png`}
-                    srcSet={`https://flagcdn.com/w40/${country.iso.toLowerCase()}.png 2x`}
-                    alt={country.name}
-                    className="w-5 h-auto object-contain rounded-sm shadow-sm"
-                  />
-                  <span className="font-medium text-[0.9rem]">{country.name}</span>
+      {/* Menú Desplegable (Dropdown) con Framer Motion */}
+      <AnimatePresence>
+        {isDropdownOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            style={{ transformOrigin: "top left" }}
+            className="absolute top-full left-0 mt-2 w-[280px] bg-white border border-gray-100 shadow-xl rounded-xl overflow-hidden z-[100]"
+          >
+            <div className="max-h-[240px] overflow-y-auto py-2 custom-scrollbar">
+              {countries.map((country) => (
+                <div
+                  key={country.id}
+                  onClick={() => handleSelectCountry(country)}
+                  className={`flex items-center justify-between px-5 py-3 hover:bg-gray-50 cursor-pointer transition-colors ${selectedCountry.id === country.id ? 'bg-[#06CFD6]/10 text-[#06CFD6]' : 'text-gray-600'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={`https://flagcdn.com/w20/${country.iso.toLowerCase()}.png`}
+                      srcSet={`https://flagcdn.com/w40/${country.iso.toLowerCase()}.png 2x`}
+                      alt={country.name}
+                      className="w-5 h-auto object-contain rounded-sm shadow-sm"
+                    />
+                    <span className="font-medium text-[0.9rem]">{country.name}</span>
+                  </div>
+                  <span className="text-sm font-semibold opacity-70">{country.dialCode}</span>
                 </div>
-                <span className="text-sm font-semibold opacity-70">{country.dialCode}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Mensaje de Error */}
       {error && (
@@ -165,6 +174,98 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
           {error}
         </span>
       )}
+    </div>
+  );
+};
+
+interface ServiceOption {
+  value: string;
+  label: string;
+}
+
+interface ServiceDropdownProps {
+  value: string;
+  onChange: (value: string) => void;
+}
+
+const ServiceDropdown: React.FC<ServiceDropdownProps> = ({ value, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const options: ServiceOption[] = [
+    { value: 'web', label: 'Página Web' },
+    { value: 'app', label: 'App Móvil' },
+    { value: 'desktop', label: 'App de Escritorio' },
+  ];
+
+  // Encuentra la etiqueta actual o muestra el placeholder
+  const selectedLabel = options.find((opt) => opt.value === value)?.label || 'Seleccione su servicio';
+
+  // Cerrar al hacer click afuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelect = (optionValue: string) => {
+    onChange(optionValue);
+    setIsOpen(false);
+  };
+
+  return (
+    <div className="relative w-full" ref={dropdownRef}>
+      {/* Trigger (El botón que parece un input) */}
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center justify-between w-full bg-white rounded-full px-6 py-[0.85rem] cursor-pointer shadow-sm transition-all ${isOpen ? 'ring-2 ring-[#06CFD6]' : ''}`}
+      >
+        <span className={`text-[20px] ${value ? 'text-[#333]' : 'text-gray-400'}`}>
+          {selectedLabel}
+        </span>
+        <svg 
+          className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} 
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+
+      {/* Menú Desplegable con Animación (Igual que el de teléfonos) */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            style={{ transformOrigin: "top" }}
+            className="absolute top-full left-0 mt-2 w-full bg-white border border-gray-100 shadow-xl rounded-xl overflow-hidden z-[100]"
+          >
+            <div className="py-2">
+              {options.map((option) => (
+                <div
+                  key={option.value}
+                  onClick={() => handleSelect(option.value)}
+                  className={`px-6 py-3 cursor-pointer transition-colors ${
+                    value === option.value 
+                      ? 'bg-[#06CFD6]/10 text-[#06CFD6] font-medium' 
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className="text-[20px]">{option.label}</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
@@ -327,27 +428,14 @@ const Contacto: React.FC = () => {
             />
           </div>
 
-          {/* Servicio */}
-          <div>
+          {/* Servicio - Componente Custom */}
+          <div className="mb-2">
             <Label text="Servicio que requiere" />
-            <div className="relative">
-              <select
-                name="servicio"
-                defaultValue=""
-                className={solidSelect}
-                required
-                onChange={handleChange}
-              >
-                <option value="" disabled>Seleccione su servicio</option>
-                <option value="web">Página Web</option>
-                <option value="app">App Móvil</option>
-                <option value="desktop">App de Escritorio</option>
-              </select>
-              {/* Chevron oscuro para fondo blanco */}
-              <svg className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
+            <ServiceDropdown 
+              value={formData.servicio}
+              // Simulamos el evento 'onChange' nativo para no romper tu función handleChange actual
+              onChange={(newValue) => handleChange({ target: { name: 'servicio', value: newValue } } as any)}
+            />
           </div>
 
           {/* Submit - Ajustado a la imagen objetivo */}
