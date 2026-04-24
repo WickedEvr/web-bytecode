@@ -7,6 +7,10 @@ import SEO from '../components/SEO';
 import Stack from '../components/Stack';
 import GalaxyBackground from '../components/GalaxyBackground';
 
+/* ==========================================================================
+   CONFIGURACIÓN Y DATOS ESTÁTICOS
+   ========================================================================== */
+
 const FONT = "'Sansation', sans-serif";
 const CYAN = '#0CA3C6';
 
@@ -28,11 +32,21 @@ const services = [
   },
 ];
 
+const testimonials = [
+  { name: 'María García', role: 'Emprendedora', text: 'Excelente servicio, mi negocio creció enormemente. Totalmente conforme.', stars: 4 },
+  { name: 'Dante Gallardo', role: 'CEO', text: 'Muy bueno con el trabajo! Totalmente conforme.', stars: 5 },
+  { name: 'Carlos Ruiz', role: 'Director', text: 'Profesionales de primer nivel, los recomiendo.', stars: 5 },
+];
+
+/* ==========================================================================
+   COMPONENTES DE APOYO (HELPERS)
+   ========================================================================== */
+
 export const SwirlMark: React.FC<{ className?: string }> = ({ className = '' }) => (
   <img src="/isotipo.svg" alt="" aria-hidden="true" className={className} />
 );
 
-/* ─── Logo grid cell ────────────────────────────────── */
+/** @deprecated No se detectó uso actual en el Home */
 export const LogoCell: React.FC<{ children: React.ReactNode; className?: string; colSpan?: boolean }> = ({
   children,
   className = 'bg-white',
@@ -46,16 +60,6 @@ export const LogoCell: React.FC<{ children: React.ReactNode; className?: string;
   </div>
 );
 
-/* ─── Testimonial Card ─────────────────────────────── */
-const testimonials = [
-  { name: 'María García', role: 'Emprendedora', text: 'Excelente servicio, mi negocio creció enormemente. Totalmente conforme.', stars: 4 },
-  { name: 'Dante Gallardo', role: 'CEO', text: 'Muy bueno con el trabajo! Totalmente conforme.', stars: 5 },
-  { name: 'Carlos Ruiz', role: 'Director', text: 'Profesionales de primer nivel, los recomiendo.', stars: 5 },
-];
-
-// slot: 0=front(main)  1=right-back  2=left-back
-// All cards share the same fixed dimensions; back cards shrink via CSS scale so
-// the resize and reposition animate together in a single transition.
 const TestimonialCard: React.FC<{ name: string; role: string; text: string; stars: number; slot: 0 | 1 | 2 }> = ({
   name, role, text, stars, slot,
 }) => {
@@ -87,7 +91,6 @@ const TestimonialCard: React.FC<{ name: string; role: string; text: string; star
         overflow: 'hidden',
         position: 'relative',
       }}>
-        {/* Top glass area */}
         <div style={{ height: 122, position: 'relative', background: 'rgba(0,15,35,0.45)' }}>
           <div style={{
             position: 'absolute',
@@ -103,7 +106,6 @@ const TestimonialCard: React.FC<{ name: string; role: string; text: string; star
           }} />
         </div>
 
-        {/* White bottom */}
         <div style={{
           height: 183,
           background: '#FFFFFF',
@@ -133,16 +135,16 @@ const TestimonialCard: React.FC<{ name: string; role: string; text: string; star
   );
 };
 
-/* ══════════════════════════════════════════════════════
-  SECTIONS COMPONENTS
-══════════════════════════════════════════════════════ */
+/* ==========================================================================
+   SECTION: HERO
+   ========================================================================== */
 
 const HeroSection: React.FC = () => {
   const [isHovered, setIsHovered] = React.useState(false);
   
   return (
     <section className="relative h-screen overflow-hidden select-none" style={{ marginTop: 0 }}>
-      {/* Galaxy canvas background */}
+      {/* Background elements */}
       <div className="absolute inset-0" style={{ backgroundColor: '#040e1f' }} aria-hidden="true">
         <GalaxyBackground /> 
         <div className="absolute inset-0" style={{ background: 'rgba(4,14,31,0.30)' }} />
@@ -156,17 +158,14 @@ const HeroSection: React.FC = () => {
         />
       </div>
 
-      {/* Esquinas y Sombras */}
       <img src="/esquina-arriba.svg" aria-hidden="true" className="absolute top-0 left-0 pointer-events-none z-10" style={{ width: '40%' }} />
       <img src="/esquina-abajo.svg" aria-hidden="true" className="absolute bottom-0 right-0 pointer-events-none z-0" style={{ width: '40%' }} />
       <img src="/sombra-general.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-[9]" />
       <img src="/sombra-arriba.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-10" />
       <img src="/sombra-arriba.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-10" style={{ opacity: 0.5 }} />
 
-      {/* Layout principal */}
-      <div className="relative z-10 w-full h-full max-w-[1440px] mx-auto flex flex-col md:flex-row items-center justify-center md:justify-between px-6 md:px-12 lg:px-20 gap-2 md:gap-0 pt-20 md:pt-0 md:-translate-x-[40px] lg:-translate-x-[80px]">
+      <div className="relative z-10 w-full h-full max-w-[1440px] mx-auto flex flex-col md:flex-row items-center justify-center md:justify-between px-6 md:px-12 lg:px-20 gap-2 md:gap-0 pt-20 md:pt-0 -translate-y-[65px] md:-translate-x-[40px] lg:-translate-x-[80px]">
         
-        {/* TEXTO + BOTONES */}
         <div className="order-1 md:order-2 flex flex-col items-center md:items-start text-center md:text-left z-20 w-full md:w-[65%] lg:w-[60%]">
           <h1
             className="text-white uppercase mb-2 md:mb-4"
@@ -194,7 +193,6 @@ const HeroSection: React.FC = () => {
             Adquiere tu consulta <span className="font-bold text-[#06CFD6]">GRATIS</span>
           </p>
 
-          {/* BOTONES */}
           <div className="flex flex-col md:flex-row gap-3 md:gap-5 w-full md:w-auto" style={{ maxWidth: '520px' }}>
             <Link
               to="/contacto"
@@ -230,24 +228,19 @@ const HeroSection: React.FC = () => {
           </div>
         </div>
 
-        {/* ASTRONAUTA */}
         <div className="order-2 md:order-1 flex items-center justify-center md:justify-start w-full md:w-[48%] flex-shrink-0">
-          
-          {/* ENVOLTORIO DE LEVITACIÓN: Se encarga exclusivamente de flotar infinitamente */}
           <motion.div
             animate={{ y: [0, -20, 0], rotate: [0, 2, 0] }}
             transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-            // El 'relative' es crucial para que el Hitbox se posicione respecto a este tamaño
             className="relative"
             style={{ width: 'clamp(160px, 38vw, 560px)', height: 'auto' }}
           >
-            {/* IMAGEN DEL ASTRONAUTA: Se encarga de la escala y el brillo dinámico */}
             <motion.img
               src="/astronauta.png"
               alt="Astronauta"
               className="pointer-events-none w-full h-auto"
               animate={{
-                scale: isHovered ? 1.05 : 1, // Un ligero pop 3D al pasar el ratón
+                scale: isHovered ? 1.05 : 1,
                 filter: isHovered
                   ? `drop-shadow(0px 0px 40px rgba(6,207,214,0.30)) brightness(1.1)`
                   : `drop-shadow(0px 25px 50px rgba(0,0,0,0.25)) brightness(1)`,
@@ -255,11 +248,9 @@ const HeroSection: React.FC = () => {
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
             />
 
-            {/* HITBOX PORCENTUAL: Al usar porcentajes, crece y se encoge junto con el clamp del padre */}
             <div 
               className="absolute left-[10%] top-[10%] h-[80%] w-[80%] z-20 cursor-crosshair pointer-events-auto"
               onMouseEnter={() => setIsHovered(true)}
-              // EL CAMBIO: Simplificamos el onMouseLeave y borramos el onMouseMove
               onMouseLeave={() => setIsHovered(false)}
             />
           </motion.div>
@@ -268,6 +259,10 @@ const HeroSection: React.FC = () => {
     </section>
   )
 };
+
+/* ==========================================================================
+   SECTION: SERVICIOS (Desktop & Mobile)
+   ========================================================================== */
 
 const ServiciosSection: React.FC = () => {
   const [slide, setSlide] = useState(0);
@@ -300,33 +295,54 @@ const ServiciosSection: React.FC = () => {
   )), []);
 
   return (
-    <div className="relative" style={{ marginTop: '-8%' }}>
-      {/* IMAGEN DE FONDO:
-          - En escritorio (md:block): es relativa y dicta la altura total de la sección.
-          - En móvil (md:hidden): se oculta la imagen relativa. */}
-      <img
-        src="/sombra-segunda.svg"
-        aria-hidden="true"
-        className="hidden md:block w-full pointer-events-none select-none"
-      />
+    <div className="relative" style={{ marginTop: '-11%' }}>
+      <style>{`
+        .svc-card-wrap  { max-width: 85%; }
+        .svc-card       { border-radius: 48px; }
+        .svc-card-img   { height: clamp(320px, 44vw, 554px); }
+        .svc-isotipo    { display: block; }
+        .svc-esquina    { display: block; }
+        .svc-teal-shape { display: none; }
+        @media (max-width: 767px) {
+          .svc-card-wrap  { max-width: min(306px, 90vw); margin: 0 auto; }
+          .svc-card       { border-radius: 28px; }
+          .svc-card-img   { height: 409px; }
+          .svc-card-img img.object-cover {
+            width: 100% !important;
+            height: 100% !important;
+            inset: 0 !important;
+          }
+          .svc-overlay    { background: rgba(0,0,0,0.15) !important; }
+          .svc-esquina    { display: none; }
+          .svc-text-title { font-size: 1.5rem !important; }
+          .svc-text-desc  { font-size: 0.95rem !important; }
+          .svc-teal-shape {
+            display: block;
+            background-image: url('/formaazul.svg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+          }
+          .svc-isotipo {
+            display: block !important;
+            width: 40px !important;
+            height: auto !important;
+            bottom: 24px !important;
+            right: 16px !important;
+            top: auto !important;
+            left: auto !important;
+            transform: none !important;
+          }
+        }
+      `}</style>
 
-      {/* FONDO MÓVIL:
-          - Capa absoluta para que el contenido dicte la altura en móvil.
-          - Oculto en escritorio. */}
+      {/* Background shadows */}
+      <img src="/sombra-segunda.svg" aria-hidden="true" className="hidden md:block w-full pointer-events-none select-none" />
       <div className="md:hidden absolute inset-0 w-full h-full pointer-events-none select-none z-0 overflow-hidden">
-        <img
-          src="/sombra-segunda.svg"
-          aria-hidden="true"
-          className="w-full h-full object-cover object-top"
-        />
+        <img src="/sombra-segunda.svg" aria-hidden="true" className="w-full h-full object-cover object-top" />
       </div>
 
-      {/* CONTENEDOR DE CONTENIDO:
-          - En escritorio (md:absolute md:inset-0): se superpone sobre la imagen relativa.
-          - En móvil (relative): fluye normalmente y dicta la altura. */}
-      <div
-        className="relative md:absolute md:inset-0 z-10 flex flex-col items-center justify-start px-5 select-none pb-16 md:pb-0 pt-[clamp(3rem,12vw,8rem)] md:pt-[4%]"
-      >
+      <div className="relative md:absolute md:inset-0 z-10 flex flex-col items-center justify-start px-5 select-none pb-16 md:pb-0 pt-[clamp(2rem,8vw,5rem)] md:pt-[3%]">
         <div style={{ position: 'relative', zIndex: 15, textAlign: 'center' }}>
           <p style={{ color: CYAN, fontFamily: FONT, fontSize: 'clamp(2.24rem, 5.6vw, 3.36rem)', fontWeight: 800, lineHeight: 1.2, marginBottom: '0.6rem' }}>
             Haz crecer tu negocio
@@ -337,46 +353,7 @@ const ServiciosSection: React.FC = () => {
           </p>
         </div>
 
-        <style>{`
-          .svc-card-wrap  { max-width: 85%; }
-          .svc-card       { border-radius: 48px; }
-          .svc-card-img   { height: clamp(320px, 44vw, 554px); }
-          .svc-isotipo    { display: block; }
-          .svc-esquina    { display: block; }
-          .svc-teal-shape { display: none; }
-          @media (max-width: 767px) {
-            .svc-card-wrap  { max-width: min(306px, 90vw); margin: 0 auto; }
-            .svc-card       { border-radius: 28px; }
-            .svc-card-img   { height: 409px; }
-            .svc-card-img img.object-cover {
-              width: 100% !important;
-              height: 100% !important;
-              inset: 0 !important;
-            }
-            .svc-overlay    { background: rgba(0,0,0,0.15) !important; }
-            .svc-esquina    { display: none; }
-            .svc-text-title { font-size: 1.5rem !important; }
-            .svc-text-desc  { font-size: 0.95rem !important; }
-            .svc-teal-shape {
-              display: block;
-              background-image: url('/formaazul.svg');
-              background-size: cover;
-              background-position: center;
-              background-repeat: no-repeat;
-            }
-            .svc-isotipo {
-              display: block !important;
-              width: 40px !important;
-              height: auto !important;
-              bottom: 24px !important;
-              right: 16px !important;
-              top: auto !important;
-              left: auto !important;
-              transform: none !important;
-            }
-          }
-        `}</style>
-        {/* ── Mobile: Stack animation ─────────────────────── */}
+        {/* --- MOBILE: Stack animation --- */}
         <div className="md:hidden" style={{ width: 'min(306px, 90vw)', height: '409px', margin: '0 auto' }}>
           <Stack
             randomRotation={false}
@@ -391,8 +368,8 @@ const ServiciosSection: React.FC = () => {
           />
         </div>
 
-        {/* ── Desktop: slide carousel ──────────────────────── */}
-        <div className="svc-card-wrap w-full hidden md:block">
+        {/* --- DESKTOP: Slide carousel --- */}
+        <div className="svc-card-wrap w-full hidden md:block mt-[23px]">
           <div className="svc-card" style={{ overflow: 'hidden', position: 'relative', zIndex: 10, boxShadow: '0px 4px 20.4px 9px rgba(0,0,0,0.22)' }}>
             <div className="svc-card-img" style={{ position: 'relative' }}>
               <AnimatePresence>
@@ -455,6 +432,10 @@ const ServiciosSection: React.FC = () => {
   );
 };
 
+/* ==========================================================================
+   SECTION: WHITE ORGANIC BACKGROUND (Ondas)
+   ========================================================================== */
+
 const WhiteOrganicBackground: React.FC = () => (
   <>
     <style>{`
@@ -468,7 +449,7 @@ const WhiteOrganicBackground: React.FC = () => (
       }
       @media (max-width: 767px) {
         .organic-bg-wrapper {
-          margin-top: 2rem; /* Posiciona las ondas azules en su posición original */
+          margin-top: 2rem;
         }
       }
     `}</style>
@@ -489,9 +470,6 @@ const WhiteOrganicBackground: React.FC = () => (
         </linearGradient>
       </defs>
       
-      {/* ─── FUSIÓN MÓVIL ─── 
-          Al estar como primer elemento del SVG, se dibuja DETRÁS de las ondas azules.
-          Esto fusiona visualmente la parte superior recta con las ondas orgánicas inferiores. */}
       <rect className="md:hidden" x="-1000" y="-1430" width="3440" height="1800" fill="#ffffff" />
 
       <g clipPath="url(#segblanca-clip)">
@@ -514,12 +492,32 @@ const WhiteOrganicBackground: React.FC = () => (
   </>
 );
 
+/* ==========================================================================
+   SECTION: HERRAMIENTAS (Logos Marquee)
+   ========================================================================== */
+
 const HerramientasSection: React.FC = () => (
   <section className="pb-12 px-6 herramientas-sec" style={{ position: 'relative', zIndex: 22, borderRadius: '2rem 2rem 0 0', paddingTop: '0' }}>
     <style>{`
       .herramientas-sec { margin-top: -3rem; }
       @media (min-width: 768px) { .herramientas-sec { margin-top: clamp(4rem, 20.4vw, 24rem); } }
+      @keyframes marquee-scroll {
+        0%   { transform: translateX(0); }
+        100% { transform: translateX(-25%); }
+      }
+      .logos-track {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        width: max-content;
+        animation: marquee-scroll 18s linear infinite;
+      }
+      .logos-track img {
+        margin: 0 clamp(1.2rem, 3vw, 2.5rem);
+        flex-shrink: 0;
+      }
     `}</style>
+    
     <div className="max-w-4xl mx-auto flex flex-col items-center">
       {/* Mobile exact group */}
       <div className="md:hidden relative w-[358px] flex items-center justify-center mb-8">
@@ -544,23 +542,7 @@ const HerramientasSection: React.FC = () => (
         <div style={{ flex: 1, height: 0, border: '2px solid rgba(60, 60, 59, 0.69)' }} />
       </div>
     </div>
-    <style>{`
-      @keyframes marquee-scroll {
-        0%   { transform: translateX(0); }
-        100% { transform: translateX(-25%); }
-      }
-      .logos-track {
-        display: flex;
-        flex-wrap: nowrap;
-        align-items: center;
-        width: max-content;
-        animation: marquee-scroll 18s linear infinite;
-      }
-      .logos-track img {
-        margin: 0 clamp(1.2rem, 3vw, 2.5rem);
-        flex-shrink: 0;
-      }
-    `}</style>
+
     <div
       style={{
         position: 'relative',
@@ -587,28 +569,34 @@ const HerramientasSection: React.FC = () => (
   </section>
 );
 
+/* ==========================================================================
+   SECTION: IA (Inteligencia Artificial)
+   ========================================================================== */
+
 const IASection: React.FC = () => (
   <section
     className="relative"
     style={{ minHeight: '800px', paddingBottom: '2rem', overflowX: 'hidden' }}
   >
+    <style>{`
+      .chica-wrap { width: 258px; height: 453px; }
+      .chica-circle { left: -20.65% !important; }
+      @media (min-width: 768px) {
+        .chica-circle { left: -29.2% !important; }
+        .chica-wrap { width: clamp(140px, 38vw, 346px); height: clamp(240px, 65vw, 613px); }
+      }
+    `}</style>
+
     <div className="md:hidden absolute left-0 right-0" style={{ top: 258, bottom: 258, background: '#ffffff', zIndex: 0 }} />
+    
     <div className="relative z-10 flex flex-col md:flex-row items-end justify-center px-6 pt-8 md:pt-16 pb-8 w-full max-w-[1200px] mx-auto gap-8 md:gap-6">
       <div className="w-full md:w-4/12 flex justify-center order-1 md:order-2">
-        <style>{`
-          .chica-wrap { width: 258px; height: 453px; }
-          .chica-circle { left: -20.65% !important; }
-          @media (min-width: 768px) {
-            .chica-circle { left: -29.2% !important; }
-            .chica-wrap { width: clamp(140px, 38vw, 346px); height: clamp(240px, 65vw, 613px); }
-          }
-        `}</style>
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           className="chica-wrap relative flex-shrink-0"
-         style={{ zIndex: 10, overflow: 'hidden', borderRadius: '48px', boxShadow: '0px 4px 7.8px rgba(0,0,0,0.42)' }}
+          style={{ zIndex: 10, overflow: 'hidden', borderRadius: '48px', boxShadow: '0px 4px 7.8px rgba(0,0,0,0.42)' }}
         >
          <div className="absolute inset-0">
             <img src="/fondochica.svg" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover" />
@@ -621,13 +609,13 @@ const IASection: React.FC = () => (
       </div>
 
       <div className="w-full md:w-4/12 flex flex-col gap-3 text-center md:text-left items-center md:items-start order-2 md:order-1 mb-auto md:mt-auto z-20">
-        <h2 style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(24px, 3vw, 2.5rem)', lineHeight: '27px', color: CYAN, maxWidth: 296 }}>
+        <h2 className="leading-[27px] md:leading-[1]" style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(24px, 3vw, 2.5rem)', color: CYAN, maxWidth: 296 }}>
           Comenzar nunca ha sido<br />tan fácil gracias a la IA
         </h2>
-        <p style={{ fontFamily: 'Sansation', fontWeight: 400, fontSize: 'clamp(16px, 1.8vw, 1.5rem)', lineHeight: '18px', color: '#ffffff', maxWidth: 309 }}>
+        <p className="text-black md:text-white leading-[18px] md:leading-relaxed" style={{ fontFamily: 'Sansation', fontWeight: 400, fontSize: 'clamp(16px, 1.8vw, 1.5rem)', maxWidth: 309 }}>
           No hace falta tener experiencia.
         </p>
-        <p style={{ fontFamily: 'Sansation', fontStyle: 'italic', fontWeight: 300, fontSize: 'clamp(10px, 1.2vw, 1rem)', lineHeight: '11px', color: '#ffffff', maxWidth: 214 }}>
+        <p className="text-black md:text-white leading-[11px] md:leading-normal" style={{ fontFamily: 'Sansation', fontStyle: 'italic', fontWeight: 300, fontSize: 'clamp(10px, 1.2vw, 1rem)', maxWidth: 214 }}>
           Kit de diseño con IA, uno de los mejores<br />inventos de TIME de 2025*
         </p>
       </div>
@@ -648,6 +636,10 @@ const IASection: React.FC = () => (
   </section>
 );
 
+/* ==========================================================================
+   SECTION: TESTIMONIALS (3D Carousel)
+   ========================================================================== */
+
 const TestimonialsSection: React.FC = () => {
   const [activeCard, setActiveCard] = useState(0);
 
@@ -658,6 +650,15 @@ const TestimonialsSection: React.FC = () => {
 
   return (
     <section className="relative overflow-hidden">
+      <style>{`
+        .testim-outer { width: 316px; height: 310px; }
+        .testim-group { margin-left: -48px; transform-origin: top left; }
+        @media (min-width: 768px) {
+          .testim-outer { width: 608px; height: 496px; }
+          .testim-group { margin-left: 0; transform: scale(1.6); }
+        }
+      `}</style>
+
       <div className="hidden md:block" style={{ width: '86.6%', margin: '0 auto', borderTop: '1px solid #FFFFFF', marginBottom: '6rem' }} />
 
       <div className="flex flex-col md:flex-row items-center justify-center md:justify-between md:pl-0 md:pr-0 py-10 md:py-0 w-full relative gap-10 md:gap-0" style={{ zIndex: 1, minHeight: 'clamp(500px, 60vw, 400px)' }}>
@@ -676,14 +677,6 @@ const TestimonialsSection: React.FC = () => {
         </div>
 
         <div className="w-full md:w-7/12 order-2 md:order-1 flex justify-center" style={{ position: 'relative', zIndex: 2 }}>
-          <style>{`
-            .testim-outer { width: 316px; height: 310px; }
-            .testim-group { margin-left: -48px; transform-origin: top left; }
-            @media (min-width: 768px) {
-              .testim-outer { width: 608px; height: 496px; }
-              .testim-group { margin-left: 0; transform: scale(1.6); }
-            }
-          `}</style>
           <div className="testim-outer" style={{ position: 'relative', flexShrink: 0 }}>
             <div className="testim-group" style={{ position: 'relative', width: 380, height: 310, overflow: 'visible' }}>
               {testimonials.map((t, i) => {
@@ -701,10 +694,14 @@ const TestimonialsSection: React.FC = () => {
   );
 };
 
+/* ==========================================================================
+   SECTION: CTA (Call to Action & Footer links)
+   ========================================================================== */
+
 const CTASection: React.FC = () => (
   <section className="relative overflow-hidden pb-8 md:pb-0">
 
-    {/* ── DESKTOP ─────────────────────────────────────── */}
+    {/* --- DESKTOP VIEW --- */}
     <img src="/logo-footer.svg" alt="Bytecode" aria-hidden="true" className="hidden md:block absolute pointer-events-none"
       style={{ left: '-60px', top: '50%', transform: 'translateY(-50%)', width: '310px', height: 'auto', objectFit: 'contain', opacity: 0.7, zIndex: 1 }} />
 
@@ -724,9 +721,8 @@ const CTASection: React.FC = () => (
       style={{ right: '7%', bottom: '8%', width: '46px', height: 'auto', zIndex: 2, opacity: 0.85 }} />
     <div className="hidden md:block" style={{ width: '86.6%', margin: '0 auto', borderTop: '1px solid #FFFFFF' }} />
 
-    {/* ── MOBILE ──────────────────────────────────────── */}
+    {/* --- MOBILE VIEW --- */}
     <div className="md:hidden relative" style={{ overflow: 'hidden' }}>
-      {/* Logo rotado, parcialmente fuera de pantalla */}
       <img src="/logo-footer.svg" alt="" aria-hidden="true" style={{
         position: 'absolute', left: -58, bottom: -194,
         width: 202, height: 194, opacity: 0.7,
@@ -734,10 +730,8 @@ const CTASection: React.FC = () => (
         pointerEvents: 'none', zIndex: 0,
       }} />
 
-      {/* Línea superior */}
       <div style={{ width: 358, margin: '0 auto', borderTop: '1px solid #FFFFFF' }} />
 
-      {/* Contenido centrado */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '80px 0 0', gap: 20, position: 'relative', zIndex: 1 }}>
         <h2 style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 24, lineHeight: '27px', color: '#FFFFFF', textAlign: 'center', width: 272, margin: 0 }}>
           Un clic para ti,<br />un salto para tu marca.
@@ -747,17 +741,13 @@ const CTASection: React.FC = () => (
           <span style={{ fontFamily: 'Sansation', fontWeight: 400, fontSize: 32, lineHeight: '36px', color: '#FFFFFF' }}>Conectar</span>
         </Link>
 
-        {/* Isotipo derecha */}
         <img src="/isotipo.svg" alt="" aria-hidden="true" style={{ position: 'absolute', left: 'calc(50% - 12px + 164px)', top: 135, width: 24, height: 31, opacity: 0.85 }} />
 
-        {/* Espaciado hasta la línea inferior */}
         <div style={{ height: 90 }} />
       </div>
 
-      {/* Línea inferior */}
       <div style={{ width: 358, margin: '0 auto', borderTop: '1px solid #FFFFFF' }} />
 
-      {/* Sección de contacto */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px 0 2px', gap: 8 }}>
         <p style={{ fontFamily: 'Helvetica Neue, sans-serif', fontWeight: 500, fontSize: 16, lineHeight: '19px', color: '#FFFFFF', margin: 0 }}>Contáctanos</p>
 
@@ -806,13 +796,12 @@ const CTASection: React.FC = () => (
         </span>
       </div>
     </div>
-
   </section>
 );
 
-/* ══════════════════════════════════════════════════════
-  HOME PAGE
-══════════════════════════════════════════════════════ */
+/* ==========================================================================
+   PAGE: HOME (Main Orchestrator)
+   ========================================================================== */
 
 const Home: React.FC = () => {
   return (
@@ -852,7 +841,7 @@ const Home: React.FC = () => {
 
       <HerramientasSection />
 
-      {/* FONDO COMPARTIDO — secciones 4, 5 y 6 */}
+      {/* SECCIONES CON FONDO COMPARTIDO (IA, Testimonials, CTA) */}
       <div className="relative" style={{ zIndex: 22, marginTop: 'clamp(3rem, 8vw, 8rem)' }}>
         <IASection />
         <TestimonialsSection />
