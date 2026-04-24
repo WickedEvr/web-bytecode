@@ -8,6 +8,9 @@ export default function GalaxyBackground() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // OPTIMIZACIÓN 1: Detectar si es un dispositivo móvil (pantalla menor a 768px)
+    const isMobile = window.innerWidth < 768;
+
     // ── Scene
     const scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0x000000, 0.03);
@@ -23,20 +26,23 @@ export default function GalaxyBackground() {
     camera.lookAt(0, -1, 0);
 
     // ── Renderer
-    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false }); // antialias en false mejora rendimiento en partículas
     renderer.setSize(canvas.offsetWidth, canvas.offsetHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    
+    // OPTIMIZACIÓN 2: Limitar el Pixel Ratio estrictamente a 1 en móviles, y máximo 2 en PC
+    renderer.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio, 2));
 
     // ── Parameters
     const parameters = {
-      count: 80000,
+      // OPTIMIZACIÓN 3: Reducir drásticamente la carga geométrica en celulares (de 80k a 30k)
+      count: isMobile ? 30000 : 80000,
       size: 0.015,
       radius: 8,
       branches: 4,
       spin: 1,
       randomness: 0.3,
       randomnessPower: 3,
-      insideColor: '#ffbb44', // Color más sutil y anaranjado
+      insideColor: '#ffbb44', 
       outsideColor: '#1a99ee',
     };
 
@@ -53,7 +59,6 @@ export default function GalaxyBackground() {
       const i3 = i * 3;
       let radius = Math.random() * parameters.radius;
       
-      // Permitimos que algunas estrellas estén más cerca del centro
       if (radius < 0.1) radius += 0.05;
 
       const spinAngle   = radius * parameters.spin;
@@ -112,7 +117,8 @@ export default function GalaxyBackground() {
     // ─────────────────────────────────────────
     // Background stars
     // ─────────────────────────────────────────
-    const starCount = 3000;
+    // OPTIMIZACIÓN 4: Menos estrellas de fondo en móviles
+    const starCount = isMobile ? 1000 : 3000;
     const starGeo   = new THREE.BufferGeometry();
     const starPos   = new Float32Array(starCount * 3);
     for (let i = 0; i < starCount; i++) {
@@ -132,18 +138,30 @@ export default function GalaxyBackground() {
     scene.add(new THREE.Points(starGeo, starMat));
 
     // ─────────────────────────────────────────
+    // OPTIMIZACIÓN 5: Intersection Observer (Evita renderizar si no se ve)
+    // ─────────────────────────────────────────
+    let isVisible = true;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        isVisible = entries[0].isIntersecting;
+      },
+      { threshold: 0.01 } // Se activa cuando al menos 1% del canvas es visible
+    );
+    observer.observe(canvas);
+
+    // ─────────────────────────────────────────
     // Animation loop
     // ─────────────────────────────────────────
     const clock = new THREE.Clock();
     let animId: number;
 
     const tick = () => {
-      const t = clock.getElapsedTime();
-      
-      // Rotación suave de la galaxia principal
-      galaxyPoints.rotation.y = t * 0.05;
-      
-      renderer.render(scene, camera);
+      // Solo calculamos y renderizamos si el canvas está en pantalla
+      if (isVisible) {
+        const t = clock.getElapsedTime();
+        galaxyPoints.rotation.y = t * 0.05;
+        renderer.render(scene, camera);
+      }
       animId = requestAnimationFrame(tick);
     };
     tick();
@@ -152,16 +170,19 @@ export default function GalaxyBackground() {
     // Resize
     // ─────────────────────────────────────────
     const onResize = () => {
+      // Si la ventana cambia, actualizamos parámetros pero mantenemos el límite en móviles
+      const mobileCheck = window.innerWidth < 768;
       camera.aspect = canvas.offsetWidth / canvas.offsetHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(canvas.offsetWidth, canvas.offsetHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setPixelRatio(mobileCheck ? 1 : Math.min(window.devicePixelRatio, 2));
     };
     window.addEventListener('resize', onResize);
 
     return () => {
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', onResize);
+      observer.disconnect(); // Limpiamos el observador
       renderer.dispose();
       geoGalaxy.dispose(); matGalaxy.dispose();
       starGeo.dispose();   starMat.dispose();
