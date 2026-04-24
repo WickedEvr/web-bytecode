@@ -596,17 +596,11 @@ const IASection: React.FC = () => (
     <div className="relative z-10 flex flex-col md:flex-row items-end justify-center px-6 pt-8 md:pt-16 pb-8 w-full max-w-[1200px] mx-auto gap-8 md:gap-6">
       <div className="w-full md:w-4/12 flex justify-center order-1 md:order-2">
         <style>{`
-          .chica-wrap { width: 258.04px; height: 453.17px; }
-          .chica-bg { border-radius: 30px !important; }
-          .chica-bg-img { position: absolute !important; inset: auto !important; left: -26.17px !important; top: -10.85px !important; width: 307.96px !important; height: 564.64px !important; object-fit: cover; }
-          .chica-overlay { position: absolute !important; inset: auto !important; left: -12.68px !important; top: -12.57px !important; width: 320.69px !important; height: 511.57px !important; }
+          .chica-wrap { width: 258px; height: 453px; }
           .chica-circle { left: -20.65% !important; }
           @media (min-width: 768px) {
             .chica-circle { left: -29.2% !important; }
             .chica-wrap { width: clamp(140px, 38vw, 346px); height: clamp(240px, 65vw, 613px); }
-            .chica-bg { border-radius: 68px !important; }
-            .chica-bg-img { position: absolute !important; inset: 0 !important; left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important; }
-            .chica-overlay { position: absolute !important; inset: 0 !important; left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important; }
           }
         `}</style>
         <motion.div
@@ -614,14 +608,14 @@ const IASection: React.FC = () => (
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           className="chica-wrap relative flex-shrink-0"
-          style={{ zIndex: 10, overflow: 'visible' }}
+         style={{ zIndex: 10, overflow: 'hidden', borderRadius: '48px', boxShadow: '0px 4px 7.8px rgba(0,0,0,0.42)' }}
         >
-          <div aria-hidden="true" className="chica-circle" style={{ position: 'absolute', left: '-29.2%', top: '13.4%', width: '41.3%', paddingBottom: '41.3%', borderRadius: '50%', background: '#ffffff', zIndex: 0, pointerEvents: 'none' }} />
-          <div aria-hidden="true" style={{ position: 'absolute', left: '36.1%', top: '65.7%', width: '95.1%', height: '38.7%', borderRadius: '20px', background: '#ffffff', zIndex: 0, pointerEvents: 'none' }} />
-          <div className="chica-bg absolute inset-0 overflow-hidden" style={{ boxShadow: '0px 4px 27.8px rgba(0,0,0,0.42)', background: '#D9D9D9' }}>
-            <img src="/blank.svg" alt="" aria-hidden="true" className="chica-bg-img" />
-            <div className="chica-overlay" style={{ background: 'rgba(0,0,0,0.22)' }} />
-            <img src="/chica.svg" alt="IA" style={{ position: 'absolute', left: '7%', bottom: 0, width: 'auto', height: '120%', maxWidth: 'none', transform: 'translateX(-50%)', transformOrigin: 'center bottom', zIndex: 10, pointerEvents: 'none' }} />
+         <div className="absolute inset-0">
+            <img src="/fondochica.svg" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.22)' }} />
+            <img src="/chica.svg" alt="Mujer con estética de inteligencia artificial" style={{ position: 'absolute',
+               left: '15%', bottom: 0, width: 'auto', height: '100%', maxWidth: 'none', transform: 'translateX(-50%)', 
+               transformOrigin: 'center bottom', zIndex: 10, pointerEvents: 'none' }} />
           </div>
         </motion.div>
       </div>
@@ -630,10 +624,10 @@ const IASection: React.FC = () => (
         <h2 style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(24px, 3vw, 2.5rem)', lineHeight: '27px', color: CYAN, maxWidth: 296 }}>
           Comenzar nunca ha sido<br />tan fácil gracias a la IA
         </h2>
-        <p style={{ fontFamily: 'Sansation', fontWeight: 400, fontSize: 'clamp(16px, 1.8vw, 1.5rem)', lineHeight: '18px', color: '#000000', maxWidth: 309 }}>
+        <p style={{ fontFamily: 'Sansation', fontWeight: 400, fontSize: 'clamp(16px, 1.8vw, 1.5rem)', lineHeight: '18px', color: '#ffffff', maxWidth: 309 }}>
           No hace falta tener experiencia.
         </p>
-        <p style={{ fontFamily: 'Sansation', fontStyle: 'italic', fontWeight: 300, fontSize: 'clamp(10px, 1.2vw, 1rem)', lineHeight: '11px', color: '#000000', maxWidth: 214 }}>
+        <p style={{ fontFamily: 'Sansation', fontStyle: 'italic', fontWeight: 300, fontSize: 'clamp(10px, 1.2vw, 1rem)', lineHeight: '11px', color: '#ffffff', maxWidth: 214 }}>
           Kit de diseño con IA, uno de los mejores<br />inventos de TIME de 2025*
         </p>
       </div>
@@ -645,12 +639,9 @@ const IASection: React.FC = () => (
           viewport={{ once: true }}
           transition={{ delay: 0.1 }}
           className="relative flex-shrink-0 block"
-          style={{ width: 'clamp(266px, 64vw, 346px)', height: 'clamp(461px, 112vw, 613px)', borderRadius: '30px', boxShadow: '0px 4px 27.8px rgba(0,0,0,0.42)', background: '#D9D9D9', overflow: 'visible', zIndex: 11 }}
+          style={{ width: 'clamp(266px, 64vw, 346px)', height: 'clamp(461px, 112vw, 613px)', borderRadius: '48px', boxShadow: '0px 4px 27.8px rgba(0,0,0,0.42)', overflow: 'hidden', zIndex: 11 }}
         >
-          <div aria-hidden="true" style={{ position: 'absolute', left: '50.1%', top: '66%', width: '62%', height: '40.1%', borderRadius: '20px', background: '#ffffff', zIndex: 0, pointerEvents: 'none' }} />
-          <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: '30px' }}>
-            <img src="/hombre.svg" alt="Tecnología" className="absolute w-full h-full object-cover object-top" />
-          </div>
+          <img src="/hombre.svg" alt="Tecnología" className="absolute w-full h-full object-cover object-top" />
         </motion.div>
       </div>
     </div>
