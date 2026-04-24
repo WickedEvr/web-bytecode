@@ -5,7 +5,6 @@ import AltFooter from '../components/AltFooter';
 import SpotlightText from '../components/SpotlightText';
 import SEO from '../components/SEO';
 
-// 1. IMPORTACIÓN DIFERIDA (Mejora drásticamente el rendimiento de carga inicial)
 const AuroraBackground = lazy(() => import('../components/AuroraBackground'));
 
 const projects: Project[] = [
@@ -17,14 +16,13 @@ const projects: Project[] = [
 
 const Portafolio: React.FC = () => {
   return (
-    // 2. Quitamos el color de fondo sólido para que el 3D respire
     <div className="w-full min-h-screen font-sansation overflow-x-hidden flex flex-col relative bg-[#020611]">
       <SEO 
         title="Portafolio" 
         description="Explora nuestros proyectos destacados y descubre cómo ayudamos a marcas y empresas a consolidar su presencia tecnológica."
       />
 
-      {/* 3. FONDO 3D FIJO: Se queda quieto mientras el usuario hace scroll */}
+      {/* 3. FONDO 3D FIJO */}
       <div className="fixed inset-0 z-0">
         <Suspense fallback={
           <div className="w-full h-full bg-[#020611] flex items-center justify-center">
@@ -34,18 +32,17 @@ const Portafolio: React.FC = () => {
         </Suspense>
       </div>
 
-      {/* 4. CONTENEDOR FRONTAL: z-10 para estar sobre el 3D */}
+      {/* 4. CONTENEDOR FRONTAL */}
       <div className="flex-grow flex flex-col relative z-10 pointer-events-none">
         
-        {/* HERO SECTION */}
-        <section className="pt-24 pb-26.5 px-6 text-center text-white relative z-10 pointer-events-none">
-          
+        {/* HERO SECTION: Espaciado dinámico vertical (vh) para asegurar que nada se desborde sin scroll */}
+        <section className="pt-[clamp(3rem,9vh,6rem)] pb-[clamp(1rem,3vh,3rem)] px-6 text-center text-white relative z-10 pointer-events-none">
           <motion.h1
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-6xl md:text-8xl font-bold mb-8 tracking-wide drop-shadow-2xl"
+            // El margen inferior también se adapta a la altura de la pantalla
+            className="text-4xl md:text-6xl lg:text-7xl font-bold mb-[clamp(1rem,3vh,2rem)] tracking-wide drop-shadow-2xl"
           >
-            {/* Envolvemos la palabra Portafolio */}
             <SpotlightText>Portafolio</SpotlightText>
           </motion.h1>
 
@@ -53,28 +50,34 @@ const Portafolio: React.FC = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
-            className="text-white/95 text-lg md:text-2xl max-w-3xl mx-auto leading-relaxed font-light drop-shadow-lg"
+            className="text-white/95 text-base md:text-xl lg:text-2xl max-w-[90%] md:max-w-3xl mx-auto leading-relaxed font-light drop-shadow-lg"
           >
-            {/* Envolvemos también el párrafo */}
             <SpotlightText>
               Ayudo a marcas y empresas a consolidar su presencia tecnológica mediante
               productos innovadores, escalables y visualmente potentes.
             </SpotlightText>
           </motion.div>
-
         </section>
 
         {/* CARRUSEL 3D */}
-        <section className="w-full pb-41 relative z-10 pointer-events-auto">
-          <Carousel3D projects={projects} />
+        <section className="w-full relative z-10 pointer-events-auto flex-grow flex items-center justify-center min-h-[50vh] md:min-h-[60vh] pb-[clamp(2rem,5vh,6rem)]">
+          {/* WRAPPER DE ESCALA ULTRA-PRECISO:
+              - Móvil (por defecto): 70%
+              - md (Tablets horizontales): 80%
+              - lg (Laptops estándar de 13"/14"): 85%
+              - xl (Monitores de PC estándar): 95%
+              - 2xl (Monitores gigantes/iMacs): 100%
+          */}
+          <div className="w-full flex justify-center origin-center scale-[0.70] md:scale-[0.80] lg:scale-[0.85] xl:scale-[0.95] 2xl:scale-100 transition-transform duration-300">
+            <Carousel3D projects={projects} />
+          </div>
         </section>
       </div>
 
-      {/* EL FOOTER: Al tener z-10, bloqueará el 3D por detrás, creando un efecto de tarjeta */}
-      <div className="relative z-10 pointer-events-auto">
+      {/* EL FOOTER */}
+      <div className="relative z-10 pointer-events-auto mt-auto">
         <AltFooter />
       </div>
-      
     </div>
   );
 };
