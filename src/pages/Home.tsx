@@ -705,15 +705,13 @@ const CTASection: React.FC = () => (
     <img src="/logo-footer.svg" alt="Bytecode" aria-hidden="true" className="hidden md:block absolute pointer-events-none"
       style={{ left: '-60px', top: '50%', transform: 'translateY(-50%)', width: 'clamp(140px, 18vw, 240px)', height: 'auto', objectFit: 'contain', opacity: 0.7, zIndex: 1 }} />
 
-    <div className="hidden md:flex flex-row items-center justify-between gap-8" style={{
+    <div className="hidden md:flex flex-row items-center justify-center gap-10 lg:gap-20" style={{
       zIndex: 2, width: '86.6%', margin: '0 auto',
       paddingTop: 'clamp(6rem, 15vh, 18rem)',
       paddingBottom: 'clamp(6rem, 15vh, 18rem)',
-      paddingLeft: 'clamp(2rem, 10vw, 200px)', // Padding más flexible para evitar desbordamientos
-      paddingRight: 0 
     }}>
-      <h2 style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(1.8rem, 4.5vw, 3.8rem)', lineHeight: 1.15, color: '#FFFFFF', textAlign: 'left', flex: 1 }}>
-        Un clic para ti,<br />un salto para tu marca.
+      <h2 style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(1.8rem, 4.5vw, 3.8rem)', lineHeight: 1.15, color: '#FFFFFF', textAlign: 'left' }}>
+        Un clic para ti,<br />un salto para tu<br />marca.
       </h2>
       <Link to="/contacto" style={{ 
         display: 'flex', alignItems: 'center', justifyContent: 'center', 
@@ -726,7 +724,7 @@ const CTASection: React.FC = () => (
     </div>
 
     <img src="/isotipo.svg" alt="" aria-hidden="true" className="hidden md:block absolute pointer-events-none"
-      style={{ right: '7%', bottom: '8%', width: '46px', height: 'auto', zIndex: 2, opacity: 0.85 }} />
+      style={{ right: '9%', bottom: '8%', width: '46px', height: 'auto', zIndex: 2, opacity: 0.85 }} />
     <div className="hidden md:block" style={{ width: '86.6%', margin: '0 auto', borderTop: '1px solid #FFFFFF' }} />
 
     {/* --- MOBILE VIEW --- */}
