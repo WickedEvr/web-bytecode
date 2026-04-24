@@ -8,7 +8,7 @@ import Stack from '../components/Stack';
 import GalaxyBackground from '../components/GalaxyBackground';
 
 /* ==========================================================================
-   CONFIGURACIÓN Y DATOS ESTÁTICOS
+    CONFIGURACIÓN Y DATOS ESTÁTICOS
    ========================================================================== */
 
 const FONT = "'Sansation', sans-serif";
@@ -599,13 +599,13 @@ const IASection: React.FC = () => (
           style={{ zIndex: 10, overflow: 'hidden', borderRadius: '48px', boxShadow: '0px 4px 7.8px rgba(0,0,0,0.42)' }}
         >
          <div className="absolute inset-0">
-            <img src="/fondochica.svg" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover" />
+            <img src="/fondochica.png" alt="" aria-hidden="true" className="absolute inset-0 rounded-[48px] w-full h-full object-cover" />
             <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.22)' }} />
-            <img src="/chica.svg" alt="Mujer con estética de inteligencia artificial" style={{ position: 'absolute',
-               left: '15%', bottom: 0, width: 'auto', height: '100%', maxWidth: 'none', transform: 'translateX(-50%)', 
-               transformOrigin: 'center bottom', zIndex: 10, pointerEvents: 'none' }} />
           </div>
         </motion.div>
+        <img src="/chica.png" alt="Mujer con estética de inteligencia artificial" style={{ position: 'absolute',
+                bottom: 0, width: 'auto', height: '78%', maxWidth: 'none', transform: 'translate(-7.5%, -5.8%)', 
+                transformOrigin: 'center bottom', zIndex: 10, pointerEvents: 'none', borderRadius: '48px' }} />  
       </div>
 
       <div className="w-full md:w-4/12 flex flex-col gap-3 text-center md:text-left items-center md:items-start order-2 md:order-1 mb-auto md:mt-auto z-20">
@@ -700,6 +700,17 @@ const TestimonialsSection: React.FC = () => {
 
 const CTASection: React.FC = () => (
   <section className="relative overflow-hidden pb-8 md:pb-0">
+    <style>
+      {`
+        @keyframes float-logo {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-7px); }
+        }
+        .animate-float-logo {
+          animation: float-logo 4s ease-in-out infinite;
+        }
+      `}
+    </style>
 
     {/* --- DESKTOP VIEW --- */}
     <img src="/logo-footer.svg" alt="Bytecode" aria-hidden="true" className="hidden md:block absolute pointer-events-none"
@@ -722,9 +733,21 @@ const CTASection: React.FC = () => (
         <span style={{ fontFamily: 'Sansation', fontWeight: 400, fontSize: 'clamp(1.5rem, 3.5vw, 3rem)', color: '#FFFFFF' }}>Conectar</span>
       </Link>
     </div>
+    
+    <div 
+      className="hidden md:block absolute animate-float-logo hover:drop-shadow-[0_0_20px_rgba(6,207,214,0.9)] transition-all duration-300"
+      style={{ right: '9%', bottom: '8%', zIndex: 2 }}
+    >
+      <img src="/isotipo.svg" alt="" aria-hidden="true" className="object-contain"
+      style={{ 
+        width: '46px', 
+        height: 'auto', 
+        opacity: 0.85,
+        filter: "brightness(0) saturate(100%) invert(68%) sepia(35%) saturate(3821%) hue-rotate(143deg) brightness(96%) contrast(94%)"
+      }} />
+    </div>
 
-    <img src="/isotipo.svg" alt="" aria-hidden="true" className="hidden md:block absolute pointer-events-none"
-      style={{ right: '9%', bottom: '8%', width: '46px', height: 'auto', zIndex: 2, opacity: 0.85 }} />
+    
     <div className="hidden md:block" style={{ width: '86.6%', margin: '0 auto', borderTop: '1px solid #FFFFFF' }} />
 
     {/* --- MOBILE VIEW --- */}
@@ -751,7 +774,17 @@ const CTASection: React.FC = () => (
 
       <div style={{ width: '86.6%', margin: '0 auto', borderTop: '1px solid #FFFFFF', position: 'relative' }}>
         {/* Isotipo pegado a la línea en la esquina inferior derecha */}
-        <img src="/isotipo.svg" alt="" aria-hidden="true" style={{ position: 'absolute', right: 0, bottom: 8, width: 24, height: 31, opacity: 0.85 }} />
+        <div 
+          className="absolute animate-float-logo hover:drop-shadow-[0_0_20px_rgba(6,207,214,0.9)] transition-all duration-300"
+          style={{ right: 0, bottom: 8, zIndex: 2 }}
+        >
+          <img src="/isotipo.svg" alt="" aria-hidden="true" style={{ 
+            width: 24, 
+            height: 31, 
+            opacity: 0.85,
+            filter: "brightness(0) saturate(100%) invert(68%) sepia(35%) saturate(3821%) hue-rotate(143deg) brightness(96%) contrast(94%)"
+          }} />
+        </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px 0 2px', gap: 8 }}>
