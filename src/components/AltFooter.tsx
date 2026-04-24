@@ -74,6 +74,7 @@ const AltFooter: React.FC = () => {
                 <img
                   src="/designs/elemento_logo.svg"
                   alt="Bytecode Element"
+                  draggable={false}
                   className="w-11 h-auto object-contain opacity-90"
                   style={{
                     filter:

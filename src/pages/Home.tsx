@@ -627,9 +627,9 @@ const IASection: React.FC = () => (
           viewport={{ once: true }}
           transition={{ delay: 0.1 }}
           className="relative flex-shrink-0 block"
-          style={{ width: 'clamp(266px, 64vw, 346px)', height: 'clamp(461px, 112vw, 613px)', borderRadius: '48px', boxShadow: '0px 4px 27.8px rgba(0,0,0,0.42)', overflow: 'hidden', zIndex: 11 }}
+          style={{ width: 'clamp(266px, 64vw, 346px)', height: 'clamp(461px, 112vw, 613px)', borderRadius: '48px', boxShadow: '0px 4px 27.8px rgba(0,0,0,0.9)', overflow: 'hidden', zIndex: 11 }}
         >
-          <img src="/hombre.svg" alt="Tecnología" className="absolute w-full h-full object-cover object-top" />
+          <img src="/hombre.png" alt="Tecnología" className="absolute w-full h-full object-cover object-top" />
         </motion.div>
       </div>
     </div>
@@ -637,7 +637,7 @@ const IASection: React.FC = () => (
 );
 
 /* ==========================================================================
-   SECTION: TESTIMONIALS (3D Carousel)
+    SECTION: TESTIMONIALS (3D Carousel)
    ========================================================================== */
 
 const TestimonialsSection: React.FC = () => {

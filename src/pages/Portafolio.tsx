@@ -16,7 +16,7 @@ const projects: Project[] = [
 
 const Portafolio: React.FC = () => {
   return (
-    <div className="w-full min-h-screen font-sansation overflow-x-hidden flex flex-col relative bg-[#020611]">
+    <div className="w-full min-h-screen font-sansation overflow-x-hidden flex flex-col relative bg-[#020611] select-none">
       <SEO 
         title="Portafolio" 
         description="Explora nuestros proyectos destacados y descubre cómo ayudamos a marcas y empresas a consolidar su presencia tecnológica."

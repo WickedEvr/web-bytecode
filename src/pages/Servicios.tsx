@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import AltFooter from '../components/AltFooter';
@@ -35,8 +35,18 @@ const Servicios: React.FC = () => {
   const prev = () => setCurrent((c) => (c - 1 + total) % total);
   const next = () => setCurrent((c) => (c + 1) % total);
 
+  useEffect(() => {
+    // Crea un temporizador que ejecuta 'next' cada 5 segundos
+    const autoplayTimer = setInterval(() => {
+      next();
+    }, 5000); 
+
+    // Función de limpieza: detiene el temporizador si el usuario sale de la vista
+    return () => clearInterval(autoplayTimer);
+  }, []); // El array vacío asegura que el temporizador se inicie solo una vez
+
   return (
-    <div className="w-full bg-white font-sansation overflow-x-hidden flex flex-col">
+    <div className="w-full bg-white font-sansation overflow-x-hidden flex flex-col select-none">
       <SEO 
         title="Servicios" 
         description="Descubre nuestros servicios de desarrollo de páginas web, aplicaciones móviles y software de escritorio a medida."

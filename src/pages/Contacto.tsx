@@ -296,7 +296,7 @@ const Contacto: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden font-sansation">
+    <div className="relative min-h-screen overflow-hidden font-sansation select-none">
       <SEO 
         title="Contacto" 
         description="Ponte en contacto con Bytecode para iniciar tu proyecto de transformación digital hoy mismo."

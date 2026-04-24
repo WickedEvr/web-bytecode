@@ -32,7 +32,7 @@ const Nosotros: React.FC = () => {
 
   return (
     // CAMBIO 1: Se añade 'relative' al contenedor principal para que el elemento absoluto lateral se ancle a toda la página
-    <div className="relative flex w-full flex-col overflow-x-clip bg-[#044553] font-sansation">
+    <div className="relative flex w-full flex-col overflow-x-clip bg-[#044553] font-sansation select-none">
       <SEO 
         title="Nosotros" 
         description="Conoce a Bytecode, especialistas en ingeniería de software multiplataforma y automatización inteligente para negocios escalables."
