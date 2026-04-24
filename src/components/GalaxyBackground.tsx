@@ -23,14 +23,16 @@ export default function GalaxyBackground() {
     camera.lookAt(0, -1, 0);
 
     // ── Renderer
-    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    // OPTIMIZACIÓN 1: Desactivar antialias (innecesario para Points)
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false });
     renderer.setSize(canvas.offsetWidth, canvas.offsetHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // OPTIMIZACIÓN 2: Forzar pixel ratio a 1 para ganancia masiva de rendimiento en pantallas Retina/4K
+    renderer.setPixelRatio(1);
 
     // ── Parameters
     const parameters = {
-      count: 80000,
-      size: 0.015,
+      count: 15000, // OPTIMIZACIÓN 3: Reducido drásticamente de 80000 a 15000
+      size: 0.025,  // Aumentado ligeramente para compensar y mantener la densidad visual
       radius: 8,
       branches: 4,
       spin: 1,
@@ -112,7 +114,7 @@ export default function GalaxyBackground() {
     // ─────────────────────────────────────────
     // Background stars
     // ─────────────────────────────────────────
-    const starCount = 3000;
+    const starCount = 1500; // Reducido de 3000 a 1500
     const starGeo   = new THREE.BufferGeometry();
     const starPos   = new Float32Array(starCount * 3);
     for (let i = 0; i < starCount; i++) {
@@ -126,27 +128,38 @@ export default function GalaxyBackground() {
     }
     starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
     const starMat = new THREE.PointsMaterial({
-      color: 0x888888, size: 0.03, sizeAttenuation: true,
+      color: 0x888888, size: 0.04, sizeAttenuation: true,
       transparent: true, opacity: 0.5, depthWrite: false,
     });
     scene.add(new THREE.Points(starGeo, starMat));
 
     // ─────────────────────────────────────────
-    // Animation loop
+    // Animation loop & Intersection Observer
     // ─────────────────────────────────────────
     const clock = new THREE.Clock();
     let animId: number;
+    let isVisible = true;
 
     const tick = () => {
-      const t = clock.getElapsedTime();
-      
-      // Rotación suave de la galaxia principal
-      galaxyPoints.rotation.y = t * 0.05;
-      
-      renderer.render(scene, camera);
+      // OPTIMIZACIÓN 4: Solo recalcular y renderizar si el Canvas está en pantalla
+      if (isVisible) {
+        const t = clock.getElapsedTime();
+        // Rotación suave de la galaxia principal
+        galaxyPoints.rotation.y = t * 0.05;
+        renderer.render(scene, camera);
+      }
       animId = requestAnimationFrame(tick);
     };
     tick();
+
+    // Intersection Observer para pausar la animación al hacer scroll
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        isVisible = entry.isIntersecting;
+      });
+    }, { threshold: 0 });
+    
+    observer.observe(canvas);
 
     // ─────────────────────────────────────────
     // Resize
@@ -155,13 +168,15 @@ export default function GalaxyBackground() {
       camera.aspect = canvas.offsetWidth / canvas.offsetHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(canvas.offsetWidth, canvas.offsetHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      // Mantener pixel ratio en 1 para evitar picos de uso en resize
+      renderer.setPixelRatio(1);
     };
     window.addEventListener('resize', onResize);
 
     return () => {
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', onResize);
+      observer.disconnect();
       renderer.dispose();
       geoGalaxy.dispose(); matGalaxy.dispose();
       starGeo.dispose();   starMat.dispose();
