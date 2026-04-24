@@ -703,17 +703,25 @@ const CTASection: React.FC = () => (
 
     {/* --- DESKTOP VIEW --- */}
     <img src="/logo-footer.svg" alt="Bytecode" aria-hidden="true" className="hidden md:block absolute pointer-events-none"
-      style={{ left: '-60px', top: '50%', transform: 'translateY(-50%)', width: '310px', height: 'auto', objectFit: 'contain', opacity: 0.7, zIndex: 1 }} />
+      style={{ left: '-60px', top: '50%', transform: 'translateY(-50%)', width: 'clamp(140px, 18vw, 240px)', height: 'auto', objectFit: 'contain', opacity: 0.7, zIndex: 1 }} />
 
     <div className="hidden md:flex flex-row items-center justify-between gap-8" style={{
-      zIndex: 2, width: 'min(980px, 100%)', maxWidth: '100%', margin: '0 auto',
-      padding: 'clamp(3rem, 8vh, 9rem) clamp(1.5rem, 4vw, 3rem)',
+      zIndex: 2, width: '86.6%', margin: '0 auto',
+      paddingTop: 'clamp(6rem, 15vh, 18rem)',
+      paddingBottom: 'clamp(6rem, 15vh, 18rem)',
+      paddingLeft: 'clamp(2rem, 10vw, 200px)', // Padding más flexible para evitar desbordamientos
+      paddingRight: 0 
     }}>
-      <h2 style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(1.8rem, 4vw, 3.3rem)', lineHeight: 1.15, color: '#FFFFFF', textAlign: 'center', flexShrink: 0 }}>
+      <h2 style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(1.8rem, 4.5vw, 3.8rem)', lineHeight: 1.15, color: '#FFFFFF', textAlign: 'left', flex: 1 }}>
         Un clic para ti,<br />un salto para tu marca.
       </h2>
-      <Link to="/contacto" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', maxWidth: '504px', height: 'clamp(56px, 6vw, 79px)', background: '#06CFD6', borderRadius: '22px', flexShrink: 0, textDecoration: 'none' }}>
-        <span style={{ fontFamily: 'Sansation', fontWeight: 400, fontSize: 'clamp(1.5rem, 3vw, 2.75rem)', color: '#FFFFFF' }}>Conectar</span>
+      <Link to="/contacto" style={{ 
+        display: 'flex', alignItems: 'center', justifyContent: 'center', 
+        width: '100%', maxWidth: 'clamp(260px, 30vw, 420px)', 
+        height: 'clamp(56px, 7vw, 90px)', 
+        background: '#06CFD6', borderRadius: '22px', flexShrink: 0, textDecoration: 'none' 
+      }}>
+        <span style={{ fontFamily: 'Sansation', fontWeight: 400, fontSize: 'clamp(1.5rem, 3.5vw, 3rem)', color: '#FFFFFF' }}>Conectar</span>
       </Link>
     </div>
 
@@ -723,30 +731,30 @@ const CTASection: React.FC = () => (
 
     {/* --- MOBILE VIEW --- */}
     <div className="md:hidden relative" style={{ overflow: 'hidden' }}>
+      {/* Logo lateral izquierdo móvil centrado verticalmente */}
       <img src="/logo-footer.svg" alt="" aria-hidden="true" style={{
-        position: 'absolute', left: -58, bottom: -194,
-        width: 202, height: 194, opacity: 0.7,
-        transform: 'rotate(-90deg)', transformOrigin: 'left top',
+        position: 'absolute', left: -40, top: '25%',
+        width: 140, height: 'auto', opacity: 0.6,
+        transform: 'translateY(-50%)',
         pointerEvents: 'none', zIndex: 0,
       }} />
 
-      <div style={{ width: 358, margin: '0 auto', borderTop: '1px solid #FFFFFF' }} />
+      <div style={{ width: '86.6%', margin: '0 auto', borderTop: '1px solid #FFFFFF' }} />
 
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '80px 0 0', gap: 20, position: 'relative', zIndex: 1 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px 0', gap: 24, position: 'relative', zIndex: 1 }}>
         <h2 style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 24, lineHeight: '27px', color: '#FFFFFF', textAlign: 'center', width: 272, margin: 0 }}>
           Un clic para ti,<br />un salto para tu marca.
         </h2>
 
-        <Link to="/contacto" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 358, height: 57, background: '#06CFD6', borderRadius: 22, textDecoration: 'none', flexShrink: 0 }}>
+        <Link to="/contacto" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '86.6%', height: 57, background: '#06CFD6', borderRadius: 22, textDecoration: 'none', flexShrink: 0 }}>
           <span style={{ fontFamily: 'Sansation', fontWeight: 400, fontSize: 32, lineHeight: '36px', color: '#FFFFFF' }}>Conectar</span>
         </Link>
-
-        <img src="/isotipo.svg" alt="" aria-hidden="true" style={{ position: 'absolute', left: 'calc(50% - 12px + 164px)', top: 135, width: 24, height: 31, opacity: 0.85 }} />
-
-        <div style={{ height: 90 }} />
       </div>
 
-      <div style={{ width: 358, margin: '0 auto', borderTop: '1px solid #FFFFFF' }} />
+      <div style={{ width: '86.6%', margin: '0 auto', borderTop: '1px solid #FFFFFF', position: 'relative' }}>
+        {/* Isotipo pegado a la línea en la esquina inferior derecha */}
+        <img src="/isotipo.svg" alt="" aria-hidden="true" style={{ position: 'absolute', right: 0, bottom: 8, width: 24, height: 31, opacity: 0.85 }} />
+      </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px 0 2px', gap: 8 }}>
         <p style={{ fontFamily: 'Helvetica Neue, sans-serif', fontWeight: 500, fontSize: 16, lineHeight: '19px', color: '#FFFFFF', margin: 0 }}>Contáctanos</p>
