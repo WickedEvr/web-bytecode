@@ -703,12 +703,18 @@ const CTASection: React.FC = () => (
 
     {/* --- DESKTOP VIEW --- */}
     <img src="/logo-footer.svg" alt="Bytecode" aria-hidden="true" className="hidden md:block absolute pointer-events-none"
-      style={{ left: '-60px', top: '50%', transform: 'translateY(-50%)', width: 'clamp(140px, 18vw, 240px)', height: 'auto', objectFit: 'contain', opacity: 0.7, zIndex: 1 }} />
+      style={{ 
+        left: 0, top: '50%', transform: 'translateY(-50%)', 
+        height: '80%', width: 'auto', maxWidth: '30vw', // Limitamos el ancho para que no choque
+        objectFit: 'contain', opacity: 0.7, zIndex: 1 
+      }} />
 
     <div className="hidden md:flex flex-row items-center justify-center gap-10 lg:gap-20" style={{
       zIndex: 2, width: '86.6%', margin: '0 auto',
       paddingTop: 'clamp(6rem, 15vh, 18rem)',
       paddingBottom: 'clamp(6rem, 15vh, 18rem)',
+      paddingLeft: 'clamp(2rem, 12vw, 15vw)', // Padding equilibrado
+      paddingRight: 'clamp(2rem, 12vw, 15vw)', // Padding equilibrado para centrar
     }}>
       <h2 style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(1.8rem, 4.5vw, 3.8rem)', lineHeight: 1.15, color: '#FFFFFF', textAlign: 'left' }}>
         Un clic para ti,<br />un salto para tu<br />marca.
@@ -729,24 +735,37 @@ const CTASection: React.FC = () => (
 
     {/* --- MOBILE VIEW --- */}
     <div className="md:hidden relative" style={{ overflow: 'hidden' }}>
-      {/* Logo lateral izquierdo móvil centrado verticalmente */}
-      <img src="/logo-footer.svg" alt="" aria-hidden="true" style={{
-        position: 'absolute', left: -40, top: '25%',
-        width: 140, height: 'auto', opacity: 0.6,
-        transform: 'translateY(-50%)',
-        pointerEvents: 'none', zIndex: 0,
-      }} />
-
       <div style={{ width: '86.6%', margin: '0 auto', borderTop: '1px solid #FFFFFF' }} />
 
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px 0', gap: 24, position: 'relative', zIndex: 1 }}>
-        <h2 style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 24, lineHeight: '27px', color: '#FFFFFF', textAlign: 'center', width: 272, margin: 0 }}>
+      {/* Contenedor exclusivo para el CTA móvil */}
+      <div style={{ position: 'relative' }}>
+        <img src="/designs/figuraUnClic.svg" alt="" aria-hidden="true" style={{
+          position: 'absolute', left: 0, bottom: 0,
+          width: 'clamp(100px, 36.7vw, 180px)', height: 'auto', opacity: 0.8,
+          pointerEvents: 'none', zIndex: 0,
+        }} />
+
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'flex-start',
+            paddingTop: 'clamp(40px, 8.9vh, 120px)', 
+            height: '42vh',
+            gap: 'clamp(16px, 5.8vw, 32px)',
+            position: 'relative',
+            zIndex: 1
+          }}
+        >
+        <h2 style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(20px, 5.8vw, 32px)', lineHeight: 1.15, color: '#FFFFFF', textAlign: 'center', width: 'clamp(220px, 65.7vw, 320px)', margin: 0 }}>
           Un clic para ti,<br />un salto para tu marca.
         </h2>
 
-        <Link to="/contacto" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '86.6%', height: 57, background: '#06CFD6', borderRadius: 22, textDecoration: 'none', flexShrink: 0 }}>
-          <span style={{ fontFamily: 'Sansation', fontWeight: 400, fontSize: 32, lineHeight: '36px', color: '#FFFFFF' }}>Conectar</span>
+        <Link to="/contacto" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '86.6%', height: 'clamp(48px, 13.7vw, 70px)', background: '#06CFD6', borderRadius: 22, textDecoration: 'none', flexShrink: 0 }}>
+          <span style={{ fontFamily: 'Sansation', fontWeight: 400, fontSize: 'clamp(24px, 7.7vw, 40px)', lineHeight: 1.15, color: '#FFFFFF' }}>Conectar</span>
         </Link>
+      </div>
       </div>
 
       <div style={{ width: '86.6%', margin: '0 auto', borderTop: '1px solid #FFFFFF', position: 'relative' }}>
@@ -754,17 +773,34 @@ const CTASection: React.FC = () => (
         <img src="/isotipo.svg" alt="" aria-hidden="true" style={{ position: 'absolute', right: 0, bottom: 8, width: 24, height: 31, opacity: 0.85 }} />
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px 0 2px', gap: 8 }}>
-        <p style={{ fontFamily: 'Helvetica Neue, sans-serif', fontWeight: 500, fontSize: 16, lineHeight: '19px', color: '#FFFFFF', margin: 0 }}>Contáctanos</p>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px 0 2px', gap: 8, fontFamily: '"Helvetica Neue LT Com", "Helvetica Neue", sans-serif' }}>
+        <p style={{ 
+          width: '152px', 
+          height: '26px', 
+          fontFamily: '"Helvetica Neue LT Com", "Helvetica Neue", sans-serif', 
+          fontStyle: 'normal', 
+          fontWeight: 500, 
+          fontSize: '16px', 
+          lineHeight: '19px', 
+          textAlign: 'center', 
+          color: '#FFFFFF', 
+          margin: 0 
+        }}>
+          Contáctanos
+        </p>
 
         <a 
           href="https://wa.me/51936281137?text=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-3 group outline-none shrink-0 text-[14px]"
+          className="flex items-center justify-center gap-[4px] group outline-none shrink-0"
         >
-          <FaWhatsapp className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300" size={16} />
-          <span className="text-gray-300 group-hover:text-white transition-colors duration-300" aria-label="WhatsApp">
+          <FaWhatsapp className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300" size={14} style={{ width: '14px', height: '14px', flexShrink: 0 }} />
+          <span className="group-hover:text-white transition-colors duration-300" aria-label="WhatsApp" style={{ 
+            fontFamily: '"Helvetica Neue LT Com 45 Light", "Helvetica Neue LT Com", "Helvetica Neue", sans-serif', 
+            fontStyle: 'normal', fontWeight: 300, fontSize: '14px', lineHeight: '17px', 
+            color: '#FFFFFF', margin: 0, padding: 0 
+          }}>
             (+51) 936 281 137
           </span>
         </a>
@@ -773,10 +809,14 @@ const CTASection: React.FC = () => (
           href="https://wa.me/51970199434?text=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-3 group outline-none shrink-0 text-[14px]"
+          className="flex items-center justify-center gap-[4px] group outline-none shrink-0"
         >
-          <FaWhatsapp className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300" size={16} />
-          <span className="text-gray-300 group-hover:text-white transition-colors duration-300" aria-label="WhatsApp">
+          <FaWhatsapp className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300" size={14} style={{ width: '14px', height: '14px', flexShrink: 0 }} />
+          <span className="group-hover:text-white transition-colors duration-300" aria-label="WhatsApp" style={{ 
+            fontFamily: '"Helvetica Neue LT Com 45 Light", "Helvetica Neue LT Com", "Helvetica Neue", sans-serif', 
+            fontStyle: 'normal', fontWeight: 300, fontSize: '14px', lineHeight: '17px', 
+            color: '#FFFFFF', margin: 0, padding: 0 
+          }}>
             (+51) 970 199 434
           </span>
         </a>
