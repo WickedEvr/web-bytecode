@@ -436,12 +436,16 @@ const ServiciosSection: React.FC = () => {
    SECTION: WHITE ORGANIC BACKGROUND (Ondas)
    ========================================================================== */
 
+/* ==========================================================================
+   SECTION: WHITE ORGANIC BACKGROUND (Ondas)
+   ========================================================================== */
+
 const WhiteOrganicBackground: React.FC = () => (
   <>
     <style>{`
       .organic-bg-wrapper {
         position: relative;
-        margin-top: clamp(-37.2rem, -60.8vw, -84.5rem);
+        margin-top: clamp(-30rem, -50vw, -70rem);
         height: 0;
         overflow: visible;
         z-index: 8;
@@ -449,58 +453,104 @@ const WhiteOrganicBackground: React.FC = () => (
       }
       @media (max-width: 767px) {
         .organic-bg-wrapper {
-          margin-top: 2rem;
+          margin-top: 6rem;
         }
       }
     `}</style>
-    <div aria-hidden="true" className="organic-bg-wrapper">
+    
+    {/* MOBILE: FULL SVG (Original behavior) */}
+    <div aria-hidden="true" className="organic-bg-wrapper md:hidden">
       <svg
-      viewBox="0 0 1440 700.2353"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      style={{ position: 'absolute', top: 0, left: 0, width: '100%', overflow: 'visible' }}
-    >
-      <defs>
-        <clipPath id="segblanca-clip">
-          <rect width="1440" height="700.2353" />
-        </clipPath>
-        <linearGradient id="blob-f1-grad" x1="-40" y1="634" x2="744" y2="634" gradientUnits="userSpaceOnUse">
-          <stop offset="0.3125" stopColor="#0CA3C6" />
-          <stop offset="1" stopColor="#026B9B" />
-        </linearGradient>
-      </defs>
-      
-      <rect className="md:hidden" x="-1000" y="-1430" width="3440" height="1800" fill="#ffffff" />
+        viewBox="0 0 1440 700.2353"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{ position: 'absolute', top: 0, left: 0, width: '100%', overflow: 'visible' }}
+      >
+        <defs>
+          <clipPath id="segblanca-clip-mobile">
+            <rect width="1440" height="700.2353" />
+          </clipPath>
+          <linearGradient id="blob-f1-grad-mobile" x1="-40" y1="634" x2="744" y2="634" gradientUnits="userSpaceOnUse">
+            <stop offset="0.3125" stopColor="#0CA3C6" />
+            <stop offset="1" stopColor="#026B9B" />
+          </linearGradient>
+        </defs>
+        
+        <rect className="md:hidden" x="-1000" y="-1430" width="3440" height="1800" fill="#ffffff" />
 
-      <g clipPath="url(#segblanca-clip)">
-        <path fill="url(#blob-f1-grad)" d="M -40.31 574.16 C 52.86 492.49 340.09 378.16 743.69 574.16 C 340.09 438.16 52.86 612.49 -40.31 694.16 Z" />
-      </g>
-      <g>
-        <path fill="#026B9B" d="
-          M 743.6898 574.1586
-          C 1147.2898 770.1586 1396.1896 655.8253 1470.1896 574.1586
-          L 1470.1896 760.1586
-          C 1200 740 950 700 743.6898 560
-          Z
-        "/>
-      </g>
-      <g clipPath="url(#segblanca-clip)">
-        <path fill="#fff" d="m743.6898,574.1586c-403.6-196-690.8334-81.6665-784.0001,0v-205.0007S-192.8104,10.1581,654.1897,10.1581c627.5.0002,815.9999,220.0007,815.9999,220.0007v343.9998c-74,81.6667-322.8998,196-726.4998,0Z" />
-      </g>
-    </svg>
-  </div>
+        <g clipPath="url(#segblanca-clip-mobile)">
+          <path fill="url(#blob-f1-grad-mobile)" d="M -40.31 574.16 C 52.86 492.49 340.09 378.16 743.69 574.16 C 340.09 438.16 52.86 612.49 -40.31 694.16 Z" />
+        </g>
+        <g>
+          <path fill="#026B9B" d="
+            M 743.6898 574.1586
+            C 1147.2898 770.1586 1396.1896 655.8253 1470.1896 574.1586
+            L 1470.1896 760.1586
+            C 1200 740 950 700 743.6898 560
+            Z
+          "/>
+        </g>
+        <g clipPath="url(#segblanca-clip-mobile)">
+          <path fill="#fff" d="m743.6898,574.1586c-403.6-196-690.8334-81.6665-784.0001,0v-205.0007S-192.8104,10.1581,654.1897,10.1581c627.5.0002,815.9999,220.0007,815.9999,220.0007v343.9998c-74,81.6667-322.8998,196-726.4998,0Z" />
+        </g>
+      </svg>
+    </div>
+
+    {/* DESKTOP: SURGICALLY EXPANDED SVG (+120px height) */}
+    <div aria-hidden="true" className="organic-bg-wrapper hidden md:block">
+      <svg
+        viewBox="0 0 1440 820.2353"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{ position: 'absolute', top: 0, left: 0, width: '100%', overflow: 'visible' }}
+      >
+        <defs>
+          <clipPath id="segblanca-clip-desktop">
+            <rect width="1440" height="820.2353" />
+          </clipPath>
+          <linearGradient id="blob-f1-grad-desktop" x1="-40" y1="754" x2="744" y2="754" gradientUnits="userSpaceOnUse">
+            <stop offset="0.3125" stopColor="#0CA3C6" />
+            <stop offset="1" stopColor="#026B9B" />
+          </linearGradient>
+        </defs>
+
+        <g clipPath="url(#segblanca-clip-desktop)">
+          {/* Desplazado +120px en Y */}
+          <path fill="url(#blob-f1-grad-desktop)" d="M -40.31 694.16 C 52.86 612.49 340.09 498.16 743.69 694.16 C 340.09 558.16 52.86 732.49 -40.31 814.16 Z" />
+        </g>
+        <g>
+          {/* Desplazado +120px en Y */}
+          <path fill="#026B9B" d="
+            M 743.6898 694.1586
+            C 1147.2898 890.1586 1396.1896 775.8253 1470.1896 694.1586
+            L 1470.1896 880.1586
+            C 1200 860 950 820 743.6898 680
+            Z
+          "/>
+        </g>
+        <g clipPath="url(#segblanca-clip-desktop)">
+          {/* Top intacto, paredes extendidas en 120px, base desplazada +120px */}
+          <path fill="#fff" d="m743.6898,694.1586c-403.6-196-690.8334-81.6665-784.0001,0v-325.0007S-192.8104,10.1581,654.1897,10.1581c627.5.0002,815.9999,220.0007,815.9999,220.0007v463.9998c-74,81.6667-322.8998,196-726.4998,0Z" />
+        </g>
+      </svg>
+    </div>
   </>
 );
 
 /* ==========================================================================
-   SECTION: HERRAMIENTAS (Logos Marquee)
+   SECTION: HERramientas (Logos Marquee)
    ========================================================================== */
 
 const HerramientasSection: React.FC = () => (
-  <section className="pb-12 px-6 herramientas-sec" style={{ position: 'relative', zIndex: 22, borderRadius: '2rem 2rem 0 0', paddingTop: '0' }}>
+  <section className="px-6 herramientas-sec pb-12 md:pb-32" style={{ position: 'relative', zIndex: 22 }}>
     <style>{`
-      .herramientas-sec { margin-top: -3rem; }
-      @media (min-width: 768px) { .herramientas-sec { margin-top: clamp(4rem, 20.4vw, 24rem); } }
+      .herramientas-sec { margin-top: -3rem; padding-top: 0; }
+      @media (min-width: 768px) { 
+        .herramientas-sec { 
+          margin-top: clamp(5rem, 11vw, 15rem);
+          padding-top: clamp(2rem, 6vw, 6rem);
+        } 
+      }
       @keyframes marquee-scroll {
         0%   { transform: translateX(0); }
         100% { transform: translateX(-25%); }
@@ -532,7 +582,7 @@ const HerramientasSection: React.FC = () => (
       </div>
 
       {/* Desktop fluid group */}
-      <div className="hidden md:flex items-center gap-3 mb-10 w-full">
+      <div className="hidden md:flex items-center gap-3 mb-16 w-full">
         <div style={{ flex: 1, height: 0, border: '2px solid rgba(60, 60, 59, 0.69)' }} />
         <h2
           style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(1.2rem, 3.5vw, 2.5rem)', lineHeight: 1.2, textAlign: 'center', color: '#3C3C3B', flexShrink: 0, padding: '0 0.5rem' }}
@@ -806,11 +856,11 @@ const CTASection: React.FC = () => (
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px 0 2px', gap: 8, fontFamily: '"Helvetica Neue LT Com", "Helvetica Neue", sans-serif' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px 0 2px', gap: 8, fontFamily: FONT }}>
         <p style={{ 
           width: '152px', 
           height: '26px', 
-          fontFamily: '"Helvetica Neue LT Com", "Helvetica Neue", sans-serif', 
+          fontFamily: FONT, 
           fontStyle: 'normal', 
           fontWeight: 500, 
           fontSize: '16px', 
@@ -830,7 +880,7 @@ const CTASection: React.FC = () => (
         >
           <FaWhatsapp className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300" size={14} style={{ width: '14px', height: '14px', flexShrink: 0 }} />
           <span className="group-hover:text-white transition-colors duration-300" aria-label="WhatsApp" style={{ 
-            fontFamily: '"Helvetica Neue LT Com 45 Light", "Helvetica Neue LT Com", "Helvetica Neue", sans-serif', 
+            fontFamily: FONT, 
             fontStyle: 'normal', fontWeight: 300, fontSize: '14px', lineHeight: '17px', 
             color: '#FFFFFF', margin: 0, padding: 0 
           }}>
@@ -846,7 +896,7 @@ const CTASection: React.FC = () => (
         >
           <FaWhatsapp className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300" size={14} style={{ width: '14px', height: '14px', flexShrink: 0 }} />
           <span className="group-hover:text-white transition-colors duration-300" aria-label="WhatsApp" style={{ 
-            fontFamily: '"Helvetica Neue LT Com 45 Light", "Helvetica Neue LT Com", "Helvetica Neue", sans-serif', 
+            fontFamily: FONT, 
             fontStyle: 'normal', fontWeight: 300, fontSize: '14px', lineHeight: '17px', 
             color: '#FFFFFF', margin: 0, padding: 0 
           }}>
