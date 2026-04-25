@@ -10,21 +10,24 @@ const services = [
     title: 'Página Web',
     description:
       'Creamos soluciones digitales multiplataforma que fusionan estética de vanguardia con arquitectura técnica robusta y escalable.',
-    img: 'https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?auto=format&fit=crop&w=2560&q=90',
+    img: 'https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?auto=format&fit=crop&w=2560&q=90', // Horizontal
+    imgMobile: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&h=1200&q=90&crop=top', // Vertical (Escritorio/Código)
   },
   {
     label: 'Servicios',
     title: 'App Móvil',
     description:
       'Desarrollamos aplicaciones nativas e híbridas con experiencias de usuario excepcionales para iOS y Android.',
-    img: 'https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=2560&q=90',
+    img: 'https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=2560&q=90', // Horizontal
+    imgMobile: 'https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=800&h=1200&q=90&crop=top', // Vertical (Celular en mano)
   },
   {
     label: 'Servicios',
     title: 'App de Escritorio',
     description:
       'Desarrollamos aplicaciones de escritorio con interfaces intuitivas y funcionalidades avanzadas.',
-    img: '/DesktopApp.webp',
+    img: '/DesktopApp.webp', // Horizontal
+    imgMobile: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&h=1200&q=90&crop=top', // Vertical (Setup de PC)
   },
 ];
 
@@ -36,14 +39,11 @@ const Servicios: React.FC = () => {
   const next = () => setCurrent((c) => (c + 1) % total);
 
   useEffect(() => {
-    // Crea un temporizador que ejecuta 'next' cada 5 segundos
     const autoplayTimer = setInterval(() => {
       next();
     }, 5000); 
-
-    // Función de limpieza: detiene el temporizador si el usuario sale de la vista
     return () => clearInterval(autoplayTimer);
-  }, []); // El array vacío asegura que el temporizador se inicie solo una vez
+  }, [current]);
 
   return (
     <div className="w-full bg-white font-sansation overflow-x-hidden flex flex-col select-none">
@@ -54,9 +54,102 @@ const Servicios: React.FC = () => {
 
       <div className="flex-grow flex flex-col">
 
-        {/* ── HERO CAROUSEL ── */}
-        <section className="relative h-[calc(100vh-3.25rem)] md:h-[calc(100vh-5.5rem)] overflow-hidden bg-[#020611]">
+        {/* ── SECCIÓN MÓVIL (Fondo Completo Translúcido) ── */}
+        <section id="Movil" className="relative flex flex-col min-h-[calc(100vh-4rem)] bg-[#020611] lg:hidden overflow-x-hidden overflow-y-auto">
+          
+          {/* CAPA 1: Imagen de fondo a pantalla completa */}
+          <div className="absolute inset-0 z-0">
+            <AnimatePresence>
+              <motion.div
+                key={current}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.7 }}
+                className="absolute inset-0"
+              >
+                <img
+                  src={services[current].imgMobile} 
+                  alt={services[current].title}
+                  draggable={false}
+                  className="w-full h-full object-cover opacity-70"
+                />
+              </motion.div>
+            </AnimatePresence>
+            
+            {/* CAPA 2: Degradado protector */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent" />
+          </div>
 
+          {/* CAPA 3: Contenido e Interacción (Flotando al final) */}
+          <div className="relative z-10 flex-1 flex flex-col px-6 pt-[clamp(5rem,12vh,8rem)] pb-[clamp(2rem,6vh,4rem)]">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`mobile-content-${current}`}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.4, ease: 'easeOut' }}
+                className="mt-auto flex flex-col items-center w-full"
+              >
+                {/* Etiqueta (Tamaño original restaurado) */}
+                <p className="text-white/90 text-[1.5rem] font-light tracking-wide mb-1">
+                  {services[current].label}
+                </p>
+
+                {/* Fila del Título y Flechas (Con animación de flotación) */}
+                <div className="flex items-center justify-between w-full mb-5">
+                  <button onClick={prev} className="-ml-3 p-2 text-gray-300 hover:text-white active:scale-90 transition-all outline-none" aria-label="Anterior">
+                    <motion.div
+                      animate={{ y: [0, -6, 0] }}
+                      transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                    >
+                      <svg viewBox="0 0 24 24" className="w-11 h-11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="15 18 9 12 15 6" />
+                      </svg>
+                    </motion.div>
+                  </button>
+
+                  <h2 className="px-2 text-[2.6rem] sm:text-[3.2rem] font-bold text-[#06CFD6] text-center leading-tight drop-shadow-lg">
+                    {services[current].title}
+                  </h2>
+                  
+                  <button onClick={next} className="-mr-3 p-2 text-gray-300 hover:text-white active:scale-90 transition-all outline-none" aria-label="Siguiente">
+                    <motion.div
+                      animate={{ y: [0, -6, 0] }}
+                      transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                    >
+                      <svg viewBox="0 0 24 24" className="w-11 h-11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
+                    </motion.div>
+                  </button>
+                </div>
+
+                {/* Descripción Justificada (Tamaño original restaurado) */}
+                <p className="text-white/90 text-[1rem] sm:text-[1.1rem] leading-relaxed font-light text-justify mb-7 w-full px-2 drop-shadow-md">
+                  {services[current].description}
+                </p>
+
+                {/* Call to Action */}
+                <div className="w-full flex flex-col items-center">
+                  <p className="text-white text-center font-bold text-[clamp(1rem,4.5vw,1.25rem)] mb-3 min-[400px]:mb-4 drop-shadow-md">
+                    Obtén mucha más información
+                  </p>
+                  <Link
+                    to="/contacto"
+                    className="w-full text-center bg-[#06CFD6] text-white font-bold text-[1.2rem] min-[400px]:text-[1.35rem] px-8 py-3 min-[400px]:py-4 rounded-[1.5rem] shadow-[0_4px_15px_rgba(6,207,214,0.3)] hover:bg-[#0CA3C6] active:scale-95 transition-all duration-300 outline-none"
+                  >
+                    Conectar
+                  </Link>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </section>
+
+        {/* ── SECCIÓN ESCRITORIO (Oculta en móviles con lg:block) ── */}
+        <section id="Escritorio" className="relative hidden lg:block h-[calc(100vh-5.5rem)] overflow-hidden bg-[#020611]">
           {/* Imagen de fondo */}
           <AnimatePresence>
             <motion.div
@@ -70,6 +163,7 @@ const Servicios: React.FC = () => {
               <img
                 src={services[current].img}
                 alt={services[current].title}
+                draggable={false}
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-black/10" />
@@ -80,7 +174,7 @@ const Servicios: React.FC = () => {
           {/* Flecha izquierda */}
           <button
             onClick={prev}
-            className="absolute left-10 top-1/2 -translate-y-1/2 z-20 text-white/70 hover:text-[#06CFD6] hover:scale-110 hover:drop-shadow-[0_0_18px_rgba(6,207,214,0.8)] transition-all duration-300 group"
+            className="absolute left-10 top-1/2 -translate-y-1/2 z-20 text-white/70 hover:text-[#06CFD6] hover:scale-110 hover:drop-shadow-[0_0_18px_rgba(6,207,214,0.8)] transition-all duration-300 group outline-none"
             aria-label="Anterior"
           >
             <motion.div
@@ -96,7 +190,7 @@ const Servicios: React.FC = () => {
           {/* Flecha derecha */}
           <button
             onClick={next}
-            className="absolute right-10 top-1/2 -translate-y-1/2 z-20 text-white/70 hover:text-[#06CFD6] hover:scale-110 hover:drop-shadow-[0_0_18px_rgba(6,207,214,0.8)] transition-all duration-300 group"
+            className="absolute right-10 top-1/2 -translate-y-1/2 z-20 text-white/70 hover:text-[#06CFD6] hover:scale-110 hover:drop-shadow-[0_0_18px_rgba(6,207,214,0.8)] transition-all duration-300 group outline-none"
             aria-label="Siguiente"
           >
             <motion.div
@@ -153,18 +247,19 @@ const Servicios: React.FC = () => {
               </div>
             </motion.div>
           </AnimatePresence>
-
         </section>
 
         {/* ── HERRAMIENTAS ── */}
-        <section className="bg-white pb-12 px-6" style={{ position: 'relative', zIndex: 20, paddingTop: '3rem' }}>
-          <div className="max-w-4xl mx-auto flex flex-col items-center">
-            <div className="flex items-center gap-3 mb-8 md:mb-10 w-full">
-              <div style={{ flex: 1, height: 0, border: '2px solid rgba(60, 60, 59, 0.69)' }} />
-              <h2 style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(1.2rem, 3.5vw, 2.5rem)', lineHeight: 1.2, textAlign: 'center', color: '#3C3C3B', flexShrink: 0, padding: '0 0.5rem' }}>
-                Nuestras Herramientas
+        <section className="bg-white pb-11 px-6" style={{ position: 'relative', zIndex: 20, paddingTop: '2.5rem' }}>
+          <div className="max-w-[1600px] mx-auto flex flex-col items-center">
+            <div className="flex items-center gap-3 md:gap-4 mb-5 md:mb-10 w-[95%] sm:w-[75%] md:w-full md:max-w-full">
+              <div className="flex-1 h-0 border-t-[2px] border-[#3C3C3B]" />
+              
+              <h2 className="font-sansation font-bold text-[1.35rem] sm:text-[1.5rem] md:text-[clamp(1.8rem,3.5vw,2.5rem)] leading-[1.15] text-center text-[#3C3C3B] shrink-0 px-3 md:px-4">
+                Nuestras <br className="block md:hidden" /> Herramientas
               </h2>
-              <div style={{ flex: 1, height: 0, border: '2px solid rgba(60, 60, 59, 0.69)' }} />
+              
+              <div className="flex-1 h-0 border-t-[2px] border-[#3C3C3B]" />
             </div>
           </div>
 
@@ -185,21 +280,21 @@ const Servicios: React.FC = () => {
               flex-shrink: 0;
             }
           `}</style>
+
           <div style={{ position: 'relative', width: '90vw', margin: '0 auto', overflow: 'hidden', maskImage: 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)', opacity: 0.8 }}>
             <div className="logos-track">
               {[0, 1, 2, 3].map(copy => (
                 <React.Fragment key={copy}>
-                  <img src="/logos/laravel.svg" alt={copy === 0 ? 'Laravel' : ''} aria-hidden={copy !== 0} style={{ height: 'clamp(28px, 4.7vw, 54px)', width: 'auto', filter: 'grayscale(100%)' }} />
-                  <img src="/logos/github.svg"  alt={copy === 0 ? 'GitHub' : ''}  aria-hidden={copy !== 0} style={{ height: 'clamp(30px, 4.9vw, 56px)', width: 'auto', filter: 'grayscale(100%)' }} />
-                  <img src="/logos/php.svg"     alt={copy === 0 ? 'PHP' : ''}     aria-hidden={copy !== 0} style={{ height: 'clamp(36px, 6.6vw, 76px)', width: 'auto', filter: 'grayscale(100%)' }} />
-                  <img src="/logos/JAVA.svg"    alt={copy === 0 ? 'Java' : ''}    aria-hidden={copy !== 0} style={{ height: 'clamp(40px, 7.5vw, 86px)', width: 'auto', filter: 'grayscale(100%)' }} />
-                  <img src="/logos/mongodb.svg" alt={copy === 0 ? 'MongoDB' : ''} aria-hidden={copy !== 0} style={{ height: 'clamp(44px, 8vw, 92px)',   width: 'auto', filter: 'grayscale(100%)' }} />
+                  <img src="/logos/laravel.svg" alt={copy === 0 ? 'Laravel' : ''} aria-hidden={copy !== 0} draggable={false} style={{ height: 'clamp(28px, 4.7vw, 54px)', width: 'auto', filter: 'grayscale(100%)' }} />
+                  <img src="/logos/github.svg"  alt={copy === 0 ? 'GitHub' : ''}  aria-hidden={copy !== 0} draggable={false} style={{ height: 'clamp(30px, 4.9vw, 56px)', width: 'auto', filter: 'grayscale(100%)' }} />
+                  <img src="/logos/php.svg"     alt={copy === 0 ? 'PHP' : ''}     aria-hidden={copy !== 0} draggable={false} style={{ height: 'clamp(36px, 6.6vw, 76px)', width: 'auto', filter: 'grayscale(100%)' }} />
+                  <img src="/logos/JAVA.svg"    alt={copy === 0 ? 'Java' : ''}    aria-hidden={copy !== 0} draggable={false} style={{ height: 'clamp(40px, 7.5vw, 86px)', width: 'auto', filter: 'grayscale(100%)' }} />
+                  <img src="/logos/mongodb.svg" alt={copy === 0 ? 'MongoDB' : ''} aria-hidden={copy !== 0} draggable={false} style={{ height: 'clamp(44px, 8vw, 92px)',   width: 'auto', filter: 'grayscale(100%)' }} />
                 </React.Fragment>
               ))}
             </div>
           </div>
         </section>
-
       </div>
 
       {/* Footer con degradado blanco → oscuro */}
@@ -209,7 +304,6 @@ const Servicios: React.FC = () => {
           <AltFooter />
         </div>
       </div>
-
     </div>
   );
 };
