@@ -7,8 +7,7 @@ import SpotlightText from "./SpotlightText";
 const AltFooter: React.FC = () => {
   return (
     <div className="bg-transparent px-4 md:px-8 lg:px-12 font-sansation select-none">
-      
-      {/* 1. INYECTAMOS LA ANIMACIÓN FLOTANTE */}
+
       <style>
         {`
           @keyframes float-logo {
@@ -22,14 +21,11 @@ const AltFooter: React.FC = () => {
       </style>
 
       <footer className="bg-gradient-to-t from-[#022131] to-[#010b10] text-white rounded-t-[40px] md:rounded-t-[80px] pt-20 pb-12 px-8 md:px-16 lg:px-24 relative overflow-hidden flex flex-col mt-auto mx-auto w-full max-w-[1920px]">
-        {/* --- NUEVO: Decorativo Fondo de Estrellas (Stardust) --- */}
         <div 
           className="absolute inset-0 z-0 pointer-events-none opacity-40 mix-blend-screen"
           style={{
             backgroundImage: "url('/designs/stardust.png')",
-            // 1. Le damos un tamaño fijo donde se vea nítida (ajusta este número)
             backgroundSize: '525px', 
-            // 2. Le decimos que se repita para llenar el espacio vacío
             backgroundRepeat: 'repeat',
             backgroundPosition: 'top left',
           }}
@@ -101,7 +97,6 @@ const AltFooter: React.FC = () => {
               <span className="font-semibold text-xl md:text-2xl">
                 Contáctanos
               </span>
-
 
               {/* 2. WhatsApp */}
               <a 

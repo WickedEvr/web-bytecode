@@ -24,14 +24,12 @@ const Nosotros: React.FC = () => {
 
   const handleMouseMove = (e: React.MouseEvent<HTMLImageElement>) => {
       const rect = e.currentTarget.getBoundingClientRect();
-      // Convierte la posición a un rango de -20 a +20 píxeles
       const x = ((e.clientX - rect.left) / rect.width - 0.5) * 40;
       const y = ((e.clientY - rect.top) / rect.height - 0.5) * 40;
       setGlowPos({ x, y });
   };
 
   return (
-    // CAMBIO 1: Se añade 'relative' al contenedor principal para que el elemento absoluto lateral se ancle a toda la página
     <div className="relative flex w-full flex-col overflow-x-clip bg-[#044553] font-sansation select-none">
       <SEO 
         title="Nosotros" 
@@ -85,14 +83,15 @@ const Nosotros: React.FC = () => {
           </div>
 
           {/* Contenedor de Decorativos */}
-          <div className="relative w-full z-10 mx-auto mb-24 aspect-[0.72] w-full max-w-[18rem] sm:mb-14 sm:max-w-[21rem]">    
+          <div className="relative w-full z-10 mx-auto mb-24 aspect-[0.72] max-w-[18rem] sm:mb-14 sm:max-w-[21rem]">    
+            
             {/* 1. Rectángulo azul oscuro (Entra deslizándose desde la derecha) */}
             <motion.div 
               initial={{ opacity: 0, x: 80 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-              className="absolute -right-[51px] -top-[20px] h-[104px] w-[191px] rounded-l-[20px] rounded-r-none bg-[#024F79]" 
+              className="absolute -top-[20px] left-[calc(100%-140px)] h-[104px] w-[100vw] rounded-l-[20px] rounded-r-none bg-[#024F79]" 
             />
             
             {/* 2. Cuadrado inferior izquierdo (Entra desde la diagonal inferior-izquierda) */}
@@ -101,10 +100,10 @@ const Nosotros: React.FC = () => {
               whileInView={{ opacity: 1, x: 0, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-              className="absolute -left-[51px] top-[336px] h-[149px] w-[215.2px] rounded-r-[34px] rounded-l-none bg-[#026B9B]" 
+              className="absolute top-[336px] right-[calc(100%-164.2px)] h-[149px] w-[100vw] rounded-r-[34px] rounded-l-none bg-[#026B9B]" 
             />
 
-            {/* 3. Rectángulo vertical cian principal (Entra deslizándose suavemente desde arriba) */}
+            {/* 3. Rectángulo vertical cian principal (Sin cambios) */}
             <motion.div 
               initial={{ opacity: 0, y: -80 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -113,7 +112,7 @@ const Nosotros: React.FC = () => {
               className="absolute left-[66px] top-[7px] h-[441.3px] w-[161px] rounded-[25px] bg-gradient-to-b from-[#06CFD6] to-[#036C70]" 
             />
 
-            {/* 4. Círculo cian (Entra desde la diagonal superior-derecha) */}
+            {/* 4. Círculo cian (Sin cambios) */}
             <motion.div 
               initial={{ opacity: 0, x: 60, y: -60 }}
               whileInView={{ opacity: 1, x: 0, y: 0 }}
@@ -122,7 +121,7 @@ const Nosotros: React.FC = () => {
               className="absolute right-[29px] top-[20px] h-[153px] w-[153px] rounded-full bg-[#0CA3C6] shadow-[0_0_80px_-20px_rgba(0,0,0,1)]" 
             />
 
-            {/* 5. El Hombre (Emerge hacia arriba al final de la coreografía) */}
+            {/* 5. El Hombre (Sin cambios) */}
             <motion.img
               src="/nosotros/hombredepie.png"
               alt="Tecnología y Escalabilidad"
@@ -134,17 +133,22 @@ const Nosotros: React.FC = () => {
               className="absolute left-1/2 top-[3.8%] z-10 w-[93%] -translate-x-1/2 drop-shadow-2xl"
             />
             
-            {/* 6. Sombra del piso (Aparece desvaneciéndose suavemente desde abajo) */}
-            <motion.img
-              src="/nosotros/sombrapisohombre.png"
-              alt=""
+            {/* 6. Sombra del piso (Sin cambios) */}
+            <motion.div
               initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
               whileInView={{ opacity: 1, x: 0, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: 0.6, duration: 0.8, ease: "easeOut" }}
-              className="absolute top-[430px] left-[140px] z-0 w-[85%] -translate-x-1/2 opacity-85"
-            />
+              transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
+              className="absolute top-[430px] left-[142px] z-0 w-[90%] -translate-x-1/2 opacity-85"
+            >
+              <motion.img
+                src="/nosotros/sombrapisohombre.png"
+                alt=""
+                className="w-full opacity-90"
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6, duration: 0.8, ease: "easeOut" }}
+              />
+            </motion.div>
           </div>
 
           {/* Contenedor de Textos */}
@@ -168,25 +172,29 @@ const Nosotros: React.FC = () => {
         </div>
       </section>
 
-      <section id='Escritorio' className="relative hidden w-full pb-[100px] lg:block lg:pb-[150px]">
-        {/* Fondos */}
-        <div className="absolute left-0 top-0 h-[1000px] w-full bg-[#000] overflow-hidden">
+      {/* ── SECCIÓN ESCRITORIO (Alturas y márgenes dinámicos) ── */}
+      <section id='Escritorio' className="relative hidden w-full lg:pb-[100px] 2xl:pb-[150px] lg:block">
+        {/* Fondos: La altura del fondo negro ahora se comprime en laptops (700px) y crece en monitores (1000px) */}
+        <div className="absolute left-0 top-0 w-full bg-[#000] overflow-hidden lg:h-[700px] xl:h-[850px] 2xl:h-[1000px] transition-all duration-500">
           <img
             src="/nosotros/imagenchicalaptoparriba.png"
             alt="Fondo Laptop"
+            draggable={false}
             className="h-full w-full object-cover object-top opacity-100 -translate-y-[18%]"
           />
-          <div className="absolute inset-0 w-full bg-gradient-to-r from-black/50 via-black/30 to-transparent md:w-[80%]" />
+          <div className="absolute inset-0 w-full bg-gradient-to-r from-black/50 via-black/30 to-transparent lg:w-[90%] 2xl:w-[80%]" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0CA3C6]" />
         </div>
         
-        {/* Contenedor de Textos */}
-        <div className="relative mx-auto w-full max-w-[1600px] px-12 pt-[250px] lg:min-h-[1600px] lg:px-[100px]">
-          <div className="relative z-10 w-full lg:w-1/2 pl-[30px]">
+        {/* Contenedor Principal: Se reduce el min-h y el padding superior dramáticamente en laptops */}
+        <div className="relative mx-auto w-full max-w-[1600px] px-12 lg:pt-[140px] xl:pt-[200px] 2xl:pt-[250px] lg:min-h-[1050px] xl:min-h-[1350px] 2xl:min-h-[1600px] lg:px-[80px] 2xl:px-[100px] transition-all duration-500">
+          <div className="relative z-30 w-full lg:w-1/2 pl-[30px]">
+            
+            {/* Título y Párrafo principal adaptados a pantallas de laptop */}
             <motion.h1
               initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
-              className="mb-6 text-6xl font-bold leading-tight text-[#0CA3C6] md:text-[85px] md:leading-[95px]"
+              className="mb-6 font-bold text-[#0CA3C6] lg:text-[65px] xl:text-[75px] 2xl:text-[85px] leading-tight transition-all"
             >
               Nosotros
             </motion.h1>
@@ -195,13 +203,15 @@ const Nosotros: React.FC = () => {
               initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
-              className="mb-24 max-w-[1600px] text-justify text-xl leading-snug text-white md:mb-[150px] md:text-[32px] md:leading-[36px]"
+              // El margen inferior (mb) pasa de 150px a solo 70px en laptops para matar el espacio vacío
+              className="max-w-[1600px] text-justify text-white lg:mb-[70px] xl:mb-[100px] 2xl:mb-[150px] lg:text-[22px] xl:text-[26px] 2xl:text-[32px] lg:leading-snug 2xl:leading-[36px] transition-all"
             >
               Nos especializamos en ingeniería de software multiplataforma y automatización inteligente para
               negocios escalables.
             </motion.p>
 
-            <div className="relative mt-[417px] flex flex-col gap-20 pl-0 md:gap-[120px] md:pl-20">
+            {/* Misión, Visión, Valores: Gap y Margen superior super reducidos */}
+            <div className="relative flex flex-col pl-0 md:pl-20 lg:mt-[100px] xl:mt-[220px] 2xl:mt-[417px] lg:gap-[50px] xl:gap-[80px] 2xl:gap-[120px] transition-all duration-500">
               {infoBlocks.map((block, index) => (
                 <motion.div
                   key={block.title}
@@ -210,8 +220,10 @@ const Nosotros: React.FC = () => {
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.1 }}
                 >
-                  <h2 className="mb-4 text-4xl font-bold md:mb-8 md:text-[64px] text-white [text-shadow:0px_4px_10.7px_rgba(255,255,255,0.49)]">{block.title}</h2>
-                  <p className="max-w-[550px] text-justify text-lg leading-relaxed text-white md:text-[24px] md:leading-[27px]">
+                  <h2 className="font-bold text-white [text-shadow:0px_4px_10.7px_rgba(255,255,255,0.49)] lg:mb-4 2xl:mb-8 lg:text-[42px] xl:text-[54px] 2xl:text-[64px] transition-all">
+                    {block.title}
+                  </h2>
+                  <p className="max-w-[550px] text-justify text-white lg:text-[18px] xl:text-[20px] 2xl:text-[24px] leading-relaxed transition-all">
                     {block.text}
                   </p>
                 </motion.div>
@@ -220,67 +232,61 @@ const Nosotros: React.FC = () => {
           </div>
         </div>
         
-        {/* Contenedor de Decorativos */}
-        <div className="pointer-events-none absolute right-0 top-[10px] z-20 h-[1700px] w-[800px] scale-[1.15] origin-top-right">
+        {/* Contenedor de Decorativos (El Hombre) - Escala ligeramente aumentada en lg y xl */}
+        <div className="pointer-events-none absolute right-0 top-[60px] z-20 h-[1700px] w-[800px] origin-[100%_15%] lg:scale-[0.62] xl:scale-[0.82] 2xl:scale-[1.05] transition-transform duration-500">
           
-          {/* 1. Rectángulo azul oscuro (Entra deslizándose desde la derecha) */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: 80 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-            className="absolute right-0 top-[50px] h-[258px] w-[402px] rounded-l-[60px] rounded-r-none bg-[#024F79]" 
+            className="absolute right-0 top-[50px] h-[258px] w-[402px] rounded-l-[60px] rounded-r-none bg-[#024F79]"
           />
 
-          {/* 2. Cuadrado inferior izquierdo (Entra desde la diagonal inferior-izquierda) */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: -60, y: 60 }}
             whileInView={{ opacity: 1, x: 0, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.5, ease: "easeOut" }}
-            className="absolute left-[80px] top-[1029px] h-[403px] w-[414px] rounded-[59px] bg-[#026B9B]" 
+            className="absolute left-[80px] top-[1029px] h-[403px] w-[414px] rounded-[59px] bg-[#026B9B]"
           />
 
-          {/* 3. Rectángulo vertical cian principal (Entra deslizándose suavemente desde arriba) */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -80 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
-            className="absolute left-[210px] top-[99px] h-[1240px] w-[456px] rounded-[60px] bg-gradient-to-b from-[#06CFD6] to-[#036C70]" 
+            className="absolute left-[210px] top-[99px] h-[1240px] w-[456px] rounded-[60px] bg-gradient-to-b from-[#06CFD6] to-[#036C70]"
           />
 
-          {/* 4. Círculo cian (Entra desde la diagonal superior-derecha) */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: 60, y: -60 }}
             whileInView={{ opacity: 1, x: 0, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
-            className="absolute right-[51px] top-[145px] h-[435px] w-[435px] rounded-full bg-[#0CA3C6] shadow-[0_60px_60px_-20px_rgba(0,0,0,0.35)]" 
+            className="absolute right-[51px] top-[145px] h-[435px] w-[435px] rounded-full bg-[#0CA3C6] shadow-[0_60px_60px_-20px_rgba(0,0,0,0.35)]"
           />
 
-          {/* 5. Sombra del piso (Aparece desvaneciéndose suavemente desde abajo) */}
-          <motion.div
+          <motion.div 
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
-            className="absolute left-[60px] top-[1275px] z-0 w-[730px]"
-          >
+            className="absolute left-[60px] top-[1275px] z-0 w-[730px]">
+            
             <motion.img
               src="/nosotros/sombrapisohombre.png"
-              alt=""
+              alt="" draggable={false}
               className="w-full opacity-90"
               animate={{
                 scale: isHovered ? 0.95 : 1,
                 opacity: isHovered ? 0.4 : 0.9,
-                filter: isHovered ? "blur(6px)" : "blur(0px)",
+                filter: isHovered ? "blur(6px)" : "blur(0px)"
               }}
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
             />
           </motion.div>
 
-          {/* 6. El Hombre (Emerge hacia arriba al final de la coreografía) */}
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -290,45 +296,37 @@ const Nosotros: React.FC = () => {
           >
             <motion.img
               src="/nosotros/hombredepie.png"
-              alt="Tecnología y Escalabilidad"
+              alt="Tecnología" draggable={false}
               className="w-full"
               animate={{
                 y: isHovered ? -15 : 0,
                 scale: isHovered ? 1.02 : 1,
-                filter: isHovered
-                  ? `drop-shadow(${-glowPos.x}px ${-glowPos.y}px 30px rgba(6,207,214,0.85)) brightness(1.1)`
-                  : `drop-shadow(0px 20px 25px rgba(0,0,0,0.3)) brightness(1)`,
+                filter: isHovered ? `drop-shadow(${-glowPos.x}px ${-glowPos.y}px 30px rgba(6,207,214,0.85)) brightness(1.1)` : `drop-shadow(0px 20px 25px rgba(0,0,0,0.3)) brightness(1)`
               }}
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
             />
           </motion.div>
 
-          {/* Hitbox interactivo (Permanece intacto e invisible) */}
-          <div 
-            className="absolute left-[210px] top-[200px] z-20 h-[1050px] w-[450px] cursor-crosshair pointer-events-auto"
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => {
-              setIsHovered(false);
-              setGlowPos({ x: 0, y: 0 });
-            }}
-            onMouseMove={handleMouseMove}
-          />
+          <div className="absolute left-[210px] top-[200px] z-20 h-[1050px] w-[450px] cursor-crosshair pointer-events-auto" onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => { setIsHovered(false); setGlowPos({ x: 0, y: 0 }); }} onMouseMove={handleMouseMove} />
         </div>
 
-        <div className="absolute left-0 top-[750px] -bottom-[471px] w-full overflow-hidden rounded-tr-[90px] bg-[#0CA3C6] shadow-[15px_-15px_40px_rgba(0,0,0,0.25)]">
+        {/* Fondo ondulado azul base: Se adapta a la nueva altura comprimida */}
+        <div className="absolute left-0 w-full overflow-hidden rounded-tr-[90px] bg-[#0CA3C6] shadow-[15px_-15px_40px_rgba(0,0,0,0.25)] lg:top-[500px] xl:top-[600px] 2xl:top-[750px] lg:-bottom-[150px] xl:-bottom-[300px] 2xl:-bottom-[471px] transition-all duration-500">
           <div className="absolute inset-0 bg-gradient-to-b from-[#0CA3C6]/0 via-[#0CA3C6]/10 to-[#044553]" />
           <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-b from-transparent to-[#044553]" />
         </div>
       </section>
 
-      <div className="pointer-events-none absolute bottom-0 left-0 top-[750px] z-0 hidden w-[20vw] max-w-[250px] lg:block opacity-100">
+      {/* SVG LATERAL */}
+      <div className="pointer-events-none absolute bottom-0 left-0 z-0 hidden max-w-[250px] lg:block lg:top-[500px] xl:top-[600px] 2xl:top-[750px] lg:w-[10vw] xl:w-[15vw] 2xl:w-[20vw] lg:opacity-40 xl:opacity-70 2xl:opacity-100 transition-all duration-500">
         <img
           src="/designs/elemento_lateral_fondo_nosotros.svg"
           alt="Patrón de Red Lateral"
+          draggable={false}
           className="h-full w-full object-contain object-left-top"
         />
       </div>
-      
+
       <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-0 h-[950px] w-full lg:hidden">
         <img
           src="/designs/elemento_final_nosotros_vista_movil.svg"
@@ -341,7 +339,6 @@ const Nosotros: React.FC = () => {
       <div className="relative z-10">
         <AltFooter />
       </div>
-
     </div>
   );
 };
