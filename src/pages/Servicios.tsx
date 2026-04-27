@@ -158,10 +158,25 @@ const Servicios: React.FC = () => {
 
         {/* ── HERRAMIENTAS ── */}
         <section className="bg-white pb-12 px-6" style={{ position: 'relative', zIndex: 20, paddingTop: '3rem' }}>
-          <div className="max-w-4xl mx-auto flex flex-col items-center">
-            <div className="flex items-center gap-3 mb-8 md:mb-10 w-full">
+          <div className="w-full md:w-[85%] mx-auto flex flex-col items-center">
+            {/* Mobile exact group */}
+            <div className="md:hidden relative w-[358px] flex items-center justify-center mb-8">
+              <div className="absolute left-0 w-[93px]" style={{ height: 0, border: '2px solid rgba(60, 60, 59, 0.69)' }} />
+              <h2
+                className="w-[178px]"
+                style={{ fontFamily: 'Sansation', fontStyle: 'normal', fontWeight: 700, fontSize: '24px', lineHeight: '27px', textAlign: 'center', color: '#3C3C3B', flexShrink: 0, zIndex: 1 }}
+              >
+                Nuestras Herramientas
+              </h2>
+              <div className="absolute right-0 w-[93px]" style={{ height: 0, border: '2px solid rgba(60, 60, 59, 0.69)' }} />
+            </div>
+
+            {/* Desktop fluid group */}
+            <div className="hidden md:flex items-center gap-3 mb-16 w-full">
               <div style={{ flex: 1, height: 0, border: '2px solid rgba(60, 60, 59, 0.69)' }} />
-              <h2 style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(1.2rem, 3.5vw, 2.5rem)', lineHeight: 1.2, textAlign: 'center', color: '#3C3C3B', flexShrink: 0, padding: '0 0.5rem' }}>
+              <h2
+                style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(1.2rem, 3.5vw, 2.5rem)', lineHeight: 1.2, textAlign: 'center', color: '#3C3C3B', flexShrink: 0, padding: '0 0.5rem' }}
+              >
                 Nuestras Herramientas
               </h2>
               <div style={{ flex: 1, height: 0, border: '2px solid rgba(60, 60, 59, 0.69)' }} />
