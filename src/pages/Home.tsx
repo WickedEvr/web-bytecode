@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { FaWhatsapp } from 'react-icons/fa6';
-import { Mail } from "lucide-react";
 import SEO from '../components/SEO';
 import Stack from '../components/Stack';
 import GalaxyBackground from '../components/GalaxyBackground';
@@ -11,7 +9,6 @@ import GalaxyBackground from '../components/GalaxyBackground';
     CONFIGURACIÓN Y DATOS ESTÁTICOS
    ========================================================================== */
 
-const FONT = "'Sansation', sans-serif";
 const CYAN = '#0CA3C6';
 
 const services = [
@@ -39,26 +36,8 @@ const testimonials = [
 ];
 
 /* ==========================================================================
-   COMPONENTES DE APOYO (HELPERS)
+    COMPONENTES DE APOYO (HELPERS)
    ========================================================================== */
-
-export const SwirlMark: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <img src="/isotipo.svg" alt="" aria-hidden="true" className={className} />
-);
-
-/** @deprecated No se detectó uso actual en el Home */
-export const LogoCell: React.FC<{ children: React.ReactNode; className?: string; colSpan?: boolean }> = ({
-  children,
-  className = 'bg-white',
-  colSpan = false,
-}) => (
-  <div
-    className={`flex items-center justify-center ${colSpan ? 'col-span-3 py-4' : 'aspect-square'} ${className}`}
-    style={{ borderRadius: '22px', boxShadow: '0px 0px 26.2px rgba(255,255,255,0.33)' }}
-  >
-    {children}
-  </div>
-);
 
 const TestimonialCard: React.FC<{ name: string; role: string; text: string; stars: number; slot: 0 | 1 | 2 }> = ({
   name, role, text, stars, slot,
@@ -71,16 +50,17 @@ const TestimonialCard: React.FC<{ name: string; role: string; text: string; star
   const { left, top, opacity, zIndex, scale } = slotProps[slot];
 
   return (
-    <div style={{
-      position: 'absolute',
-      left, top,
-      width: 189.51, height: 305.14,
-      opacity, zIndex,
-      transform: `scale(${scale})`,
-      transformOrigin: 'top left',
-      transition: 'left 0.7s cubic-bezier(0.4,0,0.2,1), top 0.7s cubic-bezier(0.4,0,0.2,1), transform 0.7s cubic-bezier(0.4,0,0.2,1), opacity 0.6s ease',
-      filter: 'drop-shadow(0px 4px 18px rgba(178,250,255,0.62))',
-    }}>
+    <div className="font-sansation" 
+      style={{
+        position: 'absolute',
+        left, top,
+        width: 189.51, height: 305.14,
+        opacity, zIndex,
+        transform: `scale(${scale})`,
+        transformOrigin: 'top left',
+        transition: 'left 0.7s cubic-bezier(0.4,0,0.2,1), top 0.7s cubic-bezier(0.4,0,0.2,1), transform 0.7s cubic-bezier(0.4,0,0.2,1), opacity 0.6s ease',
+        filter: 'drop-shadow(0px 4px 18px rgba(178,250,255,0.62))',
+      }}>
       <div style={{
         width: '100%', height: '100%',
         borderRadius: 37,
@@ -119,9 +99,9 @@ const TestimonialCard: React.FC<{ name: string; role: string; text: string; star
           textAlign: 'center',
           overflow: 'hidden',
         }}>
-          <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: 16, color: '#06CFD6', margin: '0 0 1px', lineHeight: 1.2 }}>{name}</p>
-          <p style={{ fontFamily: FONT, fontWeight: 400, fontSize: 10, color: '#06CFD6', margin: '0 0 4px', lineHeight: 1.2 }}>{role}</p>
-          <p style={{ fontFamily: FONT, fontSize: 11, color: '#000000', lineHeight: 1.4, margin: '0 0 8px', flex: 1 }}>{text}</p>
+          <p style={{ fontWeight: 700, fontSize: 16, color: '#06CFD6', margin: '0 0 1px', lineHeight: 1.2 }}>{name}</p>
+          <p style={{ fontWeight: 400, fontSize: 10, color: '#06CFD6', margin: '0 0 4px', lineHeight: 1.2 }}>{role}</p>
+          <p style={{ fontSize: 11, color: '#000000', lineHeight: 1.4, margin: '0 0 8px', flex: 1 }}>{text}</p>
           <div style={{ display: 'flex', gap: 3 }}>
             {Array.from({ length: stars }).map((_, i) => (
               <svg key={i} width={29.23} height={29.23} viewBox="0 0 24 24" fill="#FF9D00">
@@ -136,14 +116,14 @@ const TestimonialCard: React.FC<{ name: string; role: string; text: string; star
 };
 
 /* ==========================================================================
-   SECTION: HERO
+    SECTION: HERO
    ========================================================================== */
 
 const HeroSection: React.FC = () => {
   const [isHovered, setIsHovered] = React.useState(false);
   
   return (
-    <section className="relative h-screen overflow-hidden select-none" style={{ marginTop: 0 }}>
+    <section className="relative h-screen overflow-hidden select-none font-sansation" style={{ marginTop: 0 }}>
       {/* Background elements */}
       <div className="absolute inset-0" style={{ backgroundColor: '#040e1f' }} aria-hidden="true">
         <GalaxyBackground /> 
@@ -170,7 +150,6 @@ const HeroSection: React.FC = () => {
           <h1
             className="text-white uppercase mb-2 md:mb-4"
             style={{
-              fontFamily: FONT,
               lineHeight: '1.08',
               textShadow: '0px 4px 7.3px rgba(0,0,0,0.51)',
             }}
@@ -183,7 +162,6 @@ const HeroSection: React.FC = () => {
           <p
             className="text-white mb-5 md:mb-10"
             style={{
-              fontFamily: FONT,
               fontWeight: 400,
               fontSize: 'clamp(0.9rem, 1.8vw, 1.75rem)',
               lineHeight: '1.3',
@@ -202,7 +180,6 @@ const HeroSection: React.FC = () => {
                 maxWidth: '100%',
                 height: 'clamp(48px, 5vw, 68px)',
                 fontSize: 'clamp(1rem, 1.5vw, 1.5rem)',
-                fontFamily: FONT,
                 color: '#fff',
                 minWidth: 'clamp(180px, 20vw, 260px)',
               }}
@@ -217,7 +194,6 @@ const HeroSection: React.FC = () => {
                 maxWidth: '100%',
                 height: 'clamp(48px, 5vw, 68px)',
                 fontSize: 'clamp(1rem, 1.5vw, 1.5rem)',
-                fontFamily: FONT,
                 color: '#0CA3C6',
                 border: '2px solid #0CA3C6',
                 minWidth: 'clamp(180px, 20vw, 260px)',
@@ -261,7 +237,7 @@ const HeroSection: React.FC = () => {
 };
 
 /* ==========================================================================
-   SECTION: SERVICIOS (Desktop & Mobile)
+    SECTION: SERVICIOS (Desktop & Mobile)
    ========================================================================== */
 
 const ServiciosSection: React.FC = () => {
@@ -273,7 +249,7 @@ const ServiciosSection: React.FC = () => {
   }, []);
 
   const stackCards = useMemo(() => services.map((svc, i) => (
-    <div key={i} style={{ position: 'relative', width: '100%', height: '100%' }}>
+    <div className="font-sansation" key={i} style={{ position: 'relative', width: '100%', height: '100%' }}>
       <img
         src={svc.img}
         alt={svc.title}
@@ -283,10 +259,10 @@ const ServiciosSection: React.FC = () => {
       <div className="svc-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.28)' }} />
       <div className="svc-teal-shape" style={{ position: 'absolute', inset: 0 }} />
       <div style={{ position: 'absolute', bottom: 24, left: 20, right: 60 }}>
-        <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: '1.5rem', color: '#fff', lineHeight: 1.25, margin: 0 }}>
+        <p style={{ fontWeight: 700, fontSize: '1.5rem', color: '#fff', lineHeight: 1.25, margin: 0 }}>
           {svc.title}
         </p>
-        <p style={{ fontFamily: FONT, fontSize: '0.95rem', color: 'rgba(255,255,255,0.9)', lineHeight: 1.15, marginTop: '8px', whiteSpace: 'pre-line' }}>
+        <p style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.9)', lineHeight: 1.15, marginTop: '8px', whiteSpace: 'pre-line' }}>
           {svc.description}
         </p>
       </div>
@@ -295,7 +271,7 @@ const ServiciosSection: React.FC = () => {
   )), []);
 
   return (
-    <div className="relative" style={{ marginTop: '-11%' }}>
+    <div className="relative font-sansation" style={{ marginTop: '-11%' }}>
       <style>{`
         .svc-card-wrap  { max-width: 85%; }
         .svc-card       { border-radius: 48px; }
@@ -344,10 +320,10 @@ const ServiciosSection: React.FC = () => {
 
       <div className="relative md:absolute md:inset-0 z-10 flex flex-col items-center justify-start px-5 select-none pb-16 md:pb-0 pt-[clamp(2rem,8vw,5rem)] md:pt-[3%]">
         <div style={{ position: 'relative', zIndex: 15, textAlign: 'center' }}>
-          <p style={{ color: CYAN, fontFamily: FONT, fontSize: 'clamp(2.24rem, 5.6vw, 3.36rem)', fontWeight: 800, lineHeight: 1.2, marginBottom: '0.6rem' }}>
+          <p style={{ color: CYAN, fontSize: 'clamp(2.24rem, 5.6vw, 3.36rem)', fontWeight: 800, lineHeight: 1.2, marginBottom: '0.6rem' }}>
             Haz crecer tu negocio
           </p>
-          <p style={{ color: '#ffffff', fontFamily: FONT, fontSize: 'clamp(1.4rem, 3.5vw, 2.03rem)', fontWeight: 400, lineHeight: 1.5, marginBottom: '1.5rem' }}>
+          <p style={{ color: '#ffffff', fontSize: 'clamp(1.4rem, 3.5vw, 2.03rem)', fontWeight: 400, lineHeight: 1.5, marginBottom: '1.5rem' }}>
             Te mereces un sitio web que haga{' '}
             <span style={{ color: CYAN }}>todo lo que necesitas.</span>
           </p>
@@ -395,10 +371,10 @@ const ServiciosSection: React.FC = () => {
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.45, ease: 'easeInOut' }}
                 >
-                  <p className="svc-text-title" style={{ fontFamily: FONT, fontWeight: 700, fontSize: 'clamp(1.4rem, 3.2vw, 3.8rem)', color: '#fff', lineHeight: 1.25, margin: 0 }}>
+                  <p className="svc-text-title" style={{ fontWeight: 700, fontSize: 'clamp(1.4rem, 3.2vw, 3.8rem)', color: '#fff', lineHeight: 1.25, margin: 0 }}>
                     {services[slide].title}
                   </p>
-                  <p className="svc-text-desc" style={{ fontFamily: FONT, fontSize: 'clamp(0.9rem, 2vw, 2.5rem)', color: 'rgba(255,255,255,0.9)', lineHeight: 1.15, marginTop: '8px', whiteSpace: 'pre-line' }}>
+                  <p className="svc-text-desc" style={{ fontSize: 'clamp(0.9rem, 2vw, 2.5rem)', color: 'rgba(255,255,255,0.9)', lineHeight: 1.15, marginTop: '8px', whiteSpace: 'pre-line' }}>
                     {services[slide].description}
                   </p>
                 </motion.div>
@@ -433,11 +409,7 @@ const ServiciosSection: React.FC = () => {
 };
 
 /* ==========================================================================
-   SECTION: WHITE ORGANIC BACKGROUND (Ondas)
-   ========================================================================== */
-
-/* ==========================================================================
-   SECTION: WHITE ORGANIC BACKGROUND (Ondas)
+    SECTION: WHITE ORGANIC BACKGROUND (Ondas)
    ========================================================================== */
 
 const WhiteOrganicBackground: React.FC = () => (
@@ -538,11 +510,11 @@ const WhiteOrganicBackground: React.FC = () => (
 );
 
 /* ==========================================================================
-   SECTION: HERramientas (Logos Marquee)
+    SECTION: HERramientas (Logos Marquee)
    ========================================================================== */
 
 const HerramientasSection: React.FC = () => (
-  <section className="px-6 herramientas-sec pb-12 md:pb-12" style={{ position: 'relative', zIndex: 22 }}>
+  <section className="px-6 herramientas-sec pb-12 md:pb-12 font-sansation" style={{ position: 'relative', zIndex: 22 }}>
     <style>{`
       .herramientas-sec { margin-top: -3rem; padding-top: 0; }
       @media (min-width: 768px) { 
@@ -574,7 +546,7 @@ const HerramientasSection: React.FC = () => (
         <div className="absolute left-0 w-[93px]" style={{ height: 0, border: '2px solid rgba(60, 60, 59, 0.69)' }} />
         <h2
           className="w-[178px]"
-          style={{ fontFamily: 'Sansation', fontStyle: 'normal', fontWeight: 700, fontSize: '24px', lineHeight: '27px', textAlign: 'center', color: '#3C3C3B', flexShrink: 0, zIndex: 1 }}
+          style={{ fontStyle: 'normal', fontWeight: 700, fontSize: '24px', lineHeight: '27px', textAlign: 'center', color: '#3C3C3B', flexShrink: 0, zIndex: 1 }}
         >
           Nuestras Herramientas
         </h2>
@@ -585,7 +557,7 @@ const HerramientasSection: React.FC = () => (
       <div className="hidden md:flex items-center gap-3 mb-16 w-full">
         <div style={{ flex: 1, height: 0, border: '2px solid rgba(60, 60, 59, 0.69)' }} />
         <h2
-          style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(1.2rem, 3.5vw, 2.5rem)', lineHeight: 1.2, textAlign: 'center', color: '#3C3C3B', flexShrink: 0, padding: '0 0.5rem' }}
+          style={{ fontWeight: 700, fontSize: 'clamp(1.2rem, 3.5vw, 2.5rem)', lineHeight: 1.2, textAlign: 'center', color: '#3C3C3B', flexShrink: 0, padding: '0 0.5rem' }}
         >
           Nuestras Herramientas
         </h2>
@@ -620,7 +592,7 @@ const HerramientasSection: React.FC = () => (
 );
 
 /* ==========================================================================
-   SECTION: IA (Inteligencia Artificial)
+    SECTION: IA (Inteligencia Artificial)
    ========================================================================== */
 
 const IASection: React.FC = () => (
@@ -648,7 +620,7 @@ const IASection: React.FC = () => (
           className="chica-wrap relative flex-shrink-0"
           style={{ zIndex: 10, overflow: 'hidden', borderRadius: '48px', boxShadow: '0px 4px 7.8px rgba(0,0,0,0.42)' }}
         >
-         <div className="absolute inset-0">
+          <div className="absolute inset-0">
             <img src="/fondochica.png" alt="" aria-hidden="true" className="absolute inset-0 rounded-[48px] w-full h-full object-cover" />
             <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.22)' }} />
           </div>
@@ -659,13 +631,13 @@ const IASection: React.FC = () => (
       </div>
 
       <div className="w-full md:flex-1 flex flex-col gap-3 text-center md:text-left items-center md:items-start order-2 md:order-1 mb-auto md:mt-auto z-20 md:pr-4">
-        <h2 className="leading-[27px] md:leading-[1]" style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(24px, 3vw, 2.5rem)', color: CYAN, maxWidth: 450 }}>
+        <h2 className="leading-[27px] md:leading-[1]" style={{ fontWeight: 700, fontSize: 'clamp(24px, 3vw, 2.5rem)', color: CYAN, maxWidth: 450 }}>
           Comenzar nunca ha sido<br />tan fácil gracias a la IA
         </h2>
-        <p className="text-black md:text-white leading-[18px] md:leading-relaxed" style={{ fontFamily: 'Sansation', fontWeight: 400, fontSize: 'clamp(16px, 1.8vw, 1.5rem)', maxWidth: 450 }}>
+        <p className="text-black md:text-white leading-[18px] md:leading-relaxed" style={{ fontWeight: 400, fontSize: 'clamp(16px, 1.8vw, 1.5rem)', maxWidth: 450 }}>
           No hace falta tener experiencia.
         </p>
-        <p className="text-black md:text-white leading-[11px] md:leading-normal" style={{ fontFamily: 'Sansation', fontStyle: 'italic', fontWeight: 300, fontSize: 'clamp(10px, 1.2vw, 1rem)', maxWidth: 450 }}>
+        <p className="text-black md:text-white leading-[11px] md:leading-normal" style={{ fontWeight: 300, fontSize: 'clamp(10px, 1.2vw, 1rem)', maxWidth: 450 }}>
           Kit de diseño con IA, uno de los mejores<br />inventos de TIME de 2025*
         </p>
       </div>
@@ -699,7 +671,7 @@ const TestimonialsSection: React.FC = () => {
   }, []);
 
   return (
-    <section className="relative overflow-hidden">
+    <section className="relative overflow-hidden font-sansation">
       <style>{`
         .testim-outer { width: 316px; height: 310px; }
         .testim-group { margin-left: -48px; transform-origin: top left; }
@@ -714,11 +686,11 @@ const TestimonialsSection: React.FC = () => {
       <div className="flex flex-col md:flex-row items-center justify-center md:justify-between md:pl-0 md:pr-0 py-10 md:py-0 w-full relative gap-10 md:gap-0" style={{ zIndex: 1, minHeight: 'clamp(500px, 60vw, 400px)' }}>
 
         <div className="w-full md:w-[32%] flex flex-col items-center justify-center md:items-end order-1 md:order-2 text-center md:text-right relative z-20 md:ml-auto px-6 md:px-0 md:pr-[6.7%]">
-          <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: 'clamp(34px, 4.5vw, 68px)', lineHeight: 1.15, color: '#FFFFFF', marginBottom: '1.2rem' }}>
+          <h2 style={{ fontWeight: 700, fontSize: 'clamp(34px, 4.5vw, 68px)', lineHeight: 1.15, color: '#FFFFFF', marginBottom: '1.2rem' }}>
             CONSTRUYENDO EL FUTURO,{' '}
             <span style={{ color: CYAN }}>CASO POR CASO</span>
           </h2>
-          <p style={{ fontFamily: FONT, fontWeight: 400, fontSize: 'clamp(16px, 1.9vw, 26px)', lineHeight: 1.6, color: 'rgba(255,255,255,0.75)' }}>
+          <p style={{ fontWeight: 400, fontSize: 'clamp(16px, 1.9vw, 26px)', lineHeight: 1.6, color: 'rgba(255,255,255,0.75)' }}>
             Testimonios veraces de nuestros primeros usuarios piloto que ya están transformando sus industrias.
           </p>
 
@@ -739,202 +711,18 @@ const TestimonialsSection: React.FC = () => {
 
       </div>
 
-      <div className="hidden md:block" style={{ width: '86.6%', margin: '6rem auto 0', borderTop: '1px solid #FFFFFF' }} />
+      <div className="hidden md:block" style={{ width: '86.6%', margin: '6rem auto 0'}} />
     </section>
   );
 };
 
 /* ==========================================================================
-   SECTION: CTA (Call to Action & Footer links)
-   ========================================================================== */
-
-const CTASection: React.FC = () => (
-  <section className="relative overflow-hidden pb-8 md:pb-0">
-    <style>
-      {`
-        @keyframes float-logo {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-7px); }
-        }
-        .animate-float-logo {
-          animation: float-logo 4s ease-in-out infinite;
-        }
-      `}
-    </style>
-
-    {/* --- DESKTOP VIEW --- */}
-    <img src="/logo-footer.svg" alt="Bytecode" aria-hidden="true" className="hidden md:block absolute pointer-events-none"
-      style={{ 
-        left: 0, top: '50%', transform: 'translateY(-50%)', 
-        height: '80%', width: 'auto', maxWidth: '30vw', // Limitamos el ancho para que no choque
-        objectFit: 'contain', opacity: 0.7, zIndex: 1 
-      }} />
-
-    <div className="hidden md:flex flex-row items-center justify-center gap-10 lg:gap-20" style={{
-      zIndex: 2, width: '86.6%', margin: '0 auto',
-      paddingTop: 'clamp(6rem, 15vh, 18rem)',
-      paddingBottom: 'clamp(6rem, 15vh, 18rem)',
-      paddingLeft: 'clamp(2rem, 12vw, 15vw)', // Padding equilibrado
-      paddingRight: 'clamp(2rem, 12vw, 15vw)', // Padding equilibrado para centrar
-    }}>
-      <h2 style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(1.8rem, 4.5vw, 3.8rem)', lineHeight: 1.15, color: '#FFFFFF', textAlign: 'left' }}>
-        Un clic para ti,<br />un salto para tu<br />marca.
-      </h2>
-      <Link to="/contacto" style={{ 
-        display: 'flex', alignItems: 'center', justifyContent: 'center', 
-        width: '100%', maxWidth: 'clamp(260px, 30vw, 420px)', 
-        height: 'clamp(56px, 7vw, 90px)', 
-        background: '#06CFD6', borderRadius: '22px', flexShrink: 0, textDecoration: 'none' 
-      }}>
-        <span style={{ fontFamily: 'Sansation', fontWeight: 400, fontSize: 'clamp(1.5rem, 3.5vw, 3rem)', color: '#FFFFFF' }}>Conectar</span>
-      </Link>
-    </div>
-    
-    <div 
-      className="hidden md:block absolute animate-float-logo hover:drop-shadow-[0_0_20px_rgba(6,207,214,0.9)] transition-all duration-300"
-      style={{ right: '9%', bottom: '8%', zIndex: 2 }}
-    >
-      <img src="/isotipo.svg" alt="" aria-hidden="true" className="object-contain"
-      style={{ 
-        width: '46px', 
-        height: 'auto', 
-        opacity: 0.85,
-        filter: "brightness(0) saturate(100%) invert(68%) sepia(35%) saturate(3821%) hue-rotate(143deg) brightness(96%) contrast(94%)"
-      }} />
-    </div>
-
-    
-    <div className="hidden md:block" style={{ width: '86.6%', margin: '0 auto', borderTop: '1px solid #FFFFFF' }} />
-
-    {/* --- MOBILE VIEW --- */}
-    <div className="md:hidden relative" style={{ overflow: 'hidden' }}>
-      <div style={{ width: '86.6%', margin: '0 auto', borderTop: '1px solid #FFFFFF' }} />
-
-      {/* Contenedor exclusivo para el CTA móvil */}
-      <div style={{ position: 'relative' }}>
-        <img src="/designs/figuraUnClic.svg" alt="" aria-hidden="true" style={{
-          position: 'absolute', left: 0, bottom: 0,
-          width: 'clamp(100px, 36.7vw, 180px)', height: 'auto', opacity: 0.8,
-          pointerEvents: 'none', zIndex: 0,
-        }} />
-
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'flex-start',
-            paddingTop: 'clamp(40px, 8.9vh, 120px)', 
-            height: '42vh',
-            gap: 'clamp(16px, 5.8vw, 32px)',
-            position: 'relative',
-            zIndex: 1
-          }}
-        >
-        <h2 style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(20px, 5.8vw, 32px)', lineHeight: 1.15, color: '#FFFFFF', textAlign: 'center', width: 'clamp(220px, 65.7vw, 320px)', margin: 0 }}>
-          Un clic para ti,<br />un salto para tu marca.
-        </h2>
-
-        <Link to="/contacto" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '86.6%', height: 'clamp(48px, 13.7vw, 70px)', background: '#06CFD6', borderRadius: 22, textDecoration: 'none', flexShrink: 0 }}>
-          <span style={{ fontFamily: 'Sansation', fontWeight: 400, fontSize: 'clamp(24px, 7.7vw, 40px)', lineHeight: 1.15, color: '#FFFFFF' }}>Conectar</span>
-        </Link>
-      </div>
-      </div>
-
-      <div style={{ width: '86.6%', margin: '0 auto', borderTop: '1px solid #FFFFFF', position: 'relative' }}>
-        {/* Isotipo pegado a la línea en la esquina inferior derecha */}
-        <div 
-          className="absolute animate-float-logo hover:drop-shadow-[0_0_20px_rgba(6,207,214,0.9)] transition-all duration-300"
-          style={{ right: 0, bottom: 8, zIndex: 2 }}
-        >
-          <img src="/isotipo.svg" alt="" aria-hidden="true" style={{ 
-            width: 24, 
-            height: 31, 
-            opacity: 0.85,
-            filter: "brightness(0) saturate(100%) invert(68%) sepia(35%) saturate(3821%) hue-rotate(143deg) brightness(96%) contrast(94%)"
-          }} />
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px 0 2px', gap: 8, fontFamily: FONT }}>
-        <p style={{ 
-          width: '152px', 
-          height: '26px', 
-          fontFamily: FONT, 
-          fontStyle: 'normal', 
-          fontWeight: 500, 
-          fontSize: '16px', 
-          lineHeight: '19px', 
-          textAlign: 'center', 
-          color: '#FFFFFF', 
-          margin: 0 
-        }}>
-          Contáctanos
-        </p>
-
-        <a 
-          href="https://wa.me/51936281137?text=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-[4px] group outline-none shrink-0"
-        >
-          <FaWhatsapp className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300" size={14} style={{ width: '14px', height: '14px', flexShrink: 0 }} />
-          <span className="group-hover:text-white transition-colors duration-300" aria-label="WhatsApp" style={{ 
-            fontFamily: FONT, 
-            fontStyle: 'normal', fontWeight: 300, fontSize: '14px', lineHeight: '17px', 
-            color: '#FFFFFF', margin: 0, padding: 0 
-          }}>
-            (+51) 936 281 137
-          </span>
-        </a>
-
-        <a
-          href="https://wa.me/51970199434?text=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-[4px] group outline-none shrink-0"
-        >
-          <FaWhatsapp className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300" size={14} style={{ width: '14px', height: '14px', flexShrink: 0 }} />
-          <span className="group-hover:text-white transition-colors duration-300" aria-label="WhatsApp" style={{ 
-            fontFamily: FONT, 
-            fontStyle: 'normal', fontWeight: 300, fontSize: '14px', lineHeight: '17px', 
-            color: '#FFFFFF', margin: 0, padding: 0 
-          }}>
-            (+51) 970 199 434
-          </span>
-        </a>
-
-        <a
-          href="mailto:contacto@bytecode.com.pe?subject=Cotizaci%C3%B3n%20de%20desarrollo%20de%20software&body=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
-          className="flex items-center gap-3 group outline-none shrink-0"
-        >
-          <Mail className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300" size={16} />
-          <span className="text-gray-300 group-hover:text-white transition-colors duration-300 break-all">
-            contacto@bytecode.com.pe
-          </span>
-        </a>
-
-        <div className="flex flex-wrap items-center justify-center gap-6 md:gap-14 text-gray-400 text-sm md:text-base font-normal w-full pt-4">
-          <Link to="/condiciones" className="hover:text-[#06CFD6] transition-colors">Condiciones</Link>
-          <Link to="/privacidad" className="hover:text-[#06CFD6] transition-colors">Privacidad</Link>
-          <Link to="/reclamaciones" className="hover:text-[#06CFD6] transition-colors">Libro de Reclamaciones</Link>
-        </div>
-
-        <span className="mt-4 text-gray-300 text-sm md:text-base text-center lg:text-right">
-          © 2026 Bytecode. Todos los derechos reservados.
-        </span>
-      </div>
-    </div>
-  </section>
-);
-
-/* ==========================================================================
-   PAGE: HOME (Main Orchestrator)
+    PAGE: HOME (Main Orchestrator)
    ========================================================================== */
 
 const Home: React.FC = () => {
   return (
-    <div className="overflow-x-hidden" style={{ fontFamily: FONT }}>
+    <div className="overflow-x-hidden font-sansation">
       <SEO 
         title="Inicio" 
         description="Bytecode es tu socio tecnológico experto en desarrollo de software, aplicaciones móviles y transformación digital."
@@ -963,18 +751,14 @@ const Home: React.FC = () => {
       </script>
 
       <HeroSection />
-      
       <ServiciosSection />
-
       <WhiteOrganicBackground />
-
       <HerramientasSection />
 
       {/* SECCIONES CON FONDO COMPARTIDO (IA, Testimonials, CTA) */}
       <div className="relative" style={{ zIndex: 22, marginTop: 'clamp(3rem, 8vw, 8rem)' }}>
         <IASection />
         <TestimonialsSection />
-        <CTASection />
       </div>
     </div>
   );

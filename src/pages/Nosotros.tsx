@@ -233,7 +233,7 @@ const Nosotros: React.FC = () => {
         </div>
         
         {/* Contenedor de Decorativos (El Hombre) - Escala ligeramente aumentada en lg y xl */}
-        <div className="pointer-events-none absolute right-0 top-[60px] z-20 h-[1700px] w-[800px] origin-[100%_15%] lg:scale-[0.62] xl:scale-[0.82] 2xl:scale-[1.05] transition-transform duration-500">
+        <div className="pointer-events-none absolute right-0 top-[55px] z-20 h-[1700px] w-[800px] origin-[100%_15%] lg:scale-[0.62] xl:scale-[0.82] 2xl:scale-[1.21] transition-transform duration-500">
           
           <motion.div
             initial={{ opacity: 0, x: 80 }}

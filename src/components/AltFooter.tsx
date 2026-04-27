@@ -45,9 +45,10 @@ const AltFooter: React.FC = () => {
         {/* ========================================= */}
         {/* SECCIÓN SUPERIOR */}
         {/* ========================================= */}
-        <div className="max-w-7xl mx-auto w-full relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8 lg:gap-10 mb-16">
+        <div className="max-w-7xl mx-auto w-full relative z-10 flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-20 mb-16">
+          
           {/* Lado Izquierdo: Texto Principal */}
-          <div className="flex-1 text-left">
+          <div className="text-center lg:text-left">
             <h2 className="text-3xl md:text-5xl lg:text-5xl font-bold leading-tight md:leading-[1.15]">
               <SpotlightText> Un clic para ti,
               <br />
@@ -57,27 +58,29 @@ const AltFooter: React.FC = () => {
             </h2>
           </div>
 
-          {/* Lado Derecho: Botón CTA e Isotipo */}
-          <div className="flex items-center gap-6 lg:gap-8">
+          {/* Lado Derecho: Botón CTA */}
+          <div className="flex items-center">
             <Link
               to="/contacto"
-              className="bg-[#06CFD6] hover:bg-[#0CA3C6] text-white font-bold text-lg md:text-2xl lg:text-3xl uppercase py-4 px-8 md:py-5 md:px-14 rounded-full shadow-[0_10px_30px_rgba(6,207,214,0.3)] hover:scale-105 transition-all duration-300"
+              className="bg-[#06CFD6] hover:bg-[#0CA3C6] text-white font-bold text-lg md:text-2xl lg:text-3xl py-4 px-16 md:py-5 md:px-24 lg:px-28 xl:px-20 2xl:px-48 rounded-[30px] shadow-[0_10px_30px_rgba(6,207,214,0.3)] hover:scale-105 transition-all duration-300"
             >
-              CONECTAR
+              Conectar
             </Link>
-            <div className=" lg:block shrink-0 transform translate-y-11 md:translate-y-21 translate-x-15 md:translate-x-31">
-              <div className="animate-float-logo hover:drop-shadow-[0_0_20px_rgba(6,207,214,0.9)] transition-all duration-300">
-                <img
-                  src="/designs/elemento_logo.svg"
-                  alt="Bytecode Element"
-                  draggable={false}
-                  className="w-11 h-auto object-contain opacity-90"
-                  style={{
-                    filter:
-                      "brightness(0) saturate(100%) invert(68%) sepia(35%) saturate(3821%) hue-rotate(143deg) brightness(96%) contrast(94%)",
-                  }}
-                />
-              </div>
+          </div>
+
+          {/* Isotipo */}
+          <div className="absolute right-1.5 md:right-3 lg:right-[6%] xl:right-4 2xl:-right-31 lg:block shrink-0 transform translate-y-31 md:translate-y-37 lg:translate-y-21 transition-all duration-500">
+            <div className="animate-float-logo hover:drop-shadow-[0_0_20px_rgba(6,207,214,0.9)] transition-all duration-300">
+              <img
+                src="/designs/elemento_logo.svg"
+                alt="Bytecode Element"
+                draggable={false}
+                className="w-8 md:w-9 lg:w-11 h-auto object-contain opacity-90 transition-all duration-300"
+                style={{
+                  filter:
+                    "brightness(0) saturate(100%) invert(68%) sepia(35%) saturate(3821%) hue-rotate(143deg) brightness(96%) contrast(94%)",
+                }}
+              />
             </div>
           </div>
         </div>
@@ -85,33 +88,33 @@ const AltFooter: React.FC = () => {
         {/* ========================================= */}
         {/* SECCIÓN INFERIOR (Línea + Textos) */}
         {/* ========================================= */}
-          {/* Línea Separadora */}
-          <div className="w-full border-t border-white mb-8" />
+        
+        {/* Línea Separadora */}
+        <div className="w-full border-t border-white mb-8" />
 
-          {/* Contenedor inferior */}
-          <div className="flex flex-col gap-6">
-
-            {/* --- FILA 1: Contacto + Copyright --- */}
-            <div className="flex flex-col lg:flex-row items-center lg:justify-between w-full gap-4 lg:gap-6 text-white font-normal text-base md:text-lg">
-              {/* Contáctanos */}
-              <span className="font-semibold text-xl md:text-2xl">
+        {/* Contenedor inferior */}
+        <div className="flex flex-col gap-8 lg:gap-10">
+          {/* --- FILA 1: Contacto --- */}
+          <div className="flex flex-col lg:flex-row lg:flex-wrap 2xl:flex-nowrap items-center lg:justify-center 2xl:justify-between w-full gap-5 lg:gap-x-10 lg:gap-y-6 2xl:gap-6 text-white font-normal text-base md:text-lg">
+            <div className="flex flex-col lg:flex-row lg:flex-wrap 2xl:flex-nowrap items-center justify-center gap-5 lg:gap-x-10 lg:gap-y-6 xl:gap-19 2xl:gap-29">
+              <span className="font-semibold text-xl md:text-2xl whitespace-nowrap">
                 Contáctanos
               </span>
 
-              {/* 2. WhatsApp */}
+              {/* WhatsApp 1 */}
               <a 
                 href="https://wa.me/51936281137?text=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 group outline-none"
               >
-
                 <FaWhatsapp className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300 shrink-0" size={22} />
-                <span className="text-gray-300 group-hover:text-white transition-colors duration-300" aria-label="WhatsApp">
+                <span className="text-gray-300 group-hover:text-white transition-colors duration-300 whitespace-nowrap" aria-label="WhatsApp">
                   (+51) 936 281 137
                 </span>
               </a>
 
+              {/* WhatsApp 2 */}
               <a
                 href="https://wa.me/51970199434?text=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
                 target="_blank"
@@ -119,38 +122,45 @@ const AltFooter: React.FC = () => {
                 className="flex items-center gap-3 group outline-none"
               >
                 <FaWhatsapp className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300 shrink-0" size={22} />
-                <span className="text-gray-300 group-hover:text-white transition-colors duration-300" aria-label="WhatsApp">
+                <span className="text-gray-300 group-hover:text-white transition-colors duration-300 whitespace-nowrap" aria-label="WhatsApp">
                   (+51) 970 199 434
                 </span>
               </a>
 
-
-              {/* 3. Correo */}
+              {/* Correo */}
               <a
                 href="mailto:contacto@bytecode.com.pe?subject=Cotizaci%C3%B3n%20de%20desarrollo%20de%20software&body=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
                 className="flex items-center gap-3 group outline-none"
               >
                 <Mail className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300 shrink-0" size={22} />
-                <span className="text-gray-300 group-hover:text-white transition-colors duration-300 break-all">
+                <span className="text-gray-300 group-hover:text-white transition-colors duration-300 whitespace-nowrap">
                   contacto@bytecode.com.pe
                 </span>
               </a>
-
-              {/* Copyright */}
-              <div className="flex flex-col items-center lg:items-end gap-1 shrink-0">
-                <span className="text-gray-300 text-sm md:text-base text-center lg:text-right">
-                  © 2026 Bytecode. Todos los derechos reservados.
-                </span>
-              </div>
             </div>
 
-            {/* --- FILA 2: Enlaces Legales --- */}
-            <div className="flex flex-wrap items-center justify-center gap-6 md:gap-14 text-gray-400 text-sm md:text-base font-normal w-full">
-              <Link to="/condiciones" className="hover:text-[#06CFD6] transition-colors">Condiciones</Link>
-              <Link to="/privacidad" className="hover:text-[#06CFD6] transition-colors">Privacidad</Link>
-              <Link to="/reclamaciones" className="hover:text-[#06CFD6] transition-colors">Libro de Reclamaciones</Link>
+            {/* Copyright (Solo visible en Escritorio Gigante 2XL) */}
+            <div className="hidden 2xl:flex flex-col items-end gap-1 shrink-0">
+              <span className="text-gray-300 text-base text-right whitespace-nowrap">
+                © 2026 Bytecode. Todos los derechos reservados.
+              </span>
             </div>
           </div>
+
+          {/* --- FILA 2: Enlaces Legales --- */}
+          <div className="flex flex-wrap items-center justify-center gap-6 md:gap-14 text-gray-400 text-sm md:text-base font-normal w-full">
+            <Link to="/condiciones" className="hover:text-[#06CFD6] transition-colors">Condiciones</Link>
+            <Link to="/privacidad" className="hover:text-[#06CFD6] transition-colors">Privacidad</Link>
+            <Link to="/reclamaciones" className="hover:text-[#06CFD6] transition-colors">Libro de Reclamaciones</Link>
+          </div>
+
+          {/* --- FILA 3: Copyright Móvil/Tablet/Laptop --- */}
+          <div className="flex 2xl:hidden w-full justify-center mt-2">
+            <span className="text-gray-300 text-sm md:text-base text-center">
+              © 2026 Bytecode. Todos los derechos reservados.
+            </span>
+          </div>
+        </div>
       </footer>
     </div>
   );
