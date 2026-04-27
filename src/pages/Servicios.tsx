@@ -267,14 +267,12 @@ const Servicios: React.FC = () => {
 
             {/* Desktop fluid group */}
             <div className="hidden md:flex items-center gap-3 mb-16 w-full">
-              <div style={{ flex: 1, height: 0, border: '2px solid rgba(60, 60, 59, 0.69)' }} />
+              <div className="flex-1 h-0 border-t-[2px] border-[#3C3C3B]" />
               <h2
                 style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(1.2rem, 3.5vw, 2.5rem)', lineHeight: 1.2, textAlign: 'center', color: '#3C3C3B', flexShrink: 0, padding: '0 0.5rem' }}
               >
                 Nuestras Herramientas
-
               </h2>
-              
               <div className="flex-1 h-0 border-t-[2px] border-[#3C3C3B]" />
             </div>
           </div>
