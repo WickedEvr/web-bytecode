@@ -407,7 +407,7 @@ const ServiciosSection: React.FC = () => {
               <img className="svc-isotipo" src="/isotipo.svg" alt="" aria-hidden="true" style={{ position: 'absolute', bottom: '5%', right: '2%', width: 'clamp(25px, 4vw, 50px)', height: 'auto', pointerEvents: 'none', zIndex: 2 }} />
             </div>
           </div>
-          <div className="flex justify-center mt-5 gap-2 items-center" style={{ position: 'relative', zIndex: 20 }}>
+          <div className="flex justify-center mt-8 gap-4 items-center" style={{ position: 'relative', zIndex: 20 }}>
             {services.map((_, i) => (
               <button
                 key={i}
@@ -416,8 +416,8 @@ const ServiciosSection: React.FC = () => {
                   height: '11px',
                   borderRadius: '9999px',
                   transition: 'width 0.3s ease, background-color 0.3s ease',
-                  width: slide === i ? '56px' : '14px',
-                  background: slide === i ? '#9ca3af' : '#d1d5db',
+                  width: slide === i ? '72px' : '24px',
+                  background: '#9ca3af',
                   border: 'none',
                   padding: 0,
                   cursor: 'pointer',
@@ -496,41 +496,41 @@ const WhiteOrganicBackground: React.FC = () => (
       </svg>
     </div>
 
-    {/* DESKTOP: SURGICALLY EXPANDED SVG (+120px height) */}
+    {/* DESKTOP: REDUCED SVG (-10% from 820px) */}
     <div aria-hidden="true" className="organic-bg-wrapper hidden md:block">
       <svg
-        viewBox="0 0 1440 820.2353"
+        viewBox="0 0 1440 738.2353"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         style={{ position: 'absolute', top: 0, left: 0, width: '100%', overflow: 'visible' }}
       >
         <defs>
           <clipPath id="segblanca-clip-desktop">
-            <rect width="1440" height="820.2353" />
+            <rect width="1440" height="738.2353" />
           </clipPath>
-          <linearGradient id="blob-f1-grad-desktop" x1="-40" y1="754" x2="744" y2="754" gradientUnits="userSpaceOnUse">
+          <linearGradient id="blob-f1-grad-desktop" x1="-40" y1="672" x2="744" y2="672" gradientUnits="userSpaceOnUse">
             <stop offset="0.3125" stopColor="#0CA3C6" />
             <stop offset="1" stopColor="#026B9B" />
           </linearGradient>
         </defs>
 
         <g clipPath="url(#segblanca-clip-desktop)">
-          {/* Desplazado +120px en Y */}
-          <path fill="url(#blob-f1-grad-desktop)" d="M -40.31 694.16 C 52.86 612.49 340.09 498.16 743.69 694.16 C 340.09 558.16 52.86 732.49 -40.31 814.16 Z" />
+          {/* Desplazado -82px en Y */}
+          <path fill="url(#blob-f1-grad-desktop)" d="M -40.31 612.16 C 52.86 530.49 340.09 416.16 743.69 612.16 C 340.09 476.16 52.86 650.49 -40.31 732.16 Z" />
         </g>
         <g>
-          {/* Desplazado +120px en Y */}
+          {/* Desplazado -82px en Y */}
           <path fill="#026B9B" d="
-            M 743.6898 694.1586
-            C 1147.2898 890.1586 1396.1896 775.8253 1470.1896 694.1586
-            L 1470.1896 880.1586
-            C 1200 860 950 820 743.6898 680
+            M 743.6898 612.1586
+            C 1147.2898 808.1586 1396.1896 693.8253 1470.1896 612.1586
+            L 1470.1896 798.1586
+            C 1200 778 950 738 743.6898 598
             Z
           "/>
         </g>
         <g clipPath="url(#segblanca-clip-desktop)">
-          {/* Top intacto, paredes extendidas en 120px, base desplazada +120px */}
-          <path fill="#fff" d="m743.6898,694.1586c-403.6-196-690.8334-81.6665-784.0001,0v-325.0007S-192.8104,10.1581,654.1897,10.1581c627.5.0002,815.9999,220.0007,815.9999,220.0007v463.9998c-74,81.6667-322.8998,196-726.4998,0Z" />
+          {/* Top intacto, base desplazada -82px */}
+          <path fill="#fff" d="m743.6898,612.1586c-403.6-196-690.8334-81.6665-784.0001,0v-243.0007S-192.8104,10.1581,654.1897,10.1581c627.5.0002,815.9999,220.0007,815.9999,220.0007v381.9998c-74,81.6667-322.8998,196-726.4998,0Z" />
         </g>
       </svg>
     </div>
@@ -542,7 +542,7 @@ const WhiteOrganicBackground: React.FC = () => (
    ========================================================================== */
 
 const HerramientasSection: React.FC = () => (
-  <section className="px-6 herramientas-sec pb-12 md:pb-32" style={{ position: 'relative', zIndex: 22 }}>
+  <section className="px-6 herramientas-sec pb-12 md:pb-12" style={{ position: 'relative', zIndex: 22 }}>
     <style>{`
       .herramientas-sec { margin-top: -3rem; padding-top: 0; }
       @media (min-width: 768px) { 
@@ -568,7 +568,7 @@ const HerramientasSection: React.FC = () => (
       }
     `}</style>
     
-    <div className="max-w-4xl mx-auto flex flex-col items-center">
+    <div className="w-full md:w-[85%] mx-auto flex flex-col items-center">
       {/* Mobile exact group */}
       <div className="md:hidden relative w-[358px] flex items-center justify-center mb-8">
         <div className="absolute left-0 w-[93px]" style={{ height: 0, border: '2px solid rgba(60, 60, 59, 0.69)' }} />
@@ -639,8 +639,8 @@ const IASection: React.FC = () => (
 
     <div className="md:hidden absolute left-0 right-0" style={{ top: 258, bottom: 258, background: '#ffffff', zIndex: 0 }} />
     
-    <div className="relative z-10 flex flex-col md:flex-row items-end justify-center px-6 pt-8 md:pt-16 pb-8 w-full max-w-[1200px] mx-auto gap-8 md:gap-6">
-      <div className="w-full md:w-4/12 flex justify-center order-1 md:order-2">
+    <div className="relative z-10 flex flex-col md:flex-row items-end justify-between px-6 md:px-0 md:pr-[24px] pt-8 md:pt-16 pb-8 w-full md:w-[85%] mx-auto gap-8 md:gap-0">
+      <div className="w-full md:w-auto flex justify-center order-1 md:order-2 md:px-4 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -658,19 +658,19 @@ const IASection: React.FC = () => (
                 transformOrigin: 'center bottom', zIndex: 10, pointerEvents: 'none', borderRadius: '48px' }} />  
       </div>
 
-      <div className="w-full md:w-4/12 flex flex-col gap-3 text-center md:text-left items-center md:items-start order-2 md:order-1 mb-auto md:mt-auto z-20">
-        <h2 className="leading-[27px] md:leading-[1]" style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(24px, 3vw, 2.5rem)', color: CYAN, maxWidth: 296 }}>
+      <div className="w-full md:flex-1 flex flex-col gap-3 text-center md:text-left items-center md:items-start order-2 md:order-1 mb-auto md:mt-auto z-20 md:pr-4">
+        <h2 className="leading-[27px] md:leading-[1]" style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(24px, 3vw, 2.5rem)', color: CYAN, maxWidth: 450 }}>
           Comenzar nunca ha sido<br />tan fácil gracias a la IA
         </h2>
-        <p className="text-black md:text-white leading-[18px] md:leading-relaxed" style={{ fontFamily: 'Sansation', fontWeight: 400, fontSize: 'clamp(16px, 1.8vw, 1.5rem)', maxWidth: 309 }}>
+        <p className="text-black md:text-white leading-[18px] md:leading-relaxed" style={{ fontFamily: 'Sansation', fontWeight: 400, fontSize: 'clamp(16px, 1.8vw, 1.5rem)', maxWidth: 450 }}>
           No hace falta tener experiencia.
         </p>
-        <p className="text-black md:text-white leading-[11px] md:leading-normal" style={{ fontFamily: 'Sansation', fontStyle: 'italic', fontWeight: 300, fontSize: 'clamp(10px, 1.2vw, 1rem)', maxWidth: 214 }}>
+        <p className="text-black md:text-white leading-[11px] md:leading-normal" style={{ fontFamily: 'Sansation', fontStyle: 'italic', fontWeight: 300, fontSize: 'clamp(10px, 1.2vw, 1rem)', maxWidth: 450 }}>
           Kit de diseño con IA, uno de los mejores<br />inventos de TIME de 2025*
         </p>
       </div>
 
-      <div className="w-full md:w-4/12 flex justify-center order-3 md:order-3">
+      <div className="w-full md:w-auto flex justify-center order-3 md:order-3">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
