@@ -122,12 +122,17 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
                 paddingBottom: 'max(2rem, env(safe-area-inset-bottom))',
               }}
             >
-              <div className="mx-auto flex w-full max-w-[22rem] flex-1 flex-col items-center justify-start text-center"
-                style={{ gap: 'clamp(1rem, 3.5vh, 2.5rem)', paddingTop: 'clamp(1.5rem, 6vh, 4rem)', paddingBottom: 'clamp(6rem, 16vh, 11rem)' }}>
+              {/* Contenedor principal */}
+              <div 
+                className="mx-auto flex w-full max-w-[22rem] md:max-w-[40rem] flex-1 flex-col items-center text-center"
+                style={{ paddingTop: 'clamp(1.5rem, 6vh, 4rem)', paddingBottom: 'clamp(5rem, 12vh, 11rem)' }}
+              >
+                {/* 1. LOGO */}
                 <motion.div
                   initial={{ opacity: 0, y: -24 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1, duration: 0.45 }}
+                  className="shrink-0"
                 >
                   <Link
                     to="/"
@@ -138,52 +143,55 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
                     <img
                       src="/designs/logo_en_blanco.svg"
                       alt="Bytecode Logo"
-                      className="h-auto w-[min(38vw,8.4rem)] object-contain transition-all duration-300 group-hover:drop-shadow-[0_0_15px_rgba(6,207,214,0.8)]"
+                      className="h-auto w-[min(32vw,7.5rem)] md:w-[14rem] object-contain transition-all duration-300 group-hover:drop-shadow-[0_0_15px_rgba(6,207,214,0.8)]"
                     />
                   </Link>
                 </motion.div>
 
-                <nav className="flex w-full flex-col items-center" style={{ gap: 'clamp(0.5rem, 2vh, 1.25rem)' }}>
-                  {navLinks.map((link, i) => (
-                    <motion.div
-                      key={link.name}
-                      initial={{ opacity: 0, y: 18 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.18 + i * 0.08, duration: 0.4 }}
-                    >
-                      <Link
-                        to={link.path}
-                        onClick={onClose}
-                        className="block text-center font-bold tracking-[0.08em] text-white transition-all duration-300 hover:scale-105 hover:text-[#06CFD6] hover:drop-shadow-[0_0_8px_rgba(6,207,214,0.8)] outline-none"
-                        style={{ fontSize: 'clamp(1.6rem, 7vh, 2.8rem)' }}
+                {/* 2. GRUPO CENTRAL (Enlaces + Botón) */}
+                <div className="flex flex-1 w-full flex-col items-center justify-center gap-6 md:gap-16 my-auto py-4 md:py-8">
+                  {/* Navegación */}
+                  <nav className="flex w-full flex-col items-center gap-5 md:gap-8">
+                    {navLinks.map((link, i) => (
+                      <motion.div
+                        key={link.name}
+                        initial={{ opacity: 0, y: 18 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.18 + i * 0.08, duration: 0.4 }}
                       >
-                        {link.name}
-                      </Link>
-                    </motion.div>
-                  ))}
-                </nav>
+                        <Link
+                          to={link.path}
+                          onClick={onClose}
+                          className="block text-center font-bold tracking-[0.08em] text-white transition-all duration-300 hover:scale-105 hover:text-[#06CFD6] hover:drop-shadow-[0_0_8px_rgba(6,207,214,0.8)] outline-none text-[clamp(1.4rem,5.5vh,2rem)] md:text-[3.2rem]"
+                        >
+                          {link.name}
+                        </Link>
+                      </motion.div>
+                    ))}
+                  </nav>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 22 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.56, duration: 0.45 }}
-                  className="w-full"
-                >
-                  <Link
-                    to="/contacto"
-                    onClick={onClose}
-                    className="block w-full rounded-full border-2 border-[#0CA3C6] bg-transparent px-8 font-extrabold tracking-[0.22em] text-white shadow-[0_0_20px_rgba(12,163,198,0.22)] transition-all duration-300 ease-in-out hover:bg-[#0CA3C6] hover:shadow-[0_0_36px_rgba(12,163,198,0.55)] active:scale-95 outline-none"
-                    style={{ fontSize: 'clamp(0.9rem, 4.5vw, 1.35rem)', padding: 'clamp(0.6rem, 1.8vh, 1rem) 2rem' }}
+                  {/* Botón CTA */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 22 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.56, duration: 0.45 }}
+                    className="w-full flex justify-center mt-5"
                   >
-                    Conectar
-                  </Link>
-                </motion.div>
+                    <Link
+                      to="/contacto"
+                      onClick={onClose}
+                      className="inline-block rounded-full border-2 md:border-4 border-[#0CA3C6] bg-transparent font-extrabold tracking-[0.22em] text-white shadow-[0_0_20px_rgba(12,163,198,0.22)] transition-all duration-300 ease-in-out hover:bg-[#0CA3C6] hover:shadow-[0_0_36px_rgba(12,163,198,0.55)] active:scale-95 outline-none text-[clamp(0.95rem,4.5vw,1.3rem)] md:text-[1.8rem] px-10 py-2.5 md:px-14 md:py-5"
+                    >
+                      Conectar
+                    </Link>
+                  </motion.div>
+                </div>
               </div>
             </div>
 
-            {/* Gráfico inferior — igual que en desktop */}
+            {/* 3. GRÁFICO INFERIOR */}
             <motion.div
-              className="pointer-events-none absolute bottom-0 left-1/2 z-0 w-[min(88%,22rem)] -translate-x-1/2"
+              className="pointer-events-none absolute bottom-0 left-1/2 z-0 w-[min(88%,22rem)] md:w-[40rem] -translate-x-1/2"
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.45, duration: 0.8 }}
@@ -192,7 +200,7 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
                 src="/designs/elemento_inferior_menu_interactivo.svg"
                 alt=""
                 aria-hidden="true"
-                className="h-auto w-full translate-y-[20%] object-contain opacity-100 mix-blend-screen"
+                className="h-auto w-full translate-y-[12%] md:translate-y-[20%] object-contain opacity-100 mix-blend-screen"
                 style={{ filter: 'brightness(0) saturate(100%) invert(32%) sepia(85%) saturate(1914%) hue-rotate(174deg) brightness(98%) contrast(98%)' }}
               />
             </motion.div>
