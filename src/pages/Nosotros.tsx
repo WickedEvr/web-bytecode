@@ -40,7 +40,11 @@ const Nosotros: React.FC = () => {
       <section className="relative w-full lg:pb-[100px] 2xl:pb-[150px]">
         
         {/* === Fondos Base === */}
+<<<<<<< HEAD
         <div className="relative lg:absolute left-0 top-0 w-full overflow-hidden h-[18rem] sm:h-[17rem] md:h-[24rem] lg:h-[700px] xl:h-[850px] 2xl:h-[1000px] bg-black transition-all duration-500 z-0">
+=======
+        <div className="relative lg:absolute left-0 top-0 w-full overflow-hidden h-[18rem] sm:h-[17rem] lg:h-[700px] xl:h-[850px] 2xl:h-[1000px] bg-black transition-all duration-500 z-0">
+>>>>>>> origin/main
           <img
             src="/nosotros/imagenchicalaptoparriba.png"
             alt="Fondo Laptop"
@@ -74,7 +78,11 @@ const Nosotros: React.FC = () => {
           <div className="relative z-30 w-full lg:w-1/2 lg:pl-[30px] flex flex-col order-2 lg:order-none">
             
             {/* Título y Párrafo principal */}
+<<<<<<< HEAD
             <div className="absolute lg:relative -top-[750px] md:-top-[970px] sm:-top-[140px] lg:top-0 left-0 lg:left-auto w-full lg:w-auto px-5 sm:px-8 lg:px-0 text-center lg:text-left z-20 lg:z-auto">
+=======
+            <div className="absolute lg:relative -top-[750px] md:-top-[750px] sm:-top-[140px] lg:top-0 left-0 lg:left-auto w-full lg:w-auto px-5 sm:px-8 lg:px-0 text-center lg:text-left z-20 lg:z-auto">
+>>>>>>> origin/main
               <motion.h1
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -111,7 +119,11 @@ const Nosotros: React.FC = () => {
           </div>
 
           {/* Bloque Derecho (Gráficos Decorativos y El Hombre) */}
+<<<<<<< HEAD
           <div className="relative lg:absolute z-10 lg:z-20 w-full lg:w-[800px] max-w-[18rem] sm:max-w-[21rem] lg:max-w-none mx-auto lg:mx-0 mb-24 sm:mb-14 md:mb-40 lg:mb-0 aspect-[0.72] lg:aspect-auto lg:right-0 lg:top-[55px] lg:h-[1700px] md:origin-top lg:origin-[100%_15%] md:scale-[1.5] lg:scale-[0.62] xl:scale-[0.82] 2xl:scale-[1.21] 2xl:-right-34 pointer-events-none lg:transition-transform lg:duration-500 order-1 lg:order-none mt-[20px] lg:mt-0">
+=======
+          <div className="relative lg:absolute z-10 lg:z-20 w-full lg:w-[800px] max-w-[18rem] sm:max-w-[21rem] lg:max-w-none mx-auto lg:mx-0 mb-24 sm:mb-14 lg:mb-0 aspect-[0.72] lg:aspect-auto lg:right-0 lg:top-[55px] lg:h-[1700px] lg:origin-[100%_15%] lg:scale-[0.62] xl:scale-[0.82] 2xl:scale-[1.21] 2xl:-right-34 pointer-events-none lg:transition-transform lg:duration-500 order-1 lg:order-none mt-[20px] lg:mt-0">
+>>>>>>> origin/main
             
             {/* 1. Rectángulo azul oscuro */}
             <motion.div initial={{ opacity: 0, x: 80 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }} className="absolute -top-[20px] lg:top-[50px] left-[calc(100%-140px)] lg:left-auto lg:right-0 h-[104px] lg:h-[258px] w-[100vw] lg:w-[402px] rounded-l-[20px] lg:rounded-l-[60px] rounded-r-none bg-[#024F79]" />
@@ -123,7 +135,11 @@ const Nosotros: React.FC = () => {
             <motion.div initial={{ opacity: 0, y: -80 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }} className="absolute left-[66px] lg:left-[210px] top-[7px] lg:top-[99px] h-[441.3px] lg:h-[1240px] w-[161px] lg:w-[456px] rounded-[25px] lg:rounded-[60px] bg-gradient-to-b from-[#06CFD6] to-[#036C70]" />
 
             {/* 4. Círculo cian */}
+<<<<<<< HEAD
             <motion.div initial={{ opacity: 0, x: 60, y: -60 }} whileInView={{ opacity: 1, x: 0, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }} className="absolute right-[29px] lg:right-[51px] top-[20px] lg:top-[145px] h-[153px] w-[153px] md:h-[200px] md:w-[200px] lg:h-[435px] lg:w-[435px] rounded-full bg-[#0CA3C6] shadow-[0_0_80px_-20px_rgba(0,0,0,1)] lg:shadow-[0_60px_60px_-20px_rgba(0,0,0,0.35)]" />
+=======
+            <motion.div initial={{ opacity: 0, x: 60, y: -60 }} whileInView={{ opacity: 1, x: 0, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }} className="absolute right-[29px] lg:right-[51px] top-[20px] lg:top-[145px] h-[153px] lg:h-[435px] w-[153px] lg:w-[435px] rounded-full bg-[#0CA3C6] shadow-[0_0_80px_-20px_rgba(0,0,0,1)] lg:shadow-[0_60px_60px_-20px_rgba(0,0,0,0.35)]" />
+>>>>>>> origin/main
 
             {/* 5. Sombra del piso */}
             <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }} className="absolute top-[430px] lg:top-[1275px] left-[142px] lg:left-[60px] z-0 w-[90%] lg:w-[730px] -translate-x-1/2 lg:translate-x-0 opacity-85 lg:opacity-100">
