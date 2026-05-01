@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, Phone } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { FaFacebook, FaInstagram, FaLinkedinIn, FaTiktok } from 'react-icons/fa6';
 import MobileMenuView from './MobileMenuView';
 
@@ -35,42 +35,31 @@ const AltHeader: React.FC = () => {
             </button>
             </div>
 
-            {/* Lado Derecho: Contacto, Redes Sociales y Botón Conectar */}
-            <div className="flex items-center gap-3 md:gap-8">
+            {/* Lado Derecho: Redes Sociales y Botón Conectar */}
+            <div className="flex items-center gap-4 md:gap-8">
 
-                {/* Contenedor Oculto en Móvil */}
-                <div className="hidden md:flex items-center gap-6 lg:gap-8">
-
-                    {/* Número de Teléfono */}
-                    <a href="tel:+15551234567" className="flex items-center gap-2 text-[#06CFD6] hover:text-[#0CA3C6] hover:scale-105 transition-all duration-300 text-lg outline-none whitespace-nowrap">
-                        <Phone size={20} className="text-[#06CFD6]" />
-                        <span>+1 (555) 123-4567</span>
-                    </a>
-
-                    {/* Separador Visual */}
-                    <div className="w-[1px] h-6 bg-gray-200"></div>
-
-                    {/* REDES SOCIALES */}
-                    <div className="flex items-center gap-4">
+                {/* REDES SOCIALES */}
+                <div className="flex items-center gap-4 md:gap-6 lg:gap-8">
+                    <div className="flex items-center gap-3 md:gap-6 lg:gap-4">
                         <a href="https://www.facebook.com/bytecodesystems/" target="_blank" rel="noopener noreferrer"
-                            className="text-[#06CFD6] hover:text-[#06CFD6] hover:-translate-y-1 transition-all duration-300 outline-none"
+                            className="text-[#06CFD6] hover:text-[#0CA3C6] hover:-translate-y-1 transition-all duration-300 outline-none"
                             aria-label="Facebook">
-                            <FaFacebook size={23} />
+                            <FaFacebook className="w-5 h-5 md:w-8 md:h-8 lg:w-[23px] lg:h-[23px]" />
                         </a>
                         <a href="https://www.instagram.com/bytecodesw" target="_blank" rel="noopener noreferrer"
-                            className="text-[#06CFD6] hover:text-[#06CFD6] hover:-translate-y-1 transition-all duration-300 outline-none"
+                            className="text-[#06CFD6] hover:text-[#0CA3C6] hover:-translate-y-1 transition-all duration-300 outline-none"
                             aria-label="Instagram">
-                            <FaInstagram size={23} />
+                            <FaInstagram className="w-5 h-5 md:w-8 md:h-8 lg:w-[23px] lg:h-[23px]" />
                         </a>
                         <a href="https://tiktok.com" target="_blank" rel="noopener noreferrer"
-                            className="text-[#06CFD6] hover:text-[#06CFD6] hover:-translate-y-1 transition-all duration-300 outline-none"
+                            className="text-[#06CFD6] hover:text-[#0CA3C6] hover:-translate-y-1 transition-all duration-300 outline-none"
                             aria-label="TikTok">
-                            <FaTiktok size={23} />
+                            <FaTiktok className="w-5 h-5 md:w-8 md:h-8 lg:w-[23px] lg:h-[23px]" />
                         </a>
                         <a href="https://www.linkedin.com/company/bytecodesw" target="_blank" rel="noopener noreferrer"
-                            className="text-[#06CFD6] hover:text-[#06CFD6] hover:-translate-y-1 transition-all duration-300 outline-none"
+                            className="text-[#06CFD6] hover:text-[#0CA3C6] hover:-translate-y-1 transition-all duration-300 outline-none"
                             aria-label="LinkedIn">
-                            <FaLinkedinIn size={23} />
+                            <FaLinkedinIn className="w-5 h-5 md:w-8 md:h-8 lg:w-[23px] lg:h-[23px]" />
                         </a>
                     </div>
                 </div>
@@ -78,7 +67,7 @@ const AltHeader: React.FC = () => {
                 {/* Botón Conectar */}
                 <Link
                     to="/contacto"
-                    className="bg-[#06CFD6] hover:bg-[#0CA3C6] hover:-translate-y-1 text-white font-bold rounded-full transition-all duration-300 shadow-[0_4px_15px_rgba(6,207,214,0.4)] hover:shadow-[0_8px_25px_rgba(6,207,214,0.6)] active:translate-y-0 outline-none shrink-0 text-sm py-2 px-5 md:text-lg md:py-3 md:px-10"
+                    className="hidden lg:inline-block bg-[#06CFD6] hover:bg-[#0CA3C6] hover:-translate-y-1 text-white font-bold rounded-full transition-all duration-300 shadow-[0_4px_15px_rgba(6,207,214,0.4)] hover:shadow-[0_8px_25px_rgba(6,207,214,0.6)] active:translate-y-0 outline-none shrink-0 text-sm py-2 px-5 md:text-lg md:py-3 md:px-10"
                 >
                     Conectar
                 </Link>
