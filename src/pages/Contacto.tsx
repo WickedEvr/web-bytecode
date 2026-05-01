@@ -8,7 +8,6 @@ import ContactFooter from '../components/ContactFooter';
 const solidInput =
   'w-full bg-white rounded-full px-6 py-[0.85rem] text-[#333] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06CFD6] transition-all text-[20px] shadow-sm';
 
-// Label ajustado: Texto más gris/blanco sutil, sin asterisco obligatorio visual y con un ligero padding izquierdo para alinear con la curvatura del input.
 const Label: React.FC<{ text: string; required?: boolean }> = ({ text, required }) => (
   <label className="block text-white/70 text-[24px] font-bold mb-1.5 pl-5 tracking-wide">
     {text}
@@ -89,7 +88,6 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
     setSelectedCountry(country);
     setIsDropdownOpen(false);
     if (onCountryChange) onCountryChange(country.dialCode);
-    // Limpiamos el error si cambian de país
     setError(''); 
   };
 
@@ -102,7 +100,7 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
         {/* Trigger del Dropdown */}
         <div 
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="flex items-center gap-2 pl-6 pr-3 py-[0.85rem] border-r border-gray-200 bg-white cursor-pointer hover:bg-gray-50 rounded-l-full select-none"
+          className="shrink-0 flex items-center gap-1.5 md:gap-2 pl-4 md:pl-6 pr-2 md:pr-3 py-[0.85rem] border-r border-gray-200 bg-white cursor-pointer hover:bg-gray-50 rounded-l-full select-none"
         >
           <img
             src={`https://flagcdn.com/w20/${selectedCountry.iso.toLowerCase()}.png`}
@@ -111,8 +109,8 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
             className="w-6 h-auto object-contain rounded-sm"
             title={selectedCountry.name}
           />
-          <span className="text-[20px] font-semibold text-gray-600">{selectedCountry.dialCode}</span>
-          <svg className={`w-3 h-3 text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <span className="text-[18px] md:text-[20px] font-semibold text-gray-600">{selectedCountry.dialCode}</span>
+          <svg className={`w-3 h-3 text-gray-400 transition-transform duration-200 shrink-0 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </div>
@@ -141,7 +139,7 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
             style={{ transformOrigin: "top left" }}
             className="absolute top-full left-0 mt-2 w-[280px] bg-white border border-gray-100 shadow-xl rounded-xl overflow-hidden z-[100]"
           >
-            <div className="max-h-[240px] overflow-y-auto py-2 custom-scrollbar">
+            <div className="max-h-[240px] overflow-y-auto py-2 custom-scrollbar overscroll-contain">
               {countries.map((country) => (
                 <div
                   key={country.id}
@@ -195,10 +193,8 @@ const ServiceDropdown: React.FC<ServiceDropdownProps> = ({ value, onChange }) =>
     { value: 'desktop', label: 'App de Escritorio' },
   ];
 
-  // Encuentra la etiqueta actual o muestra el placeholder
   const selectedLabel = options.find((opt) => opt.value === value)?.label || 'Seleccione su servicio';
 
-  // Cerrar al hacer click afuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -326,13 +322,10 @@ const Contacto: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           className="text-[clamp(3rem,6vw,4.5rem)] font-bold mb-10 text-center tracking-tight"
         >
-          {/* En móvil es bloque (salto de línea), en PC es texto en línea */}
           <span className="block md:inline text-[#0CA3C6]">Conecta</span>
-          
-          {/* Insertamos el espacio de separación que solo existirá en PC */}
+
           <span className="hidden md:inline"> </span>
-          
-          {/* Quitamos el espacio inicial del string para que el centrado en móvil sea milimétricamente perfecto */}
+
           <span className="block md:inline text-white font-light -mt-[15px]">con tu marca</span>
         </motion.h1>
 
@@ -387,7 +380,7 @@ const Contacto: React.FC = () => {
           </div>
 
           {/* Celular - Componente Dinámico */}
-          <div className="mb-2"> {/* Margen extra por si sale el mensaje de error */}
+          <div className="mb-2">
             <Label text="Número de celular" />
             <PhoneInputGroup 
               value={formData.celular} 
@@ -430,12 +423,11 @@ const Contacto: React.FC = () => {
             <Label text="Servicio que requiere" />
             <ServiceDropdown 
               value={formData.servicio}
-              // Simulamos el evento 'onChange' nativo para no romper tu función handleChange actual
               onChange={(newValue) => handleChange({ target: { name: 'servicio', value: newValue } } as any)}
             />
           </div>
 
-          {/* Submit - Ajustado a la imagen objetivo */}
+          {/* Submit */}
           <div className="pt-6">
             <button
               type="submit"
