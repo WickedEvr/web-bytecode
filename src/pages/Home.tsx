@@ -353,7 +353,7 @@ const IASection: React.FC = () => (
     <div className="relative z-10 flex flex-col md:flex-row items-end justify-between px-6 md:px-0 md:pr-[24px] pt-8 md:pt-16 pb-8 w-full md:w-[85%] mx-auto gap-8 md:gap-0">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute bottom-[clamp(24px,5vw,72px)] left-[65%] z-0 hidden h-[clamp(164px,18vw,237px)] w-[clamp(228px,25vw,329px)] -translate-x-1/2 rounded-[59px] bg-white md:block"
+        className="pointer-events-none absolute bottom-[clamp(-20px,1.5vw,24px)] left-[62%] z-[1] hidden h-[clamp(164px,18vw,237px)] w-[clamp(228px,25vw,329px)] -translate-x-1/2 rounded-[59px] bg-white md:block"
       />
 
       <div className="relative w-full md:w-auto flex justify-center order-1 md:order-2 md:px-4 lg:px-8">
