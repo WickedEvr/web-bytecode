@@ -47,7 +47,7 @@ const Servicios: React.FC = () => {
 
   const titleSizes = {
     'Página Web': 'text-[2.3rem] sm:text-[2.8rem] lg:text-5xl xl:text-[5rem]',
-    'App de Escritorio': 'text-[1.8rem] sm:text-[2.6rem] lg:text-[2.8rem] xl:text-[5rem]'
+    'App de Escritorio': 'text-[1.7rem] sm:text-[2.6rem] lg:text-[2.8rem] xl:text-[5rem]'
   };
 
   const title = services[current].title;
