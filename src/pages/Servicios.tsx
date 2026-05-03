@@ -45,7 +45,13 @@ const Servicios: React.FC = () => {
     return () => clearInterval(autoplayTimer);
   }, [current]);
 
-  const isSmallTitle = services[current].title === 'Página Web';
+  const titleSizes = {
+    'Página Web': 'text-[2.3rem] sm:text-[2.8rem] lg:text-5xl xl:text-[4.5rem]',
+    'App de Escritorio': 'text-[1.9rem] sm:text-[2.6rem] lg:text-[2.8rem] xl:text-[4rem]'
+  };
+
+  const title = services[current].title;
+  const sizeClass = titleSizes[title as keyof typeof titleSizes] || 'text-[2.6rem] sm:text-[3.2rem] lg:text-6xl xl:text-[5rem]';
 
   return (
     <div className="w-full bg-white font-sansation overflow-x-hidden flex flex-col select-none">
@@ -131,11 +137,7 @@ const Servicios: React.FC = () => {
                     </button>
                       
                     <h2
-                      className={`px-2 lg:px-0 font-bold text-[#06CFD6] lg:text-[#0CA3C6] leading-tight lg:leading-none tracking-tight drop-shadow-lg lg:drop-shadow-none
-                      ${isSmallTitle
-                        ? 'text-[2.3rem] sm:text-[2.8rem] lg:text-5xl xl:text-[4.5rem]'
-                        : 'text-[2.6rem] sm:text-[3.2rem] lg:text-6xl xl:text-[5rem]'
-                      }`}
+                      className={`px-2 lg:px-0 font-bold text-[#06CFD6] lg:text-[#0CA3C6] leading-tight lg:leading-none tracking-tight drop-shadow-lg lg:drop-shadow-none ${sizeClass}`}
                     >
                       {services[current].title}
                     </h2>
