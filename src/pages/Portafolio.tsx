@@ -34,8 +34,7 @@ const Portafolio: React.FC = () => {
       </div>
 
       {/* CONTENEDOR FRONTAL */}
-      {/* CAMBIO 1: Usamos min-h-[100dvh] en lugar de h-[100dvh]. Así, si la pantalla del celular es muy pequeña, el contenedor puede crecer en vez de aplastar el contenido. */}
-      <div className="w-full min-h-[100dvh] flex flex-col relative z-10 pointer-events-none pt-[3rem]">
+      <div className="w-full lg:min-h-[100dvh] flex flex-col relative z-10 pointer-events-none pt-[3rem]">
         
         {/* HERO SECTION */}
         <section className="px-6 text-center text-white relative z-10 pointer-events-none flex-shrink-0">
@@ -67,9 +66,8 @@ const Portafolio: React.FC = () => {
         </section>
 
         {/* CARRUSEL ANIMADO (Móvil y Tablet) */}
-        {/* CAMBIO: Quitamos 'flex-grow' e 'items-center'. Usamos solo un 'mt-6' (o el valor que prefieras) para separar el texto de la tarjeta de forma estricta. */}
         <section className="w-full relative z-10 pointer-events-auto mt-6 md:mt-10 lg:hidden">
-          <div className="w-full flex justify-center pb-10">
+          <div className="w-full flex justify-center pb-24 md:pb-28">
             <Carousel slides={projects} />
           </div>
         </section>
@@ -83,8 +81,7 @@ const Portafolio: React.FC = () => {
       </div>
 
       {/* EL FOOTER */}
-      {/* CAMBIO 3: Quitamos los márgenes negativos excesivos (-mt-[16vh]) de las vistas móviles. Dejamos el margen en 0 (mt-0) para móvil, y mantenemos tus configuraciones intactas para laptops (lg) y escritorio (xl) */}
-      <div className="relative z-10 pointer-events-auto mt-0 lg:-mt-[14vh] xl:-mt-[10vh]">
+      <div className="relative z-10 pointer-events-auto mt-4 md:mt-8 lg:-mt-[14vh] xl:-mt-[10vh]">
         <AltFooter />
       </div>
     </div>
