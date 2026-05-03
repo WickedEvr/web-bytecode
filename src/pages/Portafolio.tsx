@@ -81,7 +81,6 @@ const Portafolio: React.FC = () => {
       </div>
 
       {/* EL FOOTER */}
-      {/* CAMBIO 3: Cambiamos mt-0 a mt-4. Con el hueco eliminado, usamos este margen para dar la separación final exacta entre las flechas y el footer. */}
       <div className="relative z-10 pointer-events-auto mt-10 md:mt-8 lg:-mt-[14vh] xl:-mt-[10vh]">
         <AltFooter />
       </div>

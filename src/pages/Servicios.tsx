@@ -10,24 +10,24 @@ const services = [
     title: 'Página Web',
     description:
       'Creamos soluciones digitales multiplataforma que fusionan estética de vanguardia con arquitectura técnica robusta y escalable.',
-    img: 'https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?auto=format&fit=crop&w=2560&q=90', // Horizontal
-    imgMobile: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&h=1200&q=90&crop=top', // Vertical (Escritorio/Código)
+    img: 'https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?auto=format&fit=crop&w=2560&q=90',
+    imgMobile: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&h=1200&q=90&crop=top',
   },
   {
     label: 'Servicios',
     title: 'App Móvil',
     description:
       'Desarrollamos aplicaciones nativas e híbridas con experiencias de usuario excepcionales para iOS y Android.',
-    img: 'https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=2560&q=90', // Horizontal
-    imgMobile: 'https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=800&h=1200&q=90&crop=top', // Vertical (Celular en mano)
+    img: 'https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=2560&q=90',
+    imgMobile: 'https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=800&h=1200&q=90&crop=top',
   },
   {
     label: 'Servicios',
     title: 'App de Escritorio',
     description:
       'Desarrollamos aplicaciones de escritorio con interfaces intuitivas y funcionalidades avanzadas.',
-    img: '/DesktopApp.webp', // Horizontal
-    imgMobile: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&h=1200&q=90&crop=top', // Vertical (Setup de PC)
+    img: '/DesktopApp.webp',
+    imgMobile: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&h=1200&q=90&crop=top',
   },
 ];
 
@@ -55,7 +55,7 @@ const Servicios: React.FC = () => {
       <div className="flex-grow flex flex-col">
 
         {/* ── SECCIÓN PRINCIPAL UNIFICADA (Mobile-First) ── */}
-        <section className="relative flex flex-col min-h-[calc(100vh-4rem)] lg:h-[calc(100vh-5.5rem)] bg-[#020611] overflow-hidden">
+        <section className="relative flex flex-col h-[calc(100vh-3rem)] lg:h-[calc(100vh-5.5rem)] bg-[#020611] overflow-hidden">
           
           {/* CAPA 1: Imágenes de fondo dinámicas */}
           <div className="absolute inset-0 z-0">
@@ -108,7 +108,7 @@ const Servicios: React.FC = () => {
             <AnimatePresence mode="wait">
               <motion.div
                 key={`content-${current}`}
-                initial={{ opacity: 0, y: 24, x: 0 }} // Unificando animaciones
+                initial={{ opacity: 0, y: 24, x: 0 }}
                 animate={{ opacity: 1, y: 0, x: 0 }}
                 exit={{ opacity: 0, y: -12, x: 0 }}
                 transition={{ duration: 0.5, ease: 'easeInOut' }}
@@ -151,7 +151,7 @@ const Servicios: React.FC = () => {
                 {/* DERECHA — Call to Action */}
                 <div className="w-full lg:w-auto lg:shrink-0 flex flex-col items-center justify-center text-center lg:min-w-[300px]">
                   <p className="text-white font-bold text-[clamp(1rem,4.5vw,1.25rem)] lg:text-2xl xl:text-3xl mb-3 min-[400px]:mb-4 lg:mb-6 leading-tight drop-shadow-md lg:drop-shadow-none">
-                    Obtén mucha más<br className="hidden lg:block" /> { /* Salto de línea solo en desktop para mantener el diseño original */ }
+                    Obtén mucha más <br className="hidden lg:block" />
                     información
                   </p>
                   <Link
@@ -168,7 +168,6 @@ const Servicios: React.FC = () => {
         </section>
 
         {/* ── HERRAMIENTAS ── */}
-
         <section className="bg-white pb-12 px-6" style={{ position: 'relative', zIndex: 20, paddingTop: '3rem' }}>
           <div className="w-full md:w-[85%] mx-auto flex flex-col items-center">
             {/* Mobile exact group */}
