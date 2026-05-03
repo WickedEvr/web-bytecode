@@ -23,7 +23,7 @@ const Portafolio: React.FC = () => {
         description="Explora nuestros proyectos destacados y descubre cómo ayudamos a marcas y empresas a consolidar su presencia tecnológica."
       />
 
-      {/* 3. FONDO 3D FIJO */}
+      {/* FONDO 3D FIJO */}
       <div className="fixed inset-0 z-0">
         <Suspense fallback={
           <div className="w-full h-full bg-[#020611] flex items-center justify-center">
@@ -33,7 +33,7 @@ const Portafolio: React.FC = () => {
         </Suspense>
       </div>
 
-      {/* 4. CONTENEDOR FRONTAL */}
+      {/* CONTENEDOR FRONTAL */}
       <div className="w-full h-[100dvh] flex flex-col relative z-10 pointer-events-none pt-[3rem]">
         
         {/* HERO SECTION */}
@@ -68,7 +68,6 @@ const Portafolio: React.FC = () => {
 
         {/* CARRUSEL 3D (Solo Escritorio) */}
         <section className="w-full relative z-10 pointer-events-auto flex-grow items-center justify-center xl:-mt-[11vh] 2xl:-mt-[10vh] hidden lg:flex">
-
           <div className="w-full flex justify-center origin-center scale-[0.70] md:scale-[0.80] lg:scale-[0.85] xl:scale-[0.8] 2xl:scale-[1] transition-transform duration-500">
             <Carousel3D projects={projects} />
           </div>
