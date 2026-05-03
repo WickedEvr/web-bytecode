@@ -11,7 +11,7 @@ import './Home.css';
    ========================================================================== */
 
 const HERO_ACTION_LINK_BASE =
-  'flex h-[clamp(48px,5vw,68px)] w-full min-w-[clamp(180px,20vw,260px)] max-w-full items-center justify-center rounded-full text-[clamp(1rem,1.5vw,1.5rem)] font-bold transition-all hover:scale-105 hover:shadow-[0px_0px_25px_rgba(6,207,214,0.5)] md:w-auto';
+  'flex h-[clamp(42px,4.5vw,60px)] w-full min-w-[clamp(180px,20vw,260px)] max-w-full items-center justify-center rounded-full text-[clamp(1.15rem,5vw,1.45rem)] font-bold transition-all hover:scale-105 hover:shadow-[0px_0px_25px_rgba(6,207,214,0.5)] md:w-auto md:text-[clamp(1rem,1.5vw,1.5rem)] lg:h-[clamp(48px,5vw,68px)]';
 
 const HERO_BOTTOM_CORNER_POSITION =
   'right-1.5 md:right-3 lg:right-[6%] xl:right-4 2xl:-right-31';
@@ -107,7 +107,7 @@ const HeroSection: React.FC = () => {
   const [isHovered, setIsHovered] = React.useState(false);
   
   return (
-    <section className="relative min-h-screen overflow-hidden select-none font-sansation">
+    <section className="relative min-h-[88svh] overflow-hidden select-none font-sansation lg:min-h-screen">
       {/* Background elements */}
       <div className="absolute inset-0 bg-[#040e1f]" aria-hidden="true">
         <GalaxyBackground /> 
@@ -122,14 +122,14 @@ const HeroSection: React.FC = () => {
       <img src="/sombra-arriba.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-10" />
       <img src="/sombra-arriba.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-10 opacity-50" />
 
-      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1440px] flex-col items-center justify-center gap-6 px-6 pb-10 pt-24 md:gap-4 md:px-10 md:pt-28 lg:flex-row lg:justify-between lg:gap-0 lg:px-14 lg:pb-0 lg:pt-[144px] lg:-translate-x-[40px] xl:px-20 xl:-translate-x-[80px]">
+      <div className="relative z-10 mx-auto flex min-h-[88svh] w-full max-w-[1440px] flex-col items-center justify-center gap-6 px-6 pb-10 pt-20 md:gap-4 md:px-10 md:pt-24 lg:min-h-screen lg:flex-row lg:justify-between lg:gap-0 lg:px-14 lg:pb-0 lg:pt-[144px] lg:-translate-x-[40px] xl:px-20 xl:-translate-x-[80px]">
         
         <div className="order-1 flex w-full max-w-[720px] flex-col items-center text-center z-20 lg:order-2 lg:w-[60%] lg:max-w-none lg:items-start lg:text-left">
           <h1
             className="mb-2 text-white uppercase leading-[1.08] [text-shadow:0px_4px_7.3px_rgba(0,0,0,0.51)] md:mb-4 whitespace-nowrap"
           >
-            <span className="font-bold lg:whitespace-nowrap text-[clamp(3rem,14vw,5rem)] lg:text-[clamp(2.2rem,4.8vw,4.875rem)] block lg:inline">UN GRAN</span>
-            <span className="font-bold lg:hidden text-[clamp(3rem,14vw,5rem)] block">SITIO WEB,</span>
+            <span className="font-bold lg:whitespace-nowrap text-[clamp(2.75rem,12.8vw,4.6rem)] lg:text-[clamp(2.2rem,4.8vw,4.875rem)] block lg:inline">UN GRAN</span>
+            <span className="font-bold lg:hidden text-[clamp(2.75rem,12.8vw,4.6rem)] block">SITIO WEB,</span>
             <span className="hidden lg:inline font-bold lg:whitespace-nowrap text-[clamp(2.2rem,4.8vw,4.875rem)]"> SITIO WEB,</span>
             <br className="hidden lg:block" />
             <span className="lg:whitespace-nowrap text-[clamp(1rem,5.5vw,1.8rem)] lg:text-[clamp(1.8rem,3.8vw,4rem)]">HACE IDEAS REALIDAD</span>
@@ -149,7 +149,7 @@ const HeroSection: React.FC = () => {
           <motion.div
             animate={{ y: [0, -20, 0], rotate: [0, 2, 0] }}
             transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-            className="relative w-[clamp(160px,38vw,360px)] lg:w-[clamp(260px,34vw,500px)] xl:w-[clamp(360px,38vw,560px)]"
+            className="relative w-[clamp(160px,38vw,360px)] -translate-y-3 md:-translate-y-5 lg:translate-y-0 lg:w-[clamp(260px,34vw,500px)] xl:w-[clamp(360px,38vw,560px)]"
           >
             <motion.img
               src="/astronauta.png"
@@ -215,23 +215,23 @@ const ServiciosSection: React.FC = () => {
   )), []);
 
   return (
-    <div className="relative -mt-[11%] font-sansation">
-      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none select-none md:relative md:inset-auto">
+    <div className="relative -mt-[18%] font-sansation md:-mt-[15%] lg:-mt-[11%]">
+      <div className="absolute inset-0 z-0 overflow-hidden rounded-t-[10%] pointer-events-none select-none md:relative md:inset-auto lg:rounded-none">
         <img src="/sombra-segunda.svg" aria-hidden="true" className="h-full w-full object-cover object-top md:h-auto md:object-contain" />
       </div>
 
-      <div className="relative z-[60] flex flex-col items-center justify-start px-5 select-none pb-16 pt-[clamp(2rem,8vw,5rem)] md:absolute md:inset-0 md:pb-0 md:pt-[3%]">
+      <div className="relative z-[60] flex flex-col items-center justify-start px-5 select-none pb-16 pt-[clamp(1rem,5vw,3rem)] md:absolute md:inset-0 md:pb-0 md:pt-[3%]">
         <div className="relative z-[15] text-center">
-          <p className="mb-[0.6rem] text-[clamp(2.24rem,5.6vw,3.36rem)] font-extrabold leading-[1.2] text-[#0CA3C6]">
+          <p className="mb-1 text-[clamp(1.65rem,4.4vw,2.25rem)] font-extrabold leading-[1.2] text-[#0CA3C6] md:mb-[0.6rem] md:text-[clamp(2.24rem,5.6vw,3.36rem)]">
             Haz crecer tu negocio
           </p>
-          <p className="mb-6 text-[clamp(1.4rem,3.5vw,2.03rem)] font-normal leading-normal text-white">
+          <p className="mb-6 text-[clamp(1.15rem,3.1vw,1.55rem)] font-normal leading-normal text-white md:text-[clamp(1.4rem,3.5vw,2.03rem)]">
             Te mereces un sitio web que haga{' '}
             <span className="text-[#0CA3C6]">todo lo que necesitas.</span>
           </p>
         </div>
 
-        <div className="relative z-[60] mt-[23px] w-full max-w-[min(306px,90vw)] md:max-w-[380px] lg:max-w-[85%]">
+        <div className="relative z-[60] mt-0 w-full max-w-[min(306px,90vw)] md:-mt-2 md:max-w-[380px] lg:mt-[23px] lg:max-w-[85%]">
           <div className="relative z-[60] h-[409px] md:h-[430px] lg:hidden">
             <Stack
               randomRotation={false}

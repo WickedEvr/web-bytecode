@@ -8,10 +8,10 @@ const Header: React.FC = () => {
   return (
     <>
       {/* ── BARRA PRINCIPAL ── */}
-      <header className="absolute top-0 left-0 right-0 z-50 px-5 pt-16 pb-6 flex items-center justify-center bg-transparent">
-        <div className="flex items-center gap-10">
+      <header className="absolute top-0 left-0 right-0 z-50 flex items-center justify-center bg-transparent px-5 pb-6 pt-6 md:pt-10 lg:pt-16">
+        <div className="flex items-center gap-7 md:gap-10">
           <Link to="/" className="flex items-center">
-            <img src="/designs/logo_en_blanco.svg" alt="Bytecode" className="h-14 w-auto transition-all duration-300 hover:scale-105 hover:drop-shadow-[0_0_12px_rgba(6,207,214,0.6)] active:scale-95" />
+            <img src="/designs/logo_en_blanco.svg" alt="Bytecode" className="h-11 w-auto transition-all duration-300 hover:scale-105 hover:drop-shadow-[0_0_12px_rgba(6,207,214,0.6)] active:scale-95 md:h-14" />
           </Link>
           <button
             onClick={() => setIsMenuOpen(true)}
@@ -22,7 +22,7 @@ const Header: React.FC = () => {
             <svg 
               viewBox="0 0 64 36" 
               // 2. Añadimos la transición y la rotación que reacciona al 'group' del botón
-              className="w-10 h-6 transition-transform duration-300 group-hover:rotate-90" 
+              className="h-5 w-8 transition-transform duration-300 group-hover:rotate-90 md:h-6 md:w-10" 
               fill="none" 
               xmlns="http://www.w3.org/2000/svg"
             >
