@@ -1,4 +1,3 @@
-"use client";
 import { IconArrowNarrowRight } from "@tabler/icons-react";
 import { useState, useRef, useId } from "react";
 import { type Project } from "../Carousel3D";
@@ -23,7 +22,7 @@ const Slide = ({ slide, index, current, handleSlideClick }: SlideProps) => {
   return (
     <div 
       className="[perspective:1200px] [transform-style:preserve-3d] absolute top-0 w-full h-full flex items-center justify-center"
-      style={{ left: `${index * 100}%` }}
+      style={{ left: `${index * 105}%` }}
     >
       <li
         ref={slideRef}
@@ -39,7 +38,7 @@ const Slide = ({ slide, index, current, handleSlideClick }: SlideProps) => {
         }}
       >
         <div
-          className="absolute top-0 left-0 w-full h-full rounded-[18px] overflow-hidden transition-all duration-300 ease-out bg-[#020611]"
+          className="absolute top-0 left-0 w-full h-full rounded-[18px] overflow-hidden transition-all duration-700 ease-out bg-[#020611]"
           style={{
             border: '2px solid rgba(6,207,214,0.4)',
             boxShadow: isActive
@@ -75,7 +74,7 @@ const Slide = ({ slide, index, current, handleSlideClick }: SlideProps) => {
                 fontSize: '1.2rem',
                 color: isActive ? '#06CFD6' : '#ffffff',
                 margin: '0 0 8px',
-                transition: 'color 0.38s ease',
+                transition: 'color 0.7s ease',
                 lineHeight: 1.2,
                 textAlign: 'left'
               }}
@@ -190,7 +189,7 @@ export default function Carousel({ slides }: CarouselProps) {
       <ul
         className="absolute w-full h-full transition-transform duration-1000 ease-in-out"
         style={{
-          transform: `translateX(-${current * 100}%)`,
+          transform: `translateX(-${current * 105}%)`,
         }}
       >
         {visibleIndices.map(idx => (
