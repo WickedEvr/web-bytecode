@@ -111,7 +111,7 @@ const Servicios: React.FC = () => {
           </button>
 
           {/* CAPA 3: Contenido e Interacción */}
-          <div className="relative z-10 flex-1 flex flex-col lg:justify-end px-6 lg:px-8 xl:px-16 pt-[clamp(5rem,12vh,8rem)] lg:pt-0 pb-[clamp(2rem,6vh,4rem)] lg:pb-20">
+          <div className="relative z-10 flex-1 flex flex-col lg:justify-end px-6 lg:px-8 xl:px-16 pt-[clamp(4rem,10vh,7rem)] lg:pt-0 pb-[clamp(2rem,6vh,4rem)] lg:pb-20">
             <AnimatePresence mode="wait">
               <motion.div
                 key={`content-${current}`}
