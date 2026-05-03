@@ -140,7 +140,7 @@ const Servicios: React.FC = () => {
                     </button>
                   </div>
 
-                  <p className="text-white/90 text-[1rem] sm:text-[1.1rem] lg:text-lg xl:text-xl leading-relaxed font-light text-justify lg:text-left mb-7 lg:mb-0 w-full px-2 lg:px-0 drop-shadow-md lg:drop-shadow-none">
+                  <p className="text-white/90 text-[1rem] sm:text-[1.1rem] lg:text-lg xl:text-xl leading-relaxed font-light text-justify lg:text-left mb-5 lg:mb-0 w-full px-2 lg:px-0 drop-shadow-md lg:drop-shadow-none">
                     {services[current].description}
                   </p>
                 </div>
@@ -149,7 +149,7 @@ const Servicios: React.FC = () => {
                 <div className="hidden lg:block w-[1.5px] self-stretch bg-white/50 mx-4"></div>
 
                 {/* DERECHA — Call to Action */}
-                <div className="w-full lg:w-auto lg:shrink-0 flex flex-col items-center justify-center text-center lg:min-w-[300px]">
+                <div className="w-full lg:w-auto lg:shrink-0 flex flex-col items-center justify-center text-center lg:min-w-[300px] -mt-5">
                   <p className="text-white font-bold text-[clamp(1rem,4.5vw,1.25rem)] lg:text-2xl xl:text-3xl mb-3 min-[400px]:mb-4 lg:mb-6 leading-tight drop-shadow-md lg:drop-shadow-none">
                     Obtén mucha más <br className="hidden lg:block" />
                     información
