@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from 'react';
 import { motion } from 'framer-motion';
 import Carousel3D, { type Project } from '../components/Carousel3D';
+import Carousel from '../components/ui/carousel';
 import AltFooter from '../components/AltFooter';
 import SpotlightText from '../components/SpotlightText';
 import SEO from '../components/SEO';
@@ -58,8 +59,16 @@ const Portafolio: React.FC = () => {
           </motion.div>
         </section>
 
-        {/* CARRUSEL 3D */}
-        <section className="w-full relative z-10 pointer-events-auto flex-grow flex items-center justify-center xl:-mt-[11vh] 2xl:-mt-[10vh]">
+        {/* CARRUSEL ANIMADO (Móvil y Tablet) */}
+        <section className="w-full relative z-10 pointer-events-auto flex-grow flex items-center justify-center pb-[4vh] lg:hidden">
+          <div className="w-full flex justify-center pb-10">
+            <Carousel slides={projects} />
+          </div>
+        </section>
+
+        {/* CARRUSEL 3D (Solo Escritorio) */}
+        <section className="w-full relative z-10 pointer-events-auto flex-grow items-center justify-center xl:-mt-[11vh] 2xl:-mt-[10vh] hidden lg:flex">
+
           <div className="w-full flex justify-center origin-center scale-[0.70] md:scale-[0.80] lg:scale-[0.85] xl:scale-[0.8] 2xl:scale-[1] transition-transform duration-500">
             <Carousel3D projects={projects} />
           </div>
