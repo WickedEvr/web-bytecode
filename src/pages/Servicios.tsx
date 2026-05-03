@@ -46,11 +46,11 @@ const Servicios: React.FC = () => {
   }, [current]);
 
   const titleSizes = {
-    'Página Web': 'text-[2.3rem] sm:text-[2.8rem] lg:text-5xl xl:text-[5rem]'
+    'Página Web': 'text-[2.3rem] md:text-[3.6rem] sm:text-[2.8rem] lg:text-5xl xl:text-[5rem]'
   };
 
   const title = services[current].title;
-  const sizeClass = titleSizes[title as keyof typeof titleSizes] || 'text-[2.6rem] sm:text-[3.2rem] lg:text-6xl xl:text-[5rem]';
+  const sizeClass = titleSizes[title as keyof typeof titleSizes] || 'text-[2.6rem] sm:text-[3.2rem] md:text-[3.6rem] lg:text-6xl xl:text-[5rem]';
 
   return (
     <div className="w-full bg-white font-sansation overflow-x-hidden flex flex-col select-none">
@@ -123,7 +123,7 @@ const Servicios: React.FC = () => {
               >
                 {/* IZQUIERDA — Info del servicio */}
                 <div className="flex flex-col items-center lg:items-start text-center lg:text-left w-full lg:flex-1 lg:max-w-2xl -mt-50">
-                  <p className="text-white/90 lg:text-white text-[1.5rem] lg:text-2xl xl:text-3xl font-light tracking-wide mb-1 lg:mb-2">
+                  <p className="text-white/90 lg:text-white text-[1.5rem] md:text-[1.8rem] lg:text-2xl xl:text-3xl font-light tracking-wide mb-1 lg:mb-2">
                     {services[current].label}
                   </p>
 
@@ -148,7 +148,7 @@ const Servicios: React.FC = () => {
                     </button>
                   </div>
 
-                  <p className="text-white/90 text-[1rem] sm:text-[1.1rem] lg:text-lg xl:text-xl leading-relaxed font-light text-justify lg:text-left mb-5 lg:mb-0 w-full px-2 lg:px-0 drop-shadow-md lg:drop-shadow-none">
+                  <p className="text-white/90 text-[1rem] sm:text-[1.1rem] md:text-[1.5rem] lg:text-lg xl:text-xl leading-relaxed font-light text-justify lg:text-left mb-5 lg:mb-0 w-full px-2 lg:px-0 drop-shadow-md lg:drop-shadow-none">
                     {services[current].description}
                   </p>
                 </div>
@@ -158,13 +158,13 @@ const Servicios: React.FC = () => {
 
                 {/* DERECHA — Call to Action */}
                 <div className="w-full lg:w-auto lg:shrink-0 flex flex-col items-center justify-center text-center lg:min-w-[300px] -mt-5">
-                  <p className="text-white font-bold text-[clamp(1rem,4.5vw,1.25rem)] lg:text-2xl xl:text-3xl mb-3 min-[400px]:mb-4 lg:mb-6 leading-tight drop-shadow-md lg:drop-shadow-none">
+                  <p className="text-white font-bold text-[clamp(1rem,4.5vw,1.25rem)] md:text-[clamp(1.2rem,5vw,1.5rem)] lg:text-2xl xl:text-3xl mb-3 min-[400px]:mb-4 lg:mb-6 leading-tight drop-shadow-md lg:drop-shadow-none">
                     Obtén mucha más <br className="hidden lg:block" />
                     información
                   </p>
                   <Link
                     to="/contacto"
-                    className="w-full lg:w-auto inline-block text-center bg-[#06CFD6] text-white font-bold text-[1.2rem] min-[400px]:text-[1.35rem] lg:text-2xl xl:text-3xl px-8 lg:px-24 py-3 min-[400px]:py-4 lg:py-5 rounded-[1.5rem] lg:rounded-[20px] shadow-[0_4px_15px_rgba(6,207,214,0.3)] lg:shadow-[0_4px_15px_rgba(6,207,214,0.4)] hover:bg-[#0CA3C6] lg:hover:shadow-[0_8px_25px_rgba(6,207,214,0.6)] lg:hover:-translate-y-1 active:scale-95 lg:active:translate-y-0 lg:active:scale-100 transition-all duration-300 outline-none"
+                    className="w-full lg:w-auto inline-block text-center bg-[#06CFD6] text-white font-bold text-[1.5rem] md:text-[2rem] min-[400px]:text-[1.35rem] lg:text-2xl xl:text-3xl px-8 lg:px-24 py-3 min-[400px]:py-4 lg:py-5 rounded-[1.5rem] lg:rounded-[20px] shadow-[0_4px_15px_rgba(6,207,214,0.3)] lg:shadow-[0_4px_15px_rgba(6,207,214,0.4)] hover:bg-[#0CA3C6] lg:hover:shadow-[0_8px_25px_rgba(6,207,214,0.6)] lg:hover:-translate-y-1 active:scale-95 lg:active:translate-y-0 lg:active:scale-100 transition-all duration-300 outline-none"
                   >
                     Conectar
                   </Link>
