@@ -9,7 +9,9 @@ export default function GalaxyBackground() {
     if (!canvas) return;
 
     // OPTIMIZACIÓN 1: Detectar si es un dispositivo móvil (pantalla menor a 768px)
-    const isMobile = window.innerWidth < 768;
+    const viewportWidth = window.innerWidth;
+    const isMobile = viewportWidth < 768;
+    const isTablet = viewportWidth >= 768 && viewportWidth < 1024;
 
     // ── Scene
     const scene = new THREE.Scene();
@@ -30,12 +32,12 @@ export default function GalaxyBackground() {
     renderer.setSize(canvas.offsetWidth, canvas.offsetHeight);
     
     // OPTIMIZACIÓN 2: Limitar el Pixel Ratio estrictamente a 1 en móviles, y máximo 2 en PC
-    renderer.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(isMobile ? 1 : isTablet ? Math.min(window.devicePixelRatio, 1.25) : Math.min(window.devicePixelRatio, 2));
 
     // ── Parameters
     const parameters = {
       // OPTIMIZACIÓN 3: Reducir drásticamente la carga geométrica en celulares (de 80k a 30k)
-      count: isMobile ? 30000 : 80000,
+      count: isMobile ? 30000 : isTablet ? 50000 : 80000,
       size: 0.015,
       radius: 8,
       branches: 4,
@@ -118,7 +120,7 @@ export default function GalaxyBackground() {
     // Background stars
     // ─────────────────────────────────────────
     // OPTIMIZACIÓN 4: Menos estrellas de fondo en móviles
-    const starCount = isMobile ? 1000 : 3000;
+    const starCount = isMobile ? 1000 : isTablet ? 1800 : 3000;
     const starGeo   = new THREE.BufferGeometry();
     const starPos   = new Float32Array(starCount * 3);
     for (let i = 0; i < starCount; i++) {
@@ -171,11 +173,13 @@ export default function GalaxyBackground() {
     // ─────────────────────────────────────────
     const onResize = () => {
       // Si la ventana cambia, actualizamos parámetros pero mantenemos el límite en móviles
-      const mobileCheck = window.innerWidth < 768;
+      const width = window.innerWidth;
+      const mobileCheck = width < 768;
+      const tabletCheck = width >= 768 && width < 1024;
       camera.aspect = canvas.offsetWidth / canvas.offsetHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(canvas.offsetWidth, canvas.offsetHeight);
-      renderer.setPixelRatio(mobileCheck ? 1 : Math.min(window.devicePixelRatio, 2));
+      renderer.setPixelRatio(mobileCheck ? 1 : tabletCheck ? Math.min(window.devicePixelRatio, 1.25) : Math.min(window.devicePixelRatio, 2));
     };
     window.addEventListener('resize', onResize);
 

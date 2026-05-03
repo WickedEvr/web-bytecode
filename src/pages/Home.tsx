@@ -107,7 +107,7 @@ const HeroSection: React.FC = () => {
   const [isHovered, setIsHovered] = React.useState(false);
   
   return (
-    <section className="relative min-h-[100dvh] overflow-hidden select-none font-sansation">
+    <section className="relative min-h-screen overflow-hidden select-none font-sansation">
       {/* Background elements */}
       <div className="absolute inset-0 bg-[#040e1f]" aria-hidden="true">
         <GalaxyBackground /> 
@@ -122,15 +122,15 @@ const HeroSection: React.FC = () => {
       <img src="/sombra-arriba.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-10" />
       <img src="/sombra-arriba.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-10 opacity-50" />
 
-      <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-[1440px] flex-col items-center justify-center gap-2 px-6 pt-20 -translate-y-[65px] md:flex-row md:justify-between md:gap-0 md:px-12 md:pt-0 md:-translate-x-[40px] lg:px-20 lg:-translate-x-[80px]">
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1440px] flex-col items-center justify-center gap-6 px-6 pb-10 pt-24 md:gap-4 md:px-10 md:pt-28 lg:flex-row lg:justify-between lg:gap-0 lg:px-14 lg:pb-0 lg:pt-[144px] lg:-translate-x-[40px] xl:px-20 xl:-translate-x-[80px]">
         
-        <div className="order-1 md:order-2 flex flex-col items-center md:items-start text-center md:text-left z-20 w-full md:w-[65%] lg:w-[60%]">
+        <div className="order-1 flex w-full max-w-[720px] flex-col items-center text-center z-20 lg:order-2 lg:w-[60%] lg:max-w-none lg:items-start lg:text-left">
           <h1
             className="mb-2 text-white uppercase leading-[1.08] [text-shadow:0px_4px_7.3px_rgba(0,0,0,0.51)] md:mb-4"
           >
-            <span className="font-bold md:whitespace-nowrap text-[clamp(2.2rem,4.8vw,4.875rem)]">UN GRAN SITIO WEB,</span>
+            <span className="font-bold lg:whitespace-nowrap text-[clamp(2.2rem,4.8vw,4.875rem)]">UN GRAN SITIO WEB,</span>
             <br />
-            <span className="md:whitespace-nowrap text-[clamp(1.8rem,3.8vw,4rem)]">HACE IDEAS REALIDAD</span>
+            <span className="lg:whitespace-nowrap text-[clamp(1.8rem,3.8vw,4rem)]">HACE IDEAS REALIDAD</span>
           </h1>
 
           <p className="mb-5 text-[clamp(0.9rem,1.8vw,1.75rem)] font-normal leading-[1.3] text-white [text-shadow:0px_4px_8.8px_rgba(0,0,0,0.81)] md:mb-10">
@@ -143,11 +143,11 @@ const HeroSection: React.FC = () => {
           </div>
         </div>
 
-        <div className="order-2 md:order-1 flex items-center justify-center md:justify-start w-full md:w-[48%] flex-shrink-0">
+        <div className="order-2 flex w-full flex-shrink-0 items-center justify-center lg:order-1 lg:w-[48%] lg:justify-start">
           <motion.div
             animate={{ y: [0, -20, 0], rotate: [0, 2, 0] }}
             transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-            className="relative w-[clamp(160px,38vw,560px)]"
+            className="relative w-[clamp(160px,38vw,360px)] lg:w-[clamp(260px,34vw,500px)] xl:w-[clamp(360px,38vw,560px)]"
           >
             <motion.img
               src="/astronauta.png"
@@ -229,8 +229,8 @@ const ServiciosSection: React.FC = () => {
           </p>
         </div>
 
-        <div className="relative z-[60] mt-[23px] w-full max-w-[min(306px,90vw)] md:max-w-[85%]">
-          <div className="relative z-[60] h-[409px] md:hidden">
+        <div className="relative z-[60] mt-[23px] w-full max-w-[min(306px,90vw)] md:max-w-[380px] lg:max-w-[85%]">
+          <div className="relative z-[60] h-[409px] md:h-[430px] lg:hidden">
             <Stack
               randomRotation={false}
               sensitivity={80}
@@ -244,8 +244,8 @@ const ServiciosSection: React.FC = () => {
             />
           </div>
 
-          <div className="relative z-[60] hidden overflow-hidden rounded-[28px] shadow-[0px_4px_20.4px_9px_rgba(0,0,0,0.22)] md:block md:rounded-[48px]">
-            <div className="relative h-[409px] md:h-[clamp(320px,44vw,554px)]">
+          <div className="relative z-[60] hidden overflow-hidden rounded-[28px] shadow-[0px_4px_20.4px_9px_rgba(0,0,0,0.22)] lg:block lg:rounded-[48px]">
+            <div className="relative h-[409px] lg:h-[clamp(320px,44vw,554px)]">
               <AnimatePresence>
                 <motion.img
                   key={slide}
@@ -258,7 +258,7 @@ const ServiciosSection: React.FC = () => {
                   transition={{ duration: 0.7, ease: 'easeInOut' }}
                 />
               </AnimatePresence>
-              <div className="absolute inset-0 bg-black/15 md:bg-black/28" />
+              <div className="absolute inset-0 bg-black/15 lg:bg-black/28" />
               <div className="absolute inset-0 bg-[url('/formaazul.svg')] bg-cover bg-center bg-no-repeat md:hidden" />
               <AnimatePresence mode="wait">
                 <motion.div
@@ -277,11 +277,11 @@ const ServiciosSection: React.FC = () => {
                   </p>
                 </motion.div>
               </AnimatePresence>
-              <img className="absolute bottom-0 right-0 hidden pointer-events-none md:block" src="/esquina-derecha.svg" alt="" aria-hidden="true" />
+              <img className="absolute bottom-0 right-0 hidden pointer-events-none lg:block" src="/esquina-derecha.svg" alt="" aria-hidden="true" />
               <img className="absolute bottom-6 right-4 z-[2] w-10 pointer-events-none md:bottom-[5%] md:right-[2%] md:w-[clamp(25px,4vw,50px)]" src="/isotipo.svg" alt="" aria-hidden="true" />
             </div>
           </div>
-          <div className="relative z-20 mt-8 hidden items-center justify-center gap-4 md:flex">
+          <div className="relative z-20 mt-8 hidden items-center justify-center gap-4 lg:flex">
             {services.map((_, i) => (
               <button
                 key={i}
@@ -304,18 +304,18 @@ const ServiciosSection: React.FC = () => {
    ========================================================================== */
 
 const HerramientasSection: React.FC = () => (
-  <section className="relative z-[40] -mt-[11rem] h-[33rem] overflow-visible px-6 pb-12 pt-0 font-sansation md:-mt-[12rem] md:h-[35rem] lg:-mt-[15rem] lg:h-[32rem] xl:-mt-[20rem] xl:h-[30rem] 2xl:-mt-36 2xl:h-[30rem]">
+  <section className="relative z-[40] -mt-[11rem] h-[30rem] overflow-visible px-6 pb-12 pt-0 font-sansation md:-mt-[10rem] md:h-[25rem] md:max-lg:!mt-[14rem] lg:-mt-[13rem] lg:h-[25rem] lg:max-[1339px]:!mt-[16rem] xl:-mt-[20rem] xl:h-[25rem] 2xl:-mt-36 2xl:h-[25rem]">
     <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-[-10rem] hidden h-[28rem] w-screen -translate-x-1/2 bg-white max-md:block" />
 
     <img
       src="/designs/formablancagrande.svg"
       alt=""
       aria-hidden="true"
-      className="pointer-events-none absolute left-0 top-[5.6rem] w-full max-w-none select-none md:top-[-12rem] md:w-[150%] lg:top-[-18rem] lg:w-[115%] xl:top-[-24rem] xl:w-full 2xl:top-[-34.2rem]"
+      className="pointer-events-none absolute left-0 top-[5.6rem] w-full max-w-none origin-top select-none md:top-[-13rem] md:w-[110%] md:scale-y-[0.9] lg:top-[-12rem] lg:w-[120%] lg:scale-y-[0.78] min-[1200px]:max-[1339px]:top-[-10rem] min-[1200px]:max-[1339px]:!scale-y-[0.82] xl:top-[-21rem] xl:w-full xl:scale-y-[0.72] 2xl:top-[-31.2rem]"
     />
 
-    <div className="relative z-10 mx-auto flex w-full flex-col items-center pt-[8.5rem] md:w-[85%] md:pt-[10rem] lg:pt-[9rem] xl:pt-[8.5rem] 2xl:pt-[7.6rem]">
-      <div className="mb-8 flex w-full max-w-[358px] items-center justify-center gap-0 md:mb-16 md:max-w-none md:gap-3">
+    <div className="relative z-10 mx-auto flex w-full flex-col items-center pt-[8.5rem] md:w-[85%] md:pt-0 md:-mt-[3.5rem] md:max-lg:mt-[1rem] lg:-mt-[6rem] min-[1200px]:max-[1339px]:mt-[30rem] xl:-mt-[7rem] 2xl:-mt-[10rem]">
+      <div className="mb-8 flex w-full max-w-[358px] items-center justify-center gap-0 md:mb-12 md:max-w-none md:gap-3 lg:mb-10">
         <div className="h-0 flex-1 border-t-2 border-[rgba(60,60,59,0.69)]" />
         <h2
           className="w-[178px] shrink-0 px-2 text-center text-2xl font-bold leading-[27px] text-[#3C3C3B] md:w-auto md:text-[clamp(1.2rem,3.5vw,2.5rem)] md:leading-[1.2]"
@@ -347,25 +347,25 @@ const HerramientasSection: React.FC = () => (
    ========================================================================== */
 
 const IASection: React.FC = () => (
-  <section className="relative z-[60] -mt-60 min-h-[800px] overflow-x-hidden pb-8 md:mt-0">
+  <section className="relative z-[60] -mt-60 min-h-[800px] overflow-x-hidden pb-8 md:mt-0 md:min-h-[1240px] md:overflow-visible lg:min-h-[680px] xl:min-h-[660px] 2xl:min-h-[800px]">
     <div className="absolute bottom-[258px] left-0 right-0 top-[258px] z-0 bg-white md:hidden" />
     
-    <div className="relative z-10 flex flex-col md:flex-row items-end justify-between px-6 md:px-0 md:pr-[24px] pt-8 md:pt-16 pb-8 w-full md:w-[85%] mx-auto gap-8 md:gap-0">
+    <div className="relative z-10 flex flex-col items-center justify-between px-6 pt-8 pb-8 w-full md:w-[85%] md:px-0 md:pt-10 md:gap-10 lg:-mt-12 lg:flex-row lg:items-end lg:gap-0 lg:pt-0 lg:pr-[24px] xl:-mt-35 2xl:-mt-24 mx-auto gap-8">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute bottom-[clamp(24px,5vw,72px)] left-[65%] z-0 hidden h-[clamp(164px,18vw,237px)] w-[clamp(228px,25vw,329px)] -translate-x-1/2 rounded-[59px] bg-white md:block"
+        className="pointer-events-none absolute bottom-[clamp(-20px,1.5vw,0px)] left-[72%] z-[1] hidden h-[clamp(164px,18vw,237px)] w-[clamp(228px,25vw,329px)] -translate-x-1/2 rounded-[59px] bg-white lg:block xl:h-[176px] xl:w-[244px] 2xl:h-[clamp(164px,18vw,237px)] 2xl:w-[clamp(228px,25vw,329px)]"
       />
 
-      <div className="relative w-full md:w-auto flex justify-center order-1 md:order-2 md:px-4 lg:px-8">
+      <div className="relative order-1 mt-15 flex w-full justify-center md:mt-0 lg:order-2 lg:w-auto lg:px-8 2xl:-mr-62 2xl:px-2">
         <div
           aria-hidden="true"
-          className="absolute left-1/2 top-10 z-0 h-[118px] w-[256px] -translate-x-[66%] rounded-[60px] bg-white md:top-[clamp(24px,6.4vw,60px)] md:h-[clamp(69px,18.8vw,177px)] md:w-[clamp(154px,41.9vw,382px)] md:rounded-[90px]"
+          className="absolute left-1/2 top-10 z-0 h-[118px] w-[256px] -translate-x-[66%] rounded-[60px] bg-white md:h-[156px] md:w-[338px] md:rounded-[78px] lg:top-[clamp(84px,6.4vw,60px)] lg:h-[clamp(69px,18.8vw,177px)] lg:w-[clamp(154px,41.9vw,382px)] lg:-translate-x-[65%] lg:rounded-[90px] xl:h-[122px] xl:w-[264px] 2xl:h-[clamp(69px,18.8vw,177px)] 2xl:w-[clamp(154px,41.9vw,382px)]"
         />
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="relative z-10 h-[408px] w-[232px] flex-shrink-0 rounded-[48px] shadow-[0px_4px_7.8px_rgba(0,0,0,0.42)] md:h-[clamp(240px,65vw,613px)] md:w-[clamp(140px,38vw,346px)]"
+          className="relative z-10 h-[408px] w-[232px] flex-shrink-0 rounded-[48px] shadow-[0px_4px_7.8px_rgba(0,0,0,0.42)] md:h-[500px] md:w-[284px] lg:h-[clamp(240px,45vw,520px)] lg:w-[clamp(140px,26vw,294px)] xl:h-[460px] xl:w-[260px] 2xl:h-[clamp(240px,65vw,613px)] 2xl:w-[clamp(140px,38vw,346px)]"
         >
           <div className="absolute inset-0 overflow-hidden rounded-[48px]">
             <img src="/fondochica.png" alt="" aria-hidden="true" className="absolute inset-0 rounded-[48px] w-full h-full object-cover" />
@@ -379,7 +379,7 @@ const IASection: React.FC = () => (
         </motion.div>
       </div>
 
-      <div className="w-full md:flex-1 flex flex-col gap-3 text-center md:text-left items-center md:items-start order-2 md:order-1 mb-auto md:mt-auto z-20 md:pr-4">
+      <div className="order-2 z-20 mb-auto flex w-full max-w-[520px] flex-col items-center gap-3 text-center lg:order-1 lg:my-auto lg:flex-1 lg:items-start lg:pr-4 lg:text-left xl:translate-y-25">
         <h2 className="max-w-[450px] text-[clamp(24px,3vw,2.5rem)] font-bold leading-[27px] text-[#0CA3C6] md:leading-[1]">
           Comenzar nunca ha sido<br />tan fácil gracias a la IA
         </h2>
@@ -391,17 +391,17 @@ const IASection: React.FC = () => (
         </p>
       </div>
 
-      <div className="relative w-full md:w-auto flex justify-center order-3 md:order-3">
+      <div className="relative order-3 flex w-full justify-center lg:w-auto">
         <div
           aria-hidden="true"
-          className="absolute bottom-[-22px] left-1/2 z-0 h-[172px] w-[165px] translate-x-[00%] rounded-[20px] bg-white md:bottom-[clamp(-33px,-3.5vw,-13px)] md:h-[clamp(101px,27.4vw,259px)] md:w-[clamp(100px,27vw,246px)] md:rounded-[30px]"
+          className="absolute bottom-[-22px] left-1/2 z-0 h-[172px] w-[165px] translate-x-[-10%] rounded-[20px] bg-white md:h-[212px] md:w-[204px] md:rounded-[28px] lg:bottom-[clamp(50px,-3.5vw,-13px)] lg:h-[clamp(101px,27.4vw,259px)] lg:w-[clamp(100px,27vw,246px)] lg:rounded-[30px] xl:h-[182px] xl:w-[172px] 2xl:h-[clamp(101px,27.4vw,259px)] 2xl:w-[clamp(100px,27vw,246px)]"
         />
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.1 }}
-          className="relative z-[11] block h-[408px] w-[232px] flex-shrink-0 overflow-hidden rounded-[48px] shadow-[0px_4px_27.8px_rgba(0,0,0,0.9)] md:h-[clamp(240px,65vw,613px)] md:w-[clamp(140px,38vw,346px)]"
+          className="relative z-[11] block h-[408px] w-[232px] flex-shrink-0 overflow-hidden rounded-[48px] shadow-[0px_4px_27.8px_rgba(0,0,0,0.9)] md:h-[500px] md:w-[284px] lg:h-[clamp(240px,45vw,520px)] lg:w-[clamp(140px,26vw,294px)] xl:h-[460px] xl:w-[260px] 2xl:h-[clamp(240px,65vw,613px)] 2xl:w-[clamp(140px,38vw,346px)]"
         >
           <img src="/hombre.png" alt="Tecnología" className="absolute w-full h-full object-cover object-top" />
         </motion.div>
@@ -424,11 +424,11 @@ const TestimonialsSection: React.FC = () => {
 
   return (
     <section className="relative overflow-hidden font-sansation">
-      <div className="mx-auto mb-24 hidden w-[86.6%] border-t border-white md:block" />
+      <div className="mx-auto mb-16 hidden w-[86.6%] border-t border-white md:block lg:mb-24" />
 
-      <div className="relative z-[1] flex min-h-[clamp(500px,60vw,400px)] w-full flex-col items-center justify-center gap-10 py-10 md:flex-row md:justify-between md:gap-0 md:py-0 md:pl-0 md:pr-0">
+      <div className="relative z-[1] flex min-h-[clamp(500px,60vw,760px)] w-full flex-col items-center justify-center gap-10 py-10 lg:flex-row lg:justify-between lg:gap-0 lg:py-0 lg:pl-0 lg:pr-0">
 
-        <div className="w-full md:w-[32%] flex flex-col items-center justify-center md:items-end order-1 md:order-2 text-center md:text-right relative z-20 md:ml-auto px-6 md:px-0 md:pr-[6.7%]">
+        <div className="relative z-20 order-1 flex w-full max-w-[720px] flex-col items-center justify-center px-6 text-center lg:order-2 lg:ml-auto lg:w-[32%] lg:max-w-none lg:items-end lg:px-0 lg:pr-[6.7%] lg:text-right">
           <h2 className="mb-[1.2rem] text-[clamp(34px,4.5vw,68px)] font-bold leading-[1.15] text-white">
             CONSTRUYENDO EL FUTURO,{' '}
             <span className="text-[#0CA3C6]">CASO POR CASO</span>
@@ -438,12 +438,12 @@ const TestimonialsSection: React.FC = () => {
           </p>
 
           <img src="/grafico-derecha.svg" alt="" aria-hidden="true"
-            className="absolute right-0 top-1/2 -z-[1] hidden w-[clamp(200px,35vw,800px)] -translate-y-1/2 opacity-70 md:block" />
+            className="absolute right-0 top-1/2 -z-[1] hidden w-[clamp(200px,35vw,800px)] -translate-y-1/2 opacity-70 lg:block" />
         </div>
 
-        <div className="relative z-[2] order-2 flex w-full justify-center md:order-1 md:w-7/12">
-          <div className="relative h-[310px] w-[316px] flex-shrink-0 md:h-[496px] md:w-[608px]">
-            <div className="relative ml-[-48px] h-[310px] w-[380px] origin-top-left overflow-visible md:ml-0 md:scale-[1.6]">
+        <div className="relative z-[2] order-2 flex w-full justify-center lg:order-1 lg:w-7/12">
+          <div className="relative h-[310px] w-[316px] flex-shrink-0 md:h-[420px] md:w-[500px] lg:h-[456px] lg:w-[560px] xl:h-[496px] xl:w-[608px]">
+            <div className="relative ml-[-48px] h-[310px] w-[380px] origin-top-left overflow-visible md:ml-0 md:scale-[1.25] lg:scale-[1.45] xl:scale-[1.6]">
               {testimonials.map((t, i) => {
                 const slot = ((i - activeCard + testimonials.length) % testimonials.length) as 0 | 1 | 2;
                 return <TestimonialCard key={i} slot={slot} name={t.name} role={t.role} text={t.text} stars={t.stars} />;
