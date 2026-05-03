@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from 'react';
 import { motion } from 'framer-motion';
 import Carousel3D, { type Project } from '../components/Carousel3D';
+import Carousel from '../components/ui/carousel';
 import AltFooter from '../components/AltFooter';
 import SpotlightText from '../components/SpotlightText';
 import SEO from '../components/SEO';
@@ -32,7 +33,7 @@ const Portafolio: React.FC = () => {
         </Suspense>
       </div>
 
-      {/* 4. CONTENEDOR FRONTAL (100dvh exactos) */}
+      {/* 4. CONTENEDOR FRONTAL */}
       <div className="w-full h-[100dvh] flex flex-col relative z-10 pointer-events-none pt-[3rem]">
         
         {/* HERO SECTION */}
@@ -40,7 +41,6 @@ const Portafolio: React.FC = () => {
           <motion.h1
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            // Escala de tamaños progresiva: móvil -> md -> lg -> xl -> 2xl
             className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-[85px] font-bold mb-4 md:mb-6 tracking-wide drop-shadow-2xl transition-all"
           >
             <SpotlightText>Portafolio</SpotlightText>
@@ -59,33 +59,23 @@ const Portafolio: React.FC = () => {
           </motion.div>
         </section>
 
-        {/* CARRUSEL 3D (Toma el resto de la altura con flex-grow) */}
-        <section className="w-full relative z-10 pointer-events-auto flex-grow flex items-center justify-center pb-[4vh] lg:pb-[14vh] xl:pb-[16vh] 2xl:pb-[18vh]">
-          {/* WRAPPER DE ESCALA ULTRA-PRECISO:
-              - Móvil (por defecto): 70%
-              - md (Tablets horizontales): 80%
-              - lg (Laptops estándar de 13"/14"): 85%
-              - xl (Monitores de PC estándar): 95%
-              - 2xl (Monitores gigantes/iMacs): 110%
-          */}
-          <div className="w-full flex justify-center origin-center scale-[0.70] md:scale-[0.80] lg:scale-[0.85] xl:scale-[0.95] 2xl:scale-[1.10] transition-transform duration-500">
+        {/* CARRUSEL ANIMADO (Móvil y Tablet) */}
+        <section className="w-full relative z-10 pointer-events-auto flex-grow flex items-center justify-center pb-[4vh] lg:hidden">
+          <div className="w-full flex justify-center pb-10">
+            <Carousel slides={projects} />
+          </div>
+        </section>
+
+        {/* CARRUSEL 3D (Solo Escritorio) */}
+        <section className="w-full relative z-10 pointer-events-auto flex-grow items-center justify-center xl:-mt-[11vh] 2xl:-mt-[10vh] hidden lg:flex">
+          <div className="w-full flex justify-center origin-center scale-[0.70] md:scale-[0.80] lg:scale-[0.85] xl:scale-[0.8] 2xl:scale-[1] transition-transform duration-500">
             <Carousel3D projects={projects} />
           </div>
         </section>
       </div>
 
-      {/* ELEMENTO DECORATIVO (Solo Escritorio) */}
-      <div className="pointer-events-none absolute bottom-0 left-0 z-0 hidden lg:block w-[15vw] xl:w-[20vw] 2xl:w-[25vw] opacity-60 xl:opacity-80 2xl:opacity-100 transition-all duration-500">
-        <img 
-          src="/designs/elemento_esquina_inferior_izquierda_de_portafolio.svg" 
-          alt="Decoración Portafolio" 
-          draggable={false} 
-          className="w-full h-auto object-contain object-left-bottom" 
-        />
-      </div>
-
       {/* EL FOOTER */}
-      <div className="relative z-10 pointer-events-auto mt-auto">
+      <div className="relative z-10 pointer-events-auto -mt-[5vh] md:-mt-[8vh] lg:-mt-[14vh] xl:-mt-[10vh]">
         <AltFooter />
       </div>
     </div>

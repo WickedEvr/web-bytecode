@@ -116,8 +116,8 @@ const HeroSection: React.FC = () => {
         <div className="absolute inset-0 rotate-180 bg-[url('/designs/stardust.png')] opacity-50 mix-blend-screen" />
       </div>
 
-      <img src="/esquina-arriba.svg" aria-hidden="true" className={`absolute left-0 top-0 z-10 pointer-events-none ${HERO_CORNER_SIZE}`} />
-      <img src="/esquina-abajo.svg" aria-hidden="true" className={`absolute bottom-0 z-0 pointer-events-none ${HERO_CORNER_SIZE} ${HERO_BOTTOM_CORNER_POSITION}`} />
+      <img src="/esquina-arriba.svg" aria-hidden="true" className={`absolute left-0 top-0 z-10 pointer-events-none hidden lg:block ${HERO_CORNER_SIZE}`} />
+      <img src="/esquina-abajo.svg" aria-hidden="true" className={`absolute bottom-0 z-0 pointer-events-none hidden lg:block ${HERO_CORNER_SIZE} ${HERO_BOTTOM_CORNER_POSITION}`} />
       <img src="/sombra-general.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-[9]" />
       <img src="/sombra-arriba.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-10" />
       <img src="/sombra-arriba.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-10 opacity-50" />
@@ -126,11 +126,13 @@ const HeroSection: React.FC = () => {
         
         <div className="order-1 flex w-full max-w-[720px] flex-col items-center text-center z-20 lg:order-2 lg:w-[60%] lg:max-w-none lg:items-start lg:text-left">
           <h1
-            className="mb-2 text-white uppercase leading-[1.08] [text-shadow:0px_4px_7.3px_rgba(0,0,0,0.51)] md:mb-4"
+            className="mb-2 text-white uppercase leading-[1.08] [text-shadow:0px_4px_7.3px_rgba(0,0,0,0.51)] md:mb-4 whitespace-nowrap"
           >
-            <span className="font-bold lg:whitespace-nowrap text-[clamp(2.2rem,4.8vw,4.875rem)]">UN GRAN SITIO WEB,</span>
-            <br />
-            <span className="lg:whitespace-nowrap text-[clamp(1.8rem,3.8vw,4rem)]">HACE IDEAS REALIDAD</span>
+            <span className="font-bold lg:whitespace-nowrap text-[clamp(3rem,14vw,5rem)] lg:text-[clamp(2.2rem,4.8vw,4.875rem)] block lg:inline">UN GRAN</span>
+            <span className="font-bold lg:hidden text-[clamp(3rem,14vw,5rem)] block">SITIO WEB,</span>
+            <span className="hidden lg:inline font-bold lg:whitespace-nowrap text-[clamp(2.2rem,4.8vw,4.875rem)]"> SITIO WEB,</span>
+            <br className="hidden lg:block" />
+            <span className="lg:whitespace-nowrap text-[clamp(1rem,5.5vw,1.8rem)] lg:text-[clamp(1.8rem,3.8vw,4rem)]">HACE IDEAS REALIDAD</span>
           </h1>
 
           <p className="mb-5 text-[clamp(0.9rem,1.8vw,1.75rem)] font-normal leading-[1.3] text-white [text-shadow:0px_4px_8.8px_rgba(0,0,0,0.81)] md:mb-10">
@@ -283,13 +285,12 @@ const ServiciosSection: React.FC = () => {
           </div>
           <div className="relative z-20 mt-8 hidden items-center justify-center gap-4 lg:flex">
             {services.map((_, i) => (
-              <button
+              <div
                 key={i}
-                onClick={() => setSlide(i)}
-                className={`block h-[11px] cursor-pointer rounded-full bg-gray-400 p-0 transition-[width,background-color] duration-300 ${
+                className={`block h-[11px] rounded-full bg-gray-400 transition-[width,background-color] duration-300 ${
                   slide === i ? 'w-[72px]' : 'w-6'
                 }`}
-                aria-label={`Ver servicio ${i + 1}`}
+                aria-hidden="true"
               />
             ))}
           </div>
