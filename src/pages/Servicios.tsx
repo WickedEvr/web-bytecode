@@ -10,24 +10,24 @@ const services = [
     title: 'Página Web',
     description:
       'Creamos soluciones digitales multiplataforma que fusionan estética de vanguardia con arquitectura técnica robusta y escalable.',
-    img: 'https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?auto=format&fit=crop&w=2560&q=90', // Horizontal
-    imgMobile: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&h=1200&q=90&crop=top', // Vertical (Escritorio/Código)
+    img: 'https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?auto=format&fit=crop&w=2560&q=90',
+    imgMobile: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&h=1200&q=90&crop=top',
   },
   {
     label: 'Servicios',
     title: 'App Móvil',
     description:
       'Desarrollamos aplicaciones nativas e híbridas con experiencias de usuario excepcionales para iOS y Android.',
-    img: 'https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=2560&q=90', // Horizontal
-    imgMobile: 'https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=800&h=1200&q=90&crop=top', // Vertical (Celular en mano)
+    img: 'https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=2560&q=90',
+    imgMobile: 'https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=800&h=1200&q=90&crop=top',
   },
   {
     label: 'Servicios',
     title: 'App de Escritorio',
     description:
       'Desarrollamos aplicaciones de escritorio con interfaces intuitivas y funcionalidades avanzadas.',
-    img: '/DesktopApp.webp', // Horizontal
-    imgMobile: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&h=1200&q=90&crop=top', // Vertical (Setup de PC)
+    img: '/DesktopApp.webp',
+    imgMobile: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&h=1200&q=90&crop=top',
   },
 ];
 
@@ -45,6 +45,13 @@ const Servicios: React.FC = () => {
     return () => clearInterval(autoplayTimer);
   }, [current]);
 
+  const titleSizes = {
+    'Página Web': 'text-[2.3rem] md:text-[3.6rem] sm:text-[2.8rem] lg:text-5xl xl:text-[5rem]'
+  };
+
+  const title = services[current].title;
+  const sizeClass = titleSizes[title as keyof typeof titleSizes] || 'text-[2.6rem] sm:text-[3.2rem] md:text-[3.6rem] lg:text-6xl xl:text-[5rem]';
+
   return (
     <div className="w-full bg-white font-sansation overflow-x-hidden flex flex-col select-none">
       <SEO 
@@ -55,7 +62,7 @@ const Servicios: React.FC = () => {
       <div className="flex-grow flex flex-col">
 
         {/* ── SECCIÓN PRINCIPAL UNIFICADA (Mobile-First) ── */}
-        <section className="relative flex flex-col min-h-[calc(100vh-4rem)] lg:h-[calc(100vh-5.5rem)] bg-[#020611] overflow-hidden">
+        <section className="relative flex flex-col h-[calc(100vh-3rem)] lg:h-[calc(100vh-5.5rem)] bg-[#020611] overflow-hidden">
           
           {/* CAPA 1: Imágenes de fondo dinámicas */}
           <div className="absolute inset-0 z-0">
@@ -104,20 +111,19 @@ const Servicios: React.FC = () => {
           </button>
 
           {/* CAPA 3: Contenido e Interacción */}
-          <div className="relative z-10 flex-1 flex flex-col lg:justify-end px-6 lg:px-8 xl:px-16 pt-[clamp(5rem,12vh,8rem)] lg:pt-0 pb-[clamp(2rem,6vh,4rem)] lg:pb-20">
+          <div className="relative z-10 flex-1 flex flex-col lg:justify-end px-6 lg:px-8 xl:px-16 pt-[clamp(4rem,10vh,7rem)] lg:pt-0 pb-[clamp(2rem,6vh,4rem)] lg:pb-20">
             <AnimatePresence mode="wait">
               <motion.div
                 key={`content-${current}`}
-                initial={{ opacity: 0, y: 24, x: 0 }} // Unificando animaciones
+                initial={{ opacity: 0, y: 24, x: 0 }}
                 animate={{ opacity: 1, y: 0, x: 0 }}
                 exit={{ opacity: 0, y: -12, x: 0 }}
                 transition={{ duration: 0.5, ease: 'easeInOut' }}
                 className="mt-auto lg:mt-0 flex flex-col lg:flex-row items-center lg:items-end justify-between w-full lg:max-w-7xl lg:mx-auto gap-6 lg:gap-16"
               >
-                
                 {/* IZQUIERDA — Info del servicio */}
-                <div className="flex flex-col items-center lg:items-start text-center lg:text-left w-full lg:flex-1 lg:max-w-2xl">
-                  <p className="text-white/90 lg:text-white text-[1.5rem] lg:text-2xl xl:text-3xl font-light tracking-wide mb-1 lg:mb-2">
+                <div className="flex flex-col items-center lg:items-start text-center lg:text-left w-full lg:flex-1 lg:max-w-2xl -mt-50">
+                  <p className="text-white/90 lg:text-white text-[1.5rem] md:text-[1.8rem] lg:text-2xl xl:text-3xl font-light tracking-wide mb-1 lg:mb-2">
                     {services[current].label}
                   </p>
 
@@ -128,8 +134,10 @@ const Servicios: React.FC = () => {
                         <svg viewBox="0 0 24 24" className="w-11 h-11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
                       </motion.div>
                     </button>
-
-                    <h2 className="px-2 lg:px-0 text-[2.6rem] sm:text-[3.2rem] lg:text-6xl xl:text-[5rem] font-bold text-[#06CFD6] lg:text-[#0CA3C6] leading-tight lg:leading-none tracking-tight drop-shadow-lg lg:drop-shadow-none">
+                      
+                    <h2
+                      className={`px-2 lg:px-0 font-bold text-[#06CFD6] lg:text-[#0CA3C6] leading-tight lg:leading-none tracking-tight drop-shadow-lg lg:drop-shadow-none ${sizeClass}`}
+                    >
                       {services[current].title}
                     </h2>
                     
@@ -140,7 +148,7 @@ const Servicios: React.FC = () => {
                     </button>
                   </div>
 
-                  <p className="text-white/90 text-[1rem] sm:text-[1.1rem] lg:text-lg xl:text-xl leading-relaxed font-light text-justify lg:text-left mb-7 lg:mb-0 w-full px-2 lg:px-0 drop-shadow-md lg:drop-shadow-none">
+                  <p className="text-white/90 text-[1rem] sm:text-[1.1rem] md:text-[1.5rem] lg:text-lg xl:text-xl leading-relaxed font-light text-justify lg:text-left mb-5 lg:mb-0 w-full px-2 lg:px-0 drop-shadow-md lg:drop-shadow-none">
                     {services[current].description}
                   </p>
                 </div>
@@ -149,26 +157,24 @@ const Servicios: React.FC = () => {
                 <div className="hidden lg:block w-[1.5px] self-stretch bg-white/50 mx-4"></div>
 
                 {/* DERECHA — Call to Action */}
-                <div className="w-full lg:w-auto lg:shrink-0 flex flex-col items-center justify-center text-center lg:min-w-[300px]">
-                  <p className="text-white font-bold text-[clamp(1rem,4.5vw,1.25rem)] lg:text-2xl xl:text-3xl mb-3 min-[400px]:mb-4 lg:mb-6 leading-tight drop-shadow-md lg:drop-shadow-none">
-                    Obtén mucha más<br className="hidden lg:block" /> { /* Salto de línea solo en desktop para mantener el diseño original */ }
+                <div className="w-full lg:w-auto lg:shrink-0 flex flex-col items-center justify-center text-center lg:min-w-[300px] -mt-5">
+                  <p className="text-white font-bold text-[clamp(1rem,4.5vw,1.25rem)] md:text-[clamp(1.2rem,5vw,1.5rem)] lg:text-2xl xl:text-3xl mb-3 min-[400px]:mb-4 lg:mb-6 leading-tight drop-shadow-md lg:drop-shadow-none">
+                    Obtén mucha más <br className="hidden lg:block" />
                     información
                   </p>
                   <Link
                     to="/contacto"
-                    className="w-full lg:w-auto inline-block text-center bg-[#06CFD6] text-white font-bold text-[1.2rem] min-[400px]:text-[1.35rem] lg:text-2xl xl:text-3xl px-8 lg:px-24 py-3 min-[400px]:py-4 lg:py-5 rounded-[1.5rem] lg:rounded-[20px] shadow-[0_4px_15px_rgba(6,207,214,0.3)] lg:shadow-[0_4px_15px_rgba(6,207,214,0.4)] hover:bg-[#0CA3C6] lg:hover:shadow-[0_8px_25px_rgba(6,207,214,0.6)] lg:hover:-translate-y-1 active:scale-95 lg:active:translate-y-0 lg:active:scale-100 transition-all duration-300 outline-none"
+                    className="w-full lg:w-auto inline-block text-center bg-[#06CFD6] text-white font-bold text-[1.5rem] md:text-[2rem] min-[400px]:text-[1.35rem] lg:text-2xl xl:text-3xl px-8 lg:px-24 py-3 min-[400px]:py-4 lg:py-5 rounded-[1.5rem] lg:rounded-[20px] shadow-[0_4px_15px_rgba(6,207,214,0.3)] lg:shadow-[0_4px_15px_rgba(6,207,214,0.4)] hover:bg-[#0CA3C6] lg:hover:shadow-[0_8px_25px_rgba(6,207,214,0.6)] lg:hover:-translate-y-1 active:scale-95 lg:active:translate-y-0 lg:active:scale-100 transition-all duration-300 outline-none"
                   >
                     Conectar
                   </Link>
                 </div>
-
               </motion.div>
             </AnimatePresence>
           </div>
         </section>
 
         {/* ── HERRAMIENTAS ── */}
-
         <section className="bg-white pb-12 px-6" style={{ position: 'relative', zIndex: 20, paddingTop: '3rem' }}>
           <div className="w-full md:w-[85%] mx-auto flex flex-col items-center">
             {/* Mobile exact group */}

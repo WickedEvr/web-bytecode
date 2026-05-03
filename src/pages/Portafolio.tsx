@@ -34,7 +34,7 @@ const Portafolio: React.FC = () => {
       </div>
 
       {/* CONTENEDOR FRONTAL */}
-      <div className="w-full h-[100dvh] flex flex-col relative z-10 pointer-events-none pt-[3rem]">
+      <div className="w-full lg:min-h-[100dvh] flex flex-col relative z-10 pointer-events-none pt-[3rem]">
         
         {/* HERO SECTION */}
         <section className="px-6 text-center text-white relative z-10 pointer-events-none flex-shrink-0">
@@ -66,8 +66,8 @@ const Portafolio: React.FC = () => {
         </section>
 
         {/* CARRUSEL ANIMADO (Móvil y Tablet) */}
-        <section className="w-full relative z-10 pointer-events-auto flex-grow flex items-center justify-center -mt-[140px] md:-mt-[335px] pb-[4vh] lg:hidden">
-          <div className="w-full flex justify-center pb-10">
+        <section className="w-full relative z-10 pointer-events-auto mt-6 md:mt-10 lg:hidden">
+          <div className="w-full flex justify-center pb-24 md:pb-28">
             <Carousel slides={projects} />
           </div>
         </section>
@@ -81,7 +81,7 @@ const Portafolio: React.FC = () => {
       </div>
 
       {/* EL FOOTER */}
-      <div className="relative z-10 pointer-events-auto -mt-[16vh] md:-mt-[29vh] lg:-mt-[14vh] xl:-mt-[10vh]">
+      <div className="relative z-10 pointer-events-auto mt-10 md:mt-8 lg:-mt-[14vh] xl:-mt-[10vh]">
         <AltFooter />
       </div>
     </div>
