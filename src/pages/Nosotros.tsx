@@ -100,7 +100,7 @@ const Nosotros: React.FC = () => {
             </div>
 
             {/* Misión, Visión, Valores */}
-            <div className="relative z-10 flex flex-col items-center lg:items-start text-center lg:text-left gap-11 sm:gap-14 lg:gap-[50px] xl:gap-[80px] 2xl:gap-[120px] max-w-[20rem] sm:max-w-[24rem] lg:max-w-none mx-auto lg:mx-0 mt-[250px] md:mt-[550px] sm:mt-0 lg:mt-[100px] xl:mt-[220px] 2xl:mt-[250px] mb-[250px] md:mb-[200px] sm:mb-[250px] lg:mb-0 lg:pl-20 transition-all duration-500">
+            <div className="relative z-10 flex flex-col items-center lg:items-start text-center lg:text-left gap-11 sm:gap-14 lg:gap-[50px] xl:gap-[80px] 2xl:gap-[120px] max-w-[20rem] sm:max-w-[24rem] lg:max-w-none mx-auto lg:mx-0 mt-[190px] mb-[190px] md:mt-[540px] md:mb-[190px] sm:mt-0 sm:mb-[250px] lg:mt-[100px] lg:mb-0 xl:mt-[220px] 2xl:mt-[250px] lg:pl-20 transition-all duration-500">
               {infoBlocks.map((block, index) => (
                 <motion.div key={block.title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.1 }} className="flex flex-col items-center lg:items-start">
                   <h2 className="font-bold text-white [text-shadow:0px_4px_10.7px_rgba(255,255,255,0.49)] text-[clamp(2.2rem,9vw,3.3rem)] lg:text-[42px] xl:text-[54px] 2xl:text-[64px] leading-none lg:mb-4 2xl:mb-8 transition-all">

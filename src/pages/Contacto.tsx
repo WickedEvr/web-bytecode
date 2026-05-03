@@ -6,7 +6,7 @@ import GalaxyBackground from '../components/GalaxyBackground';
 import ContactFooter from '../components/ContactFooter';
 
 const solidInput =
-  'w-full bg-white rounded-full px-6 py-[0.85rem] text-[#333] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06CFD6] transition-all text-[20px] shadow-sm';
+  'w-full bg-white rounded-full px-6 py-[0.6rem] text-[#333] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06CFD6] transition-all text-[20px] shadow-sm';
 
 const Label: React.FC<{ text: string; required?: boolean }> = ({ text, required }) => (
   <label className="block text-white/70 text-[24px] font-bold mb-1.5 pl-5 tracking-wide">
@@ -100,7 +100,7 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
         {/* Trigger del Dropdown */}
         <div 
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="shrink-0 flex items-center gap-1.5 md:gap-2 pl-4 md:pl-6 pr-2 md:pr-3 py-[0.85rem] border-r border-gray-200 bg-white cursor-pointer hover:bg-gray-50 rounded-l-full select-none"
+          className="shrink-0 flex items-center gap-1.5 md:gap-2 pl-4 md:pl-6 pr-2 md:pr-3 py-[0.6rem] border-r border-gray-200 bg-white cursor-pointer hover:bg-gray-50 rounded-l-full select-none"
         >
           <img
             src={`https://flagcdn.com/w20/${selectedCountry.iso.toLowerCase()}.png`}
@@ -120,7 +120,7 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
           type="tel"
           name="celular"
           placeholder={`Ej: ${'9'.repeat(selectedCountry.maxLength)}`}
-          className="flex-1 bg-transparent px-4 py-[0.85rem] text-[#333] placeholder-gray-400 focus:outline-none text-[20px] rounded-r-full"
+          className="flex-1 bg-transparent px-4 py-[0.6rem] text-[#333] placeholder-gray-400 focus:outline-none text-[20px] rounded-r-full"
           required
           maxLength={selectedCountry.maxLength}
           value={value}
@@ -215,7 +215,7 @@ const ServiceDropdown: React.FC<ServiceDropdownProps> = ({ value, onChange }) =>
       {/* Trigger (El botón que parece un input) */}
       <div 
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center justify-between w-full bg-white rounded-full px-6 py-[0.85rem] cursor-pointer shadow-sm transition-all ${isOpen ? 'ring-2 ring-[#06CFD6]' : ''}`}
+        className={`flex items-center justify-between w-full bg-white rounded-full px-6 py-[0.6rem] cursor-pointer shadow-sm transition-all ${isOpen ? 'ring-2 ring-[#06CFD6]' : ''}`}
       >
         <span className={`text-[20px] ${value ? 'text-[#333]' : 'text-gray-400'}`}>
           {selectedLabel}
@@ -315,12 +315,12 @@ const Contacto: React.FC = () => {
         />
       </div>
 
-      <div className="relative z-10 w-full max-w-[750px] mx-auto px-6 py-20 pointer-events-auto flex flex-col items-center">
+      <div className="relative z-10 w-full max-w-[750px] mx-auto px-6 py-10 lg:py-20 pointer-events-auto flex flex-col items-center">
         {/* Título Centrado */}
         <motion.h1
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-[clamp(3rem,6vw,4.5rem)] font-bold mb-10 text-center tracking-tight"
+          className="text-[clamp(2.25rem,4.5vw,3.5rem)] font-bold mb-10 text-center tracking-tight"
         >
           <span className="block md:inline text-[#0CA3C6]">Conecta</span>
 
@@ -432,7 +432,7 @@ const Contacto: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-[#06CFD6] text-white font-bold py-3.5 rounded-3xl text-[30px] tracking-[0.18em] transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(6,207,214,0.5)] active:scale-95 disabled:opacity-60"
+              className="w-full bg-[#06CFD6] text-white py-2 rounded-3xl text-[30px]  transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(6,207,214,0.5)] active:scale-95 disabled:opacity-60"
             >
               {isLoading ? 'Enviando...' : 'Conectar'}
             </button>
