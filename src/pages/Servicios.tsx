@@ -111,8 +111,7 @@ const Servicios: React.FC = () => {
           </button>
 
           {/* CAPA 3: Contenido e Interacción */}
-          {/* CAMBIO 1: Cambiamos 'py-6' por 'pt-6 pb-[12vh] md:pb-[18vh]'. Al inflar el padding inferior, el "piso" sube, obligando al contenido (que está centrado) a subir con él. */}
-          <div className="relative z-10 flex-1 flex flex-col lg:justify-end px-6 lg:px-8 xl:px-16 pt-90 pb-[12vh] md:pb-[18vh] lg:pt-0 lg:pb-20">
+          <div className="relative z-10 flex-1 flex flex-col lg:justify-end px-6 lg:px-8 xl:px-16 pt-[clamp(5rem,12vh,8rem)] lg:pt-0 pb-[clamp(2rem,6vh,4rem)] lg:pb-20">
             <AnimatePresence mode="wait">
               <motion.div
                 key={`content-${current}`}
@@ -120,11 +119,10 @@ const Servicios: React.FC = () => {
                 animate={{ opacity: 1, y: 0, x: 0 }}
                 exit={{ opacity: 0, y: -12, x: 0 }}
                 transition={{ duration: 0.5, ease: 'easeInOut' }}
-                className="my-auto lg:mt-0 lg:mb-0 flex flex-col lg:flex-row items-center lg:items-end justify-between w-full lg:max-w-7xl lg:mx-auto gap-6 lg:gap-16 -translate-y-4 lg:translate-y-0"
+                className="mt-auto lg:mt-0 flex flex-col lg:flex-row items-center lg:items-end justify-between w-full lg:max-w-7xl lg:mx-auto gap-6 lg:gap-16"
               >
-                
                 {/* IZQUIERDA — Info del servicio */}
-                <div className="flex flex-col items-center lg:items-start text-center lg:text-left w-full lg:flex-1 lg:max-w-2xl">
+                <div className="flex flex-col items-center lg:items-start text-center lg:text-left w-full lg:flex-1 lg:max-w-2xl -mt-50">
                   <p className="text-white/90 lg:text-white text-[1.5rem] lg:text-2xl xl:text-3xl font-light tracking-wide mb-1 lg:mb-2">
                     {services[current].label}
                   </p>
