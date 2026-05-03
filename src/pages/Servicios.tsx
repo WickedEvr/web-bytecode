@@ -45,6 +45,8 @@ const Servicios: React.FC = () => {
     return () => clearInterval(autoplayTimer);
   }, [current]);
 
+  const isSmallTitle = services[current].title === 'Página Web';
+
   return (
     <div className="w-full bg-white font-sansation overflow-x-hidden flex flex-col select-none">
       <SEO 
@@ -127,8 +129,14 @@ const Servicios: React.FC = () => {
                         <svg viewBox="0 0 24 24" className="w-11 h-11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
                       </motion.div>
                     </button>
-
-                    <h2 className="px-2 lg:px-0 text-[2.5rem] sm:text-[3.2rem] lg:text-6xl xl:text-[5rem] font-bold text-[#06CFD6] lg:text-[#0CA3C6] leading-tight lg:leading-none tracking-tight drop-shadow-lg lg:drop-shadow-none">
+                      
+                    <h2
+                      className={`px-2 lg:px-0 font-bold text-[#06CFD6] lg:text-[#0CA3C6] leading-tight lg:leading-none tracking-tight drop-shadow-lg lg:drop-shadow-none
+                      ${isSmallTitle
+                        ? 'text-[2.3rem] sm:text-[2.8rem] lg:text-5xl xl:text-[4.5rem]'
+                        : 'text-[2.6rem] sm:text-[3.2rem] lg:text-6xl xl:text-[5rem]'
+                      }`}
+                    >
                       {services[current].title}
                     </h2>
                     
