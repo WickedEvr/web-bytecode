@@ -119,7 +119,7 @@ const Servicios: React.FC = () => {
                 animate={{ opacity: 1, y: 0, x: 0 }}
                 exit={{ opacity: 0, y: -12, x: 0 }}
                 transition={{ duration: 0.5, ease: 'easeInOut' }}
-                className="mt-110 lg:mt-0 flex flex-col lg:flex-row items-center lg:items-end justify-between w-full lg:max-w-7xl lg:mx-auto gap-6 lg:gap-16"
+                className="mt-auto lg:mt-0 flex flex-col lg:flex-row items-center lg:items-end justify-between w-full lg:max-w-7xl lg:mx-auto gap-6 lg:gap-16"
               >
                 {/* IZQUIERDA — Info del servicio */}
                 <div className="flex flex-col items-center lg:items-start text-center lg:text-left w-full lg:flex-1 lg:max-w-2xl -mt-50">
