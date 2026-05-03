@@ -19,12 +19,12 @@ const HERO_BOTTOM_CORNER_POSITION =
 const HERO_CORNER_SIZE = 'w-[48%] sm:w-[42%] md:w-[40%] xl:w-[36%] 2xl:w-[34%]';
 
 const TESTIMONIAL_CARD_BASE =
-  'absolute h-[305.14px] w-[189.51px] origin-top-left font-sansation drop-shadow-[0px_4px_18px_rgba(178,250,255,0.62)] transition-[left,top,transform,opacity] duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]';
+  'absolute left-0 top-0 h-[305.14px] w-[189.51px] origin-top-left font-sansation drop-shadow-[0px_3px_8px_rgba(178,250,255,0.75)]';
 
 const TESTIMONIAL_CARD_SLOTS = [
-  'left-[111.08px] top-0 z-[3] opacity-100 scale-100',
-  'left-[223px] top-[42.06px] z-[1] opacity-[0.54] scale-[0.736]',
-  'left-[50px] top-[42.06px] z-[1] opacity-[0.54] scale-[0.736]',
+  { x: 111.08, y: 0, scale: 1, opacity: 1, zIndex: 3 },
+  { x: 223, y: 42.06, scale: 0.736, opacity: 0.54, zIndex: 1 },
+  { x: 50, y: 42.06, scale: 0.736, opacity: 0.54, zIndex: 1 },
 ] as const;
 
 const services = [
@@ -46,7 +46,7 @@ const services = [
 ];
 
 const testimonials = [
-  { name: 'María García', role: 'Emprendedora', text: 'Excelente servicio, mi negocio creció enormemente. Totalmente conforme.', stars: 4 },
+  { name: 'María García', role: 'Emprendedora', text: 'Excelente servicio, mi negocio creció enormemente. Totalmente conforme.', stars: 5 },
   { name: 'Dante Gallardo', role: 'CEO', text: 'Muy bueno con el trabajo! Totalmente conforme.', stars: 5 },
   { name: 'Carlos Ruiz', role: 'Director', text: 'Profesionales de primer nivel, los recomiendo.', stars: 5 },
 ];
@@ -59,26 +59,32 @@ const TestimonialCard: React.FC<{ name: string; role: string; text: string; star
   name, role, text, stars, slot,
 }) => {
   return (
-    <div className={`${TESTIMONIAL_CARD_BASE} ${TESTIMONIAL_CARD_SLOTS[slot]}`}>
+    <motion.div
+      className={TESTIMONIAL_CARD_BASE}
+      initial={false}
+      animate={TESTIMONIAL_CARD_SLOTS[slot]}
+      transition={{ duration: 1.15, ease: [0.22, 1, 0.36, 1] }}
+    >
       <div className="relative h-full w-full overflow-hidden rounded-[37px] border-4 border-white bg-white/[0.13] backdrop-blur-[9.85px]">
-        <div className="relative h-[122px] bg-[rgba(0,15,35,0.45)]">
-          <div className="absolute bottom-[-44.43px] left-1/2 z-[2] h-[88.86px] w-[88.86px] -translate-x-1/2 overflow-hidden rounded-full border-[6px] border-[#06CFD6] bg-[linear-gradient(135deg,#1a3a5c_0%,#0d1f33_100%)] drop-shadow-[0px_0px_16.6px_#FFFFFF]" />
+        <div className="relative h-[76px] bg-[rgba(0,15,35,0.45)]">
+          <div className="absolute bottom-[-44.43px] left-1/2 z-[2] h-[88.86px] w-[88.86px] -translate-x-1/2 overflow-hidden rounded-full border-[6px] border-[#06CFD6] bg-[linear-gradient(135deg,#1a3a5c_0%,#0d1f33_100%)] drop-shadow-[0px_0px_7px_rgba(255,255,255,0.95)]" />
         </div>
 
-        <div className="flex h-[183px] flex-col items-center overflow-hidden [border-radius:177px_177px_37px_37px] bg-white px-[14px] pb-4 pt-[54px] text-center shadow-[0px_-4px_18px_rgba(135,247,255,0.48)]">
+        <div aria-hidden="true" className="absolute left-0 top-[76px] h-[72px] w-full bg-[rgba(0,15,35,0.45)]" />
+        <div className="relative flex h-[229px] flex-col items-center overflow-hidden [border-radius:177px_177px_37px_37px] bg-white px-[14px] pb-4 pt-[54px] text-center shadow-[0px_-3px_8px_rgba(135,247,255,0.62)]">
           <p className="mb-px text-base font-bold leading-[1.2] text-[#06CFD6]">{name}</p>
           <p className="mb-1 text-[10px] font-normal leading-[1.2] text-[#06CFD6]">{role}</p>
           <p className="mb-2 flex-1 text-[11px] leading-[1.4] text-black">{text}</p>
-          <div className="flex gap-[3px]">
+          <div className="mb-3 flex gap-[3px]">
             {Array.from({ length: stars }).map((_, i) => (
-              <svg key={i} width={29.23} height={29.23} viewBox="0 0 24 24" fill="#FF9D00">
+              <svg key={i} width={25.5} height={25.5} viewBox="0 0 24 24" fill="#FF9D00">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
             ))}
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
@@ -351,7 +357,7 @@ const IASection: React.FC = () => (
   <section className="relative z-[60] -mt-60 min-h-[800px] overflow-x-hidden pb-8 md:mt-0 md:min-h-[1240px] md:overflow-visible lg:min-h-[680px] xl:min-h-[660px] 2xl:min-h-[800px]">
     <div className="absolute bottom-[258px] left-0 right-0 top-[258px] z-0 bg-white md:hidden" />
     
-    <div className="relative z-10 flex flex-col items-center justify-between px-6 pt-8 pb-8 w-full md:w-[85%] md:px-0 md:pt-10 md:gap-10 lg:-mt-12 lg:flex-row lg:items-end lg:gap-0 lg:pt-0 lg:pr-[24px] xl:-mt-35 2xl:-mt-24 mx-auto gap-8">
+    <div className="relative z-10 flex flex-col items-center justify-between px-6 pt-8 pb-8 w-full md:w-[85%] md:px-0 md:pt-10 md:gap-10 lg:-mt-12 lg:flex-row lg:items-end lg:gap-0 lg:pt-0 lg:pr-[17px] xl:-mt-35 2xl:-mt-24 mx-auto gap-8">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute bottom-[clamp(-20px,1.5vw,0px)] left-[72%] z-[1] hidden h-[clamp(164px,18vw,237px)] w-[clamp(228px,25vw,329px)] -translate-x-1/2 rounded-[59px] bg-white lg:block xl:h-[176px] xl:w-[244px] 2xl:h-[clamp(164px,18vw,237px)] 2xl:w-[clamp(228px,25vw,329px)]"
@@ -429,17 +435,19 @@ const TestimonialsSection: React.FC = () => {
 
       <div className="relative z-[1] flex min-h-[clamp(500px,60vw,760px)] w-full flex-col items-center justify-center gap-10 py-10 lg:flex-row lg:justify-between lg:gap-0 lg:py-0 lg:pl-0 lg:pr-0">
 
-        <div className="relative z-20 order-1 flex w-full max-w-[720px] flex-col items-center justify-center px-6 text-center lg:order-2 lg:ml-auto lg:w-[32%] lg:max-w-none lg:items-end lg:px-0 lg:pr-[6.7%] lg:text-right">
-          <h2 className="mb-[1.2rem] text-[clamp(34px,4.5vw,68px)] font-bold leading-[1.15] text-white">
-            CONSTRUYENDO EL FUTURO,{' '}
-            <span className="text-[#0CA3C6]">CASO POR CASO</span>
-          </h2>
-          <p className="text-[clamp(16px,1.9vw,26px)] font-normal leading-[1.6] text-white/75">
-            Testimonios veraces de nuestros primeros usuarios piloto que ya están transformando sus industrias.
-          </p>
+        <div className="relative z-20 order-1 flex w-full flex-col items-center justify-center px-6 text-center md:items-end md:px-0 md:text-right lg:order-2 lg:ml-auto lg:w-[40%] lg:max-w-none">
+          <div className="md:pr-[9vw] lg:pr-[calc(7.5vw+17px)]">
+            <h2 className="mb-[1.2rem] text-[clamp(34px,4.5vw,68px)] font-bold leading-[1.15] text-white">
+              CONSTRUYENDO EL FUTURO,{' '}
+              <span className="text-[#0CA3C6]">CASO POR CASO</span>
+            </h2>
+            <p className="text-[clamp(16px,1.9vw,26px)] font-normal leading-[1.6] text-white/75">
+              Testimonios veraces de nuestros primeros usuarios piloto que ya están transformando sus industrias.
+            </p>
+          </div>
 
           <img src="/grafico-derecha.svg" alt="" aria-hidden="true"
-            className="absolute right-0 top-1/2 -z-[1] hidden w-[clamp(200px,35vw,800px)] -translate-y-1/2 opacity-70 lg:block" />
+            className="hidden lg:block w-[clamp(200px,35vw,800px)] opacity-70 mt-8 lg:self-end" />
         </div>
 
         <div className="relative z-[2] order-2 flex w-full justify-center lg:order-1 lg:w-7/12">
