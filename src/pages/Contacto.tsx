@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, type HTMLMotionProps } from 'framer-motion';
 import SEO from '../components/SEO';
 import GalaxyBackground from '../components/GalaxyBackground';
 import ContactFooter from '../components/ContactFooter';
@@ -11,9 +11,102 @@ const solidInput =
 const Label: React.FC<{ text: string; required?: boolean }> = ({ text, required }) => (
   <label className="block text-white/70 text-[24px] font-bold mb-1.5 pl-5 tracking-wide">
     {text}
-    {required && <span className="text-primary-cyan ml-1">*</span>}
+    {required && <span className="text-[#06CFD6] ml-1">*</span>}
   </label>
 );
+
+// --- COMPONENTE: BOTÓN ANIMADO (ACETERNITY STYLE CON ESTADO DE ÉXITO) ---
+interface AnimatedButtonProps extends HTMLMotionProps<"button"> {
+  isLoading: boolean;
+  isSuccess?: boolean; // Nuevo estado de éxito
+  text: string;
+  loadingText?: string;
+  successText?: string;
+}
+
+const AnimatedSubmitButton: React.FC<AnimatedButtonProps> = ({ 
+  isLoading, 
+  isSuccess = false,
+  text, 
+  loadingText = "Enviando...", 
+  successText = "¡Listo!",
+  className,
+  ...props 
+}) => {
+  return (
+    <motion.button
+      whileHover={{ scale: (isLoading || isSuccess) ? 1 : 1.02 }}
+      whileTap={{ scale: (isLoading || isSuccess) ? 1 : 0.95 }}
+      className={`relative flex items-center justify-center overflow-hidden transition-shadow ${className}`}
+      disabled={isLoading || isSuccess || props.disabled}
+      {...props}
+    >
+      <AnimatePresence mode="wait" initial={false}>
+        {isSuccess ? (
+          <motion.div
+            key="success"
+            initial={{ opacity: 0, y: -20, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            className="flex items-center gap-3 absolute"
+          >
+            {/* Animación de Check dibujándose */}
+            <motion.svg 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="white" 
+              strokeWidth="3" 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              className="w-7 h-7"
+            >
+              <motion.polyline 
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 0.4, ease: "easeOut", delay: 0.1 }}
+                points="20 6 9 17 4 12" 
+              />
+            </motion.svg>
+            <span>{successText}</span>
+          </motion.div>
+        ) : isLoading ? (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="flex items-center gap-3 absolute"
+          >
+            {/* Spinner SVG Premium */}
+            <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>{loadingText}</span>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="idle"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="flex items-center absolute"
+          >
+            {text}
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* Elemento invisible para mantener la altura y anchura del botón estable */}
+      <div className="opacity-0 flex items-center gap-3 pointer-events-none" aria-hidden="true">
+        <svg className="h-7 w-7" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" strokeWidth="4"></circle></svg>
+        <span>{successText.length > loadingText.length ? successText : loadingText}</span>
+      </div>
+    </motion.button>
+  );
+};
 
 // 1. Interfaz preparada para tu futura BD SQL
 interface CountryData {
@@ -22,7 +115,7 @@ interface CountryData {
   name: string;
   dialCode: string;
   flag: string;
-  maxLength: number; // Para la validación dinámica
+  maxLength: number;
 }
 
 interface PhoneInputProps {
@@ -52,13 +145,12 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
         { id: '6', iso: 'ES', name: 'España', dialCode: '+34', flag: '🇪🇸', maxLength: 9 },
       ];
       setCountries(mockDB);
-      setSelectedCountry(mockDB[0]); // Por defecto Perú
+      setSelectedCountry(mockDB[0]); 
       if (onCountryChange) onCountryChange(mockDB[0].dialCode);
     };
     fetchCountries();
   }, []);
 
-  // 3. Cerrar dropdown al hacer click afuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -71,9 +163,7 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
 
   // 4. Validación en tiempo real basada en el país
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value.replace(/\D/g, ''); // Solo permite números
-    
-    // Inyectamos el valor limpio al evento original para el padre
+    const inputValue = e.target.value.replace(/\D/g, ''); 
     e.target.value = inputValue; 
     onChange(e);
 
@@ -91,13 +181,12 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
     setError(''); 
   };
 
-  if (!selectedCountry) return null; // Loading state
+  if (!selectedCountry) return null;
 
   return (
     <div className="relative w-full" ref={dropdownRef}>
       <div className={`flex items-center w-full bg-white rounded-full overflow-visible transition-all shadow-sm ${error ? 'ring-2 ring-red-400' : 'focus-within:ring-2 focus-within:ring-[#06CFD6]'}`}>
         
-        {/* Trigger del Dropdown */}
         <div 
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           className="shrink-0 flex items-center gap-1.5 md:gap-2 pl-4 md:pl-6 pr-2 md:pr-3 py-[0.6rem] border-r border-gray-200 bg-white cursor-pointer hover:bg-gray-50 rounded-l-full select-none"
@@ -115,7 +204,6 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
           </svg>
         </div>
 
-        {/* Input Text */}
         <input
           type="tel"
           name="celular"
@@ -128,7 +216,6 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
         />
       </div>
 
-      {/* Menú Desplegable (Dropdown) con Framer Motion */}
       <AnimatePresence>
         {isDropdownOpen && (
           <motion.div
@@ -144,7 +231,11 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
                 <div
                   key={country.id}
                   onClick={() => handleSelectCountry(country)}
-                  className={`flex items-center justify-between px-5 py-3 hover:bg-gray-50 cursor-pointer transition-colors ${selectedCountry.id === country.id ? 'bg-[#06CFD6]/10 text-[#06CFD6]' : 'text-gray-600'}`}
+                  className={`flex items-center justify-between px-5 py-3 cursor-pointer transition-colors ${
+                    selectedCountry.id === country.id 
+                      ? 'bg-[#06CFD6]/15 text-[#06CFD6] font-bold' 
+                      : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
+                  }`}
                 >
                   <div className="flex items-center gap-3">
                     <img
@@ -163,7 +254,6 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
         )}
       </AnimatePresence>
 
-      {/* Mensaje de Error */}
       {error && (
         <span className="absolute -bottom-5 left-4 text-xs font-bold text-red-400">
           {error}
@@ -212,7 +302,6 @@ const ServiceDropdown: React.FC<ServiceDropdownProps> = ({ value, onChange }) =>
 
   return (
     <div className="relative w-full" ref={dropdownRef}>
-      {/* Trigger (El botón que parece un input) */}
       <div 
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center justify-between w-full bg-white rounded-full px-6 py-[0.6rem] cursor-pointer shadow-sm transition-all ${isOpen ? 'ring-2 ring-[#06CFD6]' : ''}`}
@@ -248,8 +337,8 @@ const ServiceDropdown: React.FC<ServiceDropdownProps> = ({ value, onChange }) =>
                   onClick={() => handleSelect(option.value)}
                   className={`px-6 py-3 cursor-pointer transition-colors ${
                     value === option.value 
-                      ? 'bg-[#06CFD6]/10 text-[#06CFD6] font-medium' 
-                      : 'text-gray-600 hover:bg-gray-50'
+                      ? 'bg-[#06CFD6]/15 text-[#06CFD6] font-bold' 
+                      : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
                   }`}
                 >
                   <span className="text-[20px]">{option.label}</span>
@@ -274,7 +363,10 @@ const Contacto: React.FC = () => {
     ruc: '',
     servicio: '',
   });
+  
+  // Agregamos el estado de éxito a nuestra lógica
   const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -285,10 +377,19 @@ const Contacto: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setIsSuccess(false);
+
+    // 1. Simulamos el tiempo de envío a la base de datos (2 segundos de spinner)
     setTimeout(() => {
       setIsLoading(false);
-      navigate('/confirmacion');
-    }, 500);
+      setIsSuccess(true);
+      
+      // 2. Le damos tiempo al usuario para ver la animación del check (1.2 segundos)
+      setTimeout(() => {
+        navigate('/confirmacion', { state: { source: 'contacto' } });
+      }, 1200);
+      
+    }, 2000); 
   };
 
   return (
@@ -298,11 +399,10 @@ const Contacto: React.FC = () => {
         description="Ponte en contacto con Bytecode para iniciar tu proyecto de transformación digital hoy mismo."
       />
       
-      {/* Fondo espacio + Image + Red Cibernética */}
+      {/* Fondo espacio */}
       <div className="absolute inset-0" style={{ backgroundColor: '#040e1f' }}>
         <GalaxyBackground /> 
         <div className="absolute inset-0" style={{ background: 'rgba(4,14,31,0.30)' }} />
-        {/* 2. Capa oscura para asegurar legibilidad del formulario */}
         <div className="absolute inset-0 bg-[#040e1f]/70" />
 
         <div
@@ -323,13 +423,10 @@ const Contacto: React.FC = () => {
           className="text-[clamp(2.25rem,4.5vw,3.5rem)] font-bold mb-10 text-center tracking-tight"
         >
           <span className="block md:inline text-[#0CA3C6]">Conecta</span>
-
           <span className="hidden md:inline"> </span>
-
           <span className="block md:inline text-white font-light -mt-[15px]">con tu marca</span>
         </motion.h1>
 
-        {/* Formulario con Gaps ajustados */}
         <motion.form
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -337,7 +434,6 @@ const Contacto: React.FC = () => {
           onSubmit={handleSubmit}
           className="w-full flex flex-col gap-4"
         >
-          {/* Nombre */}
           <div>
             <Label text="Nombre Completo" />
             <input
@@ -351,7 +447,6 @@ const Contacto: React.FC = () => {
             />
           </div>
 
-          {/* Cargo */}
           <div>
             <Label text="Cargo" />
             <input
@@ -365,7 +460,6 @@ const Contacto: React.FC = () => {
             />
           </div>
 
-          {/* Email */}
           <div>
             <Label text="Email" />
             <input
@@ -379,7 +473,6 @@ const Contacto: React.FC = () => {
             />
           </div>
 
-          {/* Celular - Componente Dinámico */}
           <div className="mb-2">
             <Label text="Número de celular" />
             <PhoneInputGroup 
@@ -390,7 +483,6 @@ const Contacto: React.FC = () => {
             />
           </div>
 
-          {/* Empresa */}
           <div>
             <Label text="Empresa" />
             <input
@@ -404,7 +496,6 @@ const Contacto: React.FC = () => {
             />
           </div>
 
-          {/* RUC */}
           <div>
             <Label text="RUC" />
             <input
@@ -418,7 +509,6 @@ const Contacto: React.FC = () => {
             />
           </div>
 
-          {/* Servicio - Componente Custom */}
           <div className="mb-2">
             <Label text="Servicio que requiere" />
             <ServiceDropdown 
@@ -427,15 +517,16 @@ const Contacto: React.FC = () => {
             />
           </div>
 
-          {/* Submit */}
           <div className="pt-6">
-            <button
+            <AnimatedSubmitButton
               type="submit"
-              disabled={isLoading}
-              className="w-full bg-[#06CFD6] text-white py-2 rounded-3xl text-[30px]  transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(6,207,214,0.5)] active:scale-95 disabled:opacity-60"
-            >
-              {isLoading ? 'Enviando...' : 'Conectar'}
-            </button>
+              isLoading={isLoading}
+              isSuccess={isSuccess}
+              text="Conectar"
+              loadingText="Enviando..."
+              successText="¡Conectado!"
+              className={`w-full text-white py-2 rounded-3xl text-[30px] font-bold shadow-[0_0_20px_rgba(6,207,214,0.3)] disabled:opacity-90 ${isSuccess ? 'bg-[#0CA3C6] shadow-[0_0_30px_rgba(12,163,198,0.6)]' : 'bg-[#06CFD6] hover:shadow-[0_0_30px_rgba(6,207,214,0.6)] disabled:hover:shadow-[0_0_20px_rgba(6,207,214,0.3)]'}`}
+            />
           </div>
         </motion.form>
       </div>

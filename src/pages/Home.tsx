@@ -135,7 +135,7 @@ const HeroSection: React.FC = () => {
             <span className="lg:whitespace-nowrap text-[clamp(1rem,5.5vw,1.8rem)] lg:text-[clamp(1.8rem,3.8vw,4rem)]">HACE IDEAS REALIDAD</span>
           </h1>
 
-          <p className="mb-5 text-[clamp(0.9rem,1.8vw,1.75rem)] font-normal leading-[1.3] text-white [text-shadow:0px_4px_8.8px_rgba(0,0,0,0.81)] md:mb-10">
+          <p className="mb-5 text-[clamp(0.9rem,1.8vw,1.75rem)] font-normal leading-[1.3] text-white [text-shadow:0_0_8px_rgba(6,207,214,0.8)] md:mb-10">
             Adquiere tu consulta <span className="font-bold text-[#06CFD6]">GRATIS</span>
           </p>
 

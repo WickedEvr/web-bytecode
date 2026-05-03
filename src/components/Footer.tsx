@@ -41,17 +41,19 @@ const Footer: React.FC = () => {
           
           {/* Lado Izquierdo: Texto Principal */}
           <div className="text-center lg:text-left">
-            <h2 className="text-3xl md:text-5xl lg:text-5xl font-bold leading-tight md:leading-[1.15]">
-              <SpotlightText> Un clic para ti,
-              <br />
-              un salto para tu
-              <br />
-              marca. </SpotlightText>
+            <h2 className="pb-[1.25em] md:pb-[1.15em] lg:pb-0 text-3xl md:text-5xl lg:text-5xl font-bold leading-tight md:leading-[1.15]">
+              <SpotlightText>
+                Un clic para ti,
+                <br />
+                un salto para tu
+                <br className="hidden lg:block" />
+                <span className="lg:hidden"> </span>
+                marca.
+              </SpotlightText>
             </h2>
           </div>
 
-          {/* Lado Derecho: Botón CTA */}
-          <div className="flex items-center">
+          <div className="flex items-center -mt-5 mb-5 md:-mt-8 md:mb-8 lg:mt-0 lg:mb-0">
             <Link
               to="/contacto"
               className="bg-[#06CFD6] hover:bg-[#0CA3C6] text-white font-bold text-lg md:text-2xl lg:text-3xl py-4 px-16 md:py-5 md:px-24 lg:px-28 xl:px-20 2xl:px-48 rounded-[30px] shadow-[0_10px_30px_rgba(6,207,214,0.3)] hover:scale-105 transition-all duration-300"
