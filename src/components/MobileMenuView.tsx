@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, X } from 'lucide-react';
 
 interface MobileMenuViewProps {
   isOpen: boolean;
@@ -114,6 +114,19 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
           </div>
 
           <div className="relative z-10 flex min-h-[100svh] w-full flex-col lg:hidden overflow-hidden">
+            {/* Botón Cerrar (X) para Móvil y Tablet */}
+            <motion.button
+              initial={{ opacity: 0, rotate: -90 }}
+              animate={{ opacity: 1, rotate: 0 }}
+              transition={{ delay: 0.15, duration: 0.45 }}
+              onClick={onClose}
+              className="absolute right-4 z-50 p-2 text-white outline-none transition-all duration-300 hover:rotate-90 hover:scale-110 hover:text-[#06CFD6] hover:drop-shadow-[0_0_12px_rgba(6,207,214,0.8)] active:scale-95 md:right-8"
+              style={{ top: 'max(1.5rem, env(safe-area-inset-top))' }}
+              aria-label="Cerrar menú"
+            >
+              <X strokeWidth={2.5} className="h-9 w-9 md:h-12 md:w-12" />
+            </motion.button>
+            
             <div
               className="flex min-h-[100svh] flex-1 overflow-y-auto px-6"
               onClick={(event) => event.stopPropagation()}
