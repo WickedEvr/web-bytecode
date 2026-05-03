@@ -41,16 +41,22 @@ const Portafolio: React.FC = () => {
           <motion.h1
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-[85px] font-bold mb-4 md:mb-6 tracking-wide drop-shadow-2xl transition-all"
+            className="text-4xl md:text-6xl lg:text-6xl xl:text-7xl 2xl:text-[85px] font-bold mb-4 md:mb-6 tracking-wide drop-shadow-2xl transition-all"
           >
-            <SpotlightText>Portafolio</SpotlightText>
+            {/* Texto normal para móvil y tablet */}
+            <span className="lg:hidden">Portafolio</span>
+
+            {/* SpotlightText para escritorio */}
+            <span className="hidden lg:inline-block">
+              <SpotlightText>Portafolio</SpotlightText>
+            </span>
           </motion.h1>
 
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
-            className="text-white/95 text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl max-w-[90%] md:max-w-2xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-5xl mx-auto leading-relaxed font-light drop-shadow-lg transition-all"
+            className="text-white/95 text-base md:text-2xl lg:text-xl xl:text-2xl 2xl:text-3xl max-w-[90%] md:max-w-2xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-5xl mx-auto leading-relaxed font-light drop-shadow-lg transition-all"
           >
             <SpotlightText>
               Ayudamos a marcas y empresas a consolidar su presencia tecnológica mediante
@@ -60,7 +66,7 @@ const Portafolio: React.FC = () => {
         </section>
 
         {/* CARRUSEL ANIMADO (Móvil y Tablet) */}
-        <section className="w-full relative z-10 pointer-events-auto flex-grow flex items-center justify-center pb-[4vh] lg:hidden">
+        <section className="w-full relative z-10 pointer-events-auto flex-grow flex items-center justify-center -mt-[140px] md:-mt-[335px] pb-[4vh] lg:hidden">
           <div className="w-full flex justify-center pb-10">
             <Carousel slides={projects} />
           </div>
@@ -75,7 +81,7 @@ const Portafolio: React.FC = () => {
       </div>
 
       {/* EL FOOTER */}
-      <div className="relative z-10 pointer-events-auto -mt-[5vh] md:-mt-[8vh] lg:-mt-[14vh] xl:-mt-[10vh]">
+      <div className="relative z-10 pointer-events-auto -mt-[16vh] md:-mt-[29vh] lg:-mt-[14vh] xl:-mt-[10vh]">
         <AltFooter />
       </div>
     </div>
