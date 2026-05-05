@@ -322,7 +322,7 @@ const Carousel3D: React.FC<Props> = ({ projects }) => {
               {/* ── Elementos Decorativos Esquina Inferior Derecha ── */}
               {/* Borde Decorativo */}
               <img
-                src="/designs/elemento_esquina_inferior_izquierda_de_portafolio.svg"
+                src="/vectors/designs/elemento_esquina_inferior_izquierda_de_portafolio.svg"
                 alt=""
                 style={{
                   position: 'absolute',
@@ -337,7 +337,7 @@ const Carousel3D: React.FC<Props> = ({ projects }) => {
               
               {/* Isotipo */}
               <img
-                src="/designs/elemento_logo.svg"
+                src="/vectors/designs/elemento_logo.svg"
                 alt=""
                 style={{
                   position: 'absolute',

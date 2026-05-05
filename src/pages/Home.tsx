@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import SEO from '../components/SEO';
-import Stack from '../components/Stack';
-import GalaxyBackground from '../components/GalaxyBackground';
+import SEO from '../components/shared/SEO';
+import Stack from '../components/sections/Stack';
+import GalaxyBackground from '../components/effects/GalaxyBackground';
 import './Home.css';
 
 /* ==========================================================================
@@ -41,14 +41,14 @@ const services = [
   {
     title: 'App de Escritorio',
     description: 'Aplicaciones de escritorio con\ninterfaces modernas y robustas.',
-    img: '/DesktopApp.webp',
+    img: '/images/showcase/DesktopApp.webp',
   },
 ];
 
 const testimonials = [
-  { name: 'María García', role: 'Emprendedora', text: 'Excelente servicio, mi negocio creció enormemente. Totalmente conforme.', stars: 5, img: '/cliente2senito.png' },
-  { name: 'Dante Gallardo', role: 'CEO', text: 'Muy bueno con el trabajo! Totalmente conforme.', stars: 5, img: '/cliente3.png' },
-  { name: 'Carlos Ruiz', role: 'Director', text: 'Profesionales de primer nivel, los recomiendo.', stars: 5, img: '/cliente1.png' },
+  { name: 'María García', role: 'Emprendedora', text: 'Excelente servicio, mi negocio creció enormemente. Totalmente conforme.', stars: 5, img: '/images/avatars/cliente2senito.png' },
+  { name: 'Dante Gallardo', role: 'CEO', text: 'Muy bueno con el trabajo! Totalmente conforme.', stars: 5, img: '/images/avatars/cliente3.png' },
+  { name: 'Carlos Ruiz', role: 'Director', text: 'Profesionales de primer nivel, los recomiendo.', stars: 5, img: '/images/avatars/cliente1.png' },
 ];
 
 /* ==========================================================================
@@ -133,15 +133,15 @@ const HeroSection: React.FC = () => {
       <div className="absolute inset-0 bg-[#040e1f]" aria-hidden="true">
         <GalaxyBackground /> 
         <div className="absolute inset-0 bg-[#040e1f]/30" />
-        <div className="absolute inset-0 bg-[url('/designs/stardust.png')] opacity-70 mix-blend-screen" />
-        <div className="absolute inset-0 rotate-180 bg-[url('/designs/stardust.png')] opacity-50 mix-blend-screen" />
+        <div className="absolute inset-0 bg-[url('/vectors/designs/stardust.png')] opacity-70 mix-blend-screen" />
+        <div className="absolute inset-0 rotate-180 bg-[url('/vectors/designs/stardust.png')] opacity-50 mix-blend-screen" />
       </div>
 
-      <img src="/esquina-arriba.svg" aria-hidden="true" className={`absolute left-0 top-0 z-10 pointer-events-none hidden lg:block ${HERO_CORNER_SIZE}`} />
-      <img src="/esquina-abajo.svg" aria-hidden="true" className={`absolute bottom-0 z-0 pointer-events-none hidden lg:block ${HERO_CORNER_SIZE} ${HERO_BOTTOM_CORNER_POSITION}`} />
-      <img src="/sombra-general.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-[9]" />
-      <img src="/sombra-arriba.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-10" />
-      <img src="/sombra-arriba.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-10 opacity-50" />
+      <img src="/vectors/shapes/esquina-arriba.svg" aria-hidden="true" className={`absolute left-0 top-0 z-10 pointer-events-none hidden lg:block ${HERO_CORNER_SIZE}`} />
+      <img src="/vectors/shapes/esquina-abajo.svg" aria-hidden="true" className={`absolute bottom-0 z-0 pointer-events-none hidden lg:block ${HERO_CORNER_SIZE} ${HERO_BOTTOM_CORNER_POSITION}`} />
+      <img src="/vectors/shadows/sombra-general.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-[9]" />
+      <img src="/vectors/shadows/sombra-arriba.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-10" />
+      <img src="/vectors/shadows/sombra-arriba.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-10 opacity-50" />
 
       <div className="relative z-10 mx-auto flex min-h-[88svh] w-full max-w-[1440px] flex-col items-center justify-center gap-6 px-6 pb-10 pt-20 md:gap-4 md:px-10 md:pt-24 lg:min-h-screen lg:flex-row lg:justify-between lg:gap-0 lg:px-14 lg:pb-0 lg:pt-[144px] lg:-translate-x-[40px] lg:-translate-y-[92px] xl:px-20 xl:-translate-x-[80px] xl:-translate-y-[112px]">
         
@@ -173,7 +173,7 @@ const HeroSection: React.FC = () => {
             className="relative w-[clamp(160px,38vw,360px)] -translate-y-3 md:-translate-y-5 lg:translate-y-0 lg:w-[clamp(260px,34vw,500px)] xl:w-[clamp(360px,38vw,560px)]"
           >
             <motion.img
-              src="/astronauta.png"
+              src="/images/characters/astronauta.png"
               alt="Astronauta"
               className="pointer-events-none w-full h-auto"
               animate={{
@@ -219,7 +219,7 @@ const ServiciosSection: React.FC = () => {
         className="absolute inset-0 h-full w-full object-cover object-[center_20%]"
       />
       <div className="absolute inset-0 bg-black/15" />
-      <div className="absolute inset-0 bg-[url('/formaazul.svg')] bg-cover bg-center bg-no-repeat lg:hidden" />
+      <div className="absolute inset-0 bg-[url('/vectors/shapes/formaazul.svg')] bg-cover bg-center bg-no-repeat lg:hidden" />
       <div className="absolute bottom-6 left-5 right-[60px]">
         <p className="m-0 text-2xl font-bold leading-tight text-white">
           {svc.title}
@@ -229,7 +229,7 @@ const ServiciosSection: React.FC = () => {
         </p>
       </div>
       <img
-        src="/isotipo.svg"
+        src="/vectors/logos/isotipo.svg"
         alt=""
         aria-hidden="true"
         className="absolute bottom-6 right-4 z-[2] w-10 pointer-events-none"
@@ -240,7 +240,7 @@ const ServiciosSection: React.FC = () => {
   return (
     <div className="relative -mt-[18%] font-sansation md:-mt-[15%] lg:-mt-[11%] lg:max-xl:-mt-[16%] xl:max-2xl:-mt-[13%]">
       <div className="absolute inset-0 z-0 overflow-hidden rounded-t-[10%] pointer-events-none select-none md:relative md:inset-auto lg:rounded-none">
-        <img src="/sombra-segunda.svg" aria-hidden="true" className="h-full w-full object-cover object-top md:h-auto md:object-contain" />
+        <img src="/vectors/shadows/sombra-segunda.svg" aria-hidden="true" className="h-full w-full object-cover object-top md:h-auto md:object-contain" />
       </div>
 
       <div className="relative z-[60] flex flex-col items-center justify-start px-5 select-none pb-16 pt-[clamp(1rem,5vw,3rem)] md:absolute md:inset-0 md:pb-0 md:pt-[3%]">
@@ -284,7 +284,7 @@ const ServiciosSection: React.FC = () => {
                 />
               </AnimatePresence>
               <div className="absolute inset-0 bg-black/15 lg:bg-black/28" />
-              <div className="absolute inset-0 bg-[url('/formaazul.svg')] bg-cover bg-center bg-no-repeat lg:hidden" />
+              <div className="absolute inset-0 bg-[url('/vectors/shapes/formaazul.svg')] bg-cover bg-center bg-no-repeat lg:hidden" />
               <AnimatePresence mode="wait">
                 <motion.div
                   key={`text-${slide}`}
@@ -302,8 +302,8 @@ const ServiciosSection: React.FC = () => {
                   </p>
                 </motion.div>
               </AnimatePresence>
-              <img className="absolute bottom-0 right-0 hidden pointer-events-none lg:block" src="/esquina-derecha.svg" alt="" aria-hidden="true" />
-              <img className="absolute bottom-6 right-4 z-[2] w-10 pointer-events-none md:bottom-[5%] md:right-[2%] md:w-[clamp(25px,4vw,50px)]" src="/isotipo.svg" alt="" aria-hidden="true" />
+              <img className="absolute bottom-0 right-0 hidden pointer-events-none lg:block" src="/vectors/shapes/esquina-derecha.svg" alt="" aria-hidden="true" />
+              <img className="absolute bottom-6 right-4 z-[2] w-10 pointer-events-none md:bottom-[5%] md:right-[2%] md:w-[clamp(25px,4vw,50px)]" src="/vectors/logos/isotipo.svg" alt="" aria-hidden="true" />
             </div>
           </div>
           <div className="relative z-20 mt-8 hidden items-center justify-center gap-4 lg:flex">
@@ -332,7 +332,7 @@ const HerramientasSection: React.FC = () => (
     <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-[-10rem] hidden h-[28rem] w-screen -translate-x-1/2 bg-white max-md:block" />
 
     <img
-      src="/designs/formablancagrande.svg"
+      src="/vectors/designs/formablancagrande.svg"
       alt=""
       aria-hidden="true"
       className="pointer-events-none absolute left-0 top-[5.6rem] w-full max-w-none origin-top select-none md:top-[-13rem] md:w-[110%] md:scale-y-[0.9] lg:top-[-12rem] lg:w-[120%] lg:scale-y-[0.78] min-[1200px]:max-[1339px]:top-[-10rem] min-[1200px]:max-[1339px]:!scale-y-[0.82] xl:top-[-21rem] xl:w-full xl:scale-y-[0.72] 2xl:top-[-31.2rem]"
@@ -353,11 +353,11 @@ const HerramientasSection: React.FC = () => (
         <div className="flex w-max flex-nowrap items-center animate-[marquee-scroll_18s_linear_infinite]">
           {[0, 1, 2, 3].map(copy => (
             <React.Fragment key={copy}>
-              <img src="/logos/laravel.svg" alt={copy === 0 ? 'Laravel' : ''} aria-hidden={copy !== 0} className="mx-[clamp(1.2rem,3vw,2.5rem)] h-[clamp(28px,4.7vw,54px)] w-auto shrink-0 grayscale" />
-              <img src="/logos/github.svg" alt={copy === 0 ? 'GitHub' : ''} aria-hidden={copy !== 0} className="mx-[clamp(1.2rem,3vw,2.5rem)] h-[clamp(30px,4.9vw,56px)] w-auto shrink-0 grayscale" />
-              <img src="/logos/php.svg" alt={copy === 0 ? 'PHP' : ''} aria-hidden={copy !== 0} className="mx-[clamp(1.2rem,3vw,2.5rem)] h-[clamp(36px,6.6vw,76px)] w-auto shrink-0 grayscale" />
-              <img src="/logos/JAVA.svg" alt={copy === 0 ? 'Java' : ''} aria-hidden={copy !== 0} className="mx-[clamp(1.2rem,3vw,2.5rem)] h-[clamp(40px,7.5vw,86px)] w-auto shrink-0 grayscale" />
-              <img src="/logos/mongodb.svg" alt={copy === 0 ? 'MongoDB' : ''} aria-hidden={copy !== 0} className="mx-[clamp(1.2rem,3vw,2.5rem)] h-[clamp(44px,8vw,92px)] w-auto shrink-0 grayscale" />
+              <img src="/vectors/logos/brands/laravel.svg" alt={copy === 0 ? 'Laravel' : ''} aria-hidden={copy !== 0} className="mx-[clamp(1.2rem,3vw,2.5rem)] h-[clamp(28px,4.7vw,54px)] w-auto shrink-0 grayscale" />
+              <img src="/vectors/logos/brands/github.svg" alt={copy === 0 ? 'GitHub' : ''} aria-hidden={copy !== 0} className="mx-[clamp(1.2rem,3vw,2.5rem)] h-[clamp(30px,4.9vw,56px)] w-auto shrink-0 grayscale" />
+              <img src="/vectors/logos/brands/php.svg" alt={copy === 0 ? 'PHP' : ''} aria-hidden={copy !== 0} className="mx-[clamp(1.2rem,3vw,2.5rem)] h-[clamp(36px,6.6vw,76px)] w-auto shrink-0 grayscale" />
+              <img src="/vectors/logos/brands/JAVA.svg" alt={copy === 0 ? 'Java' : ''} aria-hidden={copy !== 0} className="mx-[clamp(1.2rem,3vw,2.5rem)] h-[clamp(40px,7.5vw,86px)] w-auto shrink-0 grayscale" />
+              <img src="/vectors/logos/brands/mongodb.svg" alt={copy === 0 ? 'MongoDB' : ''} aria-hidden={copy !== 0} className="mx-[clamp(1.2rem,3vw,2.5rem)] h-[clamp(44px,8vw,92px)] w-auto shrink-0 grayscale" />
             </React.Fragment>
           ))}
         </div>
@@ -392,11 +392,11 @@ const IASection: React.FC = () => (
           className="relative z-10 h-[408px] w-[232px] flex-shrink-0 rounded-[48px] shadow-[0px_4px_7.8px_rgba(0,0,0,0.42)] md:h-[500px] md:w-[284px] lg:h-[clamp(240px,45vw,520px)] lg:w-[clamp(140px,26vw,294px)] xl:h-[460px] xl:w-[260px] 2xl:h-[clamp(240px,65vw,613px)] 2xl:w-[clamp(140px,38vw,346px)]"
         >
           <div className="absolute inset-0 overflow-hidden rounded-[48px]">
-            <img src="/fondochica.png" alt="" aria-hidden="true" className="absolute inset-0 rounded-[48px] w-full h-full object-cover" />
+            <img src="/images/characters/fondochica.png" alt="" aria-hidden="true" className="absolute inset-0 rounded-[48px] w-full h-full object-cover" />
             <div className="absolute inset-0 bg-black/[0.22]" />
           </div>
           <img
-            src="/chica.png"
+            src="/images/characters/chica.png"
             alt="Mujer con estética de inteligencia artificial"
             className="absolute bottom-0 right-0 z-10 h-[96%] w-auto max-w-none origin-bottom-right rounded-[48px] pointer-events-none md:h-[90%]"
           />
@@ -427,7 +427,7 @@ const IASection: React.FC = () => (
           transition={{ delay: 0.1 }}
           className="relative z-[11] block h-[408px] w-[232px] flex-shrink-0 overflow-hidden rounded-[48px] shadow-[0px_4px_27.8px_rgba(0,0,0,0.9)] md:h-[500px] md:w-[284px] lg:h-[clamp(240px,45vw,520px)] lg:w-[clamp(140px,26vw,294px)] xl:h-[460px] xl:w-[260px] 2xl:h-[clamp(240px,65vw,613px)] 2xl:w-[clamp(140px,38vw,346px)]"
         >
-          <img src="/hombre.png" alt="Tecnología" className="absolute w-full h-full object-cover object-top" />
+          <img src="/images/characters/hombre.png" alt="Tecnología" className="absolute w-full h-full object-cover object-top" />
         </motion.div>
       </div>
     </div>
@@ -463,7 +463,7 @@ const TestimonialsSection: React.FC = () => {
             </p>
           </div>
 
-          <img src="/grafico-derecha.svg" alt="" aria-hidden="true"
+          <img src="/vectors/shapes/grafico-derecha.svg" alt="" aria-hidden="true"
             className="hidden lg:block w-[clamp(200px,35vw,800px)] opacity-70 mt-8 lg:self-end" />
         </div>
 

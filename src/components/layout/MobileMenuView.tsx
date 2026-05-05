@@ -154,7 +154,7 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
                     aria-label="Ir a inicio"
                   >
                     <img
-                      src="/designs/logo_en_blanco.svg"
+                      src="/vectors/designs/logo_en_blanco.svg"
                       alt="Bytecode Logo"
                       className="h-auto w-[min(32vw,7.5rem)] md:w-[14rem] object-contain transition-all duration-300 lg:group-hover:drop-shadow-[0_0_15px_rgba(6,207,214,0.8)]"
                     />
@@ -210,7 +210,7 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
               transition={{ delay: 0.45, duration: 0.8 }}
             >
               <img
-                src="/designs/elemento_inferior_menu_interactivo.svg"
+                src="/vectors/designs/elemento_inferior_menu_interactivo.svg"
                 alt=""
                 aria-hidden="true"
                 className="h-auto w-full translate-y-[12%] md:translate-y-[20%] object-contain opacity-100 mix-blend-screen"
@@ -237,7 +237,7 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
                 aria-label="Ir a inicio"
               >
                 <img
-                  src="/designs/logo_en_blanco.svg"
+                  src="/vectors/designs/logo_en_blanco.svg"
                   alt="Bytecode Logo"
                   className="h-auto w-[clamp(10rem,15vw,15rem)] object-contain pointer-events-none transition-all duration-300 lg:group-hover:drop-shadow-[0_0_15px_rgba(6,207,214,0.8)]"
                 />
@@ -261,7 +261,7 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
                 transition={{ delay: 0.45, duration: 0.8 }}
               >
                 <img
-                  src="/designs/elemento_inferior_menu_interactivo.svg"
+                  src="/vectors/designs/elemento_inferior_menu_interactivo.svg"
                   alt="Elemento Decorativo Inferior"
                   className="h-auto w-full translate-y-[20%] object-contain opacity-100 mix-blend-screen lg:translate-y-[26%]"
                   style={glowFilter}

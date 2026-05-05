@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import AltHeader from '../components/AltHeader';
+import AltHeader from '../components/layout/AltHeader';
 
 const AltLayout: React.FC = () => {
     return (

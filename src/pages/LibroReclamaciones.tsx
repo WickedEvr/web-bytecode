@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, type HTMLMotionProps } from 'framer-motion';
-import ContactFooter from '../components/ContactFooter';
-import GalaxyBackground from '../components/GalaxyBackground';
+import ContactFooter from '../components/layout/ContactFooter';
+import GalaxyBackground from '../components/effects/GalaxyBackground';
 import { createComplaint } from '../lib/api';
 
 // --- ESTILOS UNIFICADOS (Basados en Contacto) ---

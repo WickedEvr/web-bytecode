@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, type HTMLMotionProps } from 'framer-motion';
-import SEO from '../components/SEO';
-import GalaxyBackground from '../components/GalaxyBackground';
-import ContactFooter from '../components/ContactFooter';
+import SEO from '../components/shared/SEO';
+import GalaxyBackground from '../components/effects/GalaxyBackground';
+import ContactFooter from '../components/layout/ContactFooter';
 import { createContactSubmission } from '../lib/api';
 
 const solidInput =

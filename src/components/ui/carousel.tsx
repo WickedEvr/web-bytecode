@@ -1,6 +1,6 @@
 import { IconArrowNarrowRight } from "@tabler/icons-react";
 import { useState, useRef, useId } from "react";
-import { type Project } from "../Carousel3D";
+import { type Project } from "../sections/Carousel3D";
 
 interface SlideProps {
   slide: Project;
@@ -84,7 +84,7 @@ const Slide = ({ slide, index, current, handleSlideClick }: SlideProps) => {
 
             {tags && tags.length > 0 && (
               <div style={{ display: 'flex', gap: '8px', marginTop: '7px', flexWrap: 'wrap' }}>
-                {tags.map(tag => (
+                {tags.map((tag: string) => (
                   <span
                     key={tag}
                     style={{
@@ -104,7 +104,7 @@ const Slide = ({ slide, index, current, handleSlideClick }: SlideProps) => {
           </div>
           
           <img
-            src="/designs/elemento_esquina_inferior_izquierda_de_portafolio.svg"
+            src="/vectors/designs/elemento_esquina_inferior_izquierda_de_portafolio.svg"
             alt=""
             style={{
               position: 'absolute',
@@ -116,7 +116,7 @@ const Slide = ({ slide, index, current, handleSlideClick }: SlideProps) => {
             }}
           />
           <img
-            src="/designs/elemento_logo.svg"
+            src="/vectors/designs/elemento_logo.svg"
             alt=""
             style={{
               position: 'absolute',

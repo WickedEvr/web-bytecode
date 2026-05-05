@@ -1,8 +1,8 @@
 import React, { type ErrorInfo } from 'react';
 import { motion } from 'framer-motion';
 import { ServerCrash, RefreshCcw, Home } from 'lucide-react';
-import ShineBorder from '../components/ui/shine-border';
-import SpotlightText from '../components/SpotlightText';
+import ShineBorder from '../ui/shine-border';
+import SpotlightText from '../typography/SpotlightText';
 
 interface State {
   hasError: boolean;

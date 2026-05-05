@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { FaWhatsapp } from 'react-icons/fa6';
 import { Mail } from "lucide-react";
-import SpotlightText from "./SpotlightText";
+import SpotlightText from "../typography/SpotlightText";
 
 const Footer: React.FC = () => {
   return (
@@ -22,7 +22,7 @@ const Footer: React.FC = () => {
       <footer style={{ position: 'relative' }}>
         {/* Decorativo Fondo Footer (Geométrico) */}
         <img
-          src="/designs/elemento_footer.svg"
+          src="/vectors/designs/elemento_footer.svg"
           alt=""
           className="absolute top-[35%] sm:top-[20%] md:top-[5%] left-[-1.1%] w-32 sm:w-42 md:w-62 opacity-60 pointer-events-none object-contain z-0"
           style={{
@@ -66,7 +66,7 @@ const Footer: React.FC = () => {
           <div className="absolute right-8.5 md:right-17 lg:right-[6%] xl:right-25 2xl:-right-31 lg:block shrink-0 transform translate-y-31 md:translate-y-37 lg:translate-y-21 transition-all duration-500">
             <div className="animate-float-logo transition-all duration-300 lg:hover:drop-shadow-[0_0_20px_rgba(6,207,214,0.9)]">
               <img
-                src="/designs/elemento_logo.svg"
+                src="/vectors/designs/elemento_logo.svg"
                 alt="Bytecode Element"
                 draggable={false}
                 className="w-8 md:w-9 lg:w-11 h-auto object-contain opacity-90 transition-all duration-300"

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { motion, animate, useMotionValue, useTransform } from 'framer-motion';
-import SEO from '../components/SEO';
-import ContactFooter from '../components/ContactFooter';
+import SEO from '../components/shared/SEO';
+import ContactFooter from '../components/layout/ContactFooter';
 import ShineBorder from '../components/ui/shine-border';
 
 const TypewriterText: React.FC<{ text: string; speed?: number; cursor?: string }> = ({ 
