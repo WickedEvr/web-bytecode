@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, type HTMLMotionProps } from 'framer-motion';
-import SEO from '../components/SEO';
-import GalaxyBackground from '../components/GalaxyBackground';
-import ContactFooter from '../components/ContactFooter';
+import SEO from '../components/shared/SEO';
+import GalaxyBackground from '../components/effects/GalaxyBackground';
+import ContactFooter from '../components/layout/ContactFooter';
 import { createContactSubmission } from '../lib/api';
 
 const solidInput =
@@ -161,7 +161,7 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
       if (onCountryChange) onCountryChange(mockDB[0].dialCode);
     };
     fetchCountries();
-  }, []);
+  }, [onCountryChange]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -422,11 +422,11 @@ const Contacto: React.FC = () => {
 
         <div
           className="absolute inset-0 opacity-70 mix-blend-screen"
-          style={{ backgroundImage: `url(${import.meta.env.BASE_URL}designs/stardust.png)` }}
+          style={{ backgroundImage: `url(${import.meta.env.BASE_URL}vectors/designs/stardust.png)` }}
         />
         <div
           className="absolute inset-0 opacity-50 rotate-180 mix-blend-screen"
-          style={{ backgroundImage: `url(${import.meta.env.BASE_URL}designs/stardust.png)` }}
+          style={{ backgroundImage: `url(${import.meta.env.BASE_URL}vectors/designs/stardust.png)` }}
         />
       </div>
 
@@ -528,7 +528,7 @@ const Contacto: React.FC = () => {
             <Label text="Servicio que requiere" />
             <ServiceDropdown 
               value={formData.servicio}
-              onChange={(newValue) => handleChange({ target: { name: 'servicio', value: newValue } } as any)}
+              onChange={(newValue) => setFormData({ ...formData, servicio: newValue })}
             />
           </div>
 

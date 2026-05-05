@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import type { NextFunction, Request, Response } from 'express';
 import { env } from '../config/env.js';
@@ -20,11 +21,24 @@ export const setAdminCookie = (res: Response, token: string) => {
     maxAge: 8 * 60 * 60 * 1000,
     path: '/',
   });
+  res.cookie('bc_csrf', crypto.randomUUID(), {
+    httpOnly: false,
+    sameSite: env.cookieSameSite,
+    secure: env.isProduction,
+    maxAge: 8 * 60 * 60 * 1000,
+    path: '/',
+  });
 };
 
 export const clearAdminCookie = (res: Response) => {
   res.clearCookie(env.cookieName, {
     httpOnly: true,
+    sameSite: env.cookieSameSite,
+    secure: env.isProduction,
+    path: '/',
+  });
+  res.clearCookie('bc_csrf', {
+    httpOnly: false,
     sameSite: env.cookieSameSite,
     secure: env.isProduction,
     path: '/',

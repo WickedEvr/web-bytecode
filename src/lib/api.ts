@@ -5,14 +5,33 @@ interface RequestOptions extends RequestInit {
 }
 
 const buildUrl = (path: string) => `${API_BASE_URL}${path}`;
+const csrfCookieName = 'bc_csrf';
+
+const getCookie = (name: string) => {
+  const cookies = document.cookie ? document.cookie.split('; ') : [];
+  const encodedName = `${encodeURIComponent(name)}=`;
+  const cookie = cookies.find((item) => item.startsWith(encodedName));
+
+  if (!cookie) return '';
+
+  return decodeURIComponent(cookie.slice(encodedName.length));
+};
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers = new Headers(options.headers);
   let body = options.body;
+  const method = (options.method ?? 'GET').toUpperCase();
 
   if (options.json !== undefined) {
     headers.set('Content-Type', 'application/json');
     body = JSON.stringify(options.json);
+  }
+
+  if (method !== 'GET' && !headers.has('x-csrf-token')) {
+    const csrfToken = getCookie(csrfCookieName);
+    if (csrfToken) {
+      headers.set('x-csrf-token', csrfToken);
+    }
   }
 
   const response = await fetch(buildUrl(path), {

@@ -5,6 +5,7 @@ import { pool } from '../db/pool.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { HttpError } from '../utils/httpError.js';
 import { clearAdminCookie, createAdminToken, requireAdmin, setAdminCookie } from '../middleware/auth.js';
+import { loginLimiter } from '../middleware/rateLimiters.js';
 import { audit } from '../services/audit.js';
 
 const router = Router();
@@ -16,6 +17,7 @@ const loginSchema = z.object({
 
 router.post(
   '/login',
+  loginLimiter,
   asyncHandler(async (req, res) => {
     const body = loginSchema.parse(req.body);
     const result = await pool.query(

@@ -1,12 +1,12 @@
 import React, { Suspense, lazy } from 'react';
 import { motion } from 'framer-motion';
-import Carousel3D, { type Project } from '../components/Carousel3D';
+import Carousel3D, { type Project } from '../components/sections/Carousel3D';
 import Carousel from '../components/ui/carousel';
-import AltFooter from '../components/AltFooter';
-import SpotlightText from '../components/SpotlightText';
-import SEO from '../components/SEO';
+import AltFooter from '../components/layout/AltFooter';
+import SpotlightText from '../components/typography/SpotlightText';
+import SEO from '../components/shared/SEO';
 
-const AuroraBackground = lazy(() => import('../components/AuroraBackground'));
+const AuroraBackground = lazy(() => import('../components/effects/AuroraBackground'));
 
 const projects: Project[] = [
   { id: 1, name: 'Google 1', img: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=700&q=80', tags: ['React', 'TypeScript'] },
