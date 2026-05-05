@@ -27,7 +27,7 @@ const Radio: React.FC<{
   onChange: React.ChangeEventHandler<HTMLInputElement>;
 }> = ({ name, value, label, checked, onChange }) => (
   <label className="flex items-center gap-2.5 cursor-pointer group relative">
-    <span className={`relative w-5 h-5 rounded-full border-[2.5px] flex items-center justify-center shrink-0 transition-colors duration-300 ${checked ? 'border-[#06CFD6]' : 'border-white/40 group-hover:border-white/70'}`}>
+    <span className={`relative w-5 h-5 rounded-full border-[2.5px] flex items-center justify-center shrink-0 transition-colors duration-300 ${checked ? 'border-[#06CFD6]' : 'border-white/40 lg:group-hover:border-white/70'}`}>
       <AnimatePresence>
         {checked && (
           <motion.span
@@ -41,7 +41,7 @@ const Radio: React.FC<{
       </AnimatePresence>
     </span>
     <input type="radio" name={name} value={value} checked={checked} onChange={onChange} className="sr-only" />
-    <span className={`text-[16px] md:text-[18px] select-none transition-colors duration-300 ${checked ? 'text-white font-medium' : 'text-white/80 group-hover:text-white'}`}>
+    <span className={`text-[16px] md:text-[18px] select-none transition-colors duration-300 ${checked ? 'text-white font-medium' : 'text-white/80 lg:group-hover:text-white'}`}>
       {label}
     </span>
   </label>
@@ -65,9 +65,20 @@ const AnimatedSubmitButton: React.FC<AnimatedButtonProps> = ({
   className,
   ...props 
 }) => {
+  const [supportsHover, setSupportsHover] = useState(false);
+
+  useEffect(() => {
+    const hoverQuery = window.matchMedia('(min-width: 1024px) and (hover: hover) and (pointer: fine)');
+    const updateHoverSupport = () => setSupportsHover(hoverQuery.matches);
+
+    updateHoverSupport();
+    hoverQuery.addEventListener('change', updateHoverSupport);
+    return () => hoverQuery.removeEventListener('change', updateHoverSupport);
+  }, []);
+
   return (
     <motion.button
-      whileHover={{ scale: (isLoading || isSuccess || props.disabled) ? 1 : 1.02 }}
+      whileHover={supportsHover ? { scale: (isLoading || isSuccess || props.disabled) ? 1 : 1.02 } : undefined}
       whileTap={{ scale: (isLoading || isSuccess || props.disabled) ? 1 : 0.95 }}
       className={`relative flex items-center justify-center overflow-hidden transition-shadow ${className}`}
       disabled={isLoading || isSuccess || props.disabled}
@@ -163,7 +174,7 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChang
     <div className="relative w-full" ref={dropdownRef}>
       <div 
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center justify-between w-full bg-white rounded-full px-5 py-[0.6rem] cursor-pointer shadow-sm transition-all ${isOpen ? 'ring-2 ring-[#06CFD6]' : 'hover:bg-gray-50'}`}
+        className={`flex items-center justify-between w-full bg-white rounded-full px-5 py-[0.6rem] cursor-pointer shadow-sm transition-all ${isOpen ? 'ring-2 ring-[#06CFD6]' : 'lg:hover:bg-gray-50'}`}
       >
         <span className={`text-[18px] md:text-[20px] ${value ? 'text-[#333]' : 'text-gray-400'}`}>
           {selectedLabel}
@@ -183,7 +194,7 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChang
                 <div
                   key={option.value}
                   onClick={() => { onChange(option.value); setIsOpen(false); }}
-                  className={`px-5 py-2.5 cursor-pointer transition-colors ${value === option.value ? 'bg-[#06CFD6]/15 text-[#06CFD6] font-bold' : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'}`}
+                  className={`px-5 py-2.5 cursor-pointer transition-colors ${value === option.value ? 'bg-[#06CFD6]/15 text-[#06CFD6] font-bold' : 'text-gray-600 lg:hover:bg-gray-200 lg:hover:text-gray-900'}`}
                 >
                   <span className="text-[18px]">{option.label}</span>
                 </div>
@@ -240,7 +251,7 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
   return (
     <div className="relative w-full" ref={dropdownRef}>
       <div className={`flex items-center w-full bg-white rounded-full transition-all shadow-sm ${error ? 'ring-2 ring-red-400' : 'focus-within:ring-2 focus-within:ring-[#06CFD6]'}`}>
-        <div onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="shrink-0 flex items-center gap-1.5 pl-4 pr-2 py-[0.6rem] border-r border-gray-200 cursor-pointer hover:bg-gray-50 rounded-l-full">
+        <div onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="shrink-0 flex items-center gap-1.5 pl-4 pr-2 py-[0.6rem] border-r border-gray-200 cursor-pointer rounded-l-full lg:hover:bg-gray-50">
           <img src={`https://flagcdn.com/w20/${selectedCountry.iso.toLowerCase()}.png`} alt={selectedCountry.name} className="w-6 h-auto rounded-sm" />
           <span className="text-[18px] md:text-[20px] font-semibold text-gray-600">{selectedCountry.dialCode}</span>
           <svg className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -253,7 +264,7 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
         {isDropdownOpen && (
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-full left-0 mt-2 w-[280px] bg-white border border-gray-100 shadow-xl rounded-xl z-[100] py-2">
             {countries.map((c) => (
-              <div key={c.id} onClick={() => { setSelectedCountry(c); setIsDropdownOpen(false); if(onCountryChange) onCountryChange(c.dialCode); setError(''); }} className={`flex items-center justify-between px-5 py-3 cursor-pointer ${selectedCountry.id === c.id ? 'bg-[#06CFD6]/15 text-[#0CA3C6] font-bold' : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'}`}>
+              <div key={c.id} onClick={() => { setSelectedCountry(c); setIsDropdownOpen(false); if(onCountryChange) onCountryChange(c.dialCode); setError(''); }} className={`flex items-center justify-between px-5 py-3 cursor-pointer ${selectedCountry.id === c.id ? 'bg-[#06CFD6]/15 text-[#0CA3C6] font-bold' : 'text-gray-600 lg:hover:bg-gray-200 lg:hover:text-gray-900'}`}>
                 <div className="flex items-center gap-3"><img src={`https://flagcdn.com/w20/${c.iso.toLowerCase()}.png`} className="w-5" /><span className="font-bold text-[0.9rem]">{c.name}</span></div>
                 <span className="text-sm font-semibold opacity-100">{c.dialCode}</span>
               </div>
@@ -471,7 +482,7 @@ const LibroReclamaciones: React.FC = () => {
             <div className="pt-4">
               <Label text="Adjuntar documento o evidencia (Opcional)" />
               <div className="relative flex items-center justify-center w-full mt-2">
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-[#06CFD6]/30 border-dashed rounded-2xl cursor-pointer bg-white/5 hover:bg-white/10 transition-colors">
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-[#06CFD6]/30 border-dashed rounded-2xl cursor-pointer bg-white/5 transition-colors lg:hover:bg-white/10">
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
                     <svg className="w-8 h-8 mb-3 text-[#06CFD6]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                     <p className="mb-1 text-base text-white/80"><span className="font-semibold text-[#06CFD6]">Haga clic para subir</span> o arrastre el archivo</p>
@@ -492,7 +503,7 @@ const LibroReclamaciones: React.FC = () => {
 
           {/* ── Checkbox Términos ── */}
           <label className="flex items-start gap-4 cursor-pointer group px-2">
-            <span className={`relative w-6 h-6 rounded-md border-[2.5px] mt-0.5 shrink-0 flex items-center justify-center transition-colors duration-300 ${formData.aceptaTerminos ? 'border-[#06CFD6] bg-[#06CFD6]' : 'border-white/40 group-hover:border-white/70'}`}>
+            <span className={`relative w-6 h-6 rounded-md border-[2.5px] mt-0.5 shrink-0 flex items-center justify-center transition-colors duration-300 ${formData.aceptaTerminos ? 'border-[#06CFD6] bg-[#06CFD6]' : 'border-white/40 lg:group-hover:border-white/70'}`}>
               <AnimatePresence>
                 {formData.aceptaTerminos && (
                   <motion.svg 
@@ -522,7 +533,7 @@ const LibroReclamaciones: React.FC = () => {
             </span>
             <input type="checkbox" name="aceptaTerminos" checked={formData.aceptaTerminos} onChange={handleChange} required className="sr-only" />
 
-            <span className={`text-[16px] md:text-[18px] leading-snug select-none transition-colors duration-300 ${formData.aceptaTerminos ? 'text-white' : 'text-white/80 group-hover:text-white'}`}>
+            <span className={`text-[16px] md:text-[18px] leading-snug select-none transition-colors duration-300 ${formData.aceptaTerminos ? 'text-white' : 'text-white/80 lg:group-hover:text-white'}`}>
               Declaro que los datos consignados son correctos y <span className="font-bold">acepto estar de acuerdo con el contenido</span> de mi reclamo o queja.
             </span>
           </label>
@@ -542,7 +553,7 @@ const LibroReclamaciones: React.FC = () => {
               loadingText="Enviando reclamo..."
               successText="¡Reclamo Enviado!"
               disabled={!formData.aceptaTerminos}
-              className={`w-full text-white py-4 rounded-full text-[24px] md:text-[30px] font-bold shadow-[0_0_20px_rgba(6,207,214,0.3)] disabled:opacity-50 transition-all duration-300 ${isSuccess ? 'bg-[#0CA3C6] shadow-[0_0_30px_rgba(12,163,198,0.6)]' : 'bg-[#06CFD6] hover:shadow-[0_0_30px_rgba(6,207,214,0.6)] disabled:hover:shadow-none disabled:hover:scale-100'}`}
+              className={`w-full text-white py-4 rounded-full text-[24px] md:text-[30px] font-bold shadow-[0_0_20px_rgba(6,207,214,0.3)] disabled:opacity-50 transition-all duration-300 ${isSuccess ? 'bg-[#0CA3C6] shadow-[0_0_30px_rgba(12,163,198,0.6)]' : 'bg-[#06CFD6] lg:hover:shadow-[0_0_30px_rgba(6,207,214,0.6)] lg:disabled:hover:shadow-none lg:disabled:hover:scale-100'}`}
             />
           </div>
 

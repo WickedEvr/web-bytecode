@@ -34,9 +34,20 @@ const AnimatedSubmitButton: React.FC<AnimatedButtonProps> = ({
   className,
   ...props 
 }) => {
+  const [supportsHover, setSupportsHover] = useState(false);
+
+  useEffect(() => {
+    const hoverQuery = window.matchMedia('(min-width: 1024px) and (hover: hover) and (pointer: fine)');
+    const updateHoverSupport = () => setSupportsHover(hoverQuery.matches);
+
+    updateHoverSupport();
+    hoverQuery.addEventListener('change', updateHoverSupport);
+    return () => hoverQuery.removeEventListener('change', updateHoverSupport);
+  }, []);
+
   return (
     <motion.button
-      whileHover={{ scale: (isLoading || isSuccess) ? 1 : 1.02 }}
+      whileHover={supportsHover ? { scale: (isLoading || isSuccess) ? 1 : 1.02 } : undefined}
       whileTap={{ scale: (isLoading || isSuccess) ? 1 : 0.95 }}
       className={`relative flex items-center justify-center overflow-hidden transition-shadow ${className}`}
       disabled={isLoading || isSuccess || props.disabled}
@@ -190,7 +201,7 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
         
         <div 
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="shrink-0 flex items-center gap-1.5 md:gap-2 pl-4 md:pl-6 pr-2 md:pr-3 py-[0.6rem] border-r border-gray-200 bg-white cursor-pointer hover:bg-gray-50 rounded-l-full select-none"
+          className="shrink-0 flex items-center gap-1.5 md:gap-2 pl-4 md:pl-6 pr-2 md:pr-3 py-[0.6rem] border-r border-gray-200 bg-white cursor-pointer rounded-l-full select-none lg:hover:bg-gray-50"
         >
           <img
             src={`https://flagcdn.com/w20/${selectedCountry.iso.toLowerCase()}.png`}
@@ -235,7 +246,7 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
                   className={`flex items-center justify-between px-5 py-3 cursor-pointer transition-colors ${
                     selectedCountry.id === country.id 
                       ? 'bg-[#06CFD6]/15 text-[#0CA3C6] font-bold' 
-                      : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
+                      : 'text-gray-600 lg:hover:bg-gray-200 lg:hover:text-gray-900'
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -339,7 +350,7 @@ const ServiceDropdown: React.FC<ServiceDropdownProps> = ({ value, onChange }) =>
                   className={`px-6 py-3 cursor-pointer transition-colors ${
                     value === option.value 
                       ? 'bg-[#06CFD6]/15 text-[#06CFD6] font-bold' 
-                      : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
+                      : 'text-gray-600 lg:hover:bg-gray-200 lg:hover:text-gray-900'
                   }`}
                 >
                   <span className="text-[20px]">{option.label}</span>
@@ -534,7 +545,7 @@ const Contacto: React.FC = () => {
               text="Conectar"
               loadingText="Enviando..."
               successText="¡Conectado!"
-              className={`w-full text-white py-2 rounded-3xl text-[30px] font-bold shadow-[0_0_20px_rgba(6,207,214,0.3)] disabled:opacity-90 ${isSuccess ? 'bg-[#0CA3C6] shadow-[0_0_30px_rgba(12,163,198,0.6)]' : 'bg-[#06CFD6] hover:shadow-[0_0_30px_rgba(6,207,214,0.6)] disabled:hover:shadow-[0_0_20px_rgba(6,207,214,0.3)]'}`}
+              className={`w-full text-white py-2 rounded-3xl text-[30px] font-bold shadow-[0_0_20px_rgba(6,207,214,0.3)] disabled:opacity-90 ${isSuccess ? 'bg-[#0CA3C6] shadow-[0_0_30px_rgba(12,163,198,0.6)]' : 'bg-[#06CFD6] lg:hover:shadow-[0_0_30px_rgba(6,207,214,0.6)] lg:disabled:hover:shadow-[0_0_20px_rgba(6,207,214,0.3)]'}`}
             />
           </div>
         </motion.form>

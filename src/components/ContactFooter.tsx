@@ -26,8 +26,8 @@ const ContactFooter: React.FC = () => {
                                 rel="noopener noreferrer"
                                 className="flex items-center gap-3 group outline-none"
                             >
-                                <FaWhatsapp className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300 shrink-0" size={22} />
-                                <span className="text-gray-300 group-hover:text-white transition-colors duration-300 whitespace-nowrap" aria-label="WhatsApp">
+                                <FaWhatsapp className="text-[#06CFD6] transition-transform duration-300 shrink-0 lg:group-hover:scale-110" size={22} />
+                                <span className="text-gray-300 transition-colors duration-300 whitespace-nowrap lg:group-hover:text-white" aria-label="WhatsApp">
                                     (+51) 936 281 137
                                 </span>
                             </a>
@@ -39,8 +39,8 @@ const ContactFooter: React.FC = () => {
                                 rel="noopener noreferrer"
                                 className="flex items-center gap-3 group outline-none"
                             >
-                                <FaWhatsapp className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300 shrink-0" size={22} />
-                                <span className="text-gray-300 group-hover:text-white transition-colors duration-300 whitespace-nowrap" aria-label="WhatsApp">
+                                <FaWhatsapp className="text-[#06CFD6] transition-transform duration-300 shrink-0 lg:group-hover:scale-110" size={22} />
+                                <span className="text-gray-300 transition-colors duration-300 whitespace-nowrap lg:group-hover:text-white" aria-label="WhatsApp">
                                     (+51) 970 199 434
                                 </span>
                             </a>
@@ -50,8 +50,8 @@ const ContactFooter: React.FC = () => {
                                 href="mailto:contacto@bytecode.com.pe?subject=Cotizaci%C3%B3n%20de%20desarrollo%20de%20software&body=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
                                 className="flex items-center gap-3 group outline-none"
                             >
-                                <Mail className="text-[#06CFD6] group-hover:scale-110 transition-transform duration-300 shrink-0" size={22} />
-                                <span className="text-gray-300 group-hover:text-white transition-colors duration-300 whitespace-nowrap">
+                                <Mail className="text-[#06CFD6] transition-transform duration-300 shrink-0 lg:group-hover:scale-110" size={22} />
+                                <span className="text-gray-300 transition-colors duration-300 whitespace-nowrap lg:group-hover:text-white">
                                     contacto@bytecode.com.pe
                                 </span>
                             </a>
@@ -67,9 +67,9 @@ const ContactFooter: React.FC = () => {
 
                     {/* --- FILA 2: Enlaces Legales --- */}
                     <div className="flex flex-wrap items-center justify-center gap-6 md:gap-14 text-gray-400 text-sm md:text-base font-normal w-full">
-                        <Link to="/condiciones" className="hover:text-[#06CFD6] transition-colors">Condiciones</Link>
-                        <Link to="/privacidad" className="hover:text-[#06CFD6] transition-colors">Privacidad</Link>
-                        <Link to="/reclamaciones" className="hover:text-[#06CFD6] transition-colors">Libro de Reclamaciones</Link>
+                        <Link to="/condiciones" className="transition-colors lg:hover:text-[#06CFD6]">Condiciones</Link>
+                        <Link to="/privacidad" className="transition-colors lg:hover:text-[#06CFD6]">Privacidad</Link>
+                        <Link to="/reclamaciones" className="transition-colors lg:hover:text-[#06CFD6]">Libro de Reclamaciones</Link>
                     </div>
 
                     {/* --- FILA 3: Copyright Móvil/Tablet/Laptop --- */}

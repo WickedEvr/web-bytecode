@@ -99,12 +99,12 @@ const Servicios: React.FC = () => {
           </div>
 
           {/* Flechas Laterales (Solo Escritorio) */}
-          <button onClick={prev} className="hidden lg:block absolute left-10 top-1/2 -translate-y-1/2 z-20 text-white/70 hover:text-[#06CFD6] hover:scale-110 hover:drop-shadow-[0_0_18px_rgba(6,207,214,0.8)] transition-all duration-300 group outline-none" aria-label="Anterior">
+          <button onClick={prev} className="hidden lg:block absolute left-10 top-1/2 -translate-y-1/2 z-20 text-white/70 transition-all duration-300 group outline-none lg:hover:text-[#06CFD6] lg:hover:scale-110 lg:hover:drop-shadow-[0_0_18px_rgba(6,207,214,0.8)]" aria-label="Anterior">
             <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}>
               <svg viewBox="7 4 10 16" className="w-16 h-28" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
             </motion.div>
           </button>
-          <button onClick={next} className="hidden lg:block absolute right-10 top-1/2 -translate-y-1/2 z-20 text-white/70 hover:text-[#06CFD6] hover:scale-110 hover:drop-shadow-[0_0_18px_rgba(6,207,214,0.8)] transition-all duration-300 group outline-none" aria-label="Siguiente">
+          <button onClick={next} className="hidden lg:block absolute right-10 top-1/2 -translate-y-1/2 z-20 text-white/70 transition-all duration-300 group outline-none lg:hover:text-[#06CFD6] lg:hover:scale-110 lg:hover:drop-shadow-[0_0_18px_rgba(6,207,214,0.8)]" aria-label="Siguiente">
             <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}>
               <svg viewBox="7 4 10 16" className="w-16 h-28" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
             </motion.div>
@@ -129,7 +129,7 @@ const Servicios: React.FC = () => {
 
                   {/* Contenedor Título + Flechas Móviles */}
                   <div className="flex items-center justify-between w-full lg:w-auto mb-5 lg:mb-6">
-                    <button onClick={prev} className="lg:hidden -ml-3 p-2 text-gray-300 hover:text-white active:scale-90 transition-all outline-none" aria-label="Anterior">
+                    <button onClick={prev} className="lg:hidden -ml-3 p-2 text-gray-300 active:scale-90 transition-all outline-none lg:hover:text-white" aria-label="Anterior">
                       <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}>
                         <svg viewBox="0 0 24 24" className="w-11 h-11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
                       </motion.div>
@@ -141,7 +141,7 @@ const Servicios: React.FC = () => {
                       {services[current].title}
                     </h2>
                     
-                    <button onClick={next} className="lg:hidden -mr-3 p-2 text-gray-300 hover:text-white active:scale-90 transition-all outline-none" aria-label="Siguiente">
+                    <button onClick={next} className="lg:hidden -mr-3 p-2 text-gray-300 active:scale-90 transition-all outline-none lg:hover:text-white" aria-label="Siguiente">
                       <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}>
                         <svg viewBox="0 0 24 24" className="w-11 h-11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
                       </motion.div>
@@ -164,7 +164,7 @@ const Servicios: React.FC = () => {
                   </p>
                   <Link
                     to="/contacto"
-                    className="w-full lg:w-auto inline-block text-center bg-[#06CFD6] text-white font-bold text-[1.5rem] md:text-[2rem] min-[400px]:text-[1.35rem] lg:text-2xl xl:text-3xl px-8 lg:px-24 py-3 min-[400px]:py-4 lg:py-5 rounded-[1.5rem] lg:rounded-[20px] shadow-[0_4px_15px_rgba(6,207,214,0.3)] lg:shadow-[0_4px_15px_rgba(6,207,214,0.4)] hover:bg-[#0CA3C6] lg:hover:shadow-[0_8px_25px_rgba(6,207,214,0.6)] lg:hover:-translate-y-1 active:scale-95 lg:active:translate-y-0 lg:active:scale-100 transition-all duration-300 outline-none"
+                    className="w-full lg:w-auto inline-block text-center bg-[#06CFD6] text-white font-bold text-[1.5rem] md:text-[2rem] min-[400px]:text-[1.35rem] lg:text-2xl xl:text-3xl px-8 lg:px-24 py-3 min-[400px]:py-4 lg:py-5 rounded-[1.5rem] lg:rounded-[20px] shadow-[0_4px_15px_rgba(6,207,214,0.3)] lg:shadow-[0_4px_15px_rgba(6,207,214,0.4)] lg:hover:bg-[#0CA3C6] lg:hover:shadow-[0_8px_25px_rgba(6,207,214,0.6)] lg:hover:-translate-y-1 active:scale-95 lg:active:translate-y-0 lg:active:scale-100 transition-all duration-300 outline-none"
                   >
                     Conectar
                   </Link>
