@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, type HTMLMotionProps } from 'framer-motion';
 import ContactFooter from '../components/ContactFooter';
 import GalaxyBackground from '../components/GalaxyBackground';
+import { createComplaint } from '../lib/api';
 
 // --- ESTILOS UNIFICADOS (Basados en Contacto) ---
 const solidInput =
@@ -295,6 +296,7 @@ const LibroReclamaciones: React.FC = () => {
   // Estados para la animación del botón
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -311,22 +313,32 @@ const LibroReclamaciones: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setIsSuccess(false);
+    setSubmitError('');
 
-    // 1. Simula la subida de datos (2 segundos)
-    setTimeout(() => {
+    const payload = new FormData();
+    Object.entries(formData).forEach(([key, value]) => {
+      payload.append(key, String(value));
+    });
+    if (archivoAdjunto) {
+      payload.append('archivoAdjunto', archivoAdjunto);
+    }
+
+    try {
+      await createComplaint(payload);
       setIsLoading(false);
       setIsSuccess(true);
       
-      // 2. Espera a que termine la animación de éxito (1.2 segundos) para mostrar el alert o redirigir
       setTimeout(() => {
         navigate('/confirmacion', { state: { source: 'reclamo' } });
-      }, 1200);
-      
-    }, 2000); 
+      }, 900);
+    } catch (error) {
+      setIsLoading(false);
+      setSubmitError(error instanceof Error ? error.message : 'No se pudo enviar el reclamo.');
+    }
   };
 
   return (
@@ -517,6 +529,11 @@ const LibroReclamaciones: React.FC = () => {
 
           {/* ── Submit ── */}
           <div className="pt-4">
+            {submitError && (
+              <p className="mb-4 rounded-2xl bg-red-500/15 px-5 py-3 text-center text-red-100">
+                {submitError}
+              </p>
+            )}
             <AnimatedSubmitButton
               type="submit"
               isLoading={isLoading}

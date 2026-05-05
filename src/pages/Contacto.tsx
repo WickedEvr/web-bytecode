@@ -4,6 +4,7 @@ import { motion, AnimatePresence, type HTMLMotionProps } from 'framer-motion';
 import SEO from '../components/SEO';
 import GalaxyBackground from '../components/GalaxyBackground';
 import ContactFooter from '../components/ContactFooter';
+import { createContactSubmission } from '../lib/api';
 
 const solidInput =
   'w-full bg-white rounded-full px-6 py-[0.6rem] text-[#333] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06CFD6] transition-all text-[20px] shadow-sm';
@@ -367,6 +368,7 @@ const Contacto: React.FC = () => {
   // Agregamos el estado de éxito a nuestra lógica
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -374,22 +376,24 @@ const Contacto: React.FC = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setIsSuccess(false);
+    setSubmitError('');
 
-    // 1. Simulamos el tiempo de envío a la base de datos (2 segundos de spinner)
-    setTimeout(() => {
+    try {
+      await createContactSubmission(formData);
       setIsLoading(false);
       setIsSuccess(true);
       
-      // 2. Le damos tiempo al usuario para ver la animación del check (1.2 segundos)
       setTimeout(() => {
         navigate('/confirmacion', { state: { source: 'contacto' } });
-      }, 1200);
-      
-    }, 2000); 
+      }, 900);
+    } catch (error) {
+      setIsLoading(false);
+      setSubmitError(error instanceof Error ? error.message : 'No se pudo enviar el formulario.');
+    }
   };
 
   return (
@@ -518,6 +522,11 @@ const Contacto: React.FC = () => {
           </div>
 
           <div className="pt-6">
+            {submitError && (
+              <p className="mb-4 rounded-2xl bg-red-500/15 px-5 py-3 text-center text-red-100">
+                {submitError}
+              </p>
+            )}
             <AnimatedSubmitButton
               type="submit"
               isLoading={isLoading}

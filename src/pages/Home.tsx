@@ -128,7 +128,7 @@ const HeroSection: React.FC = () => {
       <img src="/sombra-arriba.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-10" />
       <img src="/sombra-arriba.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-10 opacity-50" />
 
-      <div className="relative z-10 mx-auto flex min-h-[88svh] w-full max-w-[1440px] flex-col items-center justify-center gap-6 px-6 pb-10 pt-20 md:gap-4 md:px-10 md:pt-24 lg:min-h-screen lg:flex-row lg:justify-between lg:gap-0 lg:px-14 lg:pb-0 lg:pt-[144px] lg:-translate-x-[40px] xl:px-20 xl:-translate-x-[80px]">
+      <div className="relative z-10 mx-auto flex min-h-[88svh] w-full max-w-[1440px] flex-col items-center justify-center gap-6 px-6 pb-10 pt-20 md:gap-4 md:px-10 md:pt-24 lg:min-h-screen lg:flex-row lg:justify-between lg:gap-0 lg:px-14 lg:pb-0 lg:pt-[144px] lg:-translate-x-[40px] lg:-translate-y-[92px] xl:px-20 xl:-translate-x-[80px] xl:-translate-y-[112px]">
         
         <div className="order-1 flex w-full max-w-[720px] flex-col items-center text-center z-20 lg:order-2 lg:w-[60%] lg:max-w-none lg:items-start lg:text-left">
           <h1
@@ -221,7 +221,7 @@ const ServiciosSection: React.FC = () => {
   )), []);
 
   return (
-    <div className="relative -mt-[18%] font-sansation md:-mt-[15%] lg:-mt-[11%]">
+    <div className="relative -mt-[18%] font-sansation md:-mt-[15%] lg:-mt-[11%] lg:max-xl:-mt-[16%] xl:max-2xl:-mt-[13%]">
       <div className="absolute inset-0 z-0 overflow-hidden rounded-t-[10%] pointer-events-none select-none md:relative md:inset-auto lg:rounded-none">
         <img src="/sombra-segunda.svg" aria-hidden="true" className="h-full w-full object-cover object-top md:h-auto md:object-contain" />
       </div>
