@@ -55,46 +55,19 @@ const Slide = ({ slide, index, current, handleSlideClick }: SlideProps) => {
             draggable={false}
           />
           
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'linear-gradient(to top, rgba(2,10,44,0.97) 0%, rgba(2,10,44,0.48) 52%, transparent 100%)',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'flex-end',
-              padding: '20px',
-              pointerEvents: 'none',
-            }}
-          >
+          <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(2,10,44,0.97)_0%,rgba(2,10,44,0.48)_52%,transparent_100%)] flex flex-col justify-end p-5 pointer-events-none">
             <h3
-              style={{
-                fontFamily: 'Sansation, sans-serif',
-                fontWeight: 700,
-                fontSize: '1.2rem',
-                color: isActive ? '#06CFD6' : '#ffffff',
-                margin: '0 0 8px',
-                transition: 'color 0.7s ease',
-                lineHeight: 1.2,
-                textAlign: 'left'
-              }}
+              className={`font-sansation font-bold text-[1.2rem] m-0 mb-2 transition-colors duration-700 ease-in-out leading-[1.2] text-left ${isActive ? 'text-[#06CFD6]' : 'text-white'}`}
             >
               {name}
             </h3>
 
             {tags && tags.length > 0 && (
-              <div style={{ display: 'flex', gap: '8px', marginTop: '7px', flexWrap: 'wrap' }}>
+              <div className="flex gap-2 mt-[7px] flex-wrap">
                 {tags.map((tag: string) => (
                   <span
                     key={tag}
-                    style={{
-                      fontFamily: 'Inter, sans-serif',
-                      fontSize: '0.75rem',
-                      color: '#06CFD6',
-                      border: '1px solid rgba(6,207,214,0.38)',
-                      borderRadius: '6px',
-                      padding: '3px 8px',
-                    }}
+                    className="font-inter text-[0.75rem] text-[#06CFD6] border border-[#06CFD6]/40 rounded-md px-2 py-[3px]"
                   >
                     {tag}
                   </span>
@@ -106,26 +79,12 @@ const Slide = ({ slide, index, current, handleSlideClick }: SlideProps) => {
           <img
             src="/vectors/designs/elemento_esquina_inferior_izquierda_de_portafolio.svg"
             alt=""
-            style={{
-              position: 'absolute',
-              bottom: 0,
-              right: 0,
-              width: '110px',
-              height: 'auto',
-              pointerEvents: 'none',
-            }}
+            className="absolute bottom-0 right-0 w-[110px] h-auto pointer-events-none"
           />
           <img
             src="/vectors/designs/elemento_logo.svg"
             alt=""
-            style={{
-              position: 'absolute',
-              bottom: '12px',
-              right: '12px',
-              width: '24px',
-              height: 'auto',
-              pointerEvents: 'none',
-            }}
+            className="absolute bottom-3 right-3 w-6 h-auto pointer-events-none"
           />
         </div>
       </li>

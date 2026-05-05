@@ -206,28 +206,16 @@ const Carousel3D: React.FC<Props> = ({ projects }) => {
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
+      className={`relative w-full select-none touch-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
       style={{
-        position:          'relative',
-        width:             '100%',
-        height:            `${WRAPPER_H}px`,
-        perspective:       `${PERSPECTIVE}px`,
+        height: `${WRAPPER_H}px`,
+        perspective: `${PERSPECTIVE}px`,
         perspectiveOrigin: '50% 50%',
-        cursor:            isDragging ? 'grabbing' : 'grab',
-        touchAction:       'none',
-        userSelect:        'none',
       }}
     >
       <div
         ref={trackRef}
-        style={{
-          position:       'absolute',
-          left:           '50%',
-          top:            '50%',
-          width:          0,
-          height:         0,
-          transformStyle: 'preserve-3d',
-          willChange:     'transform',
-        }}
+        className="absolute left-1/2 top-1/2 w-0 h-0 [transform-style:preserve-3d] will-change-transform"
       >
         {projects.map((project, i) => {
           const baseAngle = stepAngle * i;
@@ -239,21 +227,17 @@ const Carousel3D: React.FC<Props> = ({ projects }) => {
               ref={(el: HTMLDivElement | null) => { cardRefs.current[i] = el; }}
               role="listitem"
               aria-label={`Proyecto: ${project.name}`}
+              className={`absolute overflow-hidden will-change-[opacity,filter] border-2 border-[#06CFD6]/40 rounded-[18px] transition-[box-shadow] duration-[420ms] ease-out ${
+                isActive 
+                  ? 'shadow-[0_0_42px_12px_rgba(6,207,214,0.4),inset_0_0_20px_rgba(6,207,214,0.2)]'
+                  : 'shadow-[0_12px_34px_rgba(0,0,0,0.55)]'
+              }`}
               style={{
-                position:     'absolute',
-                width:        `${CARD_W}px`,
-                height:       `${CARD_H}px`,
-                top:          `${-CARD_H / 2}px`,
-                left:         `${-CARD_W / 2}px`,
-                transform:    `rotateY(${baseAngle}deg) translateZ(${RADIUS}px)`,
-                borderRadius: '18px',
-                overflow:     'hidden', // Asegura el recorte en las esquinas
-                willChange:   'opacity, filter',
-                border:       '2px solid rgba(6,207,214,0.4)',
-                boxShadow:    isActive
-                  ? '0 0 42px 12px rgba(6,207,214,0.4), inset 0 0 20px rgba(6,207,214,0.2)'
-                  : '0 12px 34px rgba(0,0,0,0.55)',
-                transition:   'box-shadow 0.42s ease',
+                width: `${CARD_W}px`,
+                height: `${CARD_H}px`,
+                top: `${-CARD_H / 2}px`,
+                left: `${-CARD_W / 2}px`,
+                transform: `rotateY(${baseAngle}deg) translateZ(${RADIUS}px)`,
               }}
             >
               {/* ── Project image / GIF ──────────────── */}
@@ -262,55 +246,21 @@ const Carousel3D: React.FC<Props> = ({ projects }) => {
                 alt={project.name}
                 loading="lazy"
                 draggable={false}
-                style={{
-                  width:         '100%',
-                  height:        '100%',
-                  objectFit:     'cover',
-                  display:       'block',
-                  pointerEvents: 'none',
-                }}
+                className="w-full h-full object-cover block pointer-events-none"
               />
 
               {/* ── Bottom gradient + info ───────────── */}
-              <div
-                style={{
-                  position:       'absolute',
-                  inset:          0,
-                  background:     'linear-gradient(to top, rgba(2,10,44,0.97) 0%, rgba(2,10,44,0.48) 52%, transparent 100%)',
-                  display:        'flex',
-                  flexDirection:  'column',
-                  justifyContent: 'flex-end',
-                  padding:        isMobile ? '13px 13px' : '24px 24px',
-                  pointerEvents:  'none',
-                }}
-              >
-                <h3
-                  style={{
-                    fontFamily:   'Sansation, sans-serif',
-                    fontWeight:   700,
-                    fontSize:     isMobile ? '1.1rem' : '1.4rem',
-                    color:        isActive ? '#06CFD6' : '#ffffff',
-                    margin:       '0 0 8px',
-                    transition:   'color 0.38s ease',
-                    lineHeight:   1.2,
-                  }}
-                >
+              <div className={`absolute inset-0 bg-[linear-gradient(to_top,rgba(2,10,44,0.97)_0%,rgba(2,10,44,0.48)_52%,transparent_100%)] flex flex-col justify-end pointer-events-none ${isMobile ? 'p-[13px]' : 'p-6'}`}>
+                <h3 className={`font-sansation font-bold m-0 mb-2 transition-colors duration-[380ms] ease-out leading-[1.2] ${isMobile ? 'text-[1.1rem]' : 'text-[1.4rem]'} ${isActive ? 'text-[#06CFD6]' : 'text-white'}`}>
                   {project.name}
                 </h3>
 
                 {project.tags && project.tags.length > 0 && (
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '7px', flexWrap: 'wrap' }}>
+                  <div className="flex gap-2 mt-[7px] flex-wrap">
                     {project.tags.map(tag => (
                       <span
                         key={tag}
-                        style={{
-                          fontFamily:   'Inter, sans-serif',
-                          fontSize:     '0.75rem',
-                          color:        '#06CFD6',
-                          border:       '1px solid rgba(6,207,214,0.38)',
-                          borderRadius: '6px',
-                          padding:      '3px 8px',
-                        }}
+                        className="font-inter text-[0.75rem] text-[#06CFD6] border border-[#06CFD6]/40 rounded-[6px] px-2 py-[3px]"
                       >
                         {tag}
                       </span>
@@ -324,29 +274,14 @@ const Carousel3D: React.FC<Props> = ({ projects }) => {
               <img
                 src="/vectors/designs/elemento_esquina_inferior_izquierda_de_portafolio.svg"
                 alt=""
-                style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  right: 0,
-                  width: isMobile ? '90px' : '145px',
-                  height: 'auto',
-                  pointerEvents: 'none',
-                  opacity: 1, // Puedes ajustar la opacidad si quieres que sea más sutil
-                }}
+                className={`absolute bottom-0 right-0 h-auto pointer-events-none ${isMobile ? 'w-[90px]' : 'w-[145px]'}`}
               />
               
               {/* Isotipo */}
               <img
                 src="/vectors/designs/elemento_logo.svg"
                 alt=""
-                style={{
-                  position: 'absolute',
-                  bottom: isMobile ? '10px' : '15px',
-                  right: isMobile ? '10px' : '15px',
-                  width: isMobile ? '20px' : '32px',
-                  height: 'auto',
-                  pointerEvents: 'none',
-                }}
+                className={`absolute pointer-events-none h-auto ${isMobile ? 'bottom-[10px] right-[10px] w-[20px]' : 'bottom-[15px] right-[15px] w-[32px]'}`}
               />
             </div>
           );

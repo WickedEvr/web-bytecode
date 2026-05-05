@@ -219,15 +219,15 @@ const Servicios: React.FC = () => {
             }
           `}</style>
 
-          <div style={{ position: 'relative', width: '90vw', margin: '0 auto', overflow: 'hidden', maskImage: 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)', opacity: 0.8 }}>
+          <div className="relative w-[90vw] mx-auto overflow-hidden opacity-80 [mask-image:linear-gradient(to_right,transparent_0%,black_10%,black_90%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,transparent_0%,black_10%,black_90%,transparent_100%)]">
             <div className="logos-track">
               {[0, 1, 2, 3].map(copy => (
                 <React.Fragment key={copy}>
-                  <img src="/vectors/logos/brands/laravel.svg" alt={copy === 0 ? 'Laravel' : ''} aria-hidden={copy !== 0} draggable={false} style={{ height: 'clamp(28px, 4.7vw, 54px)', width: 'auto', filter: 'grayscale(100%)' }} />
-                  <img src="/vectors/logos/brands/github.svg"  alt={copy === 0 ? 'GitHub' : ''}  aria-hidden={copy !== 0} draggable={false} style={{ height: 'clamp(30px, 4.9vw, 56px)', width: 'auto', filter: 'grayscale(100%)' }} />
-                  <img src="/vectors/logos/brands/php.svg"     alt={copy === 0 ? 'PHP' : ''}     aria-hidden={copy !== 0} draggable={false} style={{ height: 'clamp(36px, 6.6vw, 76px)', width: 'auto', filter: 'grayscale(100%)' }} />
-                  <img src="/vectors/logos/brands/JAVA.svg"    alt={copy === 0 ? 'Java' : ''}    aria-hidden={copy !== 0} draggable={false} style={{ height: 'clamp(40px, 7.5vw, 86px)', width: 'auto', filter: 'grayscale(100%)' }} />
-                  <img src="/vectors/logos/brands/mongodb.svg" alt={copy === 0 ? 'MongoDB' : ''} aria-hidden={copy !== 0} draggable={false} style={{ height: 'clamp(44px, 8vw, 92px)',   width: 'auto', filter: 'grayscale(100%)' }} />
+                  <img src="/vectors/logos/brands/laravel.svg" alt={copy === 0 ? 'Laravel' : ''} aria-hidden={copy !== 0} draggable={false} className="h-[clamp(28px,4.7vw,54px)] w-auto grayscale" />
+                  <img src="/vectors/logos/brands/github.svg"  alt={copy === 0 ? 'GitHub' : ''}  aria-hidden={copy !== 0} draggable={false} className="h-[clamp(30px,4.9vw,56px)] w-auto grayscale" />
+                  <img src="/vectors/logos/brands/php.svg"     alt={copy === 0 ? 'PHP' : ''}     aria-hidden={copy !== 0} draggable={false} className="h-[clamp(36px,6.6vw,76px)] w-auto grayscale" />
+                  <img src="/vectors/logos/brands/JAVA.svg"    alt={copy === 0 ? 'Java' : ''}    aria-hidden={copy !== 0} draggable={false} className="h-[clamp(40px,7.5vw,86px)] w-auto grayscale" />
+                  <img src="/vectors/logos/brands/mongodb.svg" alt={copy === 0 ? 'MongoDB' : ''} aria-hidden={copy !== 0} draggable={false} className="h-[clamp(44px,8vw,92px)] w-auto grayscale" />
                 </React.Fragment>
               ))}
             </div>
