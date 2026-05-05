@@ -116,7 +116,7 @@ const Confirmacion: React.FC = () => {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.6 }}
-              className="text-white/80 text-[clamp(1rem,2vw,1.2rem)] leading-relaxed font-light mb-10 max-w-[400px]"
+              className="text-white/80 text-[clamp(1rem,2vw,1.2rem)] md:text-[clamp(1.1rem,2.3vw,1.4rem)] lg:text-[clamp(1rem,2vw,1.2rem)] leading-relaxed font-light mb-10 max-w-[400px]"
             >
               <SpotlightText>
                 {viewData.description}

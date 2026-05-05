@@ -13,7 +13,7 @@ const solidArea =
   'w-full bg-white rounded-2xl px-5 py-4 text-[#333] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06CFD6] transition-all text-[18px] md:text-[20px] shadow-sm resize-none';
 
 const Label: React.FC<{ text: string; required?: boolean }> = ({ text, required }) => (
-  <label className="block text-white/80 text-[18px] md:text-[20px] font-bold mb-1.5 pl-4 tracking-wide">
+  <label className="block text-white text-[18px] md:text-[20px] font-bold mb-1.5 pl-4 tracking-wide">
     {text}
     {required && <span className="text-[#06CFD6] ml-1">*</span>}
   </label>
@@ -253,9 +253,9 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
         {isDropdownOpen && (
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-full left-0 mt-2 w-[280px] bg-white border border-gray-100 shadow-xl rounded-xl z-[100] py-2">
             {countries.map((c) => (
-              <div key={c.id} onClick={() => { setSelectedCountry(c); setIsDropdownOpen(false); if(onCountryChange) onCountryChange(c.dialCode); setError(''); }} className={`flex items-center justify-between px-5 py-3 cursor-pointer ${selectedCountry.id === c.id ? 'bg-[#06CFD6]/15 text-[#06CFD6] font-bold' : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'}`}>
-                <div className="flex items-center gap-3"><img src={`https://flagcdn.com/w20/${c.iso.toLowerCase()}.png`} className="w-5" /><span className="font-medium text-[0.9rem]">{c.name}</span></div>
-                <span className="text-sm font-semibold opacity-70">{c.dialCode}</span>
+              <div key={c.id} onClick={() => { setSelectedCountry(c); setIsDropdownOpen(false); if(onCountryChange) onCountryChange(c.dialCode); setError(''); }} className={`flex items-center justify-between px-5 py-3 cursor-pointer ${selectedCountry.id === c.id ? 'bg-[#06CFD6]/15 text-[#0CA3C6] font-bold' : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'}`}>
+                <div className="flex items-center gap-3"><img src={`https://flagcdn.com/w20/${c.iso.toLowerCase()}.png`} className="w-5" /><span className="font-bold text-[0.9rem]">{c.name}</span></div>
+                <span className="text-sm font-semibold opacity-100">{c.dialCode}</span>
               </div>
             ))}
           </motion.div>
@@ -369,7 +369,7 @@ const LibroReclamaciones: React.FC = () => {
           initial={{ opacity: 0 }} 
           animate={{ opacity: 1 }} 
           transition={{ delay: 0.1 }}
-          className="flex flex-row items-center justify-between mb-10 md:mb-16 max-w-4xl mx-auto w-full px-2"
+          className="flex flex-row items-center justify-between mb-7 max-w-4xl mx-auto w-full px-2"
         >
           {/* Columna 1 */}
           <div className="flex-1 text-center">

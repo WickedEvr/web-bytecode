@@ -1,10 +1,10 @@
-// ✅ Privacidad.tsx — Fix 2: Página nueva para la ruta /privacidad (placeholder)
 import React from 'react';
 import SEO from '../components/SEO';
+import ContactFooter from '../components/ContactFooter';
 
 const Privacidad: React.FC = () => {
   return (
-    <div className="bg-space min-h-screen font-sansation">
+    <div className="relative min-h-screen flex flex-col overflow-hidden font-sansation network-overlay select-none">
       <SEO 
         title="Política de Privacidad" 
         description="Política de Privacidad y uso de datos personales de Bytecode."
@@ -72,6 +72,10 @@ const Privacidad: React.FC = () => {
             </p>
           </div>
         </section>
+      </div>
+
+      <div className="relative z-10 pointer-events-auto">
+        <ContactFooter />
       </div>
     </div>
   );

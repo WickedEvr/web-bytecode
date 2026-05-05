@@ -42,7 +42,7 @@ const AltHeader: React.FC = () => {
             </Link>
             <button
                 onClick={openMenu}
-                className="group text-[#06CFD6] hover:text-[#0CA3C6] hover:scale-110 active:scale-95 transition-all duration-300 p-0.5 outline-none"
+                className="group text-[#0CA3C6] hover:text-[#0CA3C6] hover:scale-110 active:scale-95 transition-all duration-300 p-0.5 outline-none"
                 aria-label="Menú principal"
             >
                 <Menu size={26} strokeWidth={2.5} className="transition-transform duration-300 group-hover:rotate-90 md:hidden" />
@@ -57,29 +57,29 @@ const AltHeader: React.FC = () => {
                 <div className="flex items-center gap-4 md:gap-6 lg:gap-8">
                     <div className="flex items-center gap-3 md:gap-6 lg:gap-4">
                         <a href="https://www.facebook.com/bytecodesystems/" target="_blank" rel="noopener noreferrer"
-                            className="text-[#06CFD6] hover:text-[#0CA3C6] hover:-translate-y-1 transition-all duration-300 outline-none"
+                            className="text-[#0CA3C6] hover:text-[#0CA3C6] hover:-translate-y-1 transition-all duration-300 outline-none"
                             aria-label="Facebook">
                             <FaFacebook className="w-5 h-5 md:w-8 md:h-8 lg:w-[23px] lg:h-[23px]" />
                         </a>
                         <a href="https://www.instagram.com/bytecodesw" target="_blank" rel="noopener noreferrer"
-                            className="text-[#06CFD6] hover:text-[#0CA3C6] hover:-translate-y-1 transition-all duration-300 outline-none"
+                            className="text-[#0CA3C6] hover:text-[#0CA3C6] hover:-translate-y-1 transition-all duration-300 outline-none"
                             aria-label="Instagram">
                             <FaInstagram className="w-5 h-5 md:w-8 md:h-8 lg:w-[23px] lg:h-[23px]" />
                         </a>
                         <a href="https://tiktok.com" target="_blank" rel="noopener noreferrer"
-                            className="text-[#06CFD6] hover:text-[#0CA3C6] hover:-translate-y-1 transition-all duration-300 outline-none"
+                            className="text-[#0CA3C6] hover:text-[#0CA3C6] hover:-translate-y-1 transition-all duration-300 outline-none"
                             aria-label="TikTok">
                             <FaTiktok className="w-5 h-5 md:w-8 md:h-8 lg:w-[23px] lg:h-[23px]" />
                         </a>
                         <a href="https://www.linkedin.com/company/bytecodesw" target="_blank" rel="noopener noreferrer"
-                            className="text-[#06CFD6] hover:text-[#0CA3C6] hover:-translate-y-1 transition-all duration-300 outline-none"
+                            className="text-[#0CA3C6] hover:text-[#0CA3C6] hover:-translate-y-1 transition-all duration-300 outline-none"
                             aria-label="LinkedIn">
                             <FaLinkedinIn className="w-5 h-5 md:w-8 md:h-8 lg:w-[23px] lg:h-[23px]" />
                         </a>
                         <a 
                             href={WHATSAPP_URLS[0]}
                             onClick={handleWhatsAppClick}
-                            className="text-[#06CFD6] hover:text-[#0CA3C6] hover:-translate-y-1 transition-all duration-300 outline-none"
+                            className="text-[#0CA3C6] hover:text-[#0CA3C6] hover:-translate-y-1 transition-all duration-300 outline-none"
                             aria-label="WhatsApp">
                             <FaWhatsapp className="w-5 h-5 md:w-8 md:h-8 lg:w-[24px] lg:h-[24px]" />
                         </a>
@@ -89,7 +89,7 @@ const AltHeader: React.FC = () => {
                 {/* Botón Conectar */}
                 <Link
                     to="/contacto"
-                    className="hidden lg:inline-block bg-[#06CFD6] hover:bg-[#0CA3C6] hover:-translate-y-1 text-white font-bold rounded-full transition-all duration-300 shadow-[0_4px_15px_rgba(6,207,214,0.4)] hover:shadow-[0_8px_25px_rgba(6,207,214,0.6)] active:translate-y-0 outline-none shrink-0 text-sm py-2 px-5 md:text-lg md:py-3 md:px-10"
+                    className="hidden lg:inline-block bg-[#0CA3C6] hover:bg-[#0CA3C6] hover:-translate-y-1 text-white font-bold rounded-full transition-all duration-300 shadow-[0_4px_15px_rgba(6,207,214,0.4)] hover:shadow-[0_8px_25px_rgba(6,207,214,0.6)] active:translate-y-0 outline-none shrink-0 text-sm py-2 px-5 md:text-lg md:py-3 md:px-10"
                 >
                     Conectar
                 </Link>

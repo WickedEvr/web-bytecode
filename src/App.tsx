@@ -4,6 +4,8 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 // 1. Importación de Layouts (Se mantienen estáticos porque son compartidos y ligeros)
 import MainLayout from './layouts/MainLayout';
 import AltLayout from './layouts/AltLayout';
+import LegalLayout from './layouts/LegalLayout';
+
 
 // 2. Code Splitting: Importamos las páginas de forma dinámica
 // Esto genera archivos .js separados que solo se descargan cuando el usuario visita la ruta.
@@ -39,8 +41,7 @@ const App: React.FC = () => {
           {/* 🟢 GRUPO 1: Header Normal + Footer Normal */}
           <Route element={<MainLayout />}>
             <Route path="/" element={<Home />} />
-            <Route path="/condiciones" element={<Condiciones />} />
-            <Route path="/privacidad" element={<Privacidad />} />
+            
           </Route>
           
           {/* 🔵 GRUPO 2: AltHeader + AltFooter */}
@@ -51,6 +52,12 @@ const App: React.FC = () => {
             <Route path="/contacto" element={<Contacto />} />
             <Route path="/confirmacion" element={<Confirmacion />} />
             <Route path="/reclamaciones" element={<LibroReclamaciones />} />
+          </Route>
+
+          {/* 🔵 GRUPO 3: MainHeader + ContactFooter */}
+          <Route element={<LegalLayout />}>
+            <Route path="/condiciones" element={<Condiciones />} />
+            <Route path="/privacidad" element={<Privacidad />} />
           </Route>
 
           {/* 🔴 SIN LAYOUT (Pantalla completa) */}

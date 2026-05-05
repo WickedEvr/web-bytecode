@@ -234,7 +234,7 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
                   onClick={() => handleSelectCountry(country)}
                   className={`flex items-center justify-between px-5 py-3 cursor-pointer transition-colors ${
                     selectedCountry.id === country.id 
-                      ? 'bg-[#06CFD6]/15 text-[#06CFD6] font-bold' 
+                      ? 'bg-[#06CFD6]/15 text-[#0CA3C6] font-bold' 
                       : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
                   }`}
                 >
@@ -245,9 +245,9 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
                       alt={country.name}
                       className="w-5 h-auto object-contain rounded-sm shadow-sm"
                     />
-                    <span className="font-medium text-[0.9rem]">{country.name}</span>
+                    <span className="font-bold text-[0.9rem]">{country.name}</span>
                   </div>
-                  <span className="text-sm font-semibold opacity-70">{country.dialCode}</span>
+                  <span className="text-sm font-semibold">{country.dialCode}</span>
                 </div>
               ))}
             </div>

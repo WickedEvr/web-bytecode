@@ -134,8 +134,8 @@ const HeroSection: React.FC = () => {
           <h1
             className="mb-2 text-white uppercase leading-[1.08] [text-shadow:0px_4px_7.3px_rgba(0,0,0,0.51)] md:mb-4 whitespace-nowrap"
           >
-            <span className="font-bold lg:whitespace-nowrap text-[clamp(2.75rem,12.8vw,4.6rem)] lg:text-[clamp(2.2rem,4.8vw,4.875rem)] block lg:inline">UN GRAN</span>
-            <span className="font-bold lg:hidden text-[clamp(2.75rem,12.8vw,4.6rem)] block">SITIO WEB,</span>
+            <span className="font-bold lg:whitespace-nowrap text-[clamp(3rem,13.5vw,5rem)] lg:text-[clamp(2.2rem,4.8vw,4.875rem)] block lg:inline">UN GRAN</span>
+            <span className="font-bold lg:hidden text-[clamp(2.75rem,12.8vw,4.6rem)] block">SITIO WEB</span>
             <span className="hidden lg:inline font-bold lg:whitespace-nowrap text-[clamp(2.2rem,4.8vw,4.875rem)]"> SITIO WEB,</span>
             <br className="hidden lg:block" />
             <span className="lg:whitespace-nowrap text-[clamp(1rem,5.5vw,1.8rem)] lg:text-[clamp(1.8rem,3.8vw,4rem)]">HACE IDEAS REALIDAD</span>

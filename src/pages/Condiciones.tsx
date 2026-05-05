@@ -1,9 +1,10 @@
 import React from 'react';
 import SEO from '../components/SEO';
+import ContactFooter from '../components/ContactFooter';
 
 const Condiciones: React.FC = () => {
   return (
-    <div className="bg-space min-h-screen font-sansation">
+    <div className="relative bg-space min-h-screen flex flex-col overflow-hidden font-sansation network-overlay select-none">
       <SEO 
         title="Términos y Condiciones" 
         description="Términos y condiciones de los servicios de Bytecode."
@@ -86,6 +87,10 @@ const Condiciones: React.FC = () => {
             </p>
           </div>
         </section>
+      </div>
+
+      <div className="relative z-10 pointer-events-auto">
+        <ContactFooter />
       </div>
     </div>
   );
