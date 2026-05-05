@@ -11,7 +11,7 @@ import './Home.css';
    ========================================================================== */
 
 const HERO_ACTION_LINK_BASE =
-  'flex h-[clamp(42px,4.5vw,60px)] w-full min-w-[clamp(180px,20vw,260px)] max-w-full items-center justify-center rounded-full text-[clamp(1.15rem,5vw,1.45rem)] font-bold transition-all hover:scale-105 hover:shadow-[0px_0px_25px_rgba(6,207,214,0.5)] md:w-auto md:text-[clamp(1rem,1.5vw,1.5rem)] lg:h-[clamp(48px,5vw,68px)]';
+  'flex h-[clamp(42px,4.5vw,60px)] w-full min-w-[clamp(180px,20vw,260px)] max-w-full items-center justify-center rounded-full text-[clamp(1.15rem,5vw,1.45rem)] font-bold transition-all hover:scale-105 hover:shadow-[0px_0px_25px_rgba(6,207,214,0.5)] md:w-auto md:text-[clamp(1.3rem,2vw,1.7rem)] lg:h-[clamp(48px,5vw,68px)]'
 
 const HERO_BOTTOM_CORNER_POSITION =
   'right-1.5 md:right-3 lg:right-[6%] xl:right-4 2xl:-right-31';
@@ -99,7 +99,7 @@ const HeroActionLink: React.FC<{
 }> = ({ to, variant, children }) => (
   <Link
     to={to}
-    className={`${HERO_ACTION_LINK_BASE} ${
+      className={`${HERO_ACTION_LINK_BASE} ${
       variant === 'cyan'
         ? 'bg-[#06CFD6] text-white'
         : 'border-2 border-[#0CA3C6] bg-white text-[#0CA3C6]'
@@ -141,12 +141,12 @@ const HeroSection: React.FC = () => {
             <span className="lg:whitespace-nowrap text-[clamp(1rem,5.5vw,1.8rem)] lg:text-[clamp(1.8rem,3.8vw,4rem)]">HACE IDEAS REALIDAD</span>
           </h1>
 
-          <p className="mb-5 text-[clamp(0.9rem,1.8vw,1.75rem)] font-normal leading-[1.3] text-white [text-shadow:0_0_8px_rgba(6,207,214,0.8)] md:mb-10">
+          <p className="mb-5 text-[clamp(0.9rem,1.8vw,1.75rem)] font-normal leading-[1.3] text-white [text-shadow:0_0_8px_rgba(6,207,214,0.8)] md:mb-10 md:text-[1.5rem]">
             Adquiere tu consulta <span className="font-bold text-[#06CFD6]">GRATIS</span>
           </p>
 
           <div className="flex w-full max-w-[520px] flex-col gap-3 md:w-auto md:flex-row md:gap-5">
-            <HeroActionLink to="/contacto" variant="cyan">Conectar</HeroActionLink>
+            <HeroActionLink to="/contacto" variant="cyan" >Conectar</HeroActionLink>
             <HeroActionLink to="/servicios" variant="white">Servicios</HeroActionLink>
           </div>
         </div>
@@ -202,7 +202,7 @@ const ServiciosSection: React.FC = () => {
         className="absolute inset-0 h-full w-full object-cover object-[center_20%]"
       />
       <div className="absolute inset-0 bg-black/15" />
-      <div className="absolute inset-0 bg-[url('/formaazul.svg')] bg-cover bg-center bg-no-repeat md:hidden" />
+      <div className="absolute inset-0 bg-[url('/formaazul.svg')] bg-cover bg-center bg-no-repeat lg:hidden" />
       <div className="absolute bottom-6 left-5 right-[60px]">
         <p className="m-0 text-2xl font-bold leading-tight text-white">
           {svc.title}
@@ -237,8 +237,8 @@ const ServiciosSection: React.FC = () => {
           </p>
         </div>
 
-        <div className="relative z-[60] mt-0 w-full max-w-[min(306px,90vw)] md:-mt-2 md:max-w-[380px] lg:mt-[23px] lg:max-w-[85%]">
-          <div className="relative z-[60] h-[409px] md:h-[430px] lg:hidden">
+        <div className="relative z-[60] mt-0 w-full max-w-[min(306px,90vw)] md:-mt-2 md:max-w-[420px] lg:mt-[23px] lg:max-w-[85%]">
+          <div className="relative z-[60] h-[409px] md:h-[475px] lg:hidden">
             <Stack
               randomRotation={false}
               sensitivity={80}
@@ -267,7 +267,7 @@ const ServiciosSection: React.FC = () => {
                 />
               </AnimatePresence>
               <div className="absolute inset-0 bg-black/15 lg:bg-black/28" />
-              <div className="absolute inset-0 bg-[url('/formaazul.svg')] bg-cover bg-center bg-no-repeat md:hidden" />
+              <div className="absolute inset-0 bg-[url('/formaazul.svg')] bg-cover bg-center bg-no-repeat lg:hidden" />
               <AnimatePresence mode="wait">
                 <motion.div
                   key={`text-${slide}`}
@@ -386,15 +386,15 @@ const IASection: React.FC = () => (
         </motion.div>
       </div>
 
-      <div className="order-2 z-20 mb-auto flex w-full max-w-[520px] flex-col items-center gap-3 text-center lg:order-1 lg:my-auto lg:flex-1 lg:items-start lg:pr-4 lg:text-left xl:translate-y-25">
-        <h2 className="max-w-[450px] text-[clamp(24px,3vw,2.5rem)] font-bold leading-[27px] text-[#0CA3C6] md:leading-[1]">
-          Comenzar nunca ha sido<br />tan fácil gracias a la IA
+      <div className="order-2 z-20 mb-auto flex w-full max-w-[520px] flex-col items-center gap-3 text-center lg:order-1 lg:my-auto lg:flex-1 lg:items-start lg:pr-4 lg:text-left xl:translate-y-25 2xl:translate-x-[160px]" >
+        <h2 className="max-w-[450px] text-[clamp(24px,3vw,2.5rem)] font-bold leading-[27px] text-[#0CA3C6] md:leading-[1] md:text-[2rem] 2xl:text-[3.3rem]">
+          Lanzar tu proyecto nunca fue tan fácil
         </h2>
-        <p className="max-w-[450px] text-[clamp(16px,1.8vw,1.5rem)] font-normal leading-[18px] text-black md:leading-relaxed md:text-white">
-          No hace falta tener experiencia.
+        <p className="max-w-[450px] text-[clamp(16px,1.8vw,1.5rem)] font-normal leading-[18px] text-black md:leading-relaxed md:text-white md:text-[1.5rem] 2xl:text-[1.7rem]">
+          Nosotros nos encargamos de todo.
         </p>
-        <p className="max-w-[450px] text-[clamp(10px,1.2vw,1rem)] font-light leading-[11px] text-black md:leading-normal md:text-white">
-          Kit de diseño con IA, uno de los mejores<br />inventos de TIME de 2025*
+        <p className="max-w-[450px] text-[clamp(10px,1.2vw,1rem)] font-light leading-[11px] text-black md:leading-normal md:text-white md:text-[1.2rem] 2xl:text-[1.2rem]">
+          Sistemas desarrollados desde cero<br />Código nativo, sin plantillas ni atajos
         </p>
       </div>
 
@@ -431,17 +431,17 @@ const TestimonialsSection: React.FC = () => {
 
   return (
     <section className="relative overflow-hidden font-sansation">
-      <div className="mx-auto mb-16 hidden w-[86.6%] border-t border-white md:block lg:mb-24" />
+      <div className="mx-auto mb-7 hidden w-[86.6%] border-t border-white md:block lg:mb-10" />
 
       <div className="relative z-[1] flex min-h-[clamp(500px,60vw,760px)] w-full flex-col items-center justify-center gap-10 py-10 lg:flex-row lg:justify-between lg:gap-0 lg:py-0 lg:pl-0 lg:pr-0">
 
-        <div className="relative z-20 order-1 flex w-full flex-col items-center justify-center px-6 text-center md:items-end md:px-0 md:text-right lg:order-2 lg:ml-auto lg:w-[40%] lg:max-w-none">
-          <div className="md:pr-[9vw] lg:pr-[calc(7.5vw+17px)]">
+        <div className="relative z-20 order-1 flex w-full flex-col items-center justify-center px-6 text-center md:items-center md:px-0 md:text-center lg:order-2 lg:ml-auto lg:w-[40%] lg:max-w-none lg:items-end lg:text-right">
+          <div className="md:pr-0 lg:pr-[calc(7.5vw+17px)]">
             <h2 className="mb-[1.2rem] text-[clamp(34px,4.5vw,68px)] font-bold leading-[1.15] text-white">
-              CONSTRUYENDO EL FUTURO,{' '}
+              CONSTRUYENDO EL FUTURO,<br></br>{' '}
               <span className="text-[#0CA3C6]">CASO POR CASO</span>
             </h2>
-            <p className="text-[clamp(16px,1.9vw,26px)] font-normal leading-[1.6] text-white/75">
+            <p className="text-[clamp(16px,1.9vw,26px)] font-normal leading-[1.6] text-white/75 md:text-[1.2rem] md:px-17">
               Testimonios veraces de nuestros primeros usuarios piloto que ya están transformando sus industrias.
             </p>
           </div>
@@ -463,7 +463,7 @@ const TestimonialsSection: React.FC = () => {
 
       </div>
 
-      <div className="mx-auto mt-24 hidden w-[86.6%] md:block" />
+      <div className="mx-auto mt-7 hidden w-[86.6%] md:block" />
     </section>
   );
 };
@@ -509,6 +509,7 @@ const Home: React.FC = () => {
       {/* SECCIONES CON FONDO COMPARTIDO (IA, Testimonials, CTA) */}
       <div className="relative mt-[clamp(2rem,5vw,5rem)] xl:mt-12 2xl:mt-16">
         <IASection />
+        <div className="mx-auto my-1 w-[86.6%] border-t border-white md:hidden" />
         <TestimonialsSection />
       </div>
     </div>
