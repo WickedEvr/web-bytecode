@@ -4,6 +4,13 @@ import { Menu } from 'lucide-react';
 import { FaFacebook, FaInstagram, FaLinkedinIn, FaTiktok, FaWhatsapp } from 'react-icons/fa6';
 import MobileMenuView from './MobileMenuView';
 
+const WHATSAPP_MESSAGE = "%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software.";
+
+const WHATSAPP_URLS = [
+    `https://wa.me/51936281137?text=${WHATSAPP_MESSAGE}`,
+    `https://wa.me/51970199434?text=${WHATSAPP_MESSAGE}`,
+];
+
 const AltHeader: React.FC = () => {
     // Estado para controlar si el menú está abierto o no
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -13,16 +20,12 @@ const AltHeader: React.FC = () => {
     const closeMenu = () => setIsMenuOpen(false);
 
     const handleWhatsAppClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    
-    const message = "%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software.";
-    const wpp1 = `https://wa.me/51936281137?text=${message}`;
-    const wpp2 = `https://wa.me/51970199434?text=${message}`;
+        e.preventDefault();
 
-    const selectedUrl = Math.random() < 0.5 ? wpp1 : wpp2;
+        const selectedUrl = WHATSAPP_URLS[Math.floor(Math.random() * WHATSAPP_URLS.length)];
 
-    window.open(selectedUrl, '_blank', 'noopener,noreferrer');
-  };
+        window.open(selectedUrl, '_blank', 'noopener,noreferrer');
+    };
 
     return (
         <>
@@ -74,7 +77,7 @@ const AltHeader: React.FC = () => {
                             <FaLinkedinIn className="w-5 h-5 md:w-8 md:h-8 lg:w-[23px] lg:h-[23px]" />
                         </a>
                         <a 
-                            href="#"
+                            href={WHATSAPP_URLS[0]}
                             onClick={handleWhatsAppClick}
                             className="text-[#06CFD6] hover:text-[#0CA3C6] hover:-translate-y-1 transition-all duration-300 outline-none"
                             aria-label="WhatsApp">

@@ -16,6 +16,7 @@ const Confirmacion = lazy(() => import('./pages/Confirmacion'));
 const LibroReclamaciones = lazy(() => import('./pages/LibroReclamaciones'));
 const Condiciones = lazy(() => import('./pages/Condiciones'));
 const Privacidad = lazy(() => import('./pages/Privacidad'));
+const Admin = lazy(() => import('./pages/Admin'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 
@@ -53,6 +54,7 @@ const App: React.FC = () => {
           </Route>
 
           {/* 🔴 SIN LAYOUT (Pantalla completa) */}
+          <Route path="/admin" element={<Admin />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
