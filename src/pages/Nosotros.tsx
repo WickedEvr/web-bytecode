@@ -148,12 +148,41 @@ const Nosotros: React.FC = () => {
 
             {/* 5. Sombra del piso */}
             <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }} className="absolute top-[430px] left-[142px] md:top-[499px] md:left-[166px] lg:top-[1275px] lg:left-[60px] z-0 w-[90%] lg:w-[730px] -translate-x-1/2 lg:translate-x-0 opacity-85 lg:opacity-100">
-              <motion.img src="/images/nosotros/sombrapisohombre.png" alt="" draggable={false} className="w-full opacity-90 lg:opacity-100" animate={{ scale: isHovered ? 0.95 : 1, opacity: isHovered ? 0.4 : 0.9, filter: isHovered ? "blur(6px)" : "blur(0px)" }} transition={{ type: "spring", stiffness: 300, damping: 25 }} />
+              <motion.img 
+                src="/images/nosotros/sombrapisohombre.png" 
+                alt="" 
+                draggable={false} 
+                className="w-full opacity-90 lg:opacity-100" 
+                animate={{ 
+                  scale: isHovered ? 0.95 : 1, 
+                  opacity: isHovered ? 0.4 : 0.9, 
+                  filter: isHovered ? "blur(6px)" : "blur(0px)" 
+                }} 
+                transition={{ 
+                  scale: { type: "spring", stiffness: 300, damping: 25 },
+                  opacity: { type: "spring", stiffness: 300, damping: 25 },
+                  filter: { type: "tween", duration: 0.3, ease: "easeInOut" } 
+                }} 
+              />
             </motion.div>
 
             {/* 6. El Hombre */}
             <motion.div initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.9, delay: 0.4, ease: "easeOut" }} className="absolute left-1/2 lg:left-[60px] top-[3.8%] lg:top-[125px] z-10 w-[93%] lg:w-[750px] -translate-x-1/2 lg:translate-x-0 pointer-events-none">
-              <motion.img src="/images/nosotros/hombredepie.png" alt="Tecnología" draggable={false} className="w-full" animate={{ y: isHovered ? -15 : 0, scale: isHovered ? 1.02 : 1, filter: isHovered ? `drop-shadow(${-glowPos.x}px ${-glowPos.y}px 30px rgba(6,207,214,0.85)) brightness(1.1)` : `drop-shadow(0px 20px 25px rgba(0,0,0,0.3)) brightness(1)` }} transition={{ type: "spring", stiffness: 300, damping: 25 }} />
+              <motion.img 
+                src="/images/nosotros/hombredepie.png" 
+                alt="Tecnología" 
+                draggable={false} 
+                className="w-full" 
+                initial={{ filter: "drop-shadow(0px 20px 25px #0000004D) brightness(1)" }}
+                animate={{ 
+                  y: isHovered ? -15 : 0, 
+                  scale: isHovered ? 1.02 : 1, 
+                  filter: isHovered 
+                    ? `drop-shadow(${-glowPos.x}px ${-glowPos.y}px 30px #06CFD6D9) brightness(1.1)` 
+                    : `drop-shadow(0px 20px 25px #0000004D) brightness(1)` 
+                }} 
+                transition={{ type: "spring", stiffness: 300, damping: 25 }} 
+              />
             </motion.div>
 
             {/* 7. Hover Interaction Area (Solo Escritorio) */}

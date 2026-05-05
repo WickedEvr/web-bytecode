@@ -9,24 +9,30 @@ const TypewriterText: React.FC<{ text: string; speed?: number; cursor?: string }
   speed = 40, 
   cursor = "|" 
 }) => {
-
   const count = useMotionValue(0);
   const rounded = useTransform(count, (latest) => Math.floor(latest));
   const displayText = useTransform(rounded, (latest) => text.slice(0, latest));
 
   useEffect(() => {
+    // Forzamos a que inicie en 0 por si hay un re-render
+    count.set(0); 
     const durationInSeconds = (text.length * speed) / 1000;
     
+    // Declaramos la variable afuera para poder limpiarla correctamente
+    let controls: any; 
+
     const timeout = setTimeout(() => {
-      const controls = animate(count, text.length, {
+      controls = animate(count, text.length, {
         duration: durationInSeconds,
         ease: "easeInOut", 
       });
-      
-      return () => controls.stop();
     }, 100); 
 
-    return () => clearTimeout(timeout);
+    // Limpieza correcta
+    return () => {
+      clearTimeout(timeout);
+      if (controls) controls.stop();
+    };
   }, [text, speed, count]);
 
   return (
@@ -85,7 +91,7 @@ const Privacidad: React.FC = () => {
             borderRadius={40} 
             borderWidth={2}
           >
-            <h1 className="text-[clamp(2rem,4vw,3rem)] font-bold uppercase tracking-wide text-[#0CA3C6] mb-8 text-center drop-shadow-md min-h-[1.2em]">
+            <h1 className="text-[clamp(2rem,4vw,3rem)] font-bold uppercase tracking-wide text-[#0CA3C6] mb-8 text-center drop-shadow-md min-h-[2.5em] sm:min-h-[1.2em]">
               <TypewriterText text="Política de Privacidad" speed={40} cursor="|" />
             </h1>
             

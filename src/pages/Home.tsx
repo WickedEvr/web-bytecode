@@ -176,11 +176,12 @@ const HeroSection: React.FC = () => {
               src="/images/characters/astronauta.png"
               alt="Astronauta"
               className="pointer-events-none w-full h-auto"
+              initial={{ filter: "drop-shadow(0px 25px 50px #00000040) brightness(1)" }}
               animate={{
                 scale: isHovered ? 1.05 : 1,
                 filter: isHovered
-                  ? `drop-shadow(0px 0px 40px rgba(6,207,214,0.30)) brightness(1.1)`
-                  : `drop-shadow(0px 25px 50px rgba(0,0,0,0.25)) brightness(1)`,
+                  ? `drop-shadow(0px 0px 40px #06CFD64D) brightness(1.1)`
+                  : `drop-shadow(0px 25px 50px #00000040) brightness(1)`,
               }}
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
             />

@@ -36,7 +36,7 @@
 
 @layer base {
   body {
-    @apply text-white font-sans overflow-x-hidden;
+    @apply text-white font-sansation overflow-x-hidden;
     background: #060c1d;
     min-height: 100vh;
   }

@@ -8,7 +8,7 @@ export default function GalaxyBackground() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // OPTIMIZACIÓN 1: Detectar si es un dispositivo móvil (pantalla menor a 768px)
+    // OPTIMIZACIÓN 1: Detectar si es un dispositivo móvil
     const viewportWidth = window.innerWidth;
     const isMobile = viewportWidth < 768;
     const isTablet = viewportWidth >= 768 && viewportWidth < 1024;
@@ -28,15 +28,14 @@ export default function GalaxyBackground() {
     camera.lookAt(0, -1, 0);
 
     // ── Renderer
-    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false }); // antialias en false mejora rendimiento en partículas
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false });
     renderer.setSize(canvas.offsetWidth, canvas.offsetHeight);
     
-    // OPTIMIZACIÓN 2: Limitar el Pixel Ratio estrictamente a 1 en móviles, y máximo 2 en PC
+    // OPTIMIZACIÓN 2: Limitar el Pixel Ratio
     renderer.setPixelRatio(isMobile ? 1 : isTablet ? Math.min(window.devicePixelRatio, 1.25) : Math.min(window.devicePixelRatio, 2));
 
     // ── Parameters
     const parameters = {
-      // OPTIMIZACIÓN 3: Reducir drásticamente la carga geométrica en celulares (de 80k a 30k)
       count: isMobile ? 30000 : isTablet ? 50000 : 80000,
       size: 0.015,
       radius: 8,
@@ -104,7 +103,13 @@ export default function GalaxyBackground() {
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, 256, 256);
     }
+    
+    // CORRECCIÓN WEBGL: Ajustar parámetros de la textura para evitar el error de texImage3D
     const coreTexture = new THREE.CanvasTexture(coreCanvas);
+    coreTexture.colorSpace = THREE.SRGBColorSpace; // Obligatorio en Three.js moderno
+    coreTexture.flipY = false; // Esto previene el error "FLIP_Y isn't allowed"
+    coreTexture.premultiplyAlpha = false;
+
     const coreMaterial = new THREE.SpriteMaterial({
       map: coreTexture,
       transparent: true,
@@ -119,7 +124,6 @@ export default function GalaxyBackground() {
     // ─────────────────────────────────────────
     // Background stars
     // ─────────────────────────────────────────
-    // OPTIMIZACIÓN 4: Menos estrellas de fondo en móviles
     const starCount = isMobile ? 1000 : isTablet ? 1800 : 3000;
     const starGeo   = new THREE.BufferGeometry();
     const starPos   = new Float32Array(starCount * 3);
@@ -140,28 +144,28 @@ export default function GalaxyBackground() {
     scene.add(new THREE.Points(starGeo, starMat));
 
     // ─────────────────────────────────────────
-    // OPTIMIZACIÓN 5: Intersection Observer (Evita renderizar si no se ve)
+    // Intersection Observer
     // ─────────────────────────────────────────
     let isVisible = true;
     const observer = new IntersectionObserver(
       (entries) => {
         isVisible = entries[0].isIntersecting;
       },
-      { threshold: 0.01 } // Se activa cuando al menos 1% del canvas es visible
+      { threshold: 0.01 }
     );
     observer.observe(canvas);
 
     // ─────────────────────────────────────────
-    // Animation loop
+    // Animation loop (CORRECCIÓN THREE.Clock)
     // ─────────────────────────────────────────
-    const clock = new THREE.Clock();
+    // Eliminamos THREE.Clock() y usamos JavaScript nativo para evitar warnings
+    const startTime = performance.now();
     let animId: number;
 
     const tick = () => {
-      // Solo calculamos y renderizamos si el canvas está en pantalla
       if (isVisible) {
-        const t = clock.getElapsedTime();
-        galaxyPoints.rotation.y = t * 0.05;
+        const elapsedTime = (performance.now() - startTime) * 0.001;
+        galaxyPoints.rotation.y = elapsedTime * 0.05;
         renderer.render(scene, camera);
       }
       animId = requestAnimationFrame(tick);
@@ -172,7 +176,6 @@ export default function GalaxyBackground() {
     // Resize
     // ─────────────────────────────────────────
     const onResize = () => {
-      // Si la ventana cambia, actualizamos parámetros pero mantenemos el límite en móviles
       const width = window.innerWidth;
       const mobileCheck = width < 768;
       const tabletCheck = width >= 768 && width < 1024;
@@ -186,7 +189,7 @@ export default function GalaxyBackground() {
     return () => {
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', onResize);
-      observer.disconnect(); // Limpiamos el observador
+      observer.disconnect();
       renderer.dispose();
       geoGalaxy.dispose(); matGalaxy.dispose();
       starGeo.dispose();   starMat.dispose();
