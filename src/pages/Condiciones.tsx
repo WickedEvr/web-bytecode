@@ -10,7 +10,7 @@ const TypewriterText: React.FC<{ text: string; speed?: number; cursor?: string }
   speed = 40, 
   cursor = "|" 
 }) => {
-  // Detectamos inmediatamente si es móvil
+  // 1. Detectamos inmediatamente si es móvil para evitar tirones
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
 
   useEffect(() => {
@@ -44,12 +44,12 @@ const TypewriterText: React.FC<{ text: string; speed?: number; cursor?: string }
     };
   }, [text, speed, count, isMobile]);
 
-  // RENDERIZADO EN MÓVIL: Texto estático
+  // 2. RENDERIZADO EN MÓVIL: Texto estático, cero bugs, máximo rendimiento
   if (isMobile) {
     return <>{text}</>;
   }
 
-  // RENDERIZADO EN PC/TABLET: Animación fluida
+  // 3. RENDERIZADO EN PC/TABLET: Animación fluida con Framer Motion
   return (
     <>
       <motion.span>{displayText}</motion.span>
