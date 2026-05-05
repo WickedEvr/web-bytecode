@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, type HTMLMotionProps } from 'framer-motion';
 import ContactFooter from '../components/layout/ContactFooter';
@@ -226,8 +226,8 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (onCountryChange) onCountryChange(mockDB[0].dialCode);
-  }, [onCountryChange]);
+    if (onCountryChange && selectedCountry) onCountryChange(selectedCountry.dialCode);
+  }, [onCountryChange, selectedCountry]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -322,6 +322,10 @@ const LibroReclamaciones: React.FC = () => {
       setArchivoAdjunto(e.target.files[0]);
     }
   };
+
+  const handleCountryChange = useCallback((code: string) => {
+    setFormData((prev) => (prev.prefijoTelefono === code ? prev : { ...prev, prefijoTelefono: code }));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -433,7 +437,7 @@ const LibroReclamaciones: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="mb-2 md:mb-0">
                 <Label text="Número de celular" required />
-                <PhoneInputGroup value={formData.telefono} onChange={handleChange} onCountryChange={(code) => setFormData({...formData, prefijoTelefono: code})} />
+                <PhoneInputGroup value={formData.telefono} onChange={handleChange} onCountryChange={handleCountryChange} />
               </div>
               <div><Label text="Correo Electrónico" required /><input name="email" type="email" placeholder="ejemplo@correo.com" value={formData.email} onChange={handleChange} className={solidInput} required /></div>
             </div>
