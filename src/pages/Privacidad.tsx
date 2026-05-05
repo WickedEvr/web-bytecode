@@ -1,8 +1,55 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect } from 'react';
+import { motion, animate, useMotionValue, useTransform } from 'framer-motion';
 import SEO from '../components/SEO';
 import ContactFooter from '../components/ContactFooter';
 import ShineBorder from '../components/ui/shine-border';
+
+const TypewriterText: React.FC<{ text: string; speed?: number; cursor?: string }> = ({ 
+  text, 
+  speed = 40, 
+  cursor = "|" 
+}) => {
+
+  const count = useMotionValue(0);
+  const rounded = useTransform(count, (latest) => Math.floor(latest));
+  const displayText = useTransform(rounded, (latest) => text.slice(0, latest));
+
+  useEffect(() => {
+    const durationInSeconds = (text.length * speed) / 1000;
+    
+    const timeout = setTimeout(() => {
+      const controls = animate(count, text.length, {
+        duration: durationInSeconds,
+        ease: "easeInOut", 
+      });
+      
+      return () => controls.stop();
+    }, 100); 
+
+    return () => clearTimeout(timeout);
+  }, [text, speed, count]);
+
+  return (
+    <>
+      <motion.span>{displayText}</motion.span>
+      
+      {/* El cursor parpadeante */}
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ 
+          duration: 0.6, 
+          repeat: Infinity, 
+          repeatType: "reverse",
+          ease: "easeInOut" 
+        }}
+        className="inline-block font-light ml-1 text-[#0CA3C6]/80 -translate-y-[2px]"
+      >
+        {cursor}
+      </motion.span>
+    </>
+  );
+};
 
 const Privacidad: React.FC = () => {
   return (
@@ -38,8 +85,8 @@ const Privacidad: React.FC = () => {
             borderRadius={40} 
             borderWidth={2}
           >
-            <h1 className="text-[clamp(2rem,4vw,3rem)] font-bold uppercase tracking-wide text-[#0CA3C6] mb-8 text-center drop-shadow-md">
-              Política de Privacidad
+            <h1 className="text-[clamp(2rem,4vw,3rem)] font-bold uppercase tracking-wide text-[#0CA3C6] mb-8 text-center drop-shadow-md min-h-[1.2em]">
+              <TypewriterText text="Política de Privacidad" speed={40} cursor="|" />
             </h1>
             
             <div className="space-y-6 text-[15px] sm:text-[16px] md:text-[18px] leading-relaxed text-justify font-light">
