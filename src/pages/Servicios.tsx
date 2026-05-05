@@ -201,6 +201,7 @@ const Servicios: React.FC = () => {
             </div>
           </div>
 
+          {/* TODO(CSP): Move this embedded <style> block to a static stylesheet before enforcing CSP. */}
           <style>{`
             @keyframes marquee-scroll {
               0%   { transform: translateX(0); }

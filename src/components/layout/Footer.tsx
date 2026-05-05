@@ -7,6 +7,7 @@ import SpotlightText from "../typography/SpotlightText";
 const Footer: React.FC = () => {
   return (
     <div className="bg-transparent font-sansation select-none"> 
+      {/* TODO(CSP): Move this embedded <style> block to a static stylesheet before enforcing CSP. */}
       <style>
         {`
           @keyframes float-logo {

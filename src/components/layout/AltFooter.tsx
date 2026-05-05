@@ -8,6 +8,7 @@ const AltFooter: React.FC = () => {
   return (
     <div className="bg-transparent px-4 md:px-8 lg:px-12 font-sansation select-none">
 
+      {/* TODO(CSP): Move this embedded <style> block to a static stylesheet before enforcing CSP. */}
       <style>
         {`
           @keyframes float-logo {

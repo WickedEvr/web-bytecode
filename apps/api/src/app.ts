@@ -11,6 +11,7 @@ import adminRoutes from './routes/admin.js';
 import { HttpError } from './utils/httpError.js';
 
 export const app = express();
+const allowedCorsOrigins = new Set(env.corsOrigins);
 
 app.set('trust proxy', 1);
 
@@ -18,10 +19,16 @@ app.use(helmet());
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || env.corsOrigins.length === 0 || env.corsOrigins.includes(origin)) {
+      if (!origin) {
+        callback(null, false);
+        return;
+      }
+
+      if (allowedCorsOrigins.has(origin)) {
         callback(null, true);
         return;
       }
+
       callback(new Error('CORS origin not allowed.'));
     },
     credentials: true,
@@ -56,6 +63,15 @@ app.use((_req, res) => {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   if (error instanceof ZodError) {
+    if (env.isProduction) {
+      const fields = [...new Set(error.issues.map((issue) => issue.path.join('.')).filter(Boolean))];
+      res.status(400).json({
+        error: 'Datos inválidos',
+        fields,
+      });
+      return;
+    }
+
     res.status(400).json({
       message: 'Datos inválidos.',
       issues: error.issues,

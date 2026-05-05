@@ -38,6 +38,7 @@ const SpotlightText: React.FC<SpotlightTextProps> = ({ children, className = '' 
       className={`relative inline-block cursor-default pointer-events-auto ${className}`}
     >
       {/* 1. ANIMACIÓN CSS INYECTADA: Hace que la niebla viaje de izquierda a derecha */}
+      {/* TODO(CSP): Move this embedded <style> block to a static stylesheet before enforcing CSP. */}
       <style>
         {`
           @keyframes fog-flow {
@@ -72,6 +73,7 @@ const SpotlightText: React.FC<SpotlightTextProps> = ({ children, className = '' 
         <div
           className="animate-fog w-full h-full"
           style={{
+            // TODO(CSP): Replace this data: SVG and inline style object with a static asset/class before CSP enforcement.
             // Combinamos una textura de niebla SVG nativa con un gradiente de tus colores
             backgroundImage: `
               url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.015' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.5'/%3E%3C/svg%3E"),

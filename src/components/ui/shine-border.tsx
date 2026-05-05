@@ -21,6 +21,7 @@ export default function ShineBorder({
 
     return (
         <>
+            {/* TODO(CSP): Move this embedded <style> block to a static stylesheet before enforcing CSP. */}
             <style>
                 {`
                 @keyframes shine-anim {

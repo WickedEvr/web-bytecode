@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Download, LogOut, Mail, MessageSquareText, RefreshCw, ShieldCheck } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiRequest, apiUrl } from '../lib/api';
 
 type AdminUser = {
@@ -59,6 +60,8 @@ const formatDate = (value?: string) =>
     : '';
 
 const Admin: React.FC = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [admin, setAdmin] = useState<AdminUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [loginLoading, setLoginLoading] = useState(false);
@@ -140,6 +143,7 @@ const Admin: React.FC = () => {
         json: credentials,
       });
       setAdmin(result.admin);
+      navigate(searchParams.get('redirect') || '/admin', { replace: true });
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'No se pudo iniciar sesión.');
     } finally {

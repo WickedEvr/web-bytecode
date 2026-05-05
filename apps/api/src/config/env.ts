@@ -23,12 +23,14 @@ const parseBoolean = (value: string | undefined, fallback: boolean) => {
 
 const requireInProduction = (key: string, value: string | undefined) => {
   if (process.env.NODE_ENV === 'production' && !value) {
-    throw new Error(`Missing required environment variable: ${key}`);
+    console.error(`Missing required environment variable: ${key}`);
+    process.exit(1);
   }
 };
 
 requireInProduction('DATABASE_URL', process.env.DATABASE_URL);
 requireInProduction('JWT_SECRET', process.env.JWT_SECRET);
+requireInProduction('CORS_ORIGINS', process.env.CORS_ORIGINS);
 
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
