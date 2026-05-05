@@ -333,8 +333,8 @@ const LibroReclamaciones: React.FC = () => {
       setIsSuccess(true);
       
       setTimeout(() => {
-        navigate('/confirmacion', { state: { source: 'reclamo' } });
-      }, 900);
+        navigate('/confirmacion?source=reclamo');
+      }, 1200);
     } catch (error) {
       setIsLoading(false);
       setSubmitError(error instanceof Error ? error.message : 'No se pudo enviar el reclamo.');

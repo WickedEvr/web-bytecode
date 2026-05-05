@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Rocket, FileCheck, ArrowLeft } from 'lucide-react';
 import ContactFooter from '../components/ContactFooter';
 import GalaxyBackground from '../components/GalaxyBackground';
@@ -26,10 +26,12 @@ const CONFIRMATION_VIEWS = {
 type ViewType = keyof typeof CONFIRMATION_VIEWS;
 
 const Confirmacion: React.FC = () => {
-  const location = useLocation();
+  const [searchParams] = useSearchParams();
   
-  // 2. Detectamos de dónde viene el usuario
-  const source = (location.state?.source as ViewType) || 'contacto';
+  const sourceParam = searchParams.get('source');
+  
+  const source: ViewType = sourceParam === 'reclamo' ? 'reclamo' : 'contacto';
+  
   const viewData = CONFIRMATION_VIEWS[source];
   const IconComponent = viewData.icon;
 

@@ -388,8 +388,8 @@ const Contacto: React.FC = () => {
       setIsSuccess(true);
       
       setTimeout(() => {
-        navigate('/confirmacion', { state: { source: 'contacto' } });
-      }, 900);
+        navigate('/confirmacion?source=contacto');
+      }, 1200);
     } catch (error) {
       setIsLoading(false);
       setSubmitError(error instanceof Error ? error.message : 'No se pudo enviar el formulario.');
