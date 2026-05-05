@@ -358,8 +358,8 @@ const LibroReclamaciones: React.FC = () => {
         <GalaxyBackground /> 
         <div className="absolute inset-0 bg-[#040e1f]/40" />
         <div className="absolute inset-0 bg-[#040e1f]/70" />
-        <div className="absolute inset-0 opacity-70 mix-blend-screen" style={{ backgroundImage: `url(${import.meta.env.BASE_URL}designs/stardust.png)` }} />
-        <div className="absolute inset-0 opacity-50 rotate-180 mix-blend-screen" style={{ backgroundImage: `url(${import.meta.env.BASE_URL}designs/stardust.png)` }} />
+        <div className="absolute inset-0 opacity-70 mix-blend-screen" style={{ backgroundImage: `url(${import.meta.env.BASE_URL}vectors/designs/stardust.png)` }} />
+        <div className="absolute inset-0 opacity-50 rotate-180 mix-blend-screen" style={{ backgroundImage: `url(${import.meta.env.BASE_URL}vectors/designs/stardust.png)` }} />
         <div className="absolute inset-0 bg-[#040e1f]/50" />
       </div>
 
