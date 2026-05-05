@@ -58,7 +58,7 @@ const ErrorFallback: React.FC = () => {
           transition={{ duration: 0.8, ease: "easeOut" }}
           className="relative z-10 w-full max-w-2xl bg-white/[0.03] backdrop-blur-xl rounded-[2.5rem] shadow-[0_0_50px_rgba(0,0,0,0.4)]"
         >
-          {/* Tarjeta Shine Border (Mezcla colores corporativos con toques de alerta) */}
+          {/* Tarjeta Shine Border */}
           <ShineBorder
             className="relative flex flex-col items-center text-center w-full bg-transparent p-10 md:p-14"
             color={["#ff4d4d", "#06CFD6", "#ff1a1a", "#0CA3C6"]} 
@@ -68,7 +68,7 @@ const ErrorFallback: React.FC = () => {
             {/* Contenedor del Icono de Error */}
             <div className="relative flex justify-center items-center mb-10 w-32 h-32 mt-4">
               
-              {/* Ondas Expansivas (Rojas/Cyan) */}
+              {/* Ondas Expansivas */}
               <motion.div 
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: [0, 0.3, 0], scale: [0.9, 1.2, 1.4] }}
@@ -82,7 +82,7 @@ const ErrorFallback: React.FC = () => {
                 className="absolute inset-0 rounded-full border border-[#06CFD6]/50"
               />
               
-              {/* Base Círculo Neón de Alerta */}
+              {/* Base Círculo Neón */}
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
@@ -127,19 +127,21 @@ const ErrorFallback: React.FC = () => {
               transition={{ delay: 0.8, duration: 0.6 }}
               className="flex flex-col sm:flex-row items-center gap-4 w-full justify-center"
             >
+              {/* MODIFICACIÓN: hover -> lg:hover y group-hover -> lg:group-hover */}
               <button
                 onClick={() => window.location.reload()}
-                className="group w-full sm:w-auto flex items-center justify-center gap-3 px-8 py-3.5 rounded-full border border-transparent bg-[#06CFD6] text-white hover:shadow-[0_0_25px_rgba(6,207,214,0.6)] transition-all duration-300 active:scale-95 outline-none font-bold text-[1.1rem]"
+                className="group w-full sm:w-auto flex items-center justify-center gap-3 px-8 py-3.5 rounded-full border border-transparent bg-[#06CFD6] text-white lg:hover:shadow-[0_0_25px_rgba(6,207,214,0.6)] transition-all duration-300 active:scale-95 outline-none font-bold text-[1.1rem]"
               >
-                <RefreshCcw size={20} className="group-hover:rotate-180 transition-transform duration-500" strokeWidth={2.5} />
+                <RefreshCcw size={20} className="lg:group-hover:rotate-180 transition-transform duration-500" strokeWidth={2.5} />
                 Reintentar
               </button>
 
+              {/* MODIFICACIÓN: hover -> lg:hover y group-hover -> lg:group-hover */}
               <a
                 href="/"
-                className="group w-full sm:w-auto flex items-center justify-center gap-3 px-8 py-3.5 rounded-full border border-white/20 bg-white/5 hover:bg-white/10 text-white transition-all duration-300 hover:border-white/40 active:scale-95 outline-none font-medium text-[1.1rem]"
+                className="group w-full sm:w-auto flex items-center justify-center gap-3 px-8 py-3.5 rounded-full border border-white/20 bg-white/5 lg:hover:bg-white/10 text-white transition-all duration-300 lg:hover:border-white/40 active:scale-95 outline-none font-medium text-[1.1rem]"
               >
-                <Home size={20} className="text-white/70 group-hover:text-white transition-colors duration-300" strokeWidth={2} />
+                <Home size={20} className="text-white/70 lg:group-hover:text-white transition-colors duration-300" strokeWidth={2} />
                 Volver al inicio
               </a>
             </motion.div>
