@@ -9,10 +9,18 @@ const SpotlightText: React.FC<SpotlightTextProps> = ({ children, className = '' 
   const containerRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
-  const [supportsHover, setSupportsHover] = useState(false);
+  const [supportsHover, setSupportsHover] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.matchMedia('(min-width: 1024px) and (hover: hover) and (pointer: fine)').matches;
+    }
+    return false;
+  });
 
   useEffect(() => {
-    setSupportsHover(window.matchMedia('(min-width: 1024px) and (hover: hover) and (pointer: fine)').matches);
+    const mediaQuery = window.matchMedia('(min-width: 1024px) and (hover: hover) and (pointer: fine)');
+    const handler = (e: MediaQueryListEvent) => setSupportsHover(e.matches);
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
   }, []);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {

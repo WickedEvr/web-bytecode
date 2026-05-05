@@ -127,6 +127,7 @@ const Admin: React.FC = () => {
     setSelectedId(null);
     setDetail(null);
     void loadList();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [admin, tab]);
 
   const handleLogin = async (event: React.FormEvent) => {

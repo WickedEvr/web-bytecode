@@ -1,5 +1,5 @@
 import { motion, useMotionValue, useTransform } from 'framer-motion';
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import './Stack.css';
 
 interface CardRotateProps {
@@ -63,6 +63,7 @@ interface StackProps {
 interface StackCard {
   id: number;
   content: ReactNode;
+  randomRotate: number;
 }
 
 export default function Stack({
@@ -91,12 +92,26 @@ export default function Stack({
   const shouldEnableClick = sendToBackOnClick;
 
   const [stack, setStack] = useState<StackCard[]>(() =>
-    cards.map((content, index) => ({ id: index + 1, content }))
+    cards.map((content, index) => ({ 
+      id: index + 1, 
+      content,
+      randomRotate: randomRotation ? Math.random() * 10 - 5 : 0 
+    }))
   );
 
+  const isFirstMount = useRef(true);
   useEffect(() => {
-    setStack(cards.map((content, index) => ({ id: index + 1, content })));
-  }, [cards]);
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setStack(cards.map((content, index) => ({ 
+      id: index + 1, 
+      content,
+      randomRotate: randomRotation ? Math.random() * 10 - 5 : 0 
+    })));
+  }, [cards, randomRotation]);
 
   const sendToBack = (id: number) => {
     setStack(prev => {
@@ -129,7 +144,6 @@ export default function Stack({
       onMouseLeave={() => pauseOnHover && setIsPaused(false)}
     >
       {stack.map((card, index) => {
-        const randomRotate = randomRotation ? Math.random() * 10 - 5 : 0;
         return (
           <CardRotate
             key={card.id}
@@ -141,7 +155,7 @@ export default function Stack({
               className="card"
               onClick={() => shouldEnableClick && sendToBack(card.id)}
               animate={{
-                rotateZ: (stack.length - index - 1) * 4 + randomRotate,
+                rotateZ: (stack.length - index - 1) * 4 + card.randomRotate,
                 scale: 1 + index * 0.06 - stack.length * 0.06,
                 transformOrigin: '40% 90%',
               }}

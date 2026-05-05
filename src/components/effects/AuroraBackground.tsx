@@ -33,16 +33,16 @@ const NebulaMist = ({
   }, []);
 
   // MATEMÁTICA NUEVA: En lugar de un anillo circular, creamos una banda ancha
-  const particles = useMemo(() => {
-    const pos = new Float32Array(count * 3);
-    const offsets = new Float32Array(count);
-    for (let i = 0; i < count; i++) {
+  const createParticles = (c: number, y: number) => {
+    const pos = new Float32Array(c * 3);
+    const offsets = new Float32Array(c);
+    for (let i = 0; i < c; i++) {
       // X: Esparcimos la niebla de lado a lado de la pantalla (-50 a +50)
       pos[i * 3] = (Math.random() - 0.5) * 100;
 
       // Y: Añadimos una ligera onda senoidal para que parezca una cinta y no un bloque
       const wave = Math.sin(pos[i * 3] * 0.05) * 5;
-      pos[i * 3 + 1] = (Math.random() - 0.5) * 15 + yOffset + wave;
+      pos[i * 3 + 1] = (Math.random() - 0.5) * 15 + y + wave;
 
       // Z: Empujamos la niebla MUY al fondo (-15 a -45) para que sea un fondo real
       pos[i * 3 + 2] = (Math.random() - 0.5) * 30 - 30;
@@ -50,6 +50,12 @@ const NebulaMist = ({
       offsets[i] = Math.random() * Math.PI * 2;
     }
     return { pos, offsets };
+  };
+
+  const [particles, setParticles] = React.useState(() => createParticles(count, yOffset));
+
+  React.useEffect(() => {
+    setParticles(createParticles(count, yOffset));
   }, [count, yOffset]);
 
   useFrame((state) => {

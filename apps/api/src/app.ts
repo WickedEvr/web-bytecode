@@ -53,6 +53,7 @@ app.use((_req, res) => {
   res.status(404).json({ message: 'Ruta no encontrada.' });
 });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   if (error instanceof ZodError) {
     res.status(400).json({

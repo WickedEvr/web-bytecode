@@ -36,14 +36,14 @@ const Servicios: React.FC = () => {
   const total = services.length;
 
   const prev = () => setCurrent((c) => (c - 1 + total) % total);
-  const next = () => setCurrent((c) => (c + 1) % total);
+  const next = React.useCallback(() => setCurrent((c) => (c + 1) % total), [total]);
 
   useEffect(() => {
     const autoplayTimer = setInterval(() => {
       next();
     }, 5000); 
     return () => clearInterval(autoplayTimer);
-  }, [current]);
+  }, [current, next]);
 
   const titleSizes = {
     'Página Web': 'text-[2.3rem] md:text-[3.6rem] sm:text-[2.8rem] lg:text-5xl xl:text-[5rem]'

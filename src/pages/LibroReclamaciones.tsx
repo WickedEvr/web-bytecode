@@ -211,24 +211,23 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChang
 interface CountryData { id: string; iso: string; name: string; dialCode: string; flag: string; maxLength: number; }
 interface PhoneInputProps { value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; onCountryChange?: (dialCode: string) => void; }
 
+const mockDB: CountryData[] = [
+  { id: '1', iso: 'PE', name: 'Perú', dialCode: '+51', flag: '🇵🇪', maxLength: 9 },
+  { id: '2', iso: 'MX', name: 'México', dialCode: '+52', flag: '🇲🇽', maxLength: 10 },
+  { id: '3', iso: 'CO', name: 'Colombia', dialCode: '+57', flag: '🇨🇴', maxLength: 10 },
+  { id: '4', iso: 'CL', name: 'Chile', dialCode: '+56', flag: '🇨🇱', maxLength: 9 },
+];
+
 const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountryChange }) => {
-  const [countries, setCountries] = useState<CountryData[]>([]);
-  const [selectedCountry, setSelectedCountry] = useState<CountryData | null>(null);
+  const [countries] = useState<CountryData[]>(mockDB);
+  const [selectedCountry, setSelectedCountry] = useState<CountryData | null>(mockDB[0]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [error, setError] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const mockDB: CountryData[] = [
-      { id: '1', iso: 'PE', name: 'Perú', dialCode: '+51', flag: '🇵🇪', maxLength: 9 },
-      { id: '2', iso: 'MX', name: 'México', dialCode: '+52', flag: '🇲🇽', maxLength: 10 },
-      { id: '3', iso: 'CO', name: 'Colombia', dialCode: '+57', flag: '🇨🇴', maxLength: 10 },
-      { id: '4', iso: 'CL', name: 'Chile', dialCode: '+56', flag: '🇨🇱', maxLength: 9 },
-    ];
-    setCountries(mockDB);
-    setSelectedCountry(mockDB[0]);
     if (onCountryChange) onCountryChange(mockDB[0].dialCode);
-  }, []);
+  }, [onCountryChange]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {

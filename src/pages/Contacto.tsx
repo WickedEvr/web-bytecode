@@ -161,7 +161,7 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
       if (onCountryChange) onCountryChange(mockDB[0].dialCode);
     };
     fetchCountries();
-  }, []);
+  }, [onCountryChange]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -528,7 +528,7 @@ const Contacto: React.FC = () => {
             <Label text="Servicio que requiere" />
             <ServiceDropdown 
               value={formData.servicio}
-              onChange={(newValue) => handleChange({ target: { name: 'servicio', value: newValue } } as any)}
+              onChange={(newValue) => setFormData({ ...formData, servicio: newValue })}
             />
           </div>
 
