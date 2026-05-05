@@ -104,9 +104,16 @@ const Condiciones: React.FC = () => {
             borderRadius={40} 
             borderWidth={2}
           >
-            {/* 100% igualado a Privacidad: Sin clases de min-h */}
-            <h1 className="text-[clamp(2rem,4vw,3rem)] font-bold uppercase tracking-wide text-[#0CA3C6] mb-8 text-center drop-shadow-md">
-              <TypewriterText text="Términos y Condiciones" speed={40} cursor="|" />
+            <h1 className="text-[clamp(2rem,4vw,3rem)] font-bold uppercase tracking-wide text-[#0CA3C6] mb-8 text-center drop-shadow-md leading-tight">
+              {/* 1. MÓVIL: Texto estático con salto de línea forzado (<br/>) para que la tarjeta NUNCA cambie de altura */}
+              <span className="block md:hidden">
+                Términos y<br />Condiciones
+              </span>
+              
+              {/* 2. PC / TABLET: Máquina de escribir normal */}
+              <span className="hidden md:block">
+                <TypewriterText text="Términos y Condiciones" speed={40} cursor="|" />
+              </span>
             </h1>
             
             <div className="space-y-6 text-[15px] sm:text-[16px] md:text-[18px] leading-relaxed text-justify font-light">
