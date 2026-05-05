@@ -133,9 +133,9 @@ const Confirmacion: React.FC = () => {
             >
               <Link
                 to="/"
-                className="group flex items-center gap-3 px-8 py-3.5 rounded-full border border-white/20 bg-white/5 hover:bg-[#06CFD6] hover:border-[#06CFD6] text-white transition-all duration-300 shadow-[0_0_15px_rgba(0,0,0,0.2)] hover:shadow-[0_0_25px_rgba(6,207,214,0.5)] active:scale-95 outline-none font-medium text-[1.1rem]"
+                className="group flex items-center gap-3 px-8 py-3.5 rounded-full border border-white/20 bg-white/5 text-white transition-all duration-300 shadow-[0_0_15px_rgba(0,0,0,0.2)] active:scale-95 outline-none font-medium text-[1.1rem] lg:hover:bg-[#06CFD6] lg:hover:border-[#06CFD6] lg:hover:shadow-[0_0_25px_rgba(6,207,214,0.5)]"
               >
-                <ArrowLeft size={22} className="group-hover:-translate-x-1.5 transition-transform duration-300 text-white/70 group-hover:text-white" strokeWidth={2} />
+                <ArrowLeft size={22} className="transition-transform duration-300 text-white/70 lg:group-hover:-translate-x-1.5 lg:group-hover:text-white" strokeWidth={2} />
                 Volver al inicio
               </Link>
             </motion.div>

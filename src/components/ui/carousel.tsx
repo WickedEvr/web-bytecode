@@ -146,7 +146,7 @@ const CarouselControl = ({
 }: CarouselControlProps) => {
   return (
     <button
-      className={`w-12 h-12 flex items-center mx-2 justify-center bg-white/10 backdrop-blur-sm border-2 border-white/20 rounded-full focus:outline-none hover:-translate-y-0.5 active:translate-y-0.5 transition duration-200 pointer-events-auto z-50 ${
+      className={`w-12 h-12 flex items-center mx-2 justify-center bg-white/10 backdrop-blur-sm border-2 border-white/20 rounded-full focus:outline-none active:translate-y-0.5 transition duration-200 pointer-events-auto z-50 lg:hover:-translate-y-0.5 ${
         type === "previous" ? "rotate-180" : ""
       }`}
       title={title}

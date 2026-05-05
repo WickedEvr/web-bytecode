@@ -120,7 +120,7 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
               animate={{ opacity: 1, rotate: 0 }}
               transition={{ delay: 0.15, duration: 0.45 }}
               onClick={onClose}
-              className="absolute right-4 z-50 p-2 text-white outline-none transition-all duration-300 hover:rotate-90 hover:scale-110 hover:text-[#06CFD6] hover:drop-shadow-[0_0_12px_rgba(6,207,214,0.8)] active:scale-95 md:right-8"
+              className="absolute right-4 z-50 p-2 text-white outline-none transition-all duration-300 active:scale-95 md:right-8 lg:hover:rotate-90 lg:hover:scale-110 lg:hover:text-[#06CFD6] lg:hover:drop-shadow-[0_0_12px_rgba(6,207,214,0.8)]"
               style={{ top: 'max(1.5rem, env(safe-area-inset-top))' }}
               aria-label="Cerrar menú"
             >
@@ -150,13 +150,13 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
                   <Link
                     to="/"
                     onClick={onClose}
-                    className="group block outline-none transition-transform duration-300 hover:scale-105 active:scale-95"
+                    className="group block outline-none transition-transform duration-300 active:scale-95 lg:hover:scale-105"
                     aria-label="Ir a inicio"
                   >
                     <img
                       src="/designs/logo_en_blanco.svg"
                       alt="Bytecode Logo"
-                      className="h-auto w-[min(32vw,7.5rem)] md:w-[14rem] object-contain transition-all duration-300 group-hover:drop-shadow-[0_0_15px_rgba(6,207,214,0.8)]"
+                      className="h-auto w-[min(32vw,7.5rem)] md:w-[14rem] object-contain transition-all duration-300 lg:group-hover:drop-shadow-[0_0_15px_rgba(6,207,214,0.8)]"
                     />
                   </Link>
                 </motion.div>
@@ -175,7 +175,7 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
                         <Link
                           to={link.path}
                           onClick={onClose}
-                          className="block text-center font-bold tracking-[0.08em] text-white transition-all duration-300 hover:scale-105 hover:text-[#06CFD6] hover:drop-shadow-[0_0_8px_rgba(6,207,214,0.8)] outline-none text-[clamp(1.4rem,5.5vh,2rem)] md:text-[3.2rem]"
+                          className="block text-center font-bold tracking-[0.08em] text-white transition-all duration-300 outline-none text-[clamp(1.4rem,5.5vh,2rem)] md:text-[3.2rem] lg:hover:scale-105 lg:hover:text-[#06CFD6] lg:hover:drop-shadow-[0_0_8px_rgba(6,207,214,0.8)]"
                         >
                           {link.name}
                         </Link>
@@ -193,7 +193,7 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
                     <Link
                       to="/contacto"
                       onClick={onClose}
-                      className="inline-block rounded-full border-2 md:border-4 border-[#0CA3C6] bg-transparent font-extrabold tracking-[0.22em] text-white shadow-[0_0_20px_rgba(12,163,198,0.22)] transition-all duration-300 ease-in-out hover:bg-[#0CA3C6] hover:shadow-[0_0_36px_rgba(12,163,198,0.55)] active:scale-95 outline-none text-[clamp(0.95rem,4.5vw,1.3rem)] md:text-[1.8rem] px-10 py-2.5 md:px-14 md:py-5"
+                      className="inline-block rounded-full border-2 md:border-4 border-[#0CA3C6] bg-transparent font-extrabold tracking-[0.22em] text-white shadow-[0_0_20px_rgba(12,163,198,0.22)] transition-all duration-300 ease-in-out active:scale-95 outline-none text-[clamp(0.95rem,4.5vw,1.3rem)] md:text-[1.8rem] px-10 py-2.5 md:px-14 md:py-5 lg:hover:bg-[#0CA3C6] lg:hover:shadow-[0_0_36px_rgba(12,163,198,0.55)]"
                     >
                       Conectar
                     </Link>
@@ -233,13 +233,13 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
               <Link
                 to="/"
                 onClick={onClose}
-                className="group absolute left-8 top-8 z-20 outline-none transition-transform duration-300 hover:scale-105 active:scale-95 lg:left-12 lg:top-10 xl:left-24 xl:top-16"
+                className="group absolute left-8 top-8 z-20 outline-none transition-transform duration-300 active:scale-95 lg:left-12 lg:top-10 lg:hover:scale-105 xl:left-24 xl:top-16"
                 aria-label="Ir a inicio"
               >
                 <img
                   src="/designs/logo_en_blanco.svg"
                   alt="Bytecode Logo"
-                  className="h-auto w-[clamp(10rem,15vw,15rem)] object-contain pointer-events-none transition-all duration-300 group-hover:drop-shadow-[0_0_15px_rgba(6,207,214,0.8)]"
+                  className="h-auto w-[clamp(10rem,15vw,15rem)] object-contain pointer-events-none transition-all duration-300 lg:group-hover:drop-shadow-[0_0_15px_rgba(6,207,214,0.8)]"
                 />
               </Link>
 
@@ -280,12 +280,12 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
 
               <button
                 onClick={onClose}
-                className="absolute left-8 top-8 z-30 p-2 text-white outline-none transition-all duration-300 hover:-translate-x-2 hover:scale-110 lg:left-14 lg:top-10 xl:left-24 xl:top-20"
+                className="absolute left-8 top-8 z-30 p-2 text-white outline-none transition-all duration-300 lg:left-14 lg:top-10 lg:hover:-translate-x-2 lg:hover:scale-110 xl:left-24 xl:top-20"
                 aria-label="Cerrar menu"
               >
                 <ArrowLeft
                   strokeWidth={2.5}
-                  className="h-[clamp(2.1rem,3vw,3.1rem)] w-[clamp(2.1rem,3vw,3.1rem)] transition-transform duration-300 hover:rotate-12"
+                  className="h-[clamp(2.1rem,3vw,3.1rem)] w-[clamp(2.1rem,3vw,3.1rem)] transition-transform duration-300 lg:hover:rotate-12"
                 />
               </button>
 
@@ -302,11 +302,11 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
                       <Link
                         to={link.path}
                         onClick={onClose}
-                        className="inline-block text-center text-[clamp(2.3rem,4.4vw,4.5rem)] font-bold tracking-[0.08em] text-white transition-all duration-300 outline-none hover:scale-105 hover:text-[#06CFD6] hover:drop-shadow-[0_0_8px_rgba(6,207,214,0.8)] group-hover:scale-105 group-hover:text-[#06CFD6] group-hover:drop-shadow-[0_0_8px_rgba(6,207,214,0.8)]"
+                        className="inline-block text-center text-[clamp(2.3rem,4.4vw,4.5rem)] font-bold tracking-[0.08em] text-white transition-all duration-300 outline-none lg:hover:scale-105 lg:hover:text-[#06CFD6] lg:hover:drop-shadow-[0_0_8px_rgba(6,207,214,0.8)] lg:group-hover:scale-105 lg:group-hover:text-[#06CFD6] lg:group-hover:drop-shadow-[0_0_8px_rgba(6,207,214,0.8)]"
                       >
                         {link.name}
                       </Link>
-                      <span className="pointer-events-none absolute -bottom-2 left-1/2 h-1.5 w-0 bg-[#06CFD6] shadow-[0_0_15px_rgba(6,207,214,0.6)] transition-all duration-300 ease-out group-hover:left-0 group-hover:w-full" />
+                      <span className="pointer-events-none absolute -bottom-2 left-1/2 h-1.5 w-0 bg-[#06CFD6] shadow-[0_0_15px_rgba(6,207,214,0.6)] transition-all duration-300 ease-out lg:group-hover:left-0 lg:group-hover:w-full" />
                     </motion.div>
                   ))}
                 </nav>
@@ -320,7 +320,7 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
                   <Link
                     to="/contacto"
                     onClick={onClose}
-                    className="inline-block rounded-full border-[3px] border-[#0CA3C6] bg-transparent px-[clamp(2.75rem,6vw,5rem)] py-[clamp(0.95rem,1.8vw,1.45rem)] text-[clamp(1.15rem,2.1vw,2rem)] font-extrabold tracking-[0.18em] text-white shadow-[0_0_20px_rgba(12,163,198,0.2)] transition-all duration-300 ease-in-out hover:border-transparent hover:bg-[#0CA3C6] hover:shadow-[0_0_40px_rgba(12,163,198,0.6)] active:scale-95 outline-none"
+                    className="inline-block rounded-full border-[3px] border-[#0CA3C6] bg-transparent px-[clamp(2.75rem,6vw,5rem)] py-[clamp(0.95rem,1.8vw,1.45rem)] text-[clamp(1.15rem,2.1vw,2rem)] font-extrabold tracking-[0.18em] text-white shadow-[0_0_20px_rgba(12,163,198,0.2)] transition-all duration-300 ease-in-out active:scale-95 outline-none lg:hover:border-transparent lg:hover:bg-[#0CA3C6] lg:hover:shadow-[0_0_40px_rgba(12,163,198,0.6)]"
                   >
                     Conectar
                   </Link>

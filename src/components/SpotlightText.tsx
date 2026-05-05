@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface SpotlightTextProps {
   children: React.ReactNode;
@@ -9,9 +9,14 @@ const SpotlightText: React.FC<SpotlightTextProps> = ({ children, className = '' 
   const containerRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
+  const [supportsHover, setSupportsHover] = useState(false);
+
+  useEffect(() => {
+    setSupportsHover(window.matchMedia('(min-width: 1024px) and (hover: hover) and (pointer: fine)').matches);
+  }, []);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current) return;
+    if (!supportsHover || !containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     setPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
@@ -20,8 +25,8 @@ const SpotlightText: React.FC<SpotlightTextProps> = ({ children, className = '' 
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={() => supportsHover && setIsHovered(true)}
+      onMouseLeave={() => supportsHover && setIsHovered(false)}
       className={`relative inline-block cursor-default pointer-events-auto ${className}`}
     >
       {/* 1. ANIMACIÓN CSS INYECTADA: Hace que la niebla viaje de izquierda a derecha */}

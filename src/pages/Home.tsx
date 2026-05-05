@@ -11,7 +11,7 @@ import './Home.css';
    ========================================================================== */
 
 const HERO_ACTION_LINK_BASE =
-  'flex h-[clamp(42px,4.5vw,60px)] w-full min-w-[clamp(180px,20vw,260px)] max-w-full items-center justify-center rounded-full text-[clamp(1.15rem,5vw,1.45rem)] font-bold transition-all hover:scale-105 hover:shadow-[0px_0px_25px_rgba(6,207,214,0.5)] md:w-auto md:text-[clamp(1.3rem,2vw,1.7rem)] lg:h-[clamp(48px,5vw,68px)]'
+  'flex h-[clamp(42px,4.5vw,60px)] w-full min-w-[clamp(180px,20vw,260px)] max-w-full items-center justify-center rounded-full text-[clamp(1.15rem,5vw,1.45rem)] font-bold transition-all md:w-auto md:text-[clamp(1.3rem,2vw,1.7rem)] lg:h-[clamp(48px,5vw,68px)] lg:hover:scale-105 lg:hover:shadow-[0px_0px_25px_rgba(6,207,214,0.5)]'
 
 const HERO_BOTTOM_CORNER_POSITION =
   'right-1.5 md:right-3 lg:right-[6%] xl:right-4 2xl:-right-31';
@@ -111,6 +111,19 @@ const HeroActionLink: React.FC<{
 
 const HeroSection: React.FC = () => {
   const [isHovered, setIsHovered] = React.useState(false);
+  const [supportsHover, setSupportsHover] = React.useState(false);
+
+  React.useEffect(() => {
+    const hoverQuery = window.matchMedia('(min-width: 1024px) and (hover: hover) and (pointer: fine)');
+    const updateHoverSupport = () => {
+      setSupportsHover(hoverQuery.matches);
+      if (!hoverQuery.matches) setIsHovered(false);
+    };
+
+    updateHoverSupport();
+    hoverQuery.addEventListener('change', updateHoverSupport);
+    return () => hoverQuery.removeEventListener('change', updateHoverSupport);
+  }, []);
   
   return (
     <section className="relative min-h-[88svh] overflow-hidden select-none font-sansation lg:min-h-screen">
@@ -170,11 +183,13 @@ const HeroSection: React.FC = () => {
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
             />
 
-            <div 
-              className="absolute left-[10%] top-[10%] h-[80%] w-[80%] z-20 cursor-crosshair pointer-events-auto"
-              onMouseEnter={() => setIsHovered(true)}
-              onMouseLeave={() => setIsHovered(false)}
-            />
+            {supportsHover && (
+              <div
+                className="absolute left-[10%] top-[10%] h-[80%] w-[80%] z-20 cursor-crosshair pointer-events-auto"
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+              />
+            )}
           </motion.div>
         </div>
       </div>

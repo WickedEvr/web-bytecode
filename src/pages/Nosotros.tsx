@@ -21,8 +21,25 @@ const infoBlocks = [
 const Nosotros: React.FC = () => {
   const [isHovered, setIsHovered] = React.useState(false);
   const [glowPos, setGlowPos] = React.useState({ x: 0, y: 0 });
+  const [supportsHover, setSupportsHover] = React.useState(false);
+
+  React.useEffect(() => {
+    const hoverQuery = window.matchMedia('(min-width: 1024px) and (hover: hover) and (pointer: fine)');
+    const updateHoverSupport = () => {
+      setSupportsHover(hoverQuery.matches);
+      if (!hoverQuery.matches) {
+        setIsHovered(false);
+        setGlowPos({ x: 0, y: 0 });
+      }
+    };
+
+    updateHoverSupport();
+    hoverQuery.addEventListener('change', updateHoverSupport);
+    return () => hoverQuery.removeEventListener('change', updateHoverSupport);
+  }, []);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!supportsHover) return;
       const rect = e.currentTarget.getBoundingClientRect();
       const x = ((e.clientX - rect.left) / rect.width - 0.5) * 40;
       const y = ((e.clientY - rect.top) / rect.height - 0.5) * 40;
@@ -140,7 +157,9 @@ const Nosotros: React.FC = () => {
             </motion.div>
 
             {/* 7. Hover Interaction Area (Solo Escritorio) */}
-            <div className="hidden lg:block absolute left-[210px] top-[200px] z-20 h-[1050px] w-[450px] cursor-crosshair pointer-events-auto" onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => { setIsHovered(false); setGlowPos({ x: 0, y: 0 }); }} onMouseMove={handleMouseMove} />
+            {supportsHover && (
+              <div className="hidden lg:block absolute left-[210px] top-[200px] z-20 h-[1050px] w-[450px] cursor-crosshair pointer-events-auto" onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => { setIsHovered(false); setGlowPos({ x: 0, y: 0 }); }} onMouseMove={handleMouseMove} />
+            )}
           </div>
         </div>
       </section>
