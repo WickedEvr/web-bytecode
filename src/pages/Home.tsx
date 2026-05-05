@@ -46,17 +46,17 @@ const services = [
 ];
 
 const testimonials = [
-  { name: 'María García', role: 'Emprendedora', text: 'Excelente servicio, mi negocio creció enormemente. Totalmente conforme.', stars: 5 },
-  { name: 'Dante Gallardo', role: 'CEO', text: 'Muy bueno con el trabajo! Totalmente conforme.', stars: 5 },
-  { name: 'Carlos Ruiz', role: 'Director', text: 'Profesionales de primer nivel, los recomiendo.', stars: 5 },
+  { name: 'María García', role: 'Emprendedora', text: 'Excelente servicio, mi negocio creció enormemente. Totalmente conforme.', stars: 5, img: '/cliente2senito.png' },
+  { name: 'Dante Gallardo', role: 'CEO', text: 'Muy bueno con el trabajo! Totalmente conforme.', stars: 5, img: '/cliente3.png' },
+  { name: 'Carlos Ruiz', role: 'Director', text: 'Profesionales de primer nivel, los recomiendo.', stars: 5, img: '/cliente1.png' },
 ];
 
 /* ==========================================================================
     COMPONENTES DE APOYO (HELPERS)
    ========================================================================== */
 
-const TestimonialCard: React.FC<{ name: string; role: string; text: string; stars: number; slot: 0 | 1 | 2 }> = ({
-  name, role, text, stars, slot,
+const TestimonialCard: React.FC<{ name: string; role: string; text: string; stars: number; slot: 0 | 1 | 2; img?: string }> = ({
+  name, role, text, stars, slot, img
 }) => {
   return (
     <motion.div
@@ -67,7 +67,9 @@ const TestimonialCard: React.FC<{ name: string; role: string; text: string; star
     >
       <div className="relative h-full w-full overflow-hidden rounded-[37px] border-4 border-white bg-white/[0.13] backdrop-blur-[9.85px]">
         <div className="relative h-[76px] bg-[rgba(0,15,35,0.45)]">
-          <div className="absolute bottom-[-44.43px] left-1/2 z-[2] h-[88.86px] w-[88.86px] -translate-x-1/2 overflow-hidden rounded-full border-[6px] border-[#06CFD6] bg-[linear-gradient(135deg,#1a3a5c_0%,#0d1f33_100%)] drop-shadow-[0px_0px_7px_rgba(255,255,255,0.95)]" />
+          <div className="absolute bottom-[-44.43px] left-1/2 z-[2] h-[88.86px] w-[88.86px] -translate-x-1/2 overflow-hidden rounded-full border-[6px] border-[#06CFD6] bg-[linear-gradient(135deg,#1a3a5c_0%,#0d1f33_100%)] drop-shadow-[0px_0px_7px_rgba(255,255,255,0.95)]">
+            {img && <img src={img} alt={name} className="h-full w-full object-cover" />}
+          </div>
         </div>
 
         <div aria-hidden="true" className="absolute left-0 top-[76px] h-[72px] w-full bg-[rgba(0,15,35,0.45)]" />
@@ -456,7 +458,7 @@ const TestimonialsSection: React.FC = () => {
               CONSTRUYENDO EL FUTURO,<br></br>{' '}
               <span className="text-[#0CA3C6]">CASO POR CASO</span>
             </h2>
-            <p className="text-[clamp(16px,1.9vw,26px)] font-normal leading-[1.6] text-white/75 md:text-[1.2rem] md:px-17">
+            <p className="text-[clamp(16px,1.9vw,26px)] font-normal leading-[1.6] text-white/75 md:text-[1.2rem] md:px-17 lg:px-0">
               Testimonios veraces de nuestros primeros usuarios piloto que ya están transformando sus industrias.
             </p>
           </div>
@@ -470,7 +472,7 @@ const TestimonialsSection: React.FC = () => {
             <div className="relative ml-[-48px] h-[310px] w-[380px] origin-top-left overflow-visible md:ml-0 md:scale-[1.25] lg:scale-[1.45] xl:scale-[1.6]">
               {testimonials.map((t, i) => {
                 const slot = ((i - activeCard + testimonials.length) % testimonials.length) as 0 | 1 | 2;
-                return <TestimonialCard key={i} slot={slot} name={t.name} role={t.role} text={t.text} stars={t.stars} />;
+                return <TestimonialCard key={i} slot={slot} name={t.name} role={t.role} text={t.text} stars={t.stars} img={t.img} />;
               })}
             </div>
           </div>
