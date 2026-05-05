@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import AltFooter from '../components/AltFooter';
-import SEO from '../components/SEO';
+import AltFooter from '../components/layout/AltFooter';
+import SEO from '../components/shared/SEO';
 
 const infoBlocks = [
   {
@@ -59,7 +59,7 @@ const Nosotros: React.FC = () => {
         {/* === Fondos Base === */}
         <div className="relative lg:absolute left-0 top-0 w-full overflow-hidden h-[18rem] sm:h-[17rem] md:h-[24rem] lg:h-[700px] xl:h-[850px] 2xl:h-[1000px] bg-black transition-all duration-500 z-0">
           <img
-            src="/nosotros/imagenchicalaptoparriba.png"
+            src="/images/nosotros/imagenchicalaptoparriba.png"
             alt="Fondo Laptop"
             draggable={false}
             className="h-full w-full object-cover object-center lg:object-top opacity-70 lg:opacity-100 lg:-translate-y-[18%]"
@@ -85,7 +85,7 @@ const Nosotros: React.FC = () => {
           <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-b from-transparent to-[#044553] lg:hidden" />
           <div className="pointer-events-none absolute inset-0 z-0 opacity-80 top-[225px] md:top-[350px] lg:hidden">
             <img 
-              src="/designs/elemento_intermedio_nosotros_vista_movil.svg" 
+              src="/vectors/designs/elemento_intermedio_nosotros_vista_movil.svg" 
               alt="Patrón"
               className="h-[434px] w-[648px] md:w-full md:h-auto md:scale-90 md:scale-x-[1.12] md:origin-top object-cover object-left-top"
             />
@@ -148,12 +148,12 @@ const Nosotros: React.FC = () => {
 
             {/* 5. Sombra del piso */}
             <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }} className="absolute top-[430px] left-[142px] md:top-[499px] md:left-[166px] lg:top-[1275px] lg:left-[60px] z-0 w-[90%] lg:w-[730px] -translate-x-1/2 lg:translate-x-0 opacity-85 lg:opacity-100">
-              <motion.img src="/nosotros/sombrapisohombre.png" alt="" draggable={false} className="w-full opacity-90 lg:opacity-100" animate={{ scale: isHovered ? 0.95 : 1, opacity: isHovered ? 0.4 : 0.9, filter: isHovered ? "blur(6px)" : "blur(0px)" }} transition={{ type: "spring", stiffness: 300, damping: 25 }} />
+              <motion.img src="/images/nosotros/sombrapisohombre.png" alt="" draggable={false} className="w-full opacity-90 lg:opacity-100" animate={{ scale: isHovered ? 0.95 : 1, opacity: isHovered ? 0.4 : 0.9, filter: isHovered ? "blur(6px)" : "blur(0px)" }} transition={{ type: "spring", stiffness: 300, damping: 25 }} />
             </motion.div>
 
             {/* 6. El Hombre */}
             <motion.div initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.9, delay: 0.4, ease: "easeOut" }} className="absolute left-1/2 lg:left-[60px] top-[3.8%] lg:top-[125px] z-10 w-[93%] lg:w-[750px] -translate-x-1/2 lg:translate-x-0 pointer-events-none">
-              <motion.img src="/nosotros/hombredepie.png" alt="Tecnología" draggable={false} className="w-full" animate={{ y: isHovered ? -15 : 0, scale: isHovered ? 1.02 : 1, filter: isHovered ? `drop-shadow(${-glowPos.x}px ${-glowPos.y}px 30px rgba(6,207,214,0.85)) brightness(1.1)` : `drop-shadow(0px 20px 25px rgba(0,0,0,0.3)) brightness(1)` }} transition={{ type: "spring", stiffness: 300, damping: 25 }} />
+              <motion.img src="/images/nosotros/hombredepie.png" alt="Tecnología" draggable={false} className="w-full" animate={{ y: isHovered ? -15 : 0, scale: isHovered ? 1.02 : 1, filter: isHovered ? `drop-shadow(${-glowPos.x}px ${-glowPos.y}px 30px rgba(6,207,214,0.85)) brightness(1.1)` : `drop-shadow(0px 20px 25px rgba(0,0,0,0.3)) brightness(1)` }} transition={{ type: "spring", stiffness: 300, damping: 25 }} />
             </motion.div>
 
             {/* 7. Hover Interaction Area (Solo Escritorio) */}
@@ -167,13 +167,13 @@ const Nosotros: React.FC = () => {
       {/* === Gráficos Finales de Cierre === */}
       {/* SVG Lateral (Solo Escritorio) */}
       <div className="pointer-events-none absolute bottom-0 left-0 z-0 hidden lg:block max-w-[250px] lg:top-[500px] xl:top-[600px] 2xl:top-[750px] lg:w-[10vw] xl:w-[15vw] 2xl:w-[20vw] lg:opacity-40 xl:opacity-70 2xl:opacity-100 transition-all duration-500">
-        <img src="/designs/elemento_lateral_fondo_nosotros.svg" alt="Patrón Lateral" draggable={false} className="h-full w-full object-contain object-left-top" />
+        <img src="/vectors/designs/elemento_lateral_fondo_nosotros.svg" alt="Patrón Lateral" draggable={false} className="h-full w-full object-contain object-left-top" />
       </div>
 
       {/* SVG Final (Solo Móvil) */}
       <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 h-[950px]  w-full lg:hidden">
         <img 
-          src="/designs/elemento_final_nosotros_vista_movil.svg" 
+          src="/vectors/designs/elemento_final_nosotros_vista_movil.svg" 
           alt="Fondo Móvil"
           className="h-full w-full object-cover object-bottom md:object-fill" 
         />

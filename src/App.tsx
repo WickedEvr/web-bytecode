@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import MainLayout from './layouts/MainLayout';
 import AltLayout from './layouts/AltLayout';
 import LegalLayout from './layouts/LegalLayout';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 
 
 // 2. Code Splitting: Importamos las páginas de forma dinámica
@@ -61,7 +62,15 @@ const App: React.FC = () => {
           </Route>
 
           {/* 🔴 SIN LAYOUT (Pantalla completa) */}
-          <Route path="/admin" element={<Admin />} />
+          <Route path="/admin/login" element={<Admin />} />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <Admin />
+              </ProtectedRoute>
+            }
+          />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>

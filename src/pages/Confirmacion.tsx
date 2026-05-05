@@ -2,10 +2,10 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Rocket, FileCheck, ArrowLeft } from 'lucide-react';
-import ContactFooter from '../components/ContactFooter';
-import GalaxyBackground from '../components/GalaxyBackground';
+import ContactFooter from '../components/layout/ContactFooter';
+import GalaxyBackground from '../components/effects/GalaxyBackground';
 import ShineBorder from '../components/ui/shine-border';
-import SpotlightText from "../components/SpotlightText";
+import SpotlightText from "../components/typography/SpotlightText";
 
 // 1. DICCIONARIO DE VISTAS
 const CONFIRMATION_VIEWS = {
@@ -46,11 +46,11 @@ const Confirmacion: React.FC = () => {
 
         <div
           className="absolute inset-0 opacity-70 mix-blend-screen"
-          style={{ backgroundImage: `url(${import.meta.env.BASE_URL}designs/stardust.png)` }}
+          style={{ backgroundImage: `url(${import.meta.env.BASE_URL}vectors/designs/stardust.png)` }}
         />
         <div
           className="absolute inset-0 opacity-50 rotate-180 mix-blend-screen"
-          style={{ backgroundImage: `url(${import.meta.env.BASE_URL}designs/stardust.png)` }}
+          style={{ backgroundImage: `url(${import.meta.env.BASE_URL}vectors/designs/stardust.png)` }}
         />
       </div>
 

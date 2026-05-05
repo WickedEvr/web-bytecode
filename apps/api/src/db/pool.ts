@@ -6,4 +6,4 @@ export const pool = new pg.Pool({
   ssl: env.isProduction ? { rejectUnauthorized: false } : undefined,
 });
 
-export type DbClient = pg.PoolClient;
+

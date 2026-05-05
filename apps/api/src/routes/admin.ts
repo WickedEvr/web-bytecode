@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { pool } from '../db/pool.js';
 import { requireAdmin } from '../middleware/auth.js';
+import { requireCsrf } from '../middleware/csrf.js';
 import { audit } from '../services/audit.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { HttpError } from '../utils/httpError.js';
@@ -22,6 +23,17 @@ const updateSchema = z.object({
   status: z.enum(['new', 'read', 'in_progress', 'responded', 'closed']).optional(),
   adminNotes: z.string().max(3000).optional(),
 });
+
+const contactColumns =
+  'id, nombre, cargo, email, celular, empresa, ruc, servicio, status, admin_notes, created_at, updated_at';
+
+const complaintColumns = `
+  id, code, nombres, apellidos, domicilio, tipo_doc, numero_doc, prefijo_telefono,
+  telefono, email, person_type, good_type, monto_cuantificable, descripcion,
+  nombre_unidad, opcion_bien, claim_type, tipo_reclamo, detalle, pedido, status,
+  admin_notes, attachment_original_name, attachment_mime_type, attachment_size,
+  created_at, updated_at
+`;
 
 const buildWhere = (status?: string, search?: string, fields: string[] = []) => {
   const clauses: string[] = [];
@@ -66,7 +78,7 @@ router.get(
     const { whereSql, params } = buildWhere(query.status, query.search, ['nombre', 'email', 'empresa', 'servicio']);
     const result = await pool.query(
       `
-      SELECT id, nombre, cargo, email, celular, empresa, ruc, servicio, status, admin_notes, created_at, updated_at
+      SELECT ${contactColumns}
       FROM contact_submissions
       ${whereSql}
       ORDER BY created_at DESC
@@ -83,7 +95,7 @@ router.get(
   '/contacts/:id',
   asyncHandler(async (req, res) => {
     const id = String(req.params.id);
-    const result = await pool.query('SELECT * FROM contact_submissions WHERE id = $1', [id]);
+    const result = await pool.query(`SELECT ${contactColumns} FROM contact_submissions WHERE id = $1`, [id]);
     if (result.rowCount === 0) throw new HttpError(404, 'Mensaje no encontrado.');
     res.json({ item: result.rows[0] });
   }),
@@ -91,6 +103,7 @@ router.get(
 
 router.patch(
   '/contacts/:id',
+  requireCsrf,
   asyncHandler(async (req, res) => {
     const id = String(req.params.id);
     const body = updateSchema.parse(req.body);
@@ -101,7 +114,7 @@ router.patch(
           admin_notes = COALESCE($3, admin_notes),
           updated_at = now()
       WHERE id = $1
-      RETURNING *
+      RETURNING ${contactColumns}
       `,
       [id, body.status ?? null, body.adminNotes ?? null],
     );
@@ -143,7 +156,7 @@ router.get(
   '/complaints/:id',
   asyncHandler(async (req, res) => {
     const id = String(req.params.id);
-    const result = await pool.query('SELECT * FROM complaints WHERE id = $1', [id]);
+    const result = await pool.query(`SELECT ${complaintColumns} FROM complaints WHERE id = $1`, [id]);
     if (result.rowCount === 0) throw new HttpError(404, 'Reclamo no encontrado.');
     res.json({ item: result.rows[0] });
   }),
@@ -151,6 +164,7 @@ router.get(
 
 router.patch(
   '/complaints/:id',
+  requireCsrf,
   asyncHandler(async (req, res) => {
     const id = String(req.params.id);
     const body = updateSchema.parse(req.body);
@@ -161,7 +175,7 @@ router.patch(
           admin_notes = COALESCE($3, admin_notes),
           updated_at = now()
       WHERE id = $1
-      RETURNING *
+      RETURNING ${complaintColumns}
       `,
       [id, body.status ?? null, body.adminNotes ?? null],
     );

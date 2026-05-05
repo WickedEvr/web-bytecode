@@ -6,6 +6,8 @@ import multer from 'multer';
 import { z } from 'zod';
 import { env } from '../config/env.js';
 import { pool } from '../db/pool.js';
+import { validateUpload } from '../lib/validateUpload.js';
+import { publicFormLimiter } from '../middleware/rateLimiters.js';
 import { notifyAdmins } from '../services/email.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
@@ -17,12 +19,12 @@ const upload = multer({
   storage: multer.diskStorage({
     destination: (_req, _file, callback) => callback(null, env.uploadDir),
     filename: (_req, file, callback) => {
-      const ext = path.extname(file.originalname).toLowerCase();
+      const ext = path.extname(path.basename(file.originalname)).toLowerCase();
       callback(null, `${crypto.randomUUID()}${ext}`);
     },
   }),
   limits: {
-    fileSize: env.maxUploadMb * 1024 * 1024,
+    fileSize: 10 * 1024 * 1024,
   },
   fileFilter: (_req, file, callback) => {
     const allowedMimeTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
@@ -70,6 +72,7 @@ const createComplaintCode = () => {
 
 router.post(
   '/contact-submissions',
+  publicFormLimiter,
   asyncHandler(async (req, res) => {
     const body = contactSchema.parse(req.body);
     const result = await pool.query(
@@ -97,10 +100,13 @@ router.post(
 
 router.post(
   '/complaints',
+  publicFormLimiter,
   upload.single('archivoAdjunto'),
   asyncHandler(async (req, res) => {
     const body = complaintSchema.parse(req.body);
     const file = req.file;
+    const safeOriginalName = file ? path.basename(file.originalname) : null;
+    const detectedMimeType = file ? await validateUpload(file.path) : null;
     const code = createComplaintCode();
 
     try {
@@ -140,8 +146,8 @@ router.post(
           body.tipoReclamo,
           body.detalle,
           body.pedido,
-          file?.originalname ?? null,
-          file?.mimetype ?? null,
+          safeOriginalName,
+          detectedMimeType,
           file?.size ?? null,
           file?.path ?? null,
         ],
@@ -154,7 +160,7 @@ router.post(
         telefono: `${body.prefijoTelefono} ${body.telefono}`,
         tipo: body.claimType,
         motivo: body.tipoReclamo,
-        adjunto: file?.originalname ?? 'Sin adjunto',
+        adjunto: safeOriginalName ?? 'Sin adjunto',
       });
 
       res.status(201).json({ id: result.rows[0].id, code: result.rows[0].code, createdAt: result.rows[0].created_at });
