@@ -1,24 +1,34 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, animate, useMotionValue, useTransform } from 'framer-motion';
 import SEO from '../components/shared/SEO';
 import ContactFooter from '../components/layout/ContactFooter';
 import ShineBorder from '../components/ui/shine-border';
 
+// --- COMPONENTE DEFINITIVO: Desactiva la animación en móviles ---
 const TypewriterText: React.FC<{ text: string; speed?: number; cursor?: string }> = ({ 
   text, 
   speed = 40, 
   cursor = "|" 
 }) => {
+  // 1. Detectamos inmediatamente si es móvil para evitar tirones
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const count = useMotionValue(0);
   const rounded = useTransform(count, (latest) => Math.floor(latest));
   const displayText = useTransform(rounded, (latest) => text.slice(0, latest));
 
   useEffect(() => {
-    // Forzamos a que inicie en 0 por si hay un re-render
+    // Si es móvil, abortamos cualquier intento de animación
+    if (isMobile) return;
+
     count.set(0); 
     const durationInSeconds = (text.length * speed) / 1000;
-    
-    // Declaramos la variable afuera para poder limpiarla correctamente
     let controls: any; 
 
     const timeout = setTimeout(() => {
@@ -28,18 +38,21 @@ const TypewriterText: React.FC<{ text: string; speed?: number; cursor?: string }
       });
     }, 100); 
 
-    // Limpieza correcta
     return () => {
       clearTimeout(timeout);
       if (controls) controls.stop();
     };
-  }, [text, speed, count]);
+  }, [text, speed, count, isMobile]);
 
+  // 2. RENDERIZADO EN MÓVIL: Texto estático, cero bugs, máximo rendimiento
+  if (isMobile) {
+    return <>{text}</>;
+  }
+
+  // 3. RENDERIZADO EN PC/TABLET: Animación fluida con Framer Motion
   return (
     <>
       <motion.span>{displayText}</motion.span>
-      
-      {/* El cursor parpadeante */}
       <motion.span
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -91,7 +104,7 @@ const Privacidad: React.FC = () => {
             borderRadius={40} 
             borderWidth={2}
           >
-            <h1 className="text-[clamp(2rem,4vw,3rem)] font-bold uppercase tracking-wide text-[#0CA3C6] mb-8 text-center drop-shadow-md min-h-[2.5em] sm:min-h-[1.2em]">
+            <h1 className="text-[clamp(2rem,4vw,3rem)] font-bold uppercase tracking-wide text-[#0CA3C6] mb-8 text-center drop-shadow-md">
               <TypewriterText text="Política de Privacidad" speed={40} cursor="|" />
             </h1>
             
