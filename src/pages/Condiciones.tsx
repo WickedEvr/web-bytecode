@@ -104,6 +104,7 @@ const Condiciones: React.FC = () => {
             borderRadius={40} 
             borderWidth={2}
           >
+            {/* 100% igualado a Privacidad: Sin clases de min-h */}
             <h1 className="text-[clamp(2rem,4vw,3rem)] font-bold uppercase tracking-wide text-[#0CA3C6] mb-8 text-center drop-shadow-md">
               <TypewriterText text="Términos y Condiciones" speed={40} cursor="|" />
             </h1>
