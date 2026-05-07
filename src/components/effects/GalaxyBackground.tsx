@@ -9,9 +9,23 @@ export default function GalaxyBackground() {
     if (!canvas) return;
 
     // OPTIMIZACIÓN 1: Detectar si es un dispositivo móvil
-    const viewportWidth = window.innerWidth;
-    const isMobile = viewportWidth < 768;
-    const isTablet = viewportWidth >= 768 && viewportWidth < 1024;
+    const getViewportSize = () => {
+      const viewport = window.visualViewport;
+      return {
+        width: Math.max(1, Math.round(viewport?.width ?? window.innerWidth)),
+        height: Math.max(1, Math.round(viewport?.height ?? window.innerHeight)),
+      };
+    };
+
+    const getPixelRatio = (width: number) => {
+      if (width < 768) return 1;
+      if (width < 1024) return Math.min(window.devicePixelRatio, 1.25);
+      return Math.min(window.devicePixelRatio, 2);
+    };
+
+    const initialSize = getViewportSize();
+    const isMobile = initialSize.width < 768;
+    const isTablet = initialSize.width >= 768 && initialSize.width < 1024;
 
     // ── Scene
     const scene = new THREE.Scene();
@@ -20,7 +34,7 @@ export default function GalaxyBackground() {
     // ── Camera
     const camera = new THREE.PerspectiveCamera(
       75,
-      canvas.offsetWidth / canvas.offsetHeight,
+      initialSize.width / initialSize.height,
       0.1,
       100
     );
@@ -29,10 +43,8 @@ export default function GalaxyBackground() {
 
     // ── Renderer
     const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false });
-    renderer.setSize(canvas.offsetWidth, canvas.offsetHeight);
-    
-    // OPTIMIZACIÓN 2: Limitar el Pixel Ratio
-    renderer.setPixelRatio(isMobile ? 1 : isTablet ? Math.min(window.devicePixelRatio, 1.25) : Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(getPixelRatio(initialSize.width));
+    renderer.setSize(initialSize.width, initialSize.height, false);
 
     // ── Parameters
     const parameters = {
@@ -175,20 +187,47 @@ export default function GalaxyBackground() {
     // ─────────────────────────────────────────
     // Resize
     // ─────────────────────────────────────────
-    const onResize = () => {
-      const width = window.innerWidth;
-      const mobileCheck = width < 768;
-      const tabletCheck = width >= 768 && width < 1024;
-      camera.aspect = canvas.offsetWidth / canvas.offsetHeight;
+    let renderWidth = initialSize.width;
+    let renderHeight = initialSize.height;
+    let renderPixelRatio = getPixelRatio(initialSize.width);
+    let resizeFrameId: number | null = null;
+
+    const resizeRenderer = () => {
+      const { width, height } = getViewportSize();
+      const nextPixelRatio = getPixelRatio(width);
+
+      if (width === renderWidth && height === renderHeight && nextPixelRatio === renderPixelRatio) {
+        return;
+      }
+
+      renderWidth = width;
+      renderHeight = height;
+      renderPixelRatio = nextPixelRatio;
+
+      camera.aspect = width / height;
       camera.updateProjectionMatrix();
-      renderer.setSize(canvas.offsetWidth, canvas.offsetHeight);
-      renderer.setPixelRatio(mobileCheck ? 1 : tabletCheck ? Math.min(window.devicePixelRatio, 1.25) : Math.min(window.devicePixelRatio, 2));
+      renderer.setPixelRatio(nextPixelRatio);
+      renderer.setSize(width, height, false);
+    };
+
+    const onResize = () => {
+      if (resizeFrameId !== null) return;
+
+      resizeFrameId = requestAnimationFrame(() => {
+        resizeFrameId = null;
+        resizeRenderer();
+      });
     };
     window.addEventListener('resize', onResize);
+    window.visualViewport?.addEventListener('resize', onResize);
 
     return () => {
       cancelAnimationFrame(animId);
+      if (resizeFrameId !== null) {
+        cancelAnimationFrame(resizeFrameId);
+      }
       window.removeEventListener('resize', onResize);
+      window.visualViewport?.removeEventListener('resize', onResize);
       observer.disconnect();
       renderer.dispose();
       geoGalaxy.dispose(); matGalaxy.dispose();
@@ -200,7 +239,7 @@ export default function GalaxyBackground() {
   return (
     <canvas
       ref={canvasRef}
-      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }}
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', contain: 'strict' }}
     />
   );
 }

@@ -175,6 +175,11 @@ const HeroSection: React.FC = () => {
             <motion.img
               src="/images/characters/astronauta.png"
               alt="Astronauta"
+              width={581}
+              height={677}
+              loading="eager"
+              fetchPriority="high"
+              decoding="sync"
               className="pointer-events-none w-full h-auto"
               initial={{ filter: "drop-shadow(0px 25px 50px #00000040) brightness(1)" }}
               animate={{
@@ -393,7 +398,7 @@ const IASection: React.FC = () => (
           className="relative z-10 h-[408px] w-[232px] flex-shrink-0 rounded-[48px] shadow-[0px_4px_7.8px_rgba(0,0,0,0.42)] md:h-[500px] md:w-[284px] lg:h-[clamp(240px,45vw,520px)] lg:w-[clamp(140px,26vw,294px)] xl:h-[460px] xl:w-[260px] 2xl:h-[clamp(240px,65vw,613px)] 2xl:w-[clamp(140px,38vw,346px)]"
         >
           <div className="absolute inset-0 overflow-hidden rounded-[48px]">
-            <img src="/images/characters/fondochica.png" alt="" aria-hidden="true" className="absolute inset-0 rounded-[48px] w-full h-full object-cover" />
+            <img src="/images/characters/fondochica.webp" alt="" aria-hidden="true" className="absolute inset-0 rounded-[48px] w-full h-full object-cover" />
             <div className="absolute inset-0 bg-black/[0.22]" />
           </div>
           <img
@@ -428,7 +433,7 @@ const IASection: React.FC = () => (
           transition={{ delay: 0.1 }}
           className="relative z-[11] block h-[408px] w-[232px] flex-shrink-0 overflow-hidden rounded-[48px] shadow-[0px_4px_27.8px_rgba(0,0,0,0.9)] md:h-[500px] md:w-[284px] lg:h-[clamp(240px,45vw,520px)] lg:w-[clamp(140px,26vw,294px)] xl:h-[460px] xl:w-[260px] 2xl:h-[clamp(240px,65vw,613px)] 2xl:w-[clamp(140px,38vw,346px)]"
         >
-          <img src="/images/characters/hombre.png" alt="Tecnología" className="absolute w-full h-full object-cover object-top" />
+          <img src="/images/characters/hombre.webp" alt="Tecnología" className="absolute w-full h-full object-cover object-top" />
         </motion.div>
       </div>
     </div>
