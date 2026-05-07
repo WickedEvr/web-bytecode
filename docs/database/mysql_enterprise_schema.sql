@@ -325,6 +325,56 @@ CREATE TABLE customer_addresses (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- =========================================================
+-- Core agency project delivery module
+-- =========================================================
+
+CREATE TABLE projects (
+  id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  project_code VARCHAR(40) NOT NULL UNIQUE,
+  customer_id CHAR(36) NOT NULL,
+  organization_id CHAR(36),
+  service_id CHAR(36) NOT NULL,
+  name VARCHAR(180) NOT NULL,
+  description TEXT,
+  status VARCHAR(40) NOT NULL DEFAULT 'planning',
+  repository_url VARCHAR(255),
+  production_url VARCHAR(255),
+  start_date DATE NOT NULL,
+  estimated_end_date DATE NOT NULL,
+  actual_end_date DATE NULL,
+  total_budget DECIMAL(14,2) NOT NULL,
+  currency_code CHAR(3) NOT NULL DEFAULT 'PEN',
+  created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  deleted_at TIMESTAMP(6) NULL,
+  CONSTRAINT fk_projects_customer FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_projects_organization FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE SET NULL,
+  CONSTRAINT fk_projects_service FOREIGN KEY (service_id) REFERENCES service_catalog(id) ON DELETE RESTRICT,
+  CONSTRAINT ck_projects_status CHECK (status IN ('planning', 'in_development', 'qa', 'deployed', 'maintenance')),
+  CONSTRAINT ck_projects_dates CHECK (
+    estimated_end_date >= start_date AND
+    (actual_end_date IS NULL OR actual_end_date >= start_date)
+  ),
+  CONSTRAINT ck_projects_budget CHECK (total_budget >= 0),
+  CONSTRAINT ck_projects_currency CHECK (currency_code = UPPER(currency_code))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE project_milestones (
+  id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  project_id CHAR(36) NOT NULL,
+  title VARCHAR(180) NOT NULL,
+  due_date DATE NOT NULL,
+  status VARCHAR(40) NOT NULL DEFAULT 'pending',
+  payment_percentage DECIMAL(5,2) NOT NULL,
+  completed_at TIMESTAMP(6) NULL,
+  created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  CONSTRAINT fk_project_milestones_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+  CONSTRAINT ck_project_milestones_status CHECK (status IN ('pending', 'completed', 'delayed')),
+  CONSTRAINT ck_project_milestones_payment CHECK (payment_percentage BETWEEN 0 AND 100)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- =========================================================
 -- Files, contact and complaints
 -- =========================================================
 
@@ -896,6 +946,23 @@ CREATE TABLE menu_items (
   CONSTRAINT fk_menu_created_by FOREIGN KEY (created_by) REFERENCES admin_users(id) ON DELETE SET NULL,
   CONSTRAINT fk_menu_updated_by FOREIGN KEY (updated_by) REFERENCES admin_users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- =========================================================
+-- Strict JSON object integrity constraints
+-- =========================================================
+
+ALTER TABLE cms_blocks
+  ADD CONSTRAINT ck_cms_blocks_content_json_object CHECK (JSON_TYPE(content) = 'OBJECT');
+
+ALTER TABLE admin_audit_logs
+  ADD CONSTRAINT ck_admin_audit_logs_before_data_json_object CHECK (JSON_TYPE(before_data) = 'OBJECT'),
+  ADD CONSTRAINT ck_admin_audit_logs_after_data_json_object CHECK (JSON_TYPE(after_data) = 'OBJECT');
+
+ALTER TABLE system_settings
+  ADD CONSTRAINT ck_system_settings_setting_value_json_object CHECK (JSON_TYPE(setting_value) = 'OBJECT');
+
+ALTER TABLE saved_reports
+  ADD CONSTRAINT ck_saved_reports_query_config_json_object CHECK (JSON_TYPE(query_config) = 'OBJECT');
 
 -- =========================================================
 -- Strategic indexes

@@ -298,6 +298,52 @@ CREATE TABLE customer_addresses (
 );
 
 -- =========================================================
+-- Core agency project delivery module
+-- =========================================================
+
+CREATE TABLE projects (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_code varchar(40) NOT NULL UNIQUE,
+  customer_id uuid NOT NULL REFERENCES customers(id) ON DELETE RESTRICT,
+  organization_id uuid REFERENCES organizations(id) ON DELETE SET NULL,
+  service_id uuid NOT NULL REFERENCES service_catalog(id) ON DELETE RESTRICT,
+  name varchar(180) NOT NULL,
+  description text,
+  status varchar(40) NOT NULL DEFAULT 'planning',
+  repository_url varchar(255),
+  production_url varchar(255),
+  start_date date NOT NULL,
+  estimated_end_date date NOT NULL,
+  actual_end_date date,
+  total_budget numeric(14,2) NOT NULL,
+  currency_code char(3) NOT NULL DEFAULT 'PEN',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  deleted_at timestamptz,
+  CONSTRAINT ck_projects_status CHECK (status IN ('planning', 'in_development', 'qa', 'deployed', 'maintenance')),
+  CONSTRAINT ck_projects_dates CHECK (
+    estimated_end_date >= start_date AND
+    (actual_end_date IS NULL OR actual_end_date >= start_date)
+  ),
+  CONSTRAINT ck_projects_budget CHECK (total_budget >= 0),
+  CONSTRAINT ck_projects_currency CHECK (currency_code = upper(currency_code))
+);
+
+CREATE TABLE project_milestones (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  title varchar(180) NOT NULL,
+  due_date date NOT NULL,
+  status varchar(40) NOT NULL DEFAULT 'pending',
+  payment_percentage numeric(5,2) NOT NULL,
+  completed_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT ck_project_milestones_status CHECK (status IN ('pending', 'completed', 'delayed')),
+  CONSTRAINT ck_project_milestones_payment CHECK (payment_percentage BETWEEN 0 AND 100)
+);
+
+-- =========================================================
 -- Files, documents and attachments
 -- =========================================================
 
@@ -788,6 +834,23 @@ CREATE TABLE menu_items (
 );
 
 -- =========================================================
+-- Strict JSON object integrity constraints
+-- =========================================================
+
+ALTER TABLE cms_blocks
+  ADD CONSTRAINT ck_cms_blocks_content_json_object CHECK (jsonb_typeof(content) = 'object');
+
+ALTER TABLE admin_audit_logs
+  ADD CONSTRAINT ck_admin_audit_logs_before_data_json_object CHECK (jsonb_typeof(before_data) = 'object'),
+  ADD CONSTRAINT ck_admin_audit_logs_after_data_json_object CHECK (jsonb_typeof(after_data) = 'object');
+
+ALTER TABLE system_settings
+  ADD CONSTRAINT ck_system_settings_setting_value_json_object CHECK (jsonb_typeof(setting_value) = 'object');
+
+ALTER TABLE saved_reports
+  ADD CONSTRAINT ck_saved_reports_query_config_json_object CHECK (jsonb_typeof(query_config) = 'object');
+
+-- =========================================================
 -- Strategic indexes
 -- =========================================================
 
@@ -841,6 +904,8 @@ CREATE TRIGGER trg_customers_updated_at BEFORE UPDATE ON customers FOR EACH ROW 
 CREATE TRIGGER trg_customer_documents_updated_at BEFORE UPDATE ON customer_documents FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_customer_organizations_updated_at BEFORE UPDATE ON customer_organizations FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_customer_addresses_updated_at BEFORE UPDATE ON customer_addresses FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE TRIGGER trg_projects_updated_at BEFORE UPDATE ON projects FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE TRIGGER trg_project_milestones_updated_at BEFORE UPDATE ON project_milestones FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_file_assets_updated_at BEFORE UPDATE ON file_assets FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_contact_categories_updated_at BEFORE UPDATE ON contact_categories FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_contact_cases_updated_at BEFORE UPDATE ON contact_cases FOR EACH ROW EXECUTE FUNCTION set_updated_at();
