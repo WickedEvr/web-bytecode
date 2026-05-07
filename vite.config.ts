@@ -9,21 +9,44 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        // Usamos una función para definir los chunks, lo que resuelve el error de tipos
         manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('react')) {
-              return 'vendor-react';
-            }
-            if (id.includes('framer-motion')) {
-              return 'vendor-motion';
-            }
-            return 'vendor-others';
+          if (!id.includes('node_modules')) {
+            return;
+          }
+
+          const normalizedId = id.replace(/\\/g, '/');
+
+          if (
+            normalizedId.includes('/node_modules/react/') ||
+            normalizedId.includes('/node_modules/react-dom/') ||
+            normalizedId.includes('/node_modules/scheduler/')
+          ) {
+            return 'react-core';
+          }
+
+          if (normalizedId.includes('/node_modules/react-router')) {
+            return 'router';
+          }
+
+          if (
+            normalizedId.includes('/node_modules/three/') ||
+            normalizedId.includes('/node_modules/three-stdlib/')
+          ) {
+            return 'three';
+          }
+
+          if (normalizedId.includes('/node_modules/gsap/')) {
+            return 'gsap';
+          }
+
+          if (
+            normalizedId.includes('/node_modules/lucide-react/') ||
+            normalizedId.includes('/node_modules/@tabler/icons-react/')
+          ) {
+            return 'icons';
           }
         },
       },
     },
-    // Optimizamos el límite para evitar avisos innecesarios en builds complejos
-    chunkSizeWarningLimit: 800,
   },
 })

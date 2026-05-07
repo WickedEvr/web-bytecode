@@ -1,9 +1,16 @@
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { Link } from 'react-router-dom';
-import MobileMenuView from './MobileMenuView';
+
+const MobileMenuView = lazy(() => import('./MobileMenuView'));
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [hasMenuLoaded, setHasMenuLoaded] = useState(false);
+
+  const openMenu = () => {
+    setHasMenuLoaded(true);
+    setIsMenuOpen(true);
+  };
 
   return (
     <>
@@ -14,7 +21,7 @@ const Header: React.FC = () => {
             <img src="/vectors/designs/logo_en_blanco.svg" alt="Bytecode" className="h-11 w-auto transition-all duration-300 active:scale-95 md:h-14 lg:hover:scale-105 lg:hover:drop-shadow-[0_0_12px_rgba(6,207,214,0.6)]" />
           </Link>
           <button
-            onClick={() => setIsMenuOpen(true)}
+            onClick={openMenu}
             // 1. Añadimos 'group' y 'active:scale-95' para igualar el rebote del AltHeader
             className="group text-white active:scale-95 transition-all duration-300 outline-none lg:hover:text-primary-cyan lg:hover:scale-100"
             aria-label="Abrir menú"
@@ -36,7 +43,11 @@ const Header: React.FC = () => {
       </header>
 
       {/* ── MENÚ INTERACTIVO COMPLETO ── */}
-      <MobileMenuView isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+      {hasMenuLoaded && (
+        <Suspense fallback={null}>
+          <MobileMenuView isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+        </Suspense>
+      )}
     </>
   );
 };

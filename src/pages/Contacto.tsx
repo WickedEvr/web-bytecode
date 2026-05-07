@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, type HTMLMotionProps } from 'framer-motion';
 import SEO from '../components/shared/SEO';
-import GalaxyBackground from '../components/effects/GalaxyBackground';
+import LazyGalaxyBackground from '../components/effects/LazyGalaxyBackground';
 import ContactFooter from '../components/layout/ContactFooter';
 import { createContactSubmission } from '../lib/api';
 
@@ -416,7 +416,7 @@ const Contacto: React.FC = () => {
       
       {/* Fondo espacio */}
       <div className="absolute inset-0" style={{ backgroundColor: '#040e1f' }}>
-        <GalaxyBackground /> 
+        <LazyGalaxyBackground /> 
         <div className="absolute inset-0" style={{ background: 'rgba(4,14,31,0.30)' }} />
         <div className="absolute inset-0 bg-[#040e1f]/70" />
 

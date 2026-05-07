@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu } from 'lucide-react';
-import { FaFacebook, FaInstagram, FaLinkedinIn, FaTiktok, FaWhatsapp } from 'react-icons/fa6';
-import MobileMenuView from './MobileMenuView';
+import { FacebookIcon, InstagramIcon, LinkedInIcon, TikTokIcon, WhatsAppIcon } from '../icons/SocialIcons';
+
+const MobileMenuView = lazy(() => import('./MobileMenuView'));
 
 const WHATSAPP_MESSAGE = "%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software.";
 
@@ -14,9 +15,13 @@ const WHATSAPP_URLS = [
 const AltHeader: React.FC = () => {
     // Estado para controlar si el menú está abierto o no
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [hasMenuLoaded, setHasMenuLoaded] = useState(false);
 
     // Funciones para abrir y cerrar
-    const openMenu = () => setIsMenuOpen(true);
+    const openMenu = () => {
+        setHasMenuLoaded(true);
+        setIsMenuOpen(true);
+    };
     const closeMenu = () => setIsMenuOpen(false);
 
     const handleWhatsAppClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -59,29 +64,29 @@ const AltHeader: React.FC = () => {
                         <a href="https://www.facebook.com/bytecodesystems/" target="_blank" rel="noopener noreferrer"
                             className="text-[#0CA3C6] transition-all duration-300 outline-none lg:hover:text-[#0CA3C6] lg:hover:-translate-y-1"
                             aria-label="Facebook">
-                            <FaFacebook className="w-5 h-5 md:w-8 md:h-8 lg:w-[23px] lg:h-[23px]" />
+                            <FacebookIcon className="w-5 h-5 md:w-8 md:h-8 lg:w-[23px] lg:h-[23px]" />
                         </a>
                         <a href="https://www.instagram.com/bytecodesw" target="_blank" rel="noopener noreferrer"
                             className="text-[#0CA3C6] transition-all duration-300 outline-none lg:hover:text-[#0CA3C6] lg:hover:-translate-y-1"
                             aria-label="Instagram">
-                            <FaInstagram className="w-5 h-5 md:w-8 md:h-8 lg:w-[23px] lg:h-[23px]" />
+                            <InstagramIcon className="w-5 h-5 md:w-8 md:h-8 lg:w-[23px] lg:h-[23px]" />
                         </a>
                         <a href="https://tiktok.com" target="_blank" rel="noopener noreferrer"
                             className="text-[#0CA3C6] transition-all duration-300 outline-none lg:hover:text-[#0CA3C6] lg:hover:-translate-y-1"
                             aria-label="TikTok">
-                            <FaTiktok className="w-5 h-5 md:w-8 md:h-8 lg:w-[23px] lg:h-[23px]" />
+                            <TikTokIcon className="w-5 h-5 md:w-8 md:h-8 lg:w-[23px] lg:h-[23px]" />
                         </a>
                         <a href="https://www.linkedin.com/company/bytecodesw" target="_blank" rel="noopener noreferrer"
                             className="text-[#0CA3C6] transition-all duration-300 outline-none lg:hover:text-[#0CA3C6] lg:hover:-translate-y-1"
                             aria-label="LinkedIn">
-                            <FaLinkedinIn className="w-5 h-5 md:w-8 md:h-8 lg:w-[23px] lg:h-[23px]" />
+                            <LinkedInIcon className="w-5 h-5 md:w-8 md:h-8 lg:w-[23px] lg:h-[23px]" />
                         </a>
                         <a 
                             href={WHATSAPP_URLS[0]}
                             onClick={handleWhatsAppClick}
                             className="text-[#0CA3C6] transition-all duration-300 outline-none lg:hover:text-[#0CA3C6] lg:hover:-translate-y-1"
                             aria-label="WhatsApp">
-                            <FaWhatsapp className="w-5 h-5 md:w-8 md:h-8 lg:w-[24px] lg:h-[24px]" />
+                            <WhatsAppIcon className="w-5 h-5 md:w-8 md:h-8 lg:w-[24px] lg:h-[24px]" />
                         </a>
                     </div>
                 </div>
@@ -97,7 +102,11 @@ const AltHeader: React.FC = () => {
         </header>
         
         {/* Menú Móvil */}
-        <MobileMenuView isOpen={isMenuOpen} onClose={closeMenu} />
+        {hasMenuLoaded && (
+            <Suspense fallback={null}>
+                <MobileMenuView isOpen={isMenuOpen} onClose={closeMenu} />
+            </Suspense>
+        )}
         </>
     );
 };

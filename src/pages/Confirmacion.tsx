@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Rocket, FileCheck, ArrowLeft } from 'lucide-react';
 import ContactFooter from '../components/layout/ContactFooter';
-import GalaxyBackground from '../components/effects/GalaxyBackground';
+import LazyGalaxyBackground from '../components/effects/LazyGalaxyBackground';
 import ShineBorder from '../components/ui/shine-border';
 import SpotlightText from "../components/typography/SpotlightText";
 
@@ -40,7 +40,7 @@ const Confirmacion: React.FC = () => {
       
       {/* Fondo espacio */}
       <div className="absolute inset-0" style={{ backgroundColor: '#040e1f' }}>
-        <GalaxyBackground /> 
+        <LazyGalaxyBackground /> 
         <div className="absolute inset-0 bg-[#040e1f]/40" />
         <div className="absolute inset-0 bg-[#040e1f]/70" />
 

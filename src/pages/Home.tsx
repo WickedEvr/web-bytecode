@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import SEO from '../components/shared/SEO';
 import Stack from '../components/sections/Stack';
-import GalaxyBackground from '../components/effects/GalaxyBackground';
 import './Home.css';
 
 /* ==========================================================================
@@ -131,7 +130,6 @@ const HeroSection: React.FC = () => {
     <section className="relative min-h-[88svh] overflow-hidden select-none font-sansation lg:min-h-screen">
       {/* Background elements */}
       <div className="absolute inset-0 bg-[#040e1f]" aria-hidden="true">
-        <GalaxyBackground /> 
         <div className="absolute inset-0 bg-[#040e1f]/30" />
         <div className="absolute inset-0 bg-[url('/vectors/designs/stardust.png')] opacity-70 mix-blend-screen" />
         <div className="absolute inset-0 rotate-180 bg-[url('/vectors/designs/stardust.png')] opacity-50 mix-blend-screen" />

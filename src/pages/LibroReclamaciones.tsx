@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, type HTMLMotionProps } from 'framer-motion';
 import ContactFooter from '../components/layout/ContactFooter';
-import GalaxyBackground from '../components/effects/GalaxyBackground';
+import LazyGalaxyBackground from '../components/effects/LazyGalaxyBackground';
 import { createComplaint } from '../lib/api';
 
 // --- ESTILOS UNIFICADOS (Basados en Contacto) ---
@@ -359,7 +359,7 @@ const LibroReclamaciones: React.FC = () => {
     <div className="relative min-h-screen overflow-hidden font-sansation">
       {/* Fondo espacio */}
       <div className="absolute inset-0" style={{ backgroundColor: '#040e1f' }}>
-        <GalaxyBackground /> 
+        <LazyGalaxyBackground /> 
         <div className="absolute inset-0 bg-[#040e1f]/40" />
         <div className="absolute inset-0 bg-[#040e1f]/70" />
         <div className="absolute inset-0 opacity-70 mix-blend-screen" style={{ backgroundImage: `url(${import.meta.env.BASE_URL}vectors/designs/stardust.png)` }} />

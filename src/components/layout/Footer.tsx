@@ -1,8 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FaWhatsapp } from 'react-icons/fa6';
 import { Mail } from "lucide-react";
 import SpotlightText from "../typography/SpotlightText";
+import { WhatsAppIcon } from '../icons/SocialIcons';
 
 const Footer: React.FC = () => {
   return (
@@ -104,7 +104,7 @@ const Footer: React.FC = () => {
                   rel="noopener noreferrer"
                   className="flex items-center gap-3 group outline-none"
                 >
-                  <FaWhatsapp className="text-[#06CFD6] transition-transform duration-300 shrink-0 lg:group-hover:scale-110" size={22} />
+                  <WhatsAppIcon className="text-[#06CFD6] transition-transform duration-300 shrink-0 lg:group-hover:scale-110" size={22} />
                   <span className="text-gray-300 transition-colors duration-300 whitespace-nowrap lg:group-hover:text-white" aria-label="WhatsApp">
                     (+51) 936 281 137
                   </span>
@@ -117,7 +117,7 @@ const Footer: React.FC = () => {
                   rel="noopener noreferrer"
                   className="flex items-center gap-3 group outline-none"
                 >
-                  <FaWhatsapp className="text-[#06CFD6] transition-transform duration-300 shrink-0 lg:group-hover:scale-110" size={22} />
+                  <WhatsAppIcon className="text-[#06CFD6] transition-transform duration-300 shrink-0 lg:group-hover:scale-110" size={22} />
                   <span className="text-gray-300 transition-colors duration-300 whitespace-nowrap lg:group-hover:text-white" aria-label="WhatsApp">
                     (+51) 970 199 434
                   </span>
