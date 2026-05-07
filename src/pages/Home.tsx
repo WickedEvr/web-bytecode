@@ -46,9 +46,9 @@ const services = [
 ];
 
 const testimonials = [
-  { name: 'María García', role: 'Emprendedora', text: 'Excelente servicio, mi negocio creció enormemente. Totalmente conforme.', stars: 5, img: '/images/avatars/cliente2senito.png' },
-  { name: 'Dante Gallardo', role: 'CEO', text: 'Muy bueno con el trabajo! Totalmente conforme.', stars: 5, img: '/images/avatars/cliente3.png' },
-  { name: 'Carlos Ruiz', role: 'Director', text: 'Profesionales de primer nivel, los recomiendo.', stars: 5, img: '/images/avatars/cliente1.png' },
+  { name: 'María García', role: 'Emprendedora', text: 'Excelente servicio, mi negocio creció enormemente. Totalmente conforme.', stars: 5, img: '/images/avatars/cliente2senito.webp' },
+  { name: 'Dante Gallardo', role: 'CEO', text: 'Muy bueno con el trabajo! Totalmente conforme.', stars: 5, img: '/images/avatars/cliente3.webp' },
+  { name: 'Carlos Ruiz', role: 'Director', text: 'Profesionales de primer nivel, los recomiendo.', stars: 5, img: '/images/avatars/cliente1.webp' },
 ];
 
 /* ==========================================================================
