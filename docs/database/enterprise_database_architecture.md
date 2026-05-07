@@ -5,8 +5,8 @@ Proyecto revisado: `web-bytecode`
 
 ## Entregables
 
-- PostgreSQL 15+: `docs/database/postgresql_enterprise_schema.sql`
-- MySQL 8+: `docs/database/mysql_enterprise_schema.sql`
+- PostgreSQL 15+ final production target: `docs/database/postgresql_enterprise_schema.sql`
+- MySQL 8+ diagram-generation mirror: `docs/database/mysql_enterprise_schema.sql`
 - Documento tecnico: este archivo
 
 Los scripts representan una arquitectura objetivo profesional. No son una
@@ -95,6 +95,43 @@ historial y, cuando corresponda, `deleted_at` solo para entidades no legales.
 | Indices operativos faltantes | Varias tablas de cliente, contacto, reclamo y notificaciones | Performance | Mejora filtros frecuentes y joins administrativos |
 | Validacion de adjunto/mensaje | `contact_case_attachments`, `contact_case_messages` | Trigger | Evita adjuntos vinculados a mensajes de otro caso |
 | Proteccion legal contra delete | `complaints`, `complaint_details`, `complaint_responses`, `complaint_evidences` | Trigger | Preserva trazabilidad legal y evidencia |
+
+## AGENCY DELIVERY MODULE AND JSON INTEGRITY v3.0
+
+Esta revision agrega el modulo operativo de agencia para controlar proyectos de
+software y sus hitos de entrega. Tambien endurece los campos JSON usados por
+CMS, auditoria, configuracion y reportes para que acepten solamente objetos JSON
+estrictos (`{}`), evitando arrays, escalares o valores nulos que puedan romper
+consumidores del frontend.
+
+Nuevas tablas:
+
+- `projects`: expediente operativo de proyecto vinculado a `customers`,
+  `organizations` y `service_catalog`. Controla codigo unico, servicio,
+  estado de ciclo de vida, URLs de repositorio/produccion, fechas, presupuesto
+  y moneda.
+- `project_milestones`: hitos de entrega y pago por proyecto. Cada hito depende
+  de `projects` con `ON DELETE CASCADE` para mantener consistencia cuando se
+  elimina un proyecto no legal.
+
+Estados normalizados por constraint:
+
+- `projects.status`: `planning`, `in_development`, `qa`, `deployed`,
+  `maintenance`.
+- `project_milestones.status`: `pending`, `completed`, `delayed`.
+
+Restricciones JSON object-only:
+
+- `cms_blocks.content`
+- `admin_audit_logs.before_data`
+- `admin_audit_logs.after_data`
+- `system_settings.setting_value`
+- `saved_reports.query_config`
+
+PostgreSQL usa `jsonb_typeof(column_name) = 'object'`; MySQL usa
+`JSON_TYPE(column_name) = 'OBJECT'`. El archivo PostgreSQL sigue siendo el
+target productivo final; MySQL se mantiene como espejo para diagramacion y debe
+permanecer sincronizado en nombres, tablas y relaciones.
 
 ## Analisis del proyecto actual
 
@@ -223,6 +260,26 @@ Relaciones:
 - `customers` 1:N `customer_addresses`
 - `customers` 1:N `contact_cases`
 - `customers` 1:N `complaints`
+- `customers` 1:N `projects`
+
+### Proyectos y entregas de agencia
+
+Tablas:
+
+- `projects`
+- `project_milestones`
+
+`projects` representa el contrato operativo de desarrollo de software, app o
+servicio tecnico. Se vincula al cliente, organizacion opcional y catalogo de
+servicio para conectar ventas, soporte y entrega. `project_milestones` divide
+el proyecto en hitos con vencimientos, estado y porcentaje de pago.
+
+Relaciones:
+
+- Un cliente puede tener muchos proyectos.
+- Una organizacion puede agrupar muchos proyectos.
+- Un servicio catalogado puede originar muchos proyectos.
+- Un proyecto tiene muchos hitos.
 
 ### Contacto
 
@@ -328,6 +385,12 @@ Aunque el panel actual solo tiene contactos y reclamos, estas tablas preparan
 un admin empresarial: menus controlados por permisos, dashboard configurable,
 parametros del sistema, contenido dinamico y banners.
 
+Los campos JSON de `cms_blocks`, `admin_audit_logs`, `system_settings` y
+`saved_reports` se restringen a objetos JSON estrictos. Esta decision permite
+que el frontend lea configuraciones y payloads con una forma estable, sin tener
+que defenderse contra arrays, strings, numeros o booleanos donde espera mapas de
+propiedades.
+
 ## Diagrama logico textual
 
 ```text
@@ -354,11 +417,20 @@ customers
   N:M organizations via customer_organizations
   1:N contact_cases
   1:N complaints
+  1:N projects
 
 organizations
   N:M customers via customer_organizations
   1:N contact_cases
   1:N complaints
+  1:N projects
+
+service_catalog
+  1:N contact_cases
+  1:N projects
+
+projects
+  1:N project_milestones
 
 status_catalog
   1:N contact_cases
@@ -371,9 +443,6 @@ priority_catalog
   1:N contact_categories
   1:N contact_cases
   1:N complaints
-
-service_catalog
-  1:N contact_cases
 
 channel_catalog
   1:N customers
