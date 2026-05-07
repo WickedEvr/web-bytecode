@@ -381,7 +381,12 @@ CREATE TABLE contact_case_messages (
   deleted_at timestamptz,
   created_by uuid REFERENCES admin_users(id) ON DELETE SET NULL,
   updated_by uuid REFERENCES admin_users(id) ON DELETE SET NULL,
-  CONSTRAINT ck_contact_messages_sender CHECK (sender_type IN ('customer', 'admin', 'system'))
+  CONSTRAINT ck_contact_messages_sender CHECK (sender_type IN ('customer', 'admin', 'system')),
+  CONSTRAINT ck_contact_messages_sender_consistency CHECK (
+    (sender_type = 'customer' AND customer_id IS NOT NULL AND admin_user_id IS NULL) OR
+    (sender_type = 'admin' AND admin_user_id IS NOT NULL AND customer_id IS NULL) OR
+    (sender_type = 'system' AND customer_id IS NULL AND admin_user_id IS NULL)
+  )
 );
 
 CREATE TABLE contact_case_attachments (
@@ -503,7 +508,7 @@ CREATE TABLE complaint_goods (
 
 CREATE TABLE complaint_details (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  complaint_id uuid NOT NULL UNIQUE REFERENCES complaints(id) ON DELETE RESTRICT,
+  complaint_id uuid NOT NULL REFERENCES complaints(id) ON DELETE RESTRICT,
   incident_detail text NOT NULL,
   requested_solution text NOT NULL,
   incident_occurred_at timestamptz,
@@ -513,7 +518,8 @@ CREATE TABLE complaint_details (
   updated_at timestamptz NOT NULL DEFAULT now(),
   deleted_at timestamptz,
   created_by uuid REFERENCES admin_users(id) ON DELETE SET NULL,
-  updated_by uuid REFERENCES admin_users(id) ON DELETE SET NULL
+  updated_by uuid REFERENCES admin_users(id) ON DELETE SET NULL,
+  CONSTRAINT uq_complaint_details_complaint UNIQUE (complaint_id)
 );
 
 CREATE TABLE complaint_evidences (
@@ -790,19 +796,27 @@ CREATE INDEX idx_admin_sessions_user_expires ON admin_sessions (admin_user_id, e
 CREATE INDEX idx_customers_name_search ON customers USING gin (to_tsvector('simple', coalesce(display_name, '')));
 CREATE INDEX idx_customers_email ON customers (primary_email) WHERE primary_email IS NOT NULL;
 CREATE INDEX idx_customer_documents_number ON customer_documents (document_number);
+CREATE INDEX idx_customer_documents_customer ON customer_documents (customer_id);
 CREATE INDEX idx_organizations_ruc ON organizations (ruc) WHERE ruc IS NOT NULL;
 CREATE UNIQUE INDEX uq_organizations_ruc_active ON organizations (ruc) WHERE ruc IS NOT NULL AND deleted_at IS NULL;
 CREATE UNIQUE INDEX uq_customer_documents_active ON customer_documents (document_type_id, document_number) WHERE deleted_at IS NULL;
+CREATE INDEX idx_customer_addresses_customer ON customer_addresses (customer_id, is_primary DESC);
+CREATE INDEX idx_customer_organizations_organization ON customer_organizations (organization_id);
 CREATE INDEX idx_contact_cases_status_created ON contact_cases (status_id, created_at DESC);
 CREATE INDEX idx_contact_cases_assignee_status ON contact_cases (assigned_to, status_id, created_at DESC);
 CREATE INDEX idx_contact_cases_customer_created ON contact_cases (customer_id, created_at DESC);
 CREATE INDEX idx_contact_messages_case_sent ON contact_case_messages (contact_case_id, sent_at DESC);
+CREATE INDEX idx_contact_case_messages_customer ON contact_case_messages (customer_id, sent_at DESC);
 CREATE INDEX idx_complaints_status_due ON complaints (status_id, legal_response_due_at);
 CREATE INDEX idx_complaints_customer_created ON complaints (customer_id, submitted_at DESC);
 CREATE INDEX idx_complaints_assignee_status ON complaints (assigned_to, status_id, submitted_at DESC);
 CREATE INDEX idx_complaints_code ON complaints (complaint_code);
+CREATE INDEX idx_complaint_goods_complaint ON complaint_goods (complaint_id);
+CREATE INDEX idx_complaint_responses_complaint_type ON complaint_responses (complaint_id, response_type);
 CREATE INDEX idx_complaint_history_case_changed ON complaint_status_history (complaint_id, changed_at DESC);
+CREATE INDEX idx_complaint_time_events_complaint ON complaint_time_events (complaint_id, event_type);
 CREATE INDEX idx_notification_events_status_schedule ON notification_events (status, scheduled_at);
+CREATE INDEX idx_notification_events_entity ON notification_events (entity_type, entity_id, status);
 CREATE INDEX idx_admin_audit_entity ON admin_audit_logs (entity_type, entity_id, created_at DESC);
 CREATE INDEX idx_admin_audit_admin_created ON admin_audit_logs (admin_id, created_at DESC);
 CREATE INDEX idx_data_change_entity ON data_change_history (entity_type, entity_id, created_at DESC);
@@ -847,6 +861,23 @@ CREATE TRIGGER trg_cms_blocks_updated_at BEFORE UPDATE ON cms_blocks FOR EACH RO
 CREATE TRIGGER trg_banners_updated_at BEFORE UPDATE ON banners FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_menu_items_updated_at BEFORE UPDATE ON menu_items FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
+CREATE OR REPLACE FUNCTION trg_contact_attachments_validate_message()
+RETURNS trigger AS $$
+BEGIN
+  IF NEW.message_id IS NOT NULL THEN
+    IF NOT EXISTS (SELECT 1 FROM contact_case_messages WHERE id = NEW.message_id AND contact_case_id = NEW.contact_case_id) THEN
+      RAISE EXCEPTION 'Message must belong to the same case';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_contact_attachments_validate_message
+BEFORE INSERT ON contact_case_attachments
+FOR EACH ROW
+EXECUTE FUNCTION trg_contact_attachments_validate_message();
+
 CREATE TRIGGER trg_complaints_prevent_delete BEFORE DELETE ON complaints FOR EACH ROW EXECUTE FUNCTION prevent_legal_delete();
 CREATE TRIGGER trg_complaint_details_prevent_delete BEFORE DELETE ON complaint_details FOR EACH ROW EXECUTE FUNCTION prevent_legal_delete();
 CREATE TRIGGER trg_complaint_responses_prevent_delete BEFORE DELETE ON complaint_responses FOR EACH ROW EXECUTE FUNCTION prevent_legal_delete();
@@ -855,6 +886,10 @@ CREATE TRIGGER trg_complaint_evidences_prevent_delete BEFORE DELETE ON complaint
 -- =========================================================
 -- Minimal seed data
 -- =========================================================
+
+INSERT INTO admin_users (id, email, name, password_hash, role, created_by, updated_by, created_at, updated_at)
+VALUES (gen_random_uuid(), 'system@internal', 'System', 'SYSTEM_HASH', 'super_admin', NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT DO NOTHING;
 
 INSERT INTO roles (code, name, is_system) VALUES
   ('super_admin', 'Super administrador', true),

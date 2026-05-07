@@ -425,7 +425,12 @@ CREATE TABLE contact_case_messages (
   CONSTRAINT fk_contact_messages_customer FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
   CONSTRAINT fk_contact_messages_created_by FOREIGN KEY (created_by) REFERENCES admin_users(id) ON DELETE SET NULL,
   CONSTRAINT fk_contact_messages_updated_by FOREIGN KEY (updated_by) REFERENCES admin_users(id) ON DELETE SET NULL,
-  CONSTRAINT ck_contact_messages_sender CHECK (sender_type IN ('customer', 'admin', 'system'))
+  CONSTRAINT ck_contact_messages_sender CHECK (sender_type IN ('customer', 'admin', 'system')),
+  CONSTRAINT ck_contact_messages_sender_consistency CHECK (
+    (sender_type = 'customer' AND customer_id IS NOT NULL AND admin_user_id IS NULL) OR
+    (sender_type = 'admin' AND admin_user_id IS NOT NULL AND customer_id IS NULL) OR
+    (sender_type = 'system' AND customer_id IS NULL AND admin_user_id IS NULL)
+  )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE contact_case_attachments (
@@ -569,7 +574,7 @@ CREATE TABLE complaint_goods (
 
 CREATE TABLE complaint_details (
   id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
-  complaint_id CHAR(36) NOT NULL UNIQUE,
+  complaint_id CHAR(36) NOT NULL,
   incident_detail TEXT NOT NULL,
   requested_solution TEXT NOT NULL,
   incident_occurred_at TIMESTAMP(6) NULL,
@@ -582,7 +587,8 @@ CREATE TABLE complaint_details (
   updated_by CHAR(36) NULL,
   CONSTRAINT fk_complaint_details_complaint FOREIGN KEY (complaint_id) REFERENCES complaints(id) ON DELETE RESTRICT,
   CONSTRAINT fk_complaint_details_created_by FOREIGN KEY (created_by) REFERENCES admin_users(id) ON DELETE SET NULL,
-  CONSTRAINT fk_complaint_details_updated_by FOREIGN KEY (updated_by) REFERENCES admin_users(id) ON DELETE SET NULL
+  CONSTRAINT fk_complaint_details_updated_by FOREIGN KEY (updated_by) REFERENCES admin_users(id) ON DELETE SET NULL,
+  CONSTRAINT uq_complaint_details_complaint UNIQUE (complaint_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE complaint_evidences (
@@ -899,17 +905,25 @@ CREATE INDEX idx_admin_users_active_email ON admin_users (is_active, email);
 CREATE INDEX idx_admin_sessions_user_expires ON admin_sessions (admin_user_id, expires_at DESC);
 CREATE INDEX idx_customers_email ON customers (primary_email);
 CREATE INDEX idx_customer_documents_number ON customer_documents (document_number);
+CREATE INDEX idx_customer_documents_customer ON customer_documents (customer_id);
 CREATE INDEX idx_organizations_ruc ON organizations (ruc);
+CREATE INDEX idx_customer_addresses_customer ON customer_addresses (customer_id, is_primary DESC);
+CREATE INDEX idx_customer_organizations_organization ON customer_organizations (organization_id);
 CREATE INDEX idx_contact_cases_status_created ON contact_cases (status_id, created_at DESC);
 CREATE INDEX idx_contact_cases_assignee_status ON contact_cases (assigned_to, status_id, created_at DESC);
 CREATE INDEX idx_contact_cases_customer_created ON contact_cases (customer_id, created_at DESC);
 CREATE INDEX idx_contact_messages_case_sent ON contact_case_messages (contact_case_id, sent_at DESC);
+CREATE INDEX idx_contact_case_messages_customer ON contact_case_messages (customer_id, sent_at DESC);
 CREATE INDEX idx_complaints_status_due ON complaints (status_id, legal_response_due_at);
 CREATE INDEX idx_complaints_customer_created ON complaints (customer_id, submitted_at DESC);
 CREATE INDEX idx_complaints_assignee_status ON complaints (assigned_to, status_id, submitted_at DESC);
 CREATE INDEX idx_complaints_code ON complaints (complaint_code);
+CREATE INDEX idx_complaint_goods_complaint ON complaint_goods (complaint_id);
+CREATE INDEX idx_complaint_responses_complaint_type ON complaint_responses (complaint_id, response_type);
 CREATE INDEX idx_complaint_history_case_changed ON complaint_status_history (complaint_id, changed_at DESC);
+CREATE INDEX idx_complaint_time_events_complaint ON complaint_time_events (complaint_id, event_type);
 CREATE INDEX idx_notification_events_status_schedule ON notification_events (status, scheduled_at);
+CREATE INDEX idx_notification_events_entity ON notification_events (entity_type, entity_id, status);
 CREATE INDEX idx_admin_audit_entity ON admin_audit_logs (entity_type, entity_id, created_at DESC);
 CREATE INDEX idx_admin_audit_admin_created ON admin_audit_logs (admin_id, created_at DESC);
 CREATE INDEX idx_data_change_entity ON data_change_history (entity_type, entity_id, created_at DESC);
@@ -921,6 +935,17 @@ CREATE INDEX idx_cms_pages_slug_active ON cms_pages (slug, deleted_at);
 -- =========================================================
 
 DELIMITER $$
+
+CREATE TRIGGER trg_contact_attachments_validate_message
+BEFORE INSERT ON contact_case_attachments
+FOR EACH ROW
+BEGIN
+  IF NEW.message_id IS NOT NULL THEN
+    IF NOT EXISTS (SELECT 1 FROM contact_case_messages WHERE id = NEW.message_id AND contact_case_id = NEW.contact_case_id) THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Message must belong to the same case';
+    END IF;
+  END IF;
+END$$
 
 CREATE TRIGGER trg_complaints_prevent_delete
 BEFORE DELETE ON complaints
@@ -955,6 +980,9 @@ DELIMITER ;
 -- =========================================================
 -- Minimal seed data
 -- =========================================================
+
+INSERT IGNORE INTO admin_users (id, email, name, password_hash, role, created_by, updated_by, created_at, updated_at)
+VALUES (UUID(), 'system@internal', 'System', 'SYSTEM_HASH', 'super_admin', NULL, NULL, CURRENT_TIMESTAMP(6), CURRENT_TIMESTAMP(6));
 
 INSERT IGNORE INTO roles (code, name, is_system) VALUES
   ('super_admin', 'Super administrador', TRUE),

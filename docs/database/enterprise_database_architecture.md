@@ -14,6 +14,88 @@ migracion destructiva del esquema actual. Para produccion se debe aplicar por
 fases: crear tablas nuevas, migrar datos, validar conteos e integridad, cambiar
 la API y finalmente retirar columnas legacy.
 
+## DATABASE INTEGRITY CORRECTIONS v2.0
+
+Esta revision agrega controles de integridad que refuerzan la ejecucion real de
+los DDL en PostgreSQL y MySQL 8+, especialmente en tablas con referencias
+administrativas, mensajes de casos, adjuntos y expedientes legales.
+
+Correcciones criticas aplicadas:
+
+- Se agrego un seed de usuario interno `system@internal` en `admin_users` para
+  resolver el arranque del modelo cuando `created_by` y `updated_by` apuntan a
+  la misma tabla.
+- Se mantuvieron `created_by` y `updated_by` como `NULL` permitidos para que el
+  primer usuario administrativo y procesos de sistema puedan existir sin una
+  referencia previa.
+- Se agrego `ck_contact_messages_sender_consistency` para asegurar que cada
+  mensaje tenga exactamente el emisor esperado segun `sender_type`.
+- Se agregaron indices faltantes para mejorar busquedas por cliente,
+  organizaciones, respuestas, bienes reclamados, eventos de tiempo y
+  notificaciones por entidad.
+- Se agrego el trigger `trg_contact_attachments_validate_message` para impedir
+  que un adjunto de contacto apunte a un mensaje de otro caso.
+- Se nombro explicitamente la unicidad 1:1 de `complaint_details.complaint_id`
+  como `uq_complaint_details_complaint`.
+
+Resolucion de FK circular en `admin_users`:
+
+`admin_users.created_by` y `admin_users.updated_by` referencian
+`admin_users(id)` para trazabilidad administrativa. Esa relacion es valida, pero
+el primer registro no puede depender de un usuario inexistente. La solucion es
+mantener ambas columnas como nullable y crear un usuario tecnico de sistema con
+`created_by = NULL` y `updated_by = NULL`. Ese usuario permite que seeds,
+migraciones y procesos internos tengan una identidad estable sin romper la
+integridad referencial.
+
+Check constraints para `sender_type`:
+
+`contact_case_messages` ahora valida tres escenarios:
+
+- `customer`: exige `customer_id` y prohibe `admin_user_id`.
+- `admin`: exige `admin_user_id` y prohibe `customer_id`.
+- `system`: prohibe ambos identificadores porque el emisor es automatico.
+
+Indices agregados y proposito:
+
+- `idx_customer_documents_customer`: historial documental por cliente.
+- `idx_contact_case_messages_customer`: mensajes enviados por cliente y fecha.
+- `idx_complaint_time_events_complaint`: trazabilidad de eventos legales por
+  reclamo y tipo de evento.
+- `idx_complaint_responses_complaint_type`: busqueda de respuestas por reclamo
+  y tipo.
+- `idx_complaint_goods_complaint`: acceso directo al bien o servicio reclamado.
+- `idx_customer_addresses_customer`: direccion primaria e historial de
+  direcciones por cliente.
+- `idx_customer_organizations_organization`: contactos relacionados a una
+  organizacion.
+- `idx_notification_events_entity`: notificaciones asociadas a una entidad y su
+  estado de entrega.
+
+Trigger de validacion en attachments:
+
+`trg_contact_attachments_validate_message` ejecuta una validacion antes de
+insertar en `contact_case_attachments`. Si `message_id` no es nulo, confirma que
+el mensaje pertenezca al mismo `contact_case_id`. Esto evita evidencias
+cruzadas entre casos y mantiene consistente el expediente de contacto.
+
+Nota sobre soft-deletes en registros legales:
+
+Los registros legales de `complaints`, `complaint_details`,
+`complaint_responses` y `complaint_evidences` no deben borrarse fisicamente. La
+arquitectura conserva triggers de proteccion contra `DELETE`; los cierres,
+anulaciones o archivados deben representarse por estado, fechas de cierre,
+historial y, cuando corresponda, `deleted_at` solo para entidades no legales.
+
+| Cambio | Tabla(s) | Tipo | Impacto |
+|--------|----------|------|---------|
+| Usuario tecnico de sistema | `admin_users` | Seed data | Permite bootstrap sin romper FKs circulares |
+| Consistencia de emisor | `contact_case_messages` | CHECK constraint | Evita mensajes con emisor ambiguo o doble |
+| Unicidad 1:1 nombrada | `complaint_details` | UNIQUE constraint | Documenta y protege un detalle por reclamo |
+| Indices operativos faltantes | Varias tablas de cliente, contacto, reclamo y notificaciones | Performance | Mejora filtros frecuentes y joins administrativos |
+| Validacion de adjunto/mensaje | `contact_case_attachments`, `contact_case_messages` | Trigger | Evita adjuntos vinculados a mensajes de otro caso |
+| Proteccion legal contra delete | `complaints`, `complaint_details`, `complaint_responses`, `complaint_evidences` | Trigger | Preserva trazabilidad legal y evidencia |
+
 ## Analisis del proyecto actual
 
 El checkout tiene frontend React/Vite en `src/` y API Express/PostgreSQL en
