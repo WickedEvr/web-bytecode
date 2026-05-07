@@ -175,6 +175,11 @@ const HeroSection: React.FC = () => {
             <motion.img
               src="/images/characters/astronauta.png"
               alt="Astronauta"
+              width={581}
+              height={677}
+              loading="eager"
+              fetchPriority="high"
+              decoding="sync"
               className="pointer-events-none w-full h-auto"
               initial={{ filter: "drop-shadow(0px 25px 50px #00000040) brightness(1)" }}
               animate={{
