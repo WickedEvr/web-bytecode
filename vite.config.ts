@@ -1,10 +1,29 @@
 // vite.config.ts
-import { defineConfig } from 'vite'
+import { defineConfig, type PluginOption } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
+function deferRenderBlockingCss(): PluginOption {
+  const deferCss = (html: string) =>
+    html.replace(
+      /<link rel="stylesheet"([^>]*?)href="([^"]*\/assets\/index-[^"]+\.css)"([^>]*)>/g,
+      `<link rel="preload" as="style"$1href="$2"$3 fetchpriority="high" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet"$1href="$2"$3></noscript>`,
+    )
+
+  return {
+    name: 'bytecode-defer-render-blocking-css',
+    apply: 'build',
+    enforce: 'post',
+    transformIndexHtml: {
+      order: 'post',
+      handler: deferCss,
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), deferRenderBlockingCss()],
   server: {},
   build: {
     rollupOptions: {
