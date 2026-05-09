@@ -118,7 +118,8 @@ Estados normalizados por constraint:
 
 - `projects.status`: `planning`, `in_development`, `qa`, `deployed`,
   `maintenance`.
-- `project_milestones.status`: `pending`, `completed`, `delayed`.
+- `project_milestones.status`: `pending`, `completed`, `delayed`,
+  `cancelled`.
 
 Restricciones JSON object-only:
 
@@ -144,8 +145,14 @@ Nueva tabla:
 
 - `milestone_payments`: pagos aplicados a hitos de proyecto. Registra monto,
   moneda, metodo de pago, referencia transaccional, comprobante opcional en
-  `file_assets` y fecha efectiva de pago. Depende de `project_milestones` con
-  `ON DELETE CASCADE` y conserva comprobantes con `ON DELETE SET NULL`.
+  `file_assets`, fecha efectiva de pago, estado financiero y `deleted_at` para
+  anulacion logica. Depende de `project_milestones` con `ON DELETE RESTRICT`
+  para impedir borrar hitos que ya tienen pagos registrados, y conserva
+  comprobantes con `ON DELETE SET NULL`.
+
+Estados financieros de pago:
+
+- `milestone_payments.status`: `valid`, `refunded`, `voided`.
 
 Indices agregados al modulo de proyectos:
 
@@ -155,11 +162,15 @@ Indices agregados al modulo de proyectos:
 - `idx_project_milestones_project`: consulta de hitos por proyecto.
 - `idx_project_milestones_status`: seguimiento de hitos pendientes, completados
   o demorados.
+- `idx_milestone_payments_milestone`: consulta de pagos por hito y validacion
+  rapida de bloqueo de eliminacion.
 
 | Cambio | Tabla(s) | Tipo | Impacto |
 |--------|----------|------|---------|
 | Pagos por hito | `milestone_payments`, `project_milestones`, `file_assets` | Nueva tabla | Permite trazabilidad financiera y adjuntar recibos por hito |
-| Indices de proyectos | `projects`, `project_milestones` | Performance | Mejora dashboard, filtros por cliente/servicio/estado y seguimiento de hitos |
+| Proteccion financiera | `milestone_payments`, `project_milestones` | FK RESTRICT | Impide borrar hitos con pagos registrados |
+| Estado y soft-delete financiero | `milestone_payments` | CHECK + auditoria | Permite marcar pagos validos, reembolsados o anulados sin borrado fisico |
+| Indices de proyectos | `projects`, `project_milestones`, `milestone_payments` | Performance | Mejora dashboard, filtros por cliente/servicio/estado y seguimiento de hitos/pagos |
 | Sin portal cliente | N/A | Alcance | Evita introducir autenticacion o usuarios de clientes fuera del alcance actual |
 
 ## Analisis del proyecto actual
@@ -303,8 +314,8 @@ Tablas:
 servicio tecnico. Se vincula al cliente, organizacion opcional y catalogo de
 servicio para conectar ventas, soporte y entrega. `project_milestones` divide
 el proyecto en hitos con vencimientos, estado y porcentaje de pago.
-`milestone_payments` registra cobros reales, referencias y recibos por hito sin
-crear cuentas ni autenticacion para clientes.
+`milestone_payments` registra cobros reales, referencias, estados financieros y
+recibos por hito sin crear cuentas ni autenticacion para clientes.
 
 Relaciones:
 
@@ -312,7 +323,7 @@ Relaciones:
 - Una organizacion puede agrupar muchos proyectos.
 - Un servicio catalogado puede originar muchos proyectos.
 - Un proyecto tiene muchos hitos.
-- Un hito puede tener muchos pagos.
+- Un hito puede tener muchos pagos y no puede eliminarse si existen pagos.
 - Un comprobante en `file_assets` puede respaldar muchos pagos.
 
 ### Contacto
@@ -573,6 +584,7 @@ ORDER BY min(s.sort_order);
 - `idx_projects_service`: analisis de demanda por servicio.
 - `idx_project_milestones_project`: hitos por proyecto.
 - `idx_project_milestones_status`: seguimiento de hitos por estado.
+- `idx_milestone_payments_milestone`: pagos registrados por hito.
 - `idx_admin_audit_entity`: reconstruccion de actividad sobre un registro.
 - `idx_data_change_entity`: auditoria fina por entidad y campo.
 - Full-text / GIN sobre `customers.display_name`: busqueda por nombre.
