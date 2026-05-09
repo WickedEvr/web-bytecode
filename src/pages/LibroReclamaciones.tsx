@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, type HTMLMotionProps } from 'framer-motion';
 import ContactFooter from '../components/layout/ContactFooter';
 import LazyGalaxyBackground from '../components/effects/LazyGalaxyBackground';
-import { createComplaint } from '../lib/api';
+import { createComplaint, apiRequest } from '../lib/api';
 
 // --- ESTILOS UNIFICADOS (Basados en Contacto) ---
 const solidInput =
@@ -307,6 +307,18 @@ const LibroReclamaciones: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [complaintTypes, setComplaintTypes] = useState<{ id: string, code: string, name: string }[]>([]);
+
+  useEffect(() => {
+    apiRequest<{ items: { id: string, code: string, name: string }[] }>('/api/catalog/complaint-types')
+      .then((res: { items: { id: string, code: string, name: string }[] }) => {
+        setComplaintTypes(res.items);
+        if (res.items.length > 0 && (!formData.claimType || !res.items.find((ct: { id: string, code: string, name: string }) => ct.code === formData.claimType))) {
+          setFormData(prev => ({ ...prev, claimType: res.items[0].code }));
+        }
+      })
+      .catch(console.error);
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -319,7 +331,17 @@ const LibroReclamaciones: React.FC = () => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setArchivoAdjunto(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/webp'];
+      if (!allowedTypes.includes(selectedFile.type) || selectedFile.size > 10 * 1024 * 1024) {
+        setArchivoAdjunto(null);
+        setSubmitError('Adjunta un archivo PDF, PNG, JPG, JPEG o WEBP de maximo 10MB.');
+        e.target.value = '';
+        return;
+      }
+
+      setSubmitError('');
+      setArchivoAdjunto(selectedFile);
     }
   };
 
@@ -473,8 +495,14 @@ const LibroReclamaciones: React.FC = () => {
             </h2>
 
             <div className="flex flex-col sm:flex-row gap-6 mb-4 px-2">
-              <Radio name="claimType" value="queja" label="Queja (Malestar o descontento)" checked={formData.claimType === 'queja'} onChange={handleChange} />
-              <Radio name="claimType" value="reclamo" label="Reclamo (Disconformidad con el servicio)" checked={formData.claimType === 'reclamo'} onChange={handleChange} />
+              {complaintTypes.length > 0 ? complaintTypes.map((ct) => (
+                <Radio key={ct.id} name="claimType" value={ct.code} label={ct.name} checked={formData.claimType === ct.code} onChange={handleChange} />
+              )) : (
+                <>
+                  <Radio name="claimType" value="queja" label="Queja (Malestar o descontento)" checked={formData.claimType === 'queja'} onChange={handleChange} />
+                  <Radio name="claimType" value="reclamo" label="Reclamo (Disconformidad con el servicio)" checked={formData.claimType === 'reclamo'} onChange={handleChange} />
+                </>
+              )}
             </div>
 
             <div><Label text="Motivo" required /><input name="tipoReclamo" type="text" placeholder="Ej: Incumplimiento de plazos" value={formData.tipoReclamo} onChange={handleChange} className={solidInput} required /></div>
@@ -489,9 +517,9 @@ const LibroReclamaciones: React.FC = () => {
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
                     <svg className="w-8 h-8 mb-3 text-[#06CFD6]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                     <p className="mb-1 text-base text-white/80"><span className="font-semibold text-[#06CFD6]">Haga clic para subir</span> o arrastre el archivo</p>
-                    <p className="text-sm text-white/50">{archivoAdjunto ? archivoAdjunto.name : 'PDF, JPG o PNG (Máx. 10MB)'}</p>
+                    <p className="text-sm text-white/50">{archivoAdjunto ? archivoAdjunto.name : 'PDF, JPG, PNG o WEBP (Máx. 10MB)'}</p>
                   </div>
-                  <input type="file" className="hidden" onChange={handleFileChange} accept=".pdf,image/*" />
+                  <input type="file" className="hidden" onChange={handleFileChange} accept=".pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/png,image/jpeg,image/webp" />
                 </label>
               </div>
             </div>

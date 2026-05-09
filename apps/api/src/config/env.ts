@@ -31,6 +31,9 @@ const requireInProduction = (key: string, value: string | undefined) => {
 requireInProduction('DATABASE_URL', process.env.DATABASE_URL);
 requireInProduction('JWT_SECRET', process.env.JWT_SECRET);
 requireInProduction('CORS_ORIGINS', process.env.CORS_ORIGINS);
+requireInProduction('CLOUDINARY_CLOUD_NAME', process.env.CLOUDINARY_CLOUD_NAME);
+requireInProduction('CLOUDINARY_API_KEY', process.env.CLOUDINARY_API_KEY);
+requireInProduction('CLOUDINARY_API_SECRET', process.env.CLOUDINARY_API_SECRET);
 
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
@@ -44,8 +47,14 @@ export const env = {
     | 'none',
   corsOrigins: parseList(process.env.CORS_ORIGINS),
   publicApiUrl: process.env.PUBLIC_API_URL ?? `http://localhost:${process.env.PORT ?? 4000}`,
-  uploadDir: path.resolve(process.cwd(), process.env.UPLOAD_DIR ?? './uploads'),
   maxUploadMb: Number(process.env.MAX_UPLOAD_MB ?? 10),
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    apiKey: process.env.CLOUDINARY_API_KEY,
+    apiSecret: process.env.CLOUDINARY_API_SECRET,
+    uploadFolder: process.env.CLOUDINARY_UPLOAD_FOLDER ?? 'bytecode/complaints',
+    uploadTimeoutMs: Number(process.env.CLOUDINARY_UPLOAD_TIMEOUT_MS ?? 30000),
+  },
   smtp: {
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT ?? 587),

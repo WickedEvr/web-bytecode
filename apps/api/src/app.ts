@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
+import multer from 'multer';
 import { ZodError } from 'zod';
 import { env } from './config/env.js';
 import authRoutes from './routes/auth.js';
@@ -76,6 +77,16 @@ app.use((error: unknown, _req: express.Request, res: express.Response, _next: ex
       message: 'Datos inválidos.',
       issues: error.issues,
     });
+    return;
+  }
+
+  if (error instanceof multer.MulterError) {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      res.status(413).json({ message: `El archivo supera el limite de ${env.maxUploadMb}MB.` });
+      return;
+    }
+
+    res.status(400).json({ message: 'Archivo adjunto invalido.' });
     return;
   }
 
