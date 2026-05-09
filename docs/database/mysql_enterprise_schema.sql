@@ -1048,6 +1048,16 @@ CREATE INDEX idx_cms_pages_slug_active ON cms_pages (slug, deleted_at);
 
 DELIMITER $$
 
+CREATE TRIGGER trg_project_status_change
+AFTER UPDATE ON projects
+FOR EACH ROW
+BEGIN
+  IF OLD.status != NEW.status THEN
+    INSERT INTO project_status_history (id, project_id, old_status, new_status)
+    VALUES (UUID(), NEW.id, OLD.status, NEW.status);
+  END IF;
+END$$
+
 CREATE TRIGGER trg_milestone_payments_validate_currency_bi
 BEFORE INSERT ON milestone_payments
 FOR EACH ROW

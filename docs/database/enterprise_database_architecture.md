@@ -114,6 +114,10 @@ Nuevas tablas:
   de `projects` con `ON DELETE CASCADE` para mantener consistencia cuando se
   elimina un proyecto no legal.
 
+### Backend Rule / Architectural Warning
+
+BACKEND REQUIREMENT: The application logic MUST validate that the SUM of 'payment_percentage' for a given project does not exceed 100% before inserting or updating a milestone. The database intentionally delegates this validation to the backend.
+
 Estados normalizados por constraint:
 
 - `projects.status`: `planning`, `in_development`, `qa`, `deployed`,
@@ -180,9 +184,18 @@ actualizar pagos que `milestone_payments.currency_code` coincida con
 base de datos rechaza la operacion con `Payment currency must match the project
 currency`.
 
+Automatizacion de estado:
+
+`trg_project_status_change` inserta automaticamente en
+`project_status_history` despues de cada actualizacion de `projects` cuando el
+valor de `status` cambia. El registro guarda `project_id`, `old_status` y
+`new_status`; `changed_by` y `reason` quedan disponibles para flujos
+administrativos que requieran trazabilidad enriquecida desde la aplicacion.
+
 | Cambio | Tabla(s) | Tipo | Impacto |
 |--------|----------|------|---------|
 | Historial de estado de proyecto | `project_status_history`, `projects`, `admin_users` | Nueva tabla | Permite trazabilidad operativa completa de cambios de estado |
+| Automatizacion de historial | `projects`, `project_status_history` | Trigger | Registra automaticamente cada cambio de estado de proyecto |
 | Pagos por hito | `milestone_payments`, `project_milestones`, `file_assets` | Nueva tabla | Permite trazabilidad financiera y adjuntar recibos por hito |
 | Proteccion financiera | `milestone_payments`, `project_milestones` | FK RESTRICT | Impide borrar hitos con pagos registrados |
 | Consistencia de moneda | `milestone_payments`, `project_milestones`, `projects` | Trigger | Impide pagos en moneda distinta a la del proyecto |
