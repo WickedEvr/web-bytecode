@@ -439,6 +439,75 @@ CREATE TABLE milestone_payments (
   CONSTRAINT ck_milestone_payments_status CHECK (status IN ('valid', 'refunded', 'voided'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- =========================================================
+-- Intelligent quoting module
+-- =========================================================
+
+CREATE TABLE pricing_catalog (
+  id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  item_code VARCHAR(80) NOT NULL UNIQUE,
+  name VARCHAR(180) NOT NULL,
+  description TEXT,
+  pricing_model VARCHAR(40) NOT NULL,
+  base_price DECIMAL(14,2) NOT NULL,
+  max_price DECIMAL(14,2) NULL,
+  currency_code CHAR(3) NOT NULL DEFAULT 'PEN',
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  deleted_at TIMESTAMP(6) NULL,
+  created_by CHAR(36) NULL,
+  updated_by CHAR(36) NULL,
+  CONSTRAINT fk_pricing_catalog_created_by FOREIGN KEY (created_by) REFERENCES admin_users(id) ON DELETE SET NULL,
+  CONSTRAINT fk_pricing_catalog_updated_by FOREIGN KEY (updated_by) REFERENCES admin_users(id) ON DELETE SET NULL,
+  CONSTRAINT ck_pricing_catalog_model CHECK (pricing_model IN ('fixed', 'range', 'per_unit', 'monthly_recurring', 'yearly_recurring')),
+  CONSTRAINT ck_pricing_catalog_base_price CHECK (base_price >= 0),
+  CONSTRAINT ck_pricing_catalog_range_price CHECK (
+    (pricing_model = 'range' AND max_price IS NOT NULL AND max_price >= base_price) OR
+    (pricing_model <> 'range' AND max_price IS NULL)
+  ),
+  CONSTRAINT ck_pricing_catalog_currency CHECK (currency_code = UPPER(currency_code))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE quotes (
+  id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  quote_code VARCHAR(40) NOT NULL UNIQUE,
+  customer_id CHAR(36) NOT NULL,
+  status VARCHAR(40) NOT NULL DEFAULT 'draft',
+  total_amount DECIMAL(14,2) NOT NULL DEFAULT 0,
+  currency_code CHAR(3) NOT NULL DEFAULT 'PEN',
+  valid_until DATE NOT NULL,
+  payment_policy TEXT,
+  legal_penalty_policy TEXT,
+  created_by CHAR(36) NULL,
+  created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  deleted_at TIMESTAMP(6) NULL,
+  CONSTRAINT fk_quotes_customer FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_quotes_created_by FOREIGN KEY (created_by) REFERENCES admin_users(id) ON DELETE SET NULL,
+  CONSTRAINT ck_quotes_status CHECK (status IN ('draft', 'sent', 'approved', 'rejected', 'expired')),
+  CONSTRAINT ck_quotes_total_amount CHECK (total_amount >= 0),
+  CONSTRAINT ck_quotes_currency CHECK (currency_code = UPPER(currency_code))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE quote_items (
+  id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  quote_id CHAR(36) NOT NULL,
+  pricing_catalog_id CHAR(36) NOT NULL,
+  custom_name VARCHAR(180),
+  quantity INT NOT NULL DEFAULT 1,
+  unit_price DECIMAL(14,2) NOT NULL,
+  subtotal DECIMAL(14,2) GENERATED ALWAYS AS (quantity * unit_price) STORED,
+  recurrence VARCHAR(40) NOT NULL DEFAULT 'none',
+  created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  CONSTRAINT fk_quote_items_quote FOREIGN KEY (quote_id) REFERENCES quotes(id) ON DELETE CASCADE,
+  CONSTRAINT fk_quote_items_pricing_catalog FOREIGN KEY (pricing_catalog_id) REFERENCES pricing_catalog(id) ON DELETE RESTRICT,
+  CONSTRAINT ck_quote_items_quantity CHECK (quantity > 0),
+  CONSTRAINT ck_quote_items_unit_price CHECK (unit_price >= 0),
+  CONSTRAINT ck_quote_items_recurrence CHECK (recurrence IN ('none', 'monthly', 'yearly'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE contact_categories (
   id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
   code VARCHAR(80) NOT NULL UNIQUE,
@@ -1021,6 +1090,9 @@ CREATE INDEX idx_project_status_history_project_changed ON project_status_histor
 CREATE INDEX idx_project_milestones_project ON project_milestones (project_id);
 CREATE INDEX idx_project_milestones_status ON project_milestones (status);
 CREATE INDEX idx_milestone_payments_milestone ON milestone_payments (milestone_id);
+CREATE INDEX idx_pricing_catalog_active_model ON pricing_catalog (is_active, pricing_model);
+CREATE INDEX idx_quotes_customer_status ON quotes (customer_id, status, created_at DESC);
+CREATE INDEX idx_quote_items_quote ON quote_items (quote_id);
 CREATE INDEX idx_contact_cases_status_created ON contact_cases (status_id, created_at DESC);
 CREATE INDEX idx_contact_cases_assignee_status ON contact_cases (assigned_to, status_id, created_at DESC);
 CREATE INDEX idx_contact_cases_customer_created ON contact_cases (customer_id, created_at DESC);
@@ -1140,7 +1212,12 @@ INSERT IGNORE INTO roles (code, name, is_system) VALUES
   ('super_admin', 'Super administrador', TRUE),
   ('admin', 'Administrador', TRUE),
   ('support_agent', 'Agente de soporte', TRUE),
-  ('legal_reviewer', 'Revisor legal', TRUE);
+  ('legal_reviewer', 'Revisor legal', TRUE),
+  ('partner_designer', 'Diseñador Socio', TRUE);
+
+INSERT IGNORE INTO permissions (module_code, action_code, code, name) VALUES
+  ('quoter', 'view', 'quoter:view', 'Ver Cotizador'),
+  ('quoter', 'manage', 'quoter:manage', 'Gestionar Cotizaciones');
 
 INSERT IGNORE INTO channel_catalog (code, name) VALUES
   ('web', 'Web'),
@@ -1182,6 +1259,15 @@ INSERT IGNORE INTO service_catalog (code, name) VALUES
   ('app', 'App movil'),
   ('desktop', 'App de escritorio'),
   ('custom_software', 'Software a medida');
+
+INSERT IGNORE INTO pricing_catalog (item_code, name, description, pricing_model, base_price, max_price, currency_code) VALUES
+  ('landing_page', 'Landing Page', '1 pagina, form contacto, responsive', 'range', 1000, 1800, 'PEN'),
+  ('web_corporate', 'Web Corporativa/Informativa', '5-10 paginas, blog, CMS, SEO', 'range', 2000, 4500, 'PEN'),
+  ('ecommerce', 'Tienda Online', 'Catalogo, pasarela pagos Niubiz', 'range', 4000, 8000, 'PEN'),
+  ('extra_form', 'Formulario Extra', 'A partir del 3er formulario', 'per_unit', 300, NULL, 'PEN'),
+  ('extra_language', 'Idioma Adicional', 'Desarrollo multilingüe', 'range', 400, 800, 'PEN'),
+  ('seo_maintenance_basic', 'Mantenimiento y SEO Basico', 'Anual posterior', 'monthly_recurring', 450, NULL, 'PEN'),
+  ('chatbot_basic', 'Chatbot Basico Setup', 'Flujos fijos WhatsApp/Web', 'range', 2000, 6000, 'PEN');
 
 INSERT IGNORE INTO complaint_types (code, name, legal_description) VALUES
   ('queja', 'Queja', 'Malestar o descontento no relacionado directamente con el bien contratado.'),

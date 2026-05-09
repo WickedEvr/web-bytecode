@@ -402,6 +402,69 @@ CREATE TABLE milestone_payments (
 );
 
 -- =========================================================
+-- Intelligent quoting module
+-- =========================================================
+
+CREATE TABLE pricing_catalog (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  item_code varchar(80) NOT NULL UNIQUE,
+  name varchar(180) NOT NULL,
+  description text,
+  pricing_model varchar(40) NOT NULL,
+  base_price numeric(14,2) NOT NULL,
+  max_price numeric(14,2),
+  currency_code char(3) NOT NULL DEFAULT 'PEN',
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  deleted_at timestamptz,
+  created_by uuid REFERENCES admin_users(id) ON DELETE SET NULL,
+  updated_by uuid REFERENCES admin_users(id) ON DELETE SET NULL,
+  CONSTRAINT ck_pricing_catalog_model CHECK (pricing_model IN ('fixed', 'range', 'per_unit', 'monthly_recurring', 'yearly_recurring')),
+  CONSTRAINT ck_pricing_catalog_base_price CHECK (base_price >= 0),
+  CONSTRAINT ck_pricing_catalog_range_price CHECK (
+    (pricing_model = 'range' AND max_price IS NOT NULL AND max_price >= base_price) OR
+    (pricing_model <> 'range' AND max_price IS NULL)
+  ),
+  CONSTRAINT ck_pricing_catalog_currency CHECK (currency_code = upper(currency_code))
+);
+
+CREATE TABLE quotes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  quote_code varchar(40) NOT NULL UNIQUE,
+  customer_id uuid NOT NULL REFERENCES customers(id) ON DELETE RESTRICT,
+  status varchar(40) NOT NULL DEFAULT 'draft',
+  total_amount numeric(14,2) NOT NULL DEFAULT 0,
+  currency_code char(3) NOT NULL DEFAULT 'PEN',
+  valid_until date NOT NULL,
+  payment_policy text,
+  legal_penalty_policy text,
+  created_by uuid REFERENCES admin_users(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  deleted_at timestamptz,
+  CONSTRAINT ck_quotes_status CHECK (status IN ('draft', 'sent', 'approved', 'rejected', 'expired')),
+  CONSTRAINT ck_quotes_total_amount CHECK (total_amount >= 0),
+  CONSTRAINT ck_quotes_currency CHECK (currency_code = upper(currency_code))
+);
+
+CREATE TABLE quote_items (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  quote_id uuid NOT NULL REFERENCES quotes(id) ON DELETE CASCADE,
+  pricing_catalog_id uuid NOT NULL REFERENCES pricing_catalog(id) ON DELETE RESTRICT,
+  custom_name varchar(180),
+  quantity integer NOT NULL DEFAULT 1,
+  unit_price numeric(14,2) NOT NULL,
+  subtotal numeric(14,2) GENERATED ALWAYS AS (quantity * unit_price) STORED,
+  recurrence varchar(40) NOT NULL DEFAULT 'none',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT ck_quote_items_quantity CHECK (quantity > 0),
+  CONSTRAINT ck_quote_items_unit_price CHECK (unit_price >= 0),
+  CONSTRAINT ck_quote_items_recurrence CHECK (recurrence IN ('none', 'monthly', 'yearly'))
+);
+
+-- =========================================================
 -- Contact module
 -- =========================================================
 
@@ -906,6 +969,9 @@ CREATE INDEX idx_project_status_history_project_changed ON project_status_histor
 CREATE INDEX idx_project_milestones_project ON project_milestones (project_id);
 CREATE INDEX idx_project_milestones_status ON project_milestones (status);
 CREATE INDEX idx_milestone_payments_milestone ON milestone_payments (milestone_id);
+CREATE INDEX idx_pricing_catalog_active_model ON pricing_catalog (is_active, pricing_model);
+CREATE INDEX idx_quotes_customer_status ON quotes (customer_id, status, created_at DESC);
+CREATE INDEX idx_quote_items_quote ON quote_items (quote_id);
 CREATE INDEX idx_contact_cases_status_created ON contact_cases (status_id, created_at DESC);
 CREATE INDEX idx_contact_cases_assignee_status ON contact_cases (assigned_to, status_id, created_at DESC);
 CREATE INDEX idx_contact_cases_customer_created ON contact_cases (customer_id, created_at DESC);
@@ -949,6 +1015,9 @@ CREATE TRIGGER trg_projects_updated_at BEFORE UPDATE ON projects FOR EACH ROW EX
 CREATE TRIGGER trg_project_milestones_updated_at BEFORE UPDATE ON project_milestones FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_file_assets_updated_at BEFORE UPDATE ON file_assets FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_milestone_payments_updated_at BEFORE UPDATE ON milestone_payments FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE TRIGGER trg_pricing_catalog_updated_at BEFORE UPDATE ON pricing_catalog FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE TRIGGER trg_quotes_updated_at BEFORE UPDATE ON quotes FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE TRIGGER trg_quote_items_updated_at BEFORE UPDATE ON quote_items FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_contact_categories_updated_at BEFORE UPDATE ON contact_categories FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_contact_cases_updated_at BEFORE UPDATE ON contact_cases FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_contact_case_messages_updated_at BEFORE UPDATE ON contact_case_messages FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -1043,7 +1112,13 @@ INSERT INTO roles (code, name, is_system) VALUES
   ('super_admin', 'Super administrador', true),
   ('admin', 'Administrador', true),
   ('support_agent', 'Agente de soporte', true),
-  ('legal_reviewer', 'Revisor legal', true)
+  ('legal_reviewer', 'Revisor legal', true),
+  ('partner_designer', 'Diseñador Socio', true)
+ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO permissions (module_code, action_code, code, name) VALUES
+  ('quoter', 'view', 'quoter:view', 'Ver Cotizador'),
+  ('quoter', 'manage', 'quoter:manage', 'Gestionar Cotizaciones')
 ON CONFLICT (code) DO NOTHING;
 
 INSERT INTO channel_catalog (code, name) VALUES
@@ -1092,6 +1167,16 @@ INSERT INTO service_catalog (code, name) VALUES
   ('desktop', 'App de escritorio'),
   ('custom_software', 'Software a medida')
 ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO pricing_catalog (item_code, name, description, pricing_model, base_price, max_price, currency_code) VALUES
+  ('landing_page', 'Landing Page', '1 pagina, form contacto, responsive', 'range', 1000, 1800, 'PEN'),
+  ('web_corporate', 'Web Corporativa/Informativa', '5-10 paginas, blog, CMS, SEO', 'range', 2000, 4500, 'PEN'),
+  ('ecommerce', 'Tienda Online', 'Catalogo, pasarela pagos Niubiz', 'range', 4000, 8000, 'PEN'),
+  ('extra_form', 'Formulario Extra', 'A partir del 3er formulario', 'per_unit', 300, NULL, 'PEN'),
+  ('extra_language', 'Idioma Adicional', 'Desarrollo multilingüe', 'range', 400, 800, 'PEN'),
+  ('seo_maintenance_basic', 'Mantenimiento y SEO Basico', 'Anual posterior', 'monthly_recurring', 450, NULL, 'PEN'),
+  ('chatbot_basic', 'Chatbot Basico Setup', 'Flujos fijos WhatsApp/Web', 'range', 2000, 6000, 'PEN')
+ON CONFLICT (item_code) DO NOTHING;
 
 INSERT INTO complaint_types (code, name, legal_description) VALUES
   ('queja', 'Queja', 'Malestar o descontento no relacionado directamente con el bien contratado.'),

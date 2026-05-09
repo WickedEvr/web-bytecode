@@ -203,6 +203,56 @@ administrativos que requieran trazabilidad enriquecida desde la aplicacion.
 | Indices de proyectos | `projects`, `project_status_history`, `project_milestones`, `milestone_payments` | Performance | Mejora dashboard, filtros por cliente/servicio/estado y seguimiento de hitos/pagos |
 | Sin portal cliente | N/A | Alcance | Evita introducir autenticacion o usuarios de clientes fuera del alcance actual |
 
+## INTELLIGENT QUOTING MODULE v5.0
+
+Esta revision agrega un modulo de cotizacion inteligente con estilo carrito de
+compras, completamente relacional y sin depender de payloads JSON. El modulo
+permite mantener un catalogo de precios reutilizable, generar cotizaciones por
+cliente y desglosar cada cotizacion en items con cantidad, precio unitario,
+subtotal calculado y recurrencia.
+
+Nuevas tablas:
+
+- `pricing_catalog`: catalogo base de conceptos cotizables con modelos
+  `fixed`, `range`, `per_unit`, `monthly_recurring` y `yearly_recurring`.
+  Incluye rango de precio cuando aplica, moneda, estado activo y auditoria.
+- `quotes`: cabecera de cotizacion asociada a `customers` y al admin que la
+  genera. Soporta estados `draft`, `sent`, `approved`, `rejected` y `expired`,
+  monto total, politicas de pago, penalidades y vigencia.
+- `quote_items`: detalle de cotizacion vinculado a `quotes` y
+  `pricing_catalog`. Calcula `subtotal` como columna generada almacenada y
+  controla recurrencia `none`, `monthly` o `yearly`.
+
+RBAC agregado:
+
+- Rol `partner_designer` (`Diseñador Socio`) para socios que generan
+  cotizaciones.
+- Permisos `quoter:view` y `quoter:manage` para separar consulta y gestion del
+  cotizador.
+
+Seed de catalogo inicial:
+
+- Landing Page
+- Web Corporativa/Informativa
+- Tienda Online
+- Formulario Extra
+- Idioma Adicional
+- Mantenimiento y SEO Basico
+- Chatbot Basico Setup
+
+Indices agregados:
+
+- `idx_pricing_catalog_active_model`: filtros del cotizador por activo/modelo.
+- `idx_quotes_customer_status`: historial de cotizaciones por cliente y estado.
+- `idx_quote_items_quote`: carga rapida de items por cotizacion.
+
+| Cambio | Tabla(s) | Tipo | Impacto |
+|--------|----------|------|---------|
+| Catalogo de precios | `pricing_catalog` | Nueva tabla | Centraliza conceptos y precios reutilizables |
+| Cotizaciones | `quotes`, `quote_items` | Nueva tabla | Permite generar cotizaciones con detalle estilo carrito |
+| RBAC cotizador | `roles`, `permissions` | Seed data | Habilita acceso granular para disenadores socios |
+| Catalogo base | `pricing_catalog` | Seed data | Precarga servicios y extras comerciales en PEN |
+
 ## Analisis del proyecto actual
 
 El checkout tiene frontend React/Vite en `src/` y API Express/PostgreSQL en
@@ -331,6 +381,7 @@ Relaciones:
 - `customers` 1:N `contact_cases`
 - `customers` 1:N `complaints`
 - `customers` 1:N `projects`
+- `customers` 1:N `quotes`
 
 ### Proyectos y entregas de agencia
 
@@ -359,6 +410,27 @@ Relaciones:
 - Un proyecto tiene muchos hitos.
 - Un hito puede tener muchos pagos y no puede eliminarse si existen pagos.
 - Un comprobante en `file_assets` puede respaldar muchos pagos.
+
+### Cotizador inteligente
+
+Tablas:
+
+- `pricing_catalog`
+- `quotes`
+- `quote_items`
+
+`pricing_catalog` representa el catalogo comercial editable por administracion.
+`quotes` es la cabecera de una cotizacion emitida para un cliente y generada por
+un usuario administrativo, incluido el rol `partner_designer`. `quote_items`
+normaliza el detalle de items y evita guardar subtotales manuales mediante una
+columna generada.
+
+Relaciones:
+
+- Un cliente puede tener muchas cotizaciones.
+- Un admin puede crear muchas cotizaciones.
+- Una cotizacion tiene muchos items.
+- Un item siempre referencia un concepto del catalogo de precios.
 
 ### Contacto
 
@@ -478,6 +550,7 @@ admin_users
   N:M roles via admin_user_roles
   1:N admin_audit_logs
   1:N admin_notifications
+  1:N quotes
 
 roles
   N:M permissions via role_permissions
@@ -497,6 +570,7 @@ customers
   1:N contact_cases
   1:N complaints
   1:N projects
+  1:N quotes
 
 organizations
   N:M customers via customer_organizations
@@ -514,6 +588,12 @@ projects
 
 project_milestones
   1:N milestone_payments
+
+pricing_catalog
+  1:N quote_items
+
+quotes
+  1:N quote_items
 
 status_catalog
   1:N contact_cases
@@ -622,6 +702,9 @@ ORDER BY min(s.sort_order);
 - `idx_project_milestones_project`: hitos por proyecto.
 - `idx_project_milestones_status`: seguimiento de hitos por estado.
 - `idx_milestone_payments_milestone`: pagos registrados por hito.
+- `idx_pricing_catalog_active_model`: catalogo de precios por estado y modelo.
+- `idx_quotes_customer_status`: cotizaciones por cliente, estado y fecha.
+- `idx_quote_items_quote`: items por cotizacion.
 - `idx_admin_audit_entity`: reconstruccion de actividad sobre un registro.
 - `idx_data_change_entity`: auditoria fina por entidad y campo.
 - Full-text / GIN sobre `customers.display_name`: busqueda por nombre.
