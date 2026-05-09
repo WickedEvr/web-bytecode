@@ -4,7 +4,7 @@ import { apiRequest } from '../../lib/api';
 
 type SettingItem = {
   setting_key: string;
-  setting_value: any;
+  setting_value: unknown;
   description: string;
   is_sensitive: boolean;
 };
@@ -14,6 +14,13 @@ const defaultSettings = {
   smtp_config: { host: '', port: '', user: '', pass: '' },
   features: { enable_chat: false, enable_quotes: true },
 };
+
+const asRecord = (value: unknown) => (
+  value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+);
+
+const readString = (value: unknown, fallback: string) => (typeof value === 'string' ? value : fallback);
+const readBoolean = (value: unknown, fallback: boolean) => (typeof value === 'boolean' ? value : fallback);
 
 const AdminConfiguracion: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -33,9 +40,31 @@ const AdminConfiguracion: React.FC = () => {
 
       // Populate local state
       res.items.forEach(item => {
-        if (item.setting_key === 'contact_info') setContactInfo({ ...defaultSettings.contact_info, ...item.setting_value });
-        if (item.setting_key === 'smtp_config') setSmtpConfig({ ...defaultSettings.smtp_config, ...item.setting_value });
-        if (item.setting_key === 'features') setFeatures({ ...defaultSettings.features, ...item.setting_value });
+        const value = asRecord(item.setting_value);
+
+        if (item.setting_key === 'contact_info') {
+          setContactInfo({
+            email: readString(value.email, defaultSettings.contact_info.email),
+            phone: readString(value.phone, defaultSettings.contact_info.phone),
+            address: readString(value.address, defaultSettings.contact_info.address),
+          });
+        }
+
+        if (item.setting_key === 'smtp_config') {
+          setSmtpConfig({
+            host: readString(value.host, defaultSettings.smtp_config.host),
+            port: readString(value.port, defaultSettings.smtp_config.port),
+            user: readString(value.user, defaultSettings.smtp_config.user),
+            pass: readString(value.pass, defaultSettings.smtp_config.pass),
+          });
+        }
+
+        if (item.setting_key === 'features') {
+          setFeatures({
+            enable_chat: readBoolean(value.enable_chat, defaultSettings.features.enable_chat),
+            enable_quotes: readBoolean(value.enable_quotes, defaultSettings.features.enable_quotes),
+          });
+        }
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar configuración');

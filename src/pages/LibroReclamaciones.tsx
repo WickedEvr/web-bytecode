@@ -313,8 +313,12 @@ const LibroReclamaciones: React.FC = () => {
     apiRequest<{ items: { id: string, code: string, name: string }[] }>('/api/catalog/complaint-types')
       .then((res: { items: { id: string, code: string, name: string }[] }) => {
         setComplaintTypes(res.items);
-        if (res.items.length > 0 && (!formData.claimType || !res.items.find((ct: { id: string, code: string, name: string }) => ct.code === formData.claimType))) {
-          setFormData(prev => ({ ...prev, claimType: res.items[0].code }));
+        if (res.items.length > 0) {
+          setFormData(prev => (
+            !prev.claimType || !res.items.find((ct) => ct.code === prev.claimType)
+              ? { ...prev, claimType: res.items[0].code }
+              : prev
+          ));
         }
       })
       .catch(console.error);

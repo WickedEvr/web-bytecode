@@ -70,6 +70,25 @@ const createComplaintCode = () => {
   return `REC-${datePart}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
 };
 
+const normalizeGoodType = (value: string) => {
+  const normalized = value.trim().toLowerCase();
+  if (['producto', 'product'].includes(normalized)) return 'product';
+  if (['servicio', 'service'].includes(normalized)) return 'service';
+  throw new HttpError(400, 'Tipo de bien no permitido.');
+};
+
+const parseClaimedAmount = (value: string) => {
+  const normalized = value.replace(/[^\d.,-]/g, '').replace(',', '.').trim();
+  if (!normalized) return null;
+
+  const amount = Number(normalized);
+  if (!Number.isFinite(amount) || amount < 0) {
+    throw new HttpError(400, 'Monto reclamado invalido.');
+  }
+
+  return amount;
+};
+
 // --- ENDPOINTS PARA CATÁLOGOS ---
 router.get('/catalog/complaint-types', asyncHandler(async (_req, res) => {
   const result = await pool.query('SELECT id, code, name FROM complaint_types WHERE is_active = true ORDER BY name ASC');
@@ -227,9 +246,9 @@ router.post(
         `
         INSERT INTO complaints (
           complaint_code, customer_id, complaint_type_id, status_id, 
-          legal_acceptance, legal_response_due_at, internal_notes
+          legal_acceptance, legal_acceptance_at, legal_response_due_at, internal_notes
         )
-        VALUES ($1, $2, $3, $4, $5, now() + interval '15 days', '')
+        VALUES ($1, $2, $3, $4, $5, now(), now() + interval '15 days', '')
         RETURNING id, complaint_code, created_at
         `,
         [code, customerId, complaintTypeId, statusId, body.aceptaTerminos],
@@ -250,7 +269,7 @@ router.post(
         INSERT INTO complaint_goods (complaint_id, good_type, description, category, claimed_amount)
         VALUES ($1, $2, $3, $4, $5)
         `,
-        [complaintId, body.goodType, body.descripcion, body.tipoReclamo, body.montoCuantificable ? Number(body.montoCuantificable) : null]
+        [complaintId, normalizeGoodType(body.goodType), body.descripcion, body.tipoReclamo, parseClaimedAmount(body.montoCuantificable)]
       );
 
       if (fileAssetId) {

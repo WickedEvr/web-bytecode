@@ -4,8 +4,9 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import multer from 'multer';
-import compression from 'compression';
 import { ZodError } from 'zod';
+import { createRequire } from 'node:module';
+import type { RequestHandler } from 'express';
 import { env } from './config/env.js';
 import authRoutes from './routes/auth.js';
 import publicRoutes from './routes/public.js';
@@ -16,6 +17,16 @@ import crypto from 'node:crypto';
 
 export const app = express();
 const allowedCorsOrigins = new Set(env.corsOrigins);
+const require = createRequire(import.meta.url);
+
+const compressionMiddleware = (): RequestHandler => {
+  try {
+    const compression = require('compression') as () => RequestHandler;
+    return compression();
+  } catch {
+    return (_req, _res, next) => next();
+  }
+};
 
 app.set('trust proxy', 1);
 
@@ -67,7 +78,7 @@ app.use(
   }),
 );
 app.use(cookieParser());
-app.use(compression());
+app.use(compressionMiddleware());
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
@@ -110,7 +121,7 @@ app.get('/health', async (_req, res) => {
   try {
     const resDb = await pool.query('SELECT 1');
     if (resDb.rowCount === 1) dbOk = true;
-  } catch (e) {
+  } catch {
     dbOk = false;
   }
   
@@ -132,7 +143,6 @@ app.use((_req, res) => {
 });
 
 // Global Error Handler
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((error: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   const correlationId = req.headers['x-correlation-id'];
   

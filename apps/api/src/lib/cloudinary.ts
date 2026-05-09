@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { v2 as cloudinary, type UploadApiResponse } from 'cloudinary';
 import { env } from '../config/env.js';
 
-type CloudinaryResourceType = 'image' | 'raw';
+export type CloudinaryResourceType = 'image' | 'raw';
 
 export type CloudinaryStoredAsset = {
   publicId: string;

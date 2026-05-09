@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: bytecode-api
+    runtime: node
+    plan: starter
+    buildCommand: npm ci && npm run build -w @bytecode/api
+    startCommand: npm run start -w @bytecode/api
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: COOKIE_SAME_SITE
+        value: none
+      - key: DATABASE_SSL
+        value: true
+      - key: DATABASE_POOL_MAX
+        value: 10
+      - key: DATABASE_IDLE_TIMEOUT_MS
+        value: 30000
+      - key: DATABASE_CONNECTION_TIMEOUT_MS
+        value: 10000
+      - key: DATABASE_MAX_USES
+        value: 7500
+      - key: MAX_UPLOAD_MB
+        value: 10

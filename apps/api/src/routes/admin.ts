@@ -1,8 +1,9 @@
+import crypto from 'node:crypto';
 import { Router } from 'express';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { pool } from '../db/pool.js';
-import { requireAdmin, requireRole, requirePermission } from '../middleware/auth.js';
+import { requireAdmin, requireRole } from '../middleware/auth.js';
 import { requireCsrf } from '../middleware/csrf.js';
 import { audit } from '../services/audit.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -62,6 +63,8 @@ const buildWhere = (status?: string, search?: string, fields: string[] = []) => 
     params,
   };
 };
+
+const createBusinessCode = (prefix: string) => `${prefix}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
 router.get(
   '/stats',
@@ -332,8 +335,10 @@ router.post(
       );
       await audit(req.admin?.id, 'create', 'admin_user', result.rows[0].id);
       res.status(201).json({ item: result.rows[0] });
-    } catch (err: any) {
-      if (err.code === '23505') throw new HttpError(409, 'El correo ya está en uso.');
+    } catch (err: unknown) {
+      if (typeof err === 'object' && err !== null && 'code' in err && err.code === '23505') {
+        throw new HttpError(409, 'El correo ya está en uso.');
+      }
       throw err;
     }
   }),
@@ -355,14 +360,14 @@ router.patch(
     }
 
     const result = await pool.query(
-      \`UPDATE admin_users 
+      `UPDATE admin_users 
        SET name = COALESCE($2, name), 
            role = COALESCE($3, role), 
            is_active = COALESCE($4, is_active),
            updated_at = now(),
            updated_by = $5
        WHERE id = $1 
-       RETURNING id, email, name, role, is_active, updated_at\`,
+       RETURNING id, email, name, role, is_active, updated_at`,
       [id, body.name ?? null, body.role ?? null, body.isActive ?? null, req.admin?.id]
     );
 
@@ -456,14 +461,14 @@ router.patch(
       }
 
       await pool.query(
-        \`INSERT INTO system_settings (setting_key, setting_value, description, is_sensitive, updated_by)
+        `INSERT INTO system_settings (setting_key, setting_value, description, is_sensitive, updated_by)
          VALUES ($1, $2, $3, $4, $5)
          ON CONFLICT (setting_key) DO UPDATE
          SET setting_value = EXCLUDED.setting_value, 
              description = COALESCE(EXCLUDED.description, system_settings.description),
              is_sensitive = COALESCE(EXCLUDED.is_sensitive, system_settings.is_sensitive),
              updated_at = now(), 
-             updated_by = EXCLUDED.updated_by\`,
+             updated_by = EXCLUDED.updated_by`,
         [setting.setting_key, JSON.stringify(valueToSave), setting.description ?? '', setting.is_sensitive ?? false, req.admin?.id]
       );
     }
@@ -506,7 +511,7 @@ const cmsPageUpdateSchema = z.object({
 router.get(
   '/cms/pages',
   requireRole(['admin', 'partner_designer']),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (_req, res) => {
     const result = await pool.query(
       'SELECT id, slug, title, meta_title, meta_description, is_published, created_at, updated_at FROM cms_pages ORDER BY slug'
     );
@@ -545,8 +550,16 @@ router.patch(
 router.get(
   '/catalog/pricing',
   requireRole(['admin', 'partner_designer']),
-  asyncHandler(async (req, res) => {
-    const result = await pool.query('SELECT id, item_code, name, description, unit_price FROM pricing_catalog WHERE is_active = true');
+  asyncHandler(async (_req, res) => {
+    const result = await pool.query(
+      `
+      SELECT id, item_code, name, description, pricing_model, base_price, max_price,
+             currency_code, base_price AS unit_price
+      FROM pricing_catalog
+      WHERE is_active = true AND deleted_at IS NULL
+      ORDER BY name ASC
+      `,
+    );
     res.json({ items: result.rows });
   })
 );
@@ -554,13 +567,14 @@ router.get(
 router.get(
   '/quotations',
   requireRole(['admin', 'partner_designer']),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (_req, res) => {
     const result = await pool.query(
-      `SELECT q.id, q.quote_code, q.total_amount, sc.code as status, q.created_at, cu.first_name, cu.primary_email
+      `SELECT q.id, q.quote_code, q.total_amount, q.status, q.created_at, cu.first_name, cu.primary_email
        FROM quotes q
        LEFT JOIN customers cu ON q.customer_id = cu.id
-       LEFT JOIN status_catalog sc ON q.status_id = sc.id
-       ORDER BY q.created_at DESC`
+       WHERE q.deleted_at IS NULL
+       ORDER BY q.created_at DESC
+       LIMIT 100`
     );
     res.json({ items: result.rows });
   })
@@ -573,7 +587,7 @@ const createQuoteSchema = z.object({
     catalog_item_id: z.string().uuid(),
     quantity: z.number().int().min(1)
   })).min(1),
-  notes: z.string().optional()
+  notes: z.string().max(2000).optional()
 });
 
 router.post(
@@ -587,45 +601,43 @@ router.post(
     try {
       await client.query('BEGIN');
       
-      let customerId;
+      let customerId: string;
       const custRes = await client.query('SELECT id FROM customers WHERE primary_email = $1', [body.customerEmail]);
       if (custRes.rowCount && custRes.rowCount > 0) {
         customerId = custRes.rows[0].id;
       } else {
         const newCust = await client.query(
-          'INSERT INTO customers (first_name, primary_email) VALUES ($1, $2) RETURNING id',
-          [body.customerName, body.customerEmail]
+          'INSERT INTO customers (customer_code, first_name, primary_email) VALUES ($1, $2, $3) RETURNING id',
+          [createBusinessCode('CUS'), body.customerName, body.customerEmail.toLowerCase()]
         );
         customerId = newCust.rows[0].id;
       }
 
       let totalAmount = 0;
-      const quoteItemsData = [];
+      const quoteItemsData: Array<{ catalog_item_id: string; quantity: number; name: string; unitPrice: number }> = [];
       for (const item of body.items) {
-        const catRes = await client.query('SELECT unit_price FROM pricing_catalog WHERE id = $1', [item.catalog_item_id]);
+        const catRes = await client.query(
+          'SELECT id, name, base_price FROM pricing_catalog WHERE id = $1 AND is_active = true AND deleted_at IS NULL',
+          [item.catalog_item_id],
+        );
         if (!catRes.rowCount || catRes.rowCount === 0) throw new HttpError(400, 'Item de catálogo inválido');
-        const unitPrice = parseFloat(catRes.rows[0].unit_price);
-        const subtotal = unitPrice * item.quantity;
-        totalAmount += subtotal;
-        quoteItemsData.push({ ...item, unitPrice, subtotal });
+        const unitPrice = parseFloat(catRes.rows[0].base_price);
+        totalAmount += unitPrice * item.quantity;
+        quoteItemsData.push({ ...item, name: catRes.rows[0].name, unitPrice });
       }
 
-      const statusRes = await client.query("SELECT id FROM status_catalog WHERE domain='quote' AND code='draft'");
-      const statusId = statusRes.rowCount && statusRes.rowCount > 0 ? statusRes.rows[0].id : null;
-
-      const quoteCode = `QT-${Date.now().toString().slice(-6)}`;
       const quoteRes = await client.query(
-        `INSERT INTO quotes (quote_code, customer_id, total_amount, status_id, notes, created_by)
-         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-        [quoteCode, customerId, totalAmount, statusId, body.notes ?? null, req.admin?.id]
+        `INSERT INTO quotes (quote_code, customer_id, status, total_amount, valid_until, payment_policy, created_by)
+         VALUES ($1, $2, 'draft', $3, current_date + interval '30 days', $4, $5) RETURNING id`,
+        [createBusinessCode('QT'), customerId, totalAmount, body.notes ?? null, req.admin?.id]
       );
       const quoteId = quoteRes.rows[0].id;
 
       for (const qi of quoteItemsData) {
         await client.query(
-          `INSERT INTO quote_items (quote_id, catalog_item_id, quantity, unit_price, subtotal)
+          `INSERT INTO quote_items (quote_id, pricing_catalog_id, custom_name, quantity, unit_price)
            VALUES ($1, $2, $3, $4, $5)`,
-          [quoteId, qi.catalog_item_id, qi.quantity, qi.unitPrice, qi.subtotal]
+          [quoteId, qi.catalog_item_id, qi.name, qi.quantity, qi.unitPrice]
         );
       }
 

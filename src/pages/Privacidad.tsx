@@ -19,7 +19,7 @@ const TypewriterText: React.FC<{ text: string; speed?: number; cursor?: string }
     const durationInSeconds = (text.length * speed) / 1000;
     
     // Declaramos la variable afuera para poder limpiarla correctamente
-    let controls: any; 
+    let controls: ReturnType<typeof animate> | undefined; 
 
     const timeout = setTimeout(() => {
       controls = animate(count, text.length, {
