@@ -968,6 +968,23 @@ CREATE TRIGGER trg_cms_blocks_updated_at BEFORE UPDATE ON cms_blocks FOR EACH RO
 CREATE TRIGGER trg_banners_updated_at BEFORE UPDATE ON banners FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_menu_items_updated_at BEFORE UPDATE ON menu_items FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
+CREATE OR REPLACE FUNCTION log_project_status_change()
+RETURNS trigger AS $$
+BEGIN
+  IF OLD.status IS DISTINCT FROM NEW.status THEN
+    INSERT INTO project_status_history (project_id, old_status, new_status)
+    VALUES (NEW.id, OLD.status, NEW.status);
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_project_status_change
+AFTER UPDATE ON projects
+FOR EACH ROW
+EXECUTE FUNCTION log_project_status_change();
+
 CREATE OR REPLACE FUNCTION trg_milestone_payments_validate_currency()
 RETURNS trigger AS $$
 DECLARE
