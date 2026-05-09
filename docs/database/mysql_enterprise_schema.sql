@@ -401,6 +401,23 @@ CREATE TABLE file_assets (
   CONSTRAINT ck_file_assets_storage CHECK (storage_provider IN ('local', 's3', 'cloudinary', 'gcs', 'azure'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE milestone_payments (
+  id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  milestone_id CHAR(36) NOT NULL,
+  amount_paid DECIMAL(14,2) NOT NULL,
+  currency_code CHAR(3) NOT NULL DEFAULT 'PEN',
+  payment_method VARCHAR(80) NOT NULL,
+  reference_number VARCHAR(120) NULL,
+  receipt_file_id CHAR(36) NULL,
+  paid_at TIMESTAMP(6) NOT NULL,
+  created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  CONSTRAINT fk_milestone_payments_milestone FOREIGN KEY (milestone_id) REFERENCES project_milestones(id) ON DELETE CASCADE,
+  CONSTRAINT fk_milestone_payments_receipt_file FOREIGN KEY (receipt_file_id) REFERENCES file_assets(id) ON DELETE SET NULL,
+  CONSTRAINT ck_milestone_payments_amount CHECK (amount_paid > 0),
+  CONSTRAINT ck_milestone_payments_currency CHECK (currency_code = UPPER(currency_code))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE contact_categories (
   id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
   code VARCHAR(80) NOT NULL UNIQUE,
@@ -976,6 +993,11 @@ CREATE INDEX idx_customer_documents_customer ON customer_documents (customer_id)
 CREATE INDEX idx_organizations_ruc ON organizations (ruc);
 CREATE INDEX idx_customer_addresses_customer ON customer_addresses (customer_id, is_primary DESC);
 CREATE INDEX idx_customer_organizations_organization ON customer_organizations (organization_id);
+CREATE INDEX idx_projects_customer ON projects (customer_id);
+CREATE INDEX idx_projects_status ON projects (status);
+CREATE INDEX idx_projects_service ON projects (service_id);
+CREATE INDEX idx_project_milestones_project ON project_milestones (project_id);
+CREATE INDEX idx_project_milestones_status ON project_milestones (status);
 CREATE INDEX idx_contact_cases_status_created ON contact_cases (status_id, created_at DESC);
 CREATE INDEX idx_contact_cases_assignee_status ON contact_cases (assigned_to, status_id, created_at DESC);
 CREATE INDEX idx_contact_cases_customer_created ON contact_cases (customer_id, created_at DESC);

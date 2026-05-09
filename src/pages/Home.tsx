@@ -143,24 +143,24 @@ const HeroSection: React.FC = () => {
       <img src="/vectors/shadows/sombra-arriba.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-10" />
       <img src="/vectors/shadows/sombra-arriba.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-10 opacity-50" />
 
-      <div className="relative z-10 mx-auto flex min-h-[88svh] w-full max-w-[1440px] flex-col items-center justify-center gap-6 px-6 pb-10 pt-20 md:gap-4 md:px-10 md:pt-24 lg:min-h-screen lg:flex-row lg:justify-between lg:gap-0 lg:px-14 lg:pb-0 lg:pt-[144px] lg:-translate-x-[40px] lg:-translate-y-[92px] xl:px-20 xl:-translate-x-[80px] xl:-translate-y-[112px]">
+      <div className="relative z-10 mx-auto flex min-h-[88svh] w-full max-w-[1440px] flex-col items-center justify-center gap-6 px-6 pb-10 pt-20 md:gap-4 md:px-10 md:pt-24 lg:min-h-screen [@media(max-height:650px)]:lg:min-h-[auto] [@media(max-height:650px)]:lg:h-[100vh] lg:flex-row lg:justify-between [@media(max-height:650px)]:lg:justify-center [@media(max-height:650px)]:lg:gap-16 lg:gap-0 lg:px-14 lg:pb-0 lg:pt-[144px] [@media(max-height:650px)]:lg:pt-[80px] lg:-translate-x-[40px] lg:-translate-y-[92px] xl:px-20 xl:-translate-x-[80px] xl:-translate-y-[112px] [@media(max-height:650px)]:xl:-translate-y-0 [@media(max-height:650px)]:lg:-translate-y-0 [@media(max-height:650px)]:lg:translate-x-0 [@media(max-height:650px)]:xl:translate-x-0">
         
-        <div className="order-1 flex w-full max-w-[720px] flex-col items-center text-center z-20 lg:order-2 lg:w-[60%] lg:max-w-none lg:items-start lg:text-left">
+        <div className="order-1 flex w-full max-w-[720px] flex-col items-center text-center z-20 lg:order-2 lg:w-[60%] lg:max-w-none lg:items-start lg:text-left [@media(max-height:650px)]:lg:-mt-10">
           <h1
-            className="mb-2 text-white uppercase leading-[1.08] [text-shadow:0px_4px_7.3px_rgba(0,0,0,0.51)] md:mb-4 whitespace-nowrap"
+            className="mb-2 text-white uppercase leading-[1.08] [text-shadow:0px_4px_7.3px_rgba(0,0,0,0.51)] md:mb-4 whitespace-nowrap [@media(max-height:650px)]:md:mb-2"
           >
-            <span className="font-bold lg:whitespace-nowrap text-[clamp(3rem,13.5vw,5rem)] lg:text-[clamp(2.2rem,4.8vw,4.875rem)] block lg:inline">UN GRAN</span>
+            <span className="font-bold lg:whitespace-nowrap text-[clamp(3rem,13.5vw,5rem)] lg:text-[clamp(2.2rem,4.8vw,4.875rem)] [@media(max-height:650px)]:lg:text-[clamp(1.5rem,2.5vw,2.5rem)] block lg:inline">UN GRAN</span>
             <span className="font-bold lg:hidden text-[clamp(2.75rem,12.8vw,4.6rem)] block">SITIO WEB</span>
-            <span className="hidden lg:inline font-bold lg:whitespace-nowrap text-[clamp(2.2rem,4.8vw,4.875rem)]"> SITIO WEB,</span>
+            <span className="hidden lg:inline font-bold lg:whitespace-nowrap text-[clamp(2.2rem,4.8vw,4.875rem)] [@media(max-height:650px)]:lg:text-[clamp(1.5rem,2.5vw,2.5rem)]"> SITIO WEB,</span>
             <br className="hidden lg:block" />
-            <span className="lg:whitespace-nowrap text-[clamp(1rem,5.5vw,1.8rem)] lg:text-[clamp(1.8rem,3.8vw,4rem)]">HACE IDEAS REALIDAD</span>
+            <span className="lg:whitespace-nowrap text-[clamp(1rem,5.5vw,1.8rem)] lg:text-[clamp(1.8rem,3.8vw,4rem)] [@media(max-height:650px)]:lg:text-[clamp(1.2rem,2vw,2rem)]">HACE IDEAS REALIDAD</span>
           </h1>
 
-          <p className="mb-5 text-[clamp(0.9rem,1.8vw,1.75rem)] font-normal leading-[1.3] text-white [text-shadow:0_0_8px_rgba(6,207,214,0.8)] md:mb-10 md:text-[1.5rem]">
+          <p className="mb-5 text-[clamp(0.9rem,1.8vw,1.75rem)] font-normal leading-[1.3] text-white [text-shadow:0_0_8px_rgba(6,207,214,0.8)] md:mb-10 md:text-[1.5rem] [@media(max-height:650px)]:md:mb-4 [@media(max-height:650px)]:md:text-[1.1rem]">
             Adquiere tu consulta <span className="font-bold text-[#06CFD6]">GRATIS</span>
           </p>
 
-          <div className="flex w-full max-w-[520px] flex-col gap-3 md:w-auto md:flex-row md:gap-5">
+          <div className="flex w-full max-w-[520px] flex-col gap-3 md:w-auto md:flex-row md:gap-5 [@media(max-height:650px)]:md:scale-[0.8] [@media(max-height:650px)]:lg:origin-left">
             <HeroActionLink to="/contacto" variant="cyan" >Conectar</HeroActionLink>
             <HeroActionLink to="/servicios" variant="white">Servicios</HeroActionLink>
           </div>
@@ -170,7 +170,7 @@ const HeroSection: React.FC = () => {
           <motion.div
             animate={{ y: [0, -20, 0], rotate: [0, 2, 0] }}
             transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-            className="relative w-[clamp(160px,38vw,360px)] -translate-y-3 md:-translate-y-5 lg:translate-y-0 lg:w-[clamp(260px,34vw,500px)] xl:w-[clamp(360px,38vw,560px)]"
+            className="relative w-[clamp(160px,38vw,360px)] -translate-y-3 md:-translate-y-5 lg:translate-y-0 lg:w-[clamp(260px,34vw,500px)] xl:w-[clamp(360px,38vw,560px)] [@media(max-height:650px)]:lg:w-[clamp(200px,25vw,350px)] [@media(max-height:650px)]:lg:left-[10vw] [@media(max-height:650px)]:xl:left-[12vw] [@media(max-height:650px)]:lg:-mt-[200px]"
           >
             <motion.img
               src="/images/characters/astronauta.png"
@@ -276,7 +276,7 @@ const ServiciosSection: React.FC = () => {
           </div>
 
           <div className="relative z-[60] hidden overflow-hidden rounded-[28px] shadow-[0px_4px_20.4px_9px_rgba(0,0,0,0.22)] lg:block lg:rounded-[48px]">
-            <div className="relative h-[409px] lg:h-[clamp(320px,44vw,554px)]">
+            <div className="relative h-[409px] lg:h-[clamp(320px,44vw,554px)] [@media(max-height:650px)]:lg:h-[350px]">
               <AnimatePresence>
                 <motion.img
                   key={slide}
@@ -334,7 +334,7 @@ const ServiciosSection: React.FC = () => {
    ========================================================================== */
 
 const HerramientasSection: React.FC = () => (
-  <section className="relative z-[40] -mt-[11rem] h-[30rem] overflow-visible px-6 pb-12 pt-0 font-sansation md:-mt-[10rem] md:h-[25rem] md:max-lg:!mt-[14rem] lg:-mt-[13rem] lg:h-[25rem] lg:max-[1339px]:!mt-[16rem] xl:-mt-[20rem] xl:h-[25rem] 2xl:-mt-36 2xl:h-[25rem]">
+  <section className="relative z-[40] -mt-[11rem] h-[30rem] overflow-visible px-6 pb-12 pt-0 font-sansation md:-mt-[10rem] md:h-[25rem] md:max-lg:!mt-[14rem] lg:-mt-[13rem] lg:h-[25rem] lg:max-[1339px]:!mt-[16rem] xl:-mt-[20rem] xl:h-[25rem] 2xl:-mt-36 2xl:h-[25rem] [@media(max-height:650px)]:lg:-mt-[8rem] [@media(max-height:650px)]:xl:-mt-[10rem]">
     <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-[-10rem] hidden h-[28rem] w-screen -translate-x-1/2 bg-white max-md:block" />
 
     <img
@@ -379,8 +379,8 @@ const HerramientasSection: React.FC = () => (
 const IASection: React.FC = () => (
   <section className="relative z-[60] -mt-60 min-h-[800px] overflow-x-hidden pb-8 md:mt-0 md:min-h-[1240px] md:overflow-visible lg:min-h-[680px] xl:min-h-[660px] 2xl:min-h-[800px]">
     <div className="absolute bottom-[258px] left-0 right-0 top-[258px] z-0 bg-white md:hidden" />
-    
-    <div className="relative z-10 flex flex-col items-center justify-between px-6 pt-8 pb-8 w-full md:w-[85%] md:px-0 md:pt-10 md:gap-10 lg:-mt-12 lg:flex-row lg:items-end lg:gap-0 lg:pt-0 lg:pr-[17px] xl:-mt-35 2xl:-mt-24 mx-auto gap-8">
+
+    <div className="relative z-10 flex flex-col items-center justify-between px-6 pt-8 pb-8 w-full md:w-[85%] md:px-0 md:pt-10 md:gap-10 lg:-mt-12 lg:flex-row lg:items-end lg:gap-0 lg:pt-0 lg:pr-[17px] xl:-mt-35 2xl:-mt-24 [@media(max-height:650px)]:xl:-mt-10 mx-auto gap-8">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute bottom-[clamp(-20px,1.5vw,0px)] left-[72%] z-[1] hidden h-[clamp(164px,18vw,237px)] w-[clamp(228px,25vw,329px)] -translate-x-1/2 rounded-[59px] bg-white lg:block xl:h-[176px] xl:w-[244px] 2xl:h-[clamp(164px,18vw,237px)] 2xl:w-[clamp(228px,25vw,329px)]"
@@ -474,8 +474,8 @@ const TestimonialsSection: React.FC = () => {
         </div>
 
         <div className="relative z-[2] order-2 flex w-full justify-center lg:order-1 lg:w-7/12">
-          <div className="relative h-[310px] w-[316px] flex-shrink-0 md:h-[420px] md:w-[500px] lg:h-[456px] lg:w-[560px] xl:h-[496px] xl:w-[608px]">
-            <div className="relative ml-[-48px] h-[310px] w-[380px] origin-top-left overflow-visible md:ml-0 md:scale-[1.25] lg:scale-[1.45] xl:scale-[1.6]">
+          <div className="relative h-[310px] w-[316px] flex-shrink-0 md:h-[420px] md:w-[500px] lg:h-[456px] lg:w-[560px] xl:h-[496px] xl:w-[608px] [@media(max-height:650px)]:lg:h-[350px]">
+            <div className="relative ml-[-48px] h-[310px] w-[380px] origin-top-left overflow-visible md:ml-0 md:scale-[1.25] lg:scale-[1.45] xl:scale-[1.6] [@media(max-height:650px)]:lg:scale-[1.1] [@media(max-height:650px)]:xl:scale-[1.1]">
               {testimonials.map((t, i) => {
                 const slot = ((i - activeCard + testimonials.length) % testimonials.length) as 0 | 1 | 2;
                 return <TestimonialCard key={i} slot={slot} name={t.name} role={t.role} text={t.text} stars={t.stars} img={t.img} />;

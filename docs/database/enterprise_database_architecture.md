@@ -133,6 +133,35 @@ PostgreSQL usa `jsonb_typeof(column_name) = 'object'`; MySQL usa
 target productivo final; MySQL se mantiene como espejo para diagramacion y debe
 permanecer sincronizado en nombres, tablas y relaciones.
 
+## PROJECT DELIVERY FINANCIAL TRACEABILITY v4.0
+
+Esta revision completa el modulo de proyectos con trazabilidad financiera por
+hito y con indices estrategicos para las consultas operativas mas frecuentes.
+No se agregan tablas de autenticacion de clientes ni portal de cliente; el
+alcance sigue limitado a gestion administrativa interna.
+
+Nueva tabla:
+
+- `milestone_payments`: pagos aplicados a hitos de proyecto. Registra monto,
+  moneda, metodo de pago, referencia transaccional, comprobante opcional en
+  `file_assets` y fecha efectiva de pago. Depende de `project_milestones` con
+  `ON DELETE CASCADE` y conserva comprobantes con `ON DELETE SET NULL`.
+
+Indices agregados al modulo de proyectos:
+
+- `idx_projects_customer`: listado e historial de proyectos por cliente.
+- `idx_projects_status`: tablero administrativo por estado de entrega.
+- `idx_projects_service`: analisis de proyectos por servicio vendido.
+- `idx_project_milestones_project`: consulta de hitos por proyecto.
+- `idx_project_milestones_status`: seguimiento de hitos pendientes, completados
+  o demorados.
+
+| Cambio | Tabla(s) | Tipo | Impacto |
+|--------|----------|------|---------|
+| Pagos por hito | `milestone_payments`, `project_milestones`, `file_assets` | Nueva tabla | Permite trazabilidad financiera y adjuntar recibos por hito |
+| Indices de proyectos | `projects`, `project_milestones` | Performance | Mejora dashboard, filtros por cliente/servicio/estado y seguimiento de hitos |
+| Sin portal cliente | N/A | Alcance | Evita introducir autenticacion o usuarios de clientes fuera del alcance actual |
+
 ## Analisis del proyecto actual
 
 El checkout tiene frontend React/Vite en `src/` y API Express/PostgreSQL en
@@ -268,11 +297,14 @@ Tablas:
 
 - `projects`
 - `project_milestones`
+- `milestone_payments`
 
 `projects` representa el contrato operativo de desarrollo de software, app o
 servicio tecnico. Se vincula al cliente, organizacion opcional y catalogo de
 servicio para conectar ventas, soporte y entrega. `project_milestones` divide
 el proyecto en hitos con vencimientos, estado y porcentaje de pago.
+`milestone_payments` registra cobros reales, referencias y recibos por hito sin
+crear cuentas ni autenticacion para clientes.
 
 Relaciones:
 
@@ -280,6 +312,8 @@ Relaciones:
 - Una organizacion puede agrupar muchos proyectos.
 - Un servicio catalogado puede originar muchos proyectos.
 - Un proyecto tiene muchos hitos.
+- Un hito puede tener muchos pagos.
+- Un comprobante en `file_assets` puede respaldar muchos pagos.
 
 ### Contacto
 
@@ -432,6 +466,9 @@ service_catalog
 projects
   1:N project_milestones
 
+project_milestones
+  1:N milestone_payments
+
 status_catalog
   1:N contact_cases
   1:N contact_case_status_history
@@ -467,6 +504,7 @@ complaints
 file_assets
   N:M contact_cases via contact_case_attachments
   N:M complaints via complaint_evidences
+  1:N milestone_payments
   1:N banners
 
 cms_pages
@@ -530,6 +568,11 @@ ORDER BY min(s.sort_order);
 - `idx_complaints_customer_created`: historial de reclamos por cliente.
 - `idx_complaints_assignee_status`: carga operativa por responsable.
 - `idx_customer_documents_number`: busqueda por DNI, CE o RUC.
+- `idx_projects_customer`: historial de proyectos por cliente.
+- `idx_projects_status`: tablero de proyectos por fase operativa.
+- `idx_projects_service`: analisis de demanda por servicio.
+- `idx_project_milestones_project`: hitos por proyecto.
+- `idx_project_milestones_status`: seguimiento de hitos por estado.
 - `idx_admin_audit_entity`: reconstruccion de actividad sobre un registro.
 - `idx_data_change_entity`: auditoria fina por entidad y campo.
 - Full-text / GIN sobre `customers.display_name`: busqueda por nombre.
