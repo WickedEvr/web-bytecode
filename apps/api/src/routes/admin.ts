@@ -67,14 +67,20 @@ router.get(
   '/stats',
   requireRole(['admin', 'support_agent', 'legal_reviewer']),
   asyncHandler(async (_req, res) => {
-    const [contacts, complaints] = await Promise.all([
+    const [contactsStats, complaintsStats, recentContacts, recentComplaints, activeAdmins] = await Promise.all([
       pool.query('SELECT sc.code as status, count(*)::int AS total FROM contact_cases c JOIN status_catalog sc ON c.status_id = sc.id GROUP BY sc.code'),
-      pool.query('SELECT sc.code as status, count(*)::int AS total FROM complaints c JOIN status_catalog sc ON c.status_id = sc.id GROUP BY sc.code'),    
+      pool.query('SELECT sc.code as status, count(*)::int AS total FROM complaints c JOIN status_catalog sc ON c.status_id = sc.id GROUP BY sc.code'),
+      pool.query(`SELECT c.id, cu.first_name as nombre, cu.primary_email as email, sc.code as status, c.created_at FROM contact_cases c JOIN customers cu ON c.customer_id = cu.id JOIN status_catalog sc ON c.status_id = sc.id ORDER BY c.created_at DESC LIMIT 5`),
+      pool.query(`SELECT c.id, c.complaint_code as code, cu.first_name as nombre, cu.primary_email as email, sc.code as status, c.created_at FROM complaints c JOIN customers cu ON c.customer_id = cu.id JOIN status_catalog sc ON c.status_id = sc.id ORDER BY c.created_at DESC LIMIT 5`),
+      pool.query(`SELECT count(*)::int AS total FROM admin_users WHERE is_active = true`),
     ]);
 
     res.json({
-      contacts: contacts.rows,
-      complaints: complaints.rows,
+      contactsStats: contactsStats.rows,
+      complaintsStats: complaintsStats.rows,
+      recentContacts: recentContacts.rows,
+      recentComplaints: recentComplaints.rows,
+      activeAdminsTotal: activeAdmins.rows[0].total,
     });
   }),
 );
@@ -388,6 +394,251 @@ router.patch(
     await audit(req.admin?.id, 'update_role', 'admin_user', id);
     res.json({ item: result.rows[0] });
   }),
+);
+
+// --- Settings Endpoints ---
+
+const settingsUpdateSchema = z.object({
+  settings: z.array(z.object({
+    setting_key: z.string(),
+    setting_value: z.any(),
+    is_sensitive: z.boolean().optional(),
+    description: z.string().optional()
+  }))
+});
+
+router.get(
+  '/settings',
+  requireRole(['admin']),
+  asyncHandler(async (req, res) => {
+    const result = await pool.query('SELECT setting_key, setting_value, description, is_sensitive FROM system_settings ORDER BY setting_key');
+    const items = result.rows.map(row => {
+      if (row.is_sensitive) {
+        // Enmascarar contraseñas o tokens (ej: SMTP pass)
+        const maskedValue = { ...row.setting_value };
+        for (const key of Object.keys(maskedValue)) {
+          if (typeof maskedValue[key] === 'string' && (key.toLowerCase().includes('pass') || key.toLowerCase().includes('secret') || key.toLowerCase().includes('key'))) {
+            maskedValue[key] = '********';
+          }
+        }
+        return { ...row, setting_value: maskedValue };
+      }
+      return row;
+    });
+    res.json({ items });
+  })
+);
+
+router.patch(
+  '/settings',
+  requireCsrf,
+  requireRole(['admin']),
+  asyncHandler(async (req, res) => {
+    const { settings } = settingsUpdateSchema.parse(req.body);
+
+    for (const setting of settings) {
+      // Evitar sobreescribir con valores enmascarados
+      let valueToSave = setting.setting_value;
+      
+      if (setting.is_sensitive) {
+        // Recuperar el actual para mezclar
+        const current = await pool.query('SELECT setting_value FROM system_settings WHERE setting_key = $1', [setting.setting_key]);
+        if (current.rowCount && current.rowCount > 0) {
+          const currentVal = current.rows[0].setting_value;
+          const merged = { ...currentVal };
+          for (const key of Object.keys(valueToSave)) {
+            if (valueToSave[key] !== '********') {
+              merged[key] = valueToSave[key];
+            }
+          }
+          valueToSave = merged;
+        }
+      }
+
+      await pool.query(
+        \`INSERT INTO system_settings (setting_key, setting_value, description, is_sensitive, updated_by)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (setting_key) DO UPDATE
+         SET setting_value = EXCLUDED.setting_value, 
+             description = COALESCE(EXCLUDED.description, system_settings.description),
+             is_sensitive = COALESCE(EXCLUDED.is_sensitive, system_settings.is_sensitive),
+             updated_at = now(), 
+             updated_by = EXCLUDED.updated_by\`,
+        [setting.setting_key, JSON.stringify(valueToSave), setting.description ?? '', setting.is_sensitive ?? false, req.admin?.id]
+      );
+    }
+
+    await audit(req.admin?.id, 'update', 'system_settings', null);
+    res.json({ ok: true });
+  })
+);
+
+// --- Logs Endpoints ---
+
+router.get(
+  '/logs',
+  requireRole(['admin']),
+  asyncHandler(async (req, res) => {
+    const query = listQuerySchema.parse(req.query);
+    const result = await pool.query(
+      `
+      SELECT l.id, l.action, l.entity_type, l.entity_id, l.created_at, u.name as admin_name, u.email as admin_email
+      FROM admin_audit_logs l
+      LEFT JOIN admin_users u ON l.admin_id = u.id
+      ORDER BY l.created_at DESC
+      LIMIT $1 OFFSET $2
+      `,
+      [query.limit, query.offset]
+    );
+    res.json({ items: result.rows });
+  })
+);
+
+// --- CMS Endpoints ---
+
+const cmsPageUpdateSchema = z.object({
+  title: z.string().optional(),
+  meta_title: z.string().optional(),
+  meta_description: z.string().optional(),
+  is_published: z.boolean().optional(),
+});
+
+router.get(
+  '/cms/pages',
+  requireRole(['admin', 'partner_designer']),
+  asyncHandler(async (req, res) => {
+    const result = await pool.query(
+      'SELECT id, slug, title, meta_title, meta_description, is_published, created_at, updated_at FROM cms_pages ORDER BY slug'
+    );
+    res.json({ items: result.rows });
+  })
+);
+
+router.patch(
+  '/cms/pages/:id',
+  requireCsrf,
+  requireRole(['admin', 'partner_designer']),
+  asyncHandler(async (req, res) => {
+    const id = String(req.params.id);
+    const body = cmsPageUpdateSchema.parse(req.body);
+
+    const result = await pool.query(
+      `UPDATE cms_pages
+       SET title = COALESCE($2, title),
+           meta_title = COALESCE($3, meta_title),
+           meta_description = COALESCE($4, meta_description),
+           is_published = COALESCE($5, is_published),
+           updated_at = now()
+       WHERE id = $1
+       RETURNING id, slug, title, meta_title, meta_description, is_published, updated_at`,
+      [id, body.title ?? null, body.meta_title ?? null, body.meta_description ?? null, body.is_published ?? null]
+    );
+
+    if (result.rowCount === 0) throw new HttpError(404, 'Página no encontrada.');
+    await audit(req.admin?.id, 'update', 'cms_page', id);
+    res.json({ item: result.rows[0] });
+  })
+);
+
+// --- Quotes Endpoints ---
+
+router.get(
+  '/catalog/pricing',
+  requireRole(['admin', 'partner_designer']),
+  asyncHandler(async (req, res) => {
+    const result = await pool.query('SELECT id, item_code, name, description, unit_price FROM pricing_catalog WHERE is_active = true');
+    res.json({ items: result.rows });
+  })
+);
+
+router.get(
+  '/quotations',
+  requireRole(['admin', 'partner_designer']),
+  asyncHandler(async (req, res) => {
+    const result = await pool.query(
+      `SELECT q.id, q.quote_code, q.total_amount, sc.code as status, q.created_at, cu.first_name, cu.primary_email
+       FROM quotes q
+       LEFT JOIN customers cu ON q.customer_id = cu.id
+       LEFT JOIN status_catalog sc ON q.status_id = sc.id
+       ORDER BY q.created_at DESC`
+    );
+    res.json({ items: result.rows });
+  })
+);
+
+const createQuoteSchema = z.object({
+  customerName: z.string().min(1),
+  customerEmail: z.string().email(),
+  items: z.array(z.object({
+    catalog_item_id: z.string().uuid(),
+    quantity: z.number().int().min(1)
+  })).min(1),
+  notes: z.string().optional()
+});
+
+router.post(
+  '/quotations',
+  requireCsrf,
+  requireRole(['admin', 'partner_designer']),
+  asyncHandler(async (req, res) => {
+    const body = createQuoteSchema.parse(req.body);
+    
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      
+      let customerId;
+      const custRes = await client.query('SELECT id FROM customers WHERE primary_email = $1', [body.customerEmail]);
+      if (custRes.rowCount && custRes.rowCount > 0) {
+        customerId = custRes.rows[0].id;
+      } else {
+        const newCust = await client.query(
+          'INSERT INTO customers (first_name, primary_email) VALUES ($1, $2) RETURNING id',
+          [body.customerName, body.customerEmail]
+        );
+        customerId = newCust.rows[0].id;
+      }
+
+      let totalAmount = 0;
+      const quoteItemsData = [];
+      for (const item of body.items) {
+        const catRes = await client.query('SELECT unit_price FROM pricing_catalog WHERE id = $1', [item.catalog_item_id]);
+        if (!catRes.rowCount || catRes.rowCount === 0) throw new HttpError(400, 'Item de catálogo inválido');
+        const unitPrice = parseFloat(catRes.rows[0].unit_price);
+        const subtotal = unitPrice * item.quantity;
+        totalAmount += subtotal;
+        quoteItemsData.push({ ...item, unitPrice, subtotal });
+      }
+
+      const statusRes = await client.query("SELECT id FROM status_catalog WHERE domain='quote' AND code='draft'");
+      const statusId = statusRes.rowCount && statusRes.rowCount > 0 ? statusRes.rows[0].id : null;
+
+      const quoteCode = `QT-${Date.now().toString().slice(-6)}`;
+      const quoteRes = await client.query(
+        `INSERT INTO quotes (quote_code, customer_id, total_amount, status_id, notes, created_by)
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+        [quoteCode, customerId, totalAmount, statusId, body.notes ?? null, req.admin?.id]
+      );
+      const quoteId = quoteRes.rows[0].id;
+
+      for (const qi of quoteItemsData) {
+        await client.query(
+          `INSERT INTO quote_items (quote_id, catalog_item_id, quantity, unit_price, subtotal)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [quoteId, qi.catalog_item_id, qi.quantity, qi.unitPrice, qi.subtotal]
+        );
+      }
+
+      await audit(req.admin?.id, 'create', 'quote', quoteId);
+      await client.query('COMMIT');
+      res.status(201).json({ ok: true, quoteId });
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
+  })
 );
 
 export default router;
