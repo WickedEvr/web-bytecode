@@ -89,7 +89,7 @@ const App: React.FC = () => {
             <Route path="cotizador" element={<RoleGuard allowedRoles={['admin', 'partner_designer']}><AdminCotizador /></RoleGuard>} />
             <Route path="usuarios" element={<RoleGuard allowedRoles={['admin']}><AdminUsuarios /></RoleGuard>} />
             <Route path="configuracion" element={<RoleGuard allowedRoles={['admin']}><AdminConfiguracion /></RoleGuard>} />
-            <Route path="cms" element={<RoleGuard allowedRoles={['admin', 'partner_designer']}><AdminCMS /></RoleGuard>} />
+            <Route path="cms" element={<RoleGuard allowedRoles={['admin']}><AdminCMS /></RoleGuard>} />
             <Route path="auditoria" element={<RoleGuard allowedRoles={['admin']}><AdminAuditoria /></RoleGuard>} />
           </Route>
 
