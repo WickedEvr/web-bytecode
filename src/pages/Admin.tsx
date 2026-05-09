@@ -41,16 +41,6 @@ type ComplaintItem = {
 type DetailItem = Record<string, string | number | null | undefined>;
 type AdminTab = 'contacts' | 'complaints';
 
-const statuses = [
-  { value: 'new', label: 'Nuevo' },
-  { value: 'read', label: 'Leído' },
-  { value: 'in_progress', label: 'En proceso' },
-  { value: 'responded', label: 'Respondido' },
-  { value: 'closed', label: 'Cerrado' },
-];
-
-const statusLabel = (status: string) => statuses.find((item) => item.value === status)?.label ?? status;
-
 const formatDate = (value?: string) =>
   value
     ? new Intl.DateTimeFormat('es-PE', {
@@ -75,13 +65,26 @@ const Admin: React.FC = () => {
   const [notes, setNotes] = useState('');
   const [status, setStatus] = useState('new');
   const [listLoading, setListLoading] = useState(false);
+  const [statuses, setStatuses] = useState<{ value: string, label: string }[]>([]);
+
+  const statusLabel = (statusCode: string) => statuses.find((item) => item.value === statusCode)?.label ?? statusCode;
 
   const currentItems = useMemo(() => (tab === 'contacts' ? contacts : complaints), [complaints, contacts, tab]);
+
+  const loadCatalogs = async () => {
+    try {
+      const res = await apiRequest<{ items: { id: string, code: string, name: string }[] }>('/api/catalog/statuses');
+      setStatuses(res.items.map(s => ({ value: s.code, label: s.name })));
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const loadMe = async () => {
     try {
       const result = await apiRequest<{ admin: AdminUser }>('/api/auth/me');
       setAdmin(result.admin);
+      await loadCatalogs();
     } catch {
       setAdmin(null);
     } finally {

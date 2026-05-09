@@ -20,6 +20,10 @@ const LibroReclamaciones = lazy(() => import('./pages/LibroReclamaciones'));
 const Condiciones = lazy(() => import('./pages/Condiciones'));
 const Privacidad = lazy(() => import('./pages/Privacidad'));
 const Admin = lazy(() => import('./pages/Admin'));
+const AdminCotizador = lazy(() => import('./pages/admin/Cotizador'));
+const AdminUsuarios = lazy(() => import('./pages/admin/Usuarios'));
+const AdminConfiguracion = lazy(() => import('./pages/admin/Configuracion'));
+const AdminCMS = lazy(() => import('./pages/admin/CMS'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 
@@ -71,6 +75,10 @@ const App: React.FC = () => {
               </ProtectedRoute>
             }
           />
+          <Route path="/admin/cotizador" element={<ProtectedRoute><AdminCotizador /></ProtectedRoute>} />
+          <Route path="/admin/usuarios" element={<ProtectedRoute><AdminUsuarios /></ProtectedRoute>} />
+          <Route path="/admin/configuracion" element={<ProtectedRoute><AdminConfiguracion /></ProtectedRoute>} />
+          <Route path="/admin/cms" element={<ProtectedRoute><AdminCMS /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
