@@ -46,7 +46,7 @@ const Portafolio: React.FC = () => {
       </div>
 
       {/* CONTENEDOR FRONTAL */}
-      <div className="w-full lg:min-h-[100dvh] flex flex-col relative z-10 pointer-events-none pt-[3rem]">
+      <div className="w-full lg:min-h-[100dvh] flex flex-col relative z-10 pointer-events-none pt-[3rem] [@media(max-height:650px)]:pt-[1.5rem]">
         
         {/* HERO SECTION */}
         <section className="px-6 text-center text-white relative z-10 pointer-events-none flex-shrink-0">
@@ -85,8 +85,8 @@ const Portafolio: React.FC = () => {
         </section>
 
         {/* CARRUSEL 3D (Solo Escritorio) */}
-        <section className="w-full relative z-10 pointer-events-auto flex-grow items-center justify-center xl:-mt-[11vh] 2xl:-mt-[10vh] hidden lg:flex">
-          <div className="w-full flex justify-center origin-center scale-[0.70] md:scale-[0.80] lg:scale-[0.85] xl:scale-[0.8] 2xl:scale-[1] transition-transform duration-500">
+        <section className="w-full relative z-10 pointer-events-auto flex-grow items-center justify-center xl:-mt-[11vh] 2xl:-mt-[10vh] [@media(max-height:650px)]:-mt-[2vh] hidden lg:flex">
+          <div className="w-full flex justify-center origin-center scale-[0.70] md:scale-[0.80] lg:scale-[0.85] xl:scale-[0.8] 2xl:scale-[1] [@media(max-height:650px)]:scale-[0.60] transition-transform duration-500">
             {isDesktop && (
               <Suspense fallback={null}>
                 <Carousel3D projects={projects} />
