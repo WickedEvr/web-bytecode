@@ -145,7 +145,7 @@ const HeroSection: React.FC = () => {
 
       <div className="relative z-10 mx-auto flex min-h-[88svh] w-full max-w-[1440px] flex-col items-center justify-center gap-6 px-6 pb-10 pt-20 md:gap-4 md:px-10 md:pt-24 lg:min-h-screen [@media(max-height:650px)]:lg:min-h-[auto] [@media(max-height:650px)]:lg:h-[100vh] lg:flex-row lg:justify-between [@media(max-height:650px)]:lg:justify-center [@media(max-height:650px)]:lg:gap-8 lg:gap-0 lg:px-14 lg:pb-0 lg:pt-[144px] [@media(max-height:650px)]:lg:pt-[80px] lg:-translate-x-[40px] lg:-translate-y-[92px] xl:px-20 xl:-translate-x-[80px] xl:-translate-y-[112px] [@media(max-height:650px)]:xl:-translate-y-0 [@media(max-height:650px)]:lg:-translate-y-0 [@media(max-height:650px)]:lg:translate-x-0 [@media(max-height:650px)]:xl:translate-x-0">
         
-        <div className="order-1 flex w-full max-w-[720px] flex-col items-center text-center z-20 lg:order-2 lg:w-[60%] lg:max-w-none lg:items-start lg:text-left [@media(max-height:650px)]:lg:-mt-10">
+        <div className="order-1 flex w-full max-w-[720px] flex-col items-center text-center z-20 lg:order-2 lg:w-[60%] lg:max-w-none lg:items-start lg:text-left [@media(max-height:650px)]:lg:w-auto [@media(max-height:650px)]:lg:-mt-[200px]">
           <h1
             className="mb-2 text-white uppercase leading-[1.08] [text-shadow:0px_4px_7.3px_rgba(0,0,0,0.51)] md:mb-4 whitespace-nowrap [@media(max-height:650px)]:md:mb-2"
           >
