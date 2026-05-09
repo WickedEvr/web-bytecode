@@ -141,8 +141,11 @@ hito y con indices estrategicos para las consultas operativas mas frecuentes.
 No se agregan tablas de autenticacion de clientes ni portal de cliente; el
 alcance sigue limitado a gestion administrativa interna.
 
-Nueva tabla:
+Nuevas tablas y controles:
 
+- `project_status_history`: bitacora operativa de cambios de estado de
+  proyecto. Guarda estado anterior, estado nuevo, responsable administrativo,
+  motivo y fecha del cambio para reconstruir la trazabilidad de entrega.
 - `milestone_payments`: pagos aplicados a hitos de proyecto. Registra monto,
   moneda, metodo de pago, referencia transaccional, comprobante opcional en
   `file_assets`, fecha efectiva de pago, estado financiero y `deleted_at` para
@@ -159,18 +162,32 @@ Indices agregados al modulo de proyectos:
 - `idx_projects_customer`: listado e historial de proyectos por cliente.
 - `idx_projects_status`: tablero administrativo por estado de entrega.
 - `idx_projects_service`: analisis de proyectos por servicio vendido.
+- `idx_project_status_history_project_changed`: auditoria de cambios de estado
+  por proyecto y fecha descendente.
 - `idx_project_milestones_project`: consulta de hitos por proyecto.
 - `idx_project_milestones_status`: seguimiento de hitos pendientes, completados
   o demorados.
 - `idx_milestone_payments_milestone`: consulta de pagos por hito y validacion
   rapida de bloqueo de eliminacion.
 
+Validacion de moneda:
+
+`trg_milestone_payments_validate_currency` en PostgreSQL y los triggers MySQL
+`trg_milestone_payments_validate_currency_bi` /
+`trg_milestone_payments_validate_currency_bu` validan antes de insertar o
+actualizar pagos que `milestone_payments.currency_code` coincida con
+`projects.currency_code` a traves de `project_milestones`. Si no coincide, la
+base de datos rechaza la operacion con `Payment currency must match the project
+currency`.
+
 | Cambio | Tabla(s) | Tipo | Impacto |
 |--------|----------|------|---------|
+| Historial de estado de proyecto | `project_status_history`, `projects`, `admin_users` | Nueva tabla | Permite trazabilidad operativa completa de cambios de estado |
 | Pagos por hito | `milestone_payments`, `project_milestones`, `file_assets` | Nueva tabla | Permite trazabilidad financiera y adjuntar recibos por hito |
 | Proteccion financiera | `milestone_payments`, `project_milestones` | FK RESTRICT | Impide borrar hitos con pagos registrados |
+| Consistencia de moneda | `milestone_payments`, `project_milestones`, `projects` | Trigger | Impide pagos en moneda distinta a la del proyecto |
 | Estado y soft-delete financiero | `milestone_payments` | CHECK + auditoria | Permite marcar pagos validos, reembolsados o anulados sin borrado fisico |
-| Indices de proyectos | `projects`, `project_milestones`, `milestone_payments` | Performance | Mejora dashboard, filtros por cliente/servicio/estado y seguimiento de hitos/pagos |
+| Indices de proyectos | `projects`, `project_status_history`, `project_milestones`, `milestone_payments` | Performance | Mejora dashboard, filtros por cliente/servicio/estado y seguimiento de hitos/pagos |
 | Sin portal cliente | N/A | Alcance | Evita introducir autenticacion o usuarios de clientes fuera del alcance actual |
 
 ## Analisis del proyecto actual
@@ -307,21 +324,25 @@ Relaciones:
 Tablas:
 
 - `projects`
+- `project_status_history`
 - `project_milestones`
 - `milestone_payments`
 
 `projects` representa el contrato operativo de desarrollo de software, app o
 servicio tecnico. Se vincula al cliente, organizacion opcional y catalogo de
-servicio para conectar ventas, soporte y entrega. `project_milestones` divide
-el proyecto en hitos con vencimientos, estado y porcentaje de pago.
-`milestone_payments` registra cobros reales, referencias, estados financieros y
-recibos por hito sin crear cuentas ni autenticacion para clientes.
+servicio para conectar ventas, soporte y entrega. `project_status_history`
+registra cada transicion de estado y su responsable. `project_milestones`
+divide el proyecto en hitos con vencimientos, estado y porcentaje de pago.
+`milestone_payments` registra cobros reales, referencias, estados financieros,
+recibos por hito y valida que la moneda coincida con la del proyecto sin crear
+cuentas ni autenticacion para clientes.
 
 Relaciones:
 
 - Un cliente puede tener muchos proyectos.
 - Una organizacion puede agrupar muchos proyectos.
 - Un servicio catalogado puede originar muchos proyectos.
+- Un proyecto tiene muchos cambios de estado auditados.
 - Un proyecto tiene muchos hitos.
 - Un hito puede tener muchos pagos y no puede eliminarse si existen pagos.
 - Un comprobante en `file_assets` puede respaldar muchos pagos.
@@ -475,6 +496,7 @@ service_catalog
   1:N projects
 
 projects
+  1:N project_status_history
   1:N project_milestones
 
 project_milestones
@@ -582,6 +604,8 @@ ORDER BY min(s.sort_order);
 - `idx_projects_customer`: historial de proyectos por cliente.
 - `idx_projects_status`: tablero de proyectos por fase operativa.
 - `idx_projects_service`: analisis de demanda por servicio.
+- `idx_project_status_history_project_changed`: linea de tiempo de cambios de
+  estado por proyecto.
 - `idx_project_milestones_project`: hitos por proyecto.
 - `idx_project_milestones_status`: seguimiento de hitos por estado.
 - `idx_milestone_payments_milestone`: pagos registrados por hito.

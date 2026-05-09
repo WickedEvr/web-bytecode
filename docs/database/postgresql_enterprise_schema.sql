@@ -329,6 +329,22 @@ CREATE TABLE projects (
   CONSTRAINT ck_projects_currency CHECK (currency_code = upper(currency_code))
 );
 
+CREATE TABLE project_status_history (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  old_status varchar(40),
+  new_status varchar(40) NOT NULL,
+  changed_by uuid REFERENCES admin_users(id) ON DELETE SET NULL,
+  reason text,
+  changed_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT ck_project_status_history_old_status CHECK (
+    old_status IS NULL OR old_status IN ('planning', 'in_development', 'qa', 'deployed', 'maintenance')
+  ),
+  CONSTRAINT ck_project_status_history_new_status CHECK (
+    new_status IN ('planning', 'in_development', 'qa', 'deployed', 'maintenance')
+  )
+);
+
 CREATE TABLE project_milestones (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
@@ -886,6 +902,7 @@ CREATE INDEX idx_customer_organizations_organization ON customer_organizations (
 CREATE INDEX idx_projects_customer ON projects (customer_id);
 CREATE INDEX idx_projects_status ON projects (status);
 CREATE INDEX idx_projects_service ON projects (service_id);
+CREATE INDEX idx_project_status_history_project_changed ON project_status_history (project_id, changed_at DESC);
 CREATE INDEX idx_project_milestones_project ON project_milestones (project_id);
 CREATE INDEX idx_project_milestones_status ON project_milestones (status);
 CREATE INDEX idx_milestone_payments_milestone ON milestone_payments (milestone_id);
@@ -950,6 +967,30 @@ CREATE TRIGGER trg_cms_pages_updated_at BEFORE UPDATE ON cms_pages FOR EACH ROW 
 CREATE TRIGGER trg_cms_blocks_updated_at BEFORE UPDATE ON cms_blocks FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_banners_updated_at BEFORE UPDATE ON banners FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_menu_items_updated_at BEFORE UPDATE ON menu_items FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE OR REPLACE FUNCTION trg_milestone_payments_validate_currency()
+RETURNS trigger AS $$
+DECLARE
+  project_currency char(3);
+BEGIN
+  SELECT p.currency_code
+  INTO project_currency
+  FROM project_milestones pm
+  JOIN projects p ON p.id = pm.project_id
+  WHERE pm.id = NEW.milestone_id;
+
+  IF project_currency IS NULL OR NEW.currency_code <> project_currency THEN
+    RAISE EXCEPTION 'Payment currency must match the project currency';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_milestone_payments_validate_currency
+BEFORE INSERT OR UPDATE ON milestone_payments
+FOR EACH ROW
+EXECUTE FUNCTION trg_milestone_payments_validate_currency();
 
 CREATE OR REPLACE FUNCTION trg_contact_attachments_validate_message()
 RETURNS trigger AS $$
