@@ -7,6 +7,7 @@ import AltLayout from './layouts/AltLayout';
 import LegalLayout from './layouts/LegalLayout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AdminLayout from './components/admin/AdminLayout';
+import RoleGuard from './components/admin/RoleGuard';
 
 // 2. Code Splitting: Importamos las páginas de forma dinámica
 // Esto genera archivos .js separados que solo se descargan cuando el usuario visita la ruta.
@@ -83,13 +84,13 @@ const App: React.FC = () => {
           >
             <Route index element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="dashboard" element={<AdminDashboard />} />
-            <Route path="contactos" element={<AdminContactos />} />
-            <Route path="reclamos" element={<AdminReclamos />} />
-            <Route path="cotizador" element={<AdminCotizador />} />
-            <Route path="usuarios" element={<AdminUsuarios />} />
-            <Route path="configuracion" element={<AdminConfiguracion />} />
-            <Route path="cms" element={<AdminCMS />} />
-            <Route path="auditoria" element={<AdminAuditoria />} />
+            <Route path="contactos" element={<RoleGuard allowedRoles={['admin', 'support_agent']}><AdminContactos /></RoleGuard>} />
+            <Route path="reclamos" element={<RoleGuard allowedRoles={['admin', 'support_agent', 'legal_reviewer']}><AdminReclamos /></RoleGuard>} />
+            <Route path="cotizador" element={<RoleGuard allowedRoles={['admin', 'partner_designer']}><AdminCotizador /></RoleGuard>} />
+            <Route path="usuarios" element={<RoleGuard allowedRoles={['admin']}><AdminUsuarios /></RoleGuard>} />
+            <Route path="configuracion" element={<RoleGuard allowedRoles={['admin']}><AdminConfiguracion /></RoleGuard>} />
+            <Route path="cms" element={<RoleGuard allowedRoles={['admin', 'partner_designer']}><AdminCMS /></RoleGuard>} />
+            <Route path="auditoria" element={<RoleGuard allowedRoles={['admin']}><AdminAuditoria /></RoleGuard>} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

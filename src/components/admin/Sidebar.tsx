@@ -1,22 +1,28 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Users, MessageSquareText, ShieldCheck, Settings, Calculator, Database, ClipboardList, X } from 'lucide-react';
+import type { AdminUser } from './AdminLayout';
 
 type SidebarProps = {
+  admin: AdminUser | null;
   onClose?: () => void;
 };
 
-const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
+const Sidebar: React.FC<SidebarProps> = ({ admin, onClose }) => {
   const navItems = [
-    { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/admin/contactos', icon: Users, label: 'Contactos' },
-    { to: '/admin/reclamos', icon: MessageSquareText, label: 'Reclamos' },
-    { to: '/admin/cotizador', icon: Calculator, label: 'Cotizador' },
-    { to: '/admin/usuarios', icon: ShieldCheck, label: 'Usuarios' },
-    { to: '/admin/cms', icon: Database, label: 'CMS' },
-    { to: '/admin/auditoria', icon: ClipboardList, label: 'Auditoría' },
-    { to: '/admin/configuracion', icon: Settings, label: 'Configuración' },
+    { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['super_admin', 'admin', 'support_agent', 'legal_reviewer', 'partner_designer'] },
+    { to: '/admin/contactos', icon: Users, label: 'Contactos', roles: ['super_admin', 'admin', 'support_agent'] },
+    { to: '/admin/reclamos', icon: MessageSquareText, label: 'Reclamos', roles: ['super_admin', 'admin', 'support_agent', 'legal_reviewer'] },
+    { to: '/admin/cotizador', icon: Calculator, label: 'Cotizador', roles: ['super_admin', 'admin', 'partner_designer'] },
+    { to: '/admin/usuarios', icon: ShieldCheck, label: 'Usuarios', roles: ['super_admin', 'admin'] },
+    { to: '/admin/cms', icon: Database, label: 'CMS', roles: ['super_admin', 'admin', 'partner_designer'] },
+    { to: '/admin/auditoria', icon: ClipboardList, label: 'Auditoría', roles: ['super_admin', 'admin'] },
+    { to: '/admin/configuracion', icon: Settings, label: 'Configuración', roles: ['super_admin', 'admin'] },
   ];
+
+  const visibleNavItems = navItems.filter(item => 
+    !admin || admin.role === 'super_admin' || item.roles.includes(admin.role)
+  );
 
   return (
     <aside className="w-64 border-r border-white/10 bg-[#040e1f] flex flex-col h-full shadow-2xl lg:shadow-none">
@@ -32,7 +38,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
         )}
       </div>
       <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-        {navItems.map((item) => (
+        {visibleNavItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

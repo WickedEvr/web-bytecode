@@ -9,6 +9,7 @@ export type AdminUser = {
   email: string;
   name: string;
   role: string;
+  permissions?: string[];
 };
 
 const AdminLayout: React.FC = () => {
@@ -35,7 +36,7 @@ const AdminLayout: React.FC = () => {
       )}
       
       <div className={`fixed inset-y-0 left-0 z-50 transform transition-transform lg:relative lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <Sidebar onClose={() => setSidebarOpen(false)} />
+        <Sidebar admin={admin} onClose={() => setSidebarOpen(false)} />
       </div>
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -54,7 +55,7 @@ const AdminLayout: React.FC = () => {
           </button>
         </header>
         <main className="flex-1 p-5 lg:p-8 overflow-y-auto">
-          <Outlet context={{ admin }} />
+          {admin ? <Outlet context={{ admin }} /> : <div className="text-white/50 text-center">Cargando módulos...</div>}
         </main>
       </div>
     </div>

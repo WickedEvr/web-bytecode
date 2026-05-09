@@ -21,7 +21,19 @@ router.post(
   asyncHandler(async (req, res) => {
     const body = loginSchema.parse(req.body);
     const result = await pool.query(
-      'SELECT id, email, name, role, password_hash FROM admin_users WHERE email = $1 AND is_active = true',
+      `
+      SELECT u.id, u.email, u.name, u.role, u.password_hash,
+      COALESCE((
+        SELECT array_agg(DISTINCT p.code)
+        FROM permissions p
+        JOIN role_permissions rp ON p.id = rp.permission_id
+        JOIN roles r ON rp.role_id = r.id
+        LEFT JOIN admin_user_roles aur ON r.id = aur.role_id AND aur.admin_user_id = u.id
+        WHERE r.code = u.role OR aur.admin_user_id = u.id
+      ), ARRAY[]::varchar[]) as permissions
+      FROM admin_users u 
+      WHERE u.email = $1 AND u.is_active = true
+      `,
       [body.email.toLowerCase()],
     );
 
@@ -42,6 +54,7 @@ router.post(
       email: admin.email,
       name: admin.name,
       role: admin.role,
+      permissions: admin.permissions,
     };
 
     setAdminCookie(res, createAdminToken(publicAdmin));

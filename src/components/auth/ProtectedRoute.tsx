@@ -4,20 +4,26 @@ import { apiRequest } from '../../lib/api';
 
 type ProtectedRouteProps = {
   children: React.ReactNode;
+  allowedRoles?: string[];
 };
 
-type AuthState = 'loading' | 'authenticated' | 'unauthenticated';
+type AuthState = 'loading' | 'authenticated' | 'unauthenticated' | 'forbidden';
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
   const location = useLocation();
   const [authState, setAuthState] = useState<AuthState>('loading');
 
   useEffect(() => {
     let mounted = true;
 
-    apiRequest('/api/auth/me')
-      .then(() => {
-        if (mounted) setAuthState('authenticated');
+    apiRequest<{ admin: { role: string } }>('/api/auth/me')
+      .then((res) => {
+        if (!mounted) return;
+        if (allowedRoles && res.admin.role !== 'super_admin' && !allowedRoles.includes(res.admin.role)) {
+          setAuthState('forbidden');
+        } else {
+          setAuthState('authenticated');
+        }
       })
       .catch(() => {
         if (mounted) setAuthState('unauthenticated');
@@ -26,7 +32,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [allowedRoles]);
 
   if (authState === 'loading') {
     return <div className="flex min-h-screen items-center justify-center bg-[#040e1f] text-white">Cargando...</div>;
@@ -35,6 +41,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   if (authState === 'unauthenticated') {
     const redirect = encodeURIComponent(`${location.pathname}${location.search}`);
     return <Navigate to={`/admin/login?redirect=${redirect}`} replace />;
+  }
+
+  if (authState === 'forbidden') {
+    return <Navigate to="/admin/dashboard" replace />;
   }
 
   return <>{children}</>;

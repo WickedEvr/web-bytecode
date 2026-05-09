@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import bcrypt from 'bcryptjs';
 import { pool } from '../db/pool.js';
-import { requireAdmin } from '../middleware/auth.js';
+import { requireAdmin, requireRole, requirePermission } from '../middleware/auth.js';
 import { requireCsrf } from '../middleware/csrf.js';
 import { audit } from '../services/audit.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -64,6 +65,7 @@ const buildWhere = (status?: string, search?: string, fields: string[] = []) => 
 
 router.get(
   '/stats',
+  requireRole(['admin', 'support_agent', 'legal_reviewer']),
   asyncHandler(async (_req, res) => {
     const [contacts, complaints] = await Promise.all([
       pool.query('SELECT sc.code as status, count(*)::int AS total FROM contact_cases c JOIN status_catalog sc ON c.status_id = sc.id GROUP BY sc.code'),
@@ -79,6 +81,7 @@ router.get(
 
 router.get(
   '/contacts',
+  requireRole(['admin', 'support_agent']),
   asyncHandler(async (req, res) => {
     const query = listQuerySchema.parse(req.query);
     const { whereSql, params } = buildWhere(query.status, query.search, ['cu.first_name', 'cu.primary_email', 'c.subject']);
@@ -101,6 +104,7 @@ router.get(
 
 router.get(
   '/contacts/:id',
+  requireRole(['admin', 'support_agent']),
   asyncHandler(async (req, res) => {
     const id = String(req.params.id);
     const result = await pool.query(
@@ -115,6 +119,7 @@ router.get(
 router.patch(
   '/contacts/:id',
   requireCsrf,
+  requireRole(['admin', 'support_agent']),
   asyncHandler(async (req, res) => {
     const id = String(req.params.id);
     const body = updateSchema.parse(req.body);
@@ -150,6 +155,7 @@ router.patch(
 
 router.get(
   '/complaints',
+  requireRole(['admin', 'support_agent', 'legal_reviewer']),
   asyncHandler(async (req, res) => {
     const query = listQuerySchema.parse(req.query);
     const { whereSql, params } = buildWhere(query.status, query.search, [
@@ -182,6 +188,7 @@ router.get(
 
 router.get(
   '/complaints/:id',
+  requireRole(['admin', 'support_agent', 'legal_reviewer']),
   asyncHandler(async (req, res) => {
     const id = String(req.params.id);
     const result = await pool.query(
@@ -205,6 +212,7 @@ router.get(
 router.patch(
   '/complaints/:id',
   requireCsrf,
+  requireRole(['admin', 'support_agent', 'legal_reviewer']),
   asyncHandler(async (req, res) => {
     const id = String(req.params.id);
     const body = updateSchema.parse(req.body);
@@ -249,6 +257,7 @@ router.patch(
 
 router.get(
   '/complaints/:id/attachment',
+  requireRole(['admin', 'support_agent', 'legal_reviewer']),
   asyncHandler(async (req, res) => {
     const id = String(req.params.id);
     const result = await pool.query(
@@ -272,6 +281,112 @@ router.get(
 
     await audit(req.admin?.id, 'download_attachment', 'complaint', id);
     res.redirect(302, downloadUrl);
+  }),
+);
+
+// --- User Management Endpoints ---
+
+const userCreateSchema = z.object({
+  email: z.string().email(),
+  name: z.string().min(2),
+  password: z.string().min(8),
+  role: z.string(),
+});
+
+const userUpdateSchema = z.object({
+  name: z.string().min(2).optional(),
+  role: z.string().optional(),
+  isActive: z.boolean().optional(),
+});
+
+router.get(
+  '/users',
+  requireRole(['admin']),
+  asyncHandler(async (req, res) => {
+    const result = await pool.query(
+      'SELECT id, email, name, role, is_active, created_at, last_login_at FROM admin_users ORDER BY created_at DESC'
+    );
+    res.json({ items: result.rows });
+  }),
+);
+
+router.post(
+  '/users',
+  requireCsrf,
+  requireRole(['admin']),
+  asyncHandler(async (req, res) => {
+    const body = userCreateSchema.parse(req.body);
+    const passwordHash = await bcrypt.hash(body.password, 12);
+
+    try {
+      const result = await pool.query(
+        \`INSERT INTO admin_users (email, name, password_hash, role, created_by)
+         VALUES ($1, $2, $3, $4, $5) RETURNING id, email, name, role, is_active, created_at\`,
+        [body.email.toLowerCase(), body.name, passwordHash, body.role, req.admin?.id]
+      );
+      await audit(req.admin?.id, 'create', 'admin_user', result.rows[0].id);
+      res.status(201).json({ item: result.rows[0] });
+    } catch (err: any) {
+      if (err.code === '23505') throw new HttpError(409, 'El correo ya está en uso.');
+      throw err;
+    }
+  }),
+);
+
+router.patch(
+  '/users/:id',
+  requireCsrf,
+  requireRole(['admin']),
+  asyncHandler(async (req, res) => {
+    const id = String(req.params.id);
+    const body = userUpdateSchema.parse(req.body);
+
+    const currentUser = await pool.query('SELECT role FROM admin_users WHERE id = $1', [id]);
+    if (currentUser.rowCount === 0) throw new HttpError(404, 'Usuario no encontrado.');
+
+    if (currentUser.rows[0].role === 'super_admin' && req.admin?.role !== 'super_admin') {
+      throw new HttpError(403, 'No puedes modificar a un super administrador.');
+    }
+
+    const result = await pool.query(
+      \`UPDATE admin_users 
+       SET name = COALESCE($2, name), 
+           role = COALESCE($3, role), 
+           is_active = COALESCE($4, is_active),
+           updated_at = now(),
+           updated_by = $5
+       WHERE id = $1 
+       RETURNING id, email, name, role, is_active, updated_at\`,
+      [id, body.name ?? null, body.role ?? null, body.isActive ?? null, req.admin?.id]
+    );
+
+    if (result.rowCount === 0) throw new HttpError(404, 'Usuario no encontrado.');
+    await audit(req.admin?.id, 'update', 'admin_user', id);
+    res.json({ item: result.rows[0] });
+  }),
+);
+
+router.patch(
+  '/users/:id/roles',
+  requireCsrf,
+  requireRole(['admin']),
+  asyncHandler(async (req, res) => {
+    const id = String(req.params.id);
+    const { role } = z.object({ role: z.string() }).parse(req.body);
+
+    const currentUser = await pool.query('SELECT role FROM admin_users WHERE id = $1', [id]);
+    if (currentUser.rowCount === 0) throw new HttpError(404, 'Usuario no encontrado.');
+
+    if (currentUser.rows[0].role === 'super_admin' && req.admin?.role !== 'super_admin') {
+      throw new HttpError(403, 'No puedes modificar a un super administrador.');
+    }
+
+    const result = await pool.query(
+      'UPDATE admin_users SET role = $2, updated_at = now(), updated_by = $3 WHERE id = $1 RETURNING id, role',
+      [id, role, req.admin?.id]
+    );
+    await audit(req.admin?.id, 'update_role', 'admin_user', id);
+    res.json({ item: result.rows[0] });
   }),
 );
 
