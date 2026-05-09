@@ -326,8 +326,8 @@ router.post(
 
     try {
       const result = await pool.query(
-        \`INSERT INTO admin_users (email, name, password_hash, role, created_by)
-         VALUES ($1, $2, $3, $4, $5) RETURNING id, email, name, role, is_active, created_at\`,
+        `INSERT INTO admin_users (email, name, password_hash, role, created_by)
+         VALUES ($1, $2, $3, $4, $5) RETURNING id, email, name, role, is_active, created_at`,
         [body.email.toLowerCase(), body.name, passwordHash, body.role, req.admin?.id]
       );
       await audit(req.admin?.id, 'create', 'admin_user', result.rows[0].id);

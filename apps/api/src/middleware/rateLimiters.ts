@@ -22,4 +22,17 @@ export const publicFormLimiter = rateLimit({
   limit: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (_req, res) => {
+    res.status(429).json({ message: 'Demasiados envíos. Intenta más tarde.' });
+  },
+});
+
+export const adminLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  limit: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (_req, res) => {
+    res.status(429).json({ message: 'Límite de solicitudes administrativas alcanzado.' });
+  },
 });
