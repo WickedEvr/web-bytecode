@@ -359,6 +359,24 @@ CREATE TABLE projects (
   CONSTRAINT ck_projects_currency CHECK (currency_code = UPPER(currency_code))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE project_status_history (
+  id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  project_id CHAR(36) NOT NULL,
+  old_status VARCHAR(40) NULL,
+  new_status VARCHAR(40) NOT NULL,
+  changed_by CHAR(36) NULL,
+  reason TEXT,
+  changed_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  CONSTRAINT fk_project_status_history_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+  CONSTRAINT fk_project_status_history_changed_by FOREIGN KEY (changed_by) REFERENCES admin_users(id) ON DELETE SET NULL,
+  CONSTRAINT ck_project_status_history_old_status CHECK (
+    old_status IS NULL OR old_status IN ('planning', 'in_development', 'qa', 'deployed', 'maintenance')
+  ),
+  CONSTRAINT ck_project_status_history_new_status CHECK (
+    new_status IN ('planning', 'in_development', 'qa', 'deployed', 'maintenance')
+  )
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE project_milestones (
   id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
   project_id CHAR(36) NOT NULL,
@@ -999,6 +1017,7 @@ CREATE INDEX idx_customer_organizations_organization ON customer_organizations (
 CREATE INDEX idx_projects_customer ON projects (customer_id);
 CREATE INDEX idx_projects_status ON projects (status);
 CREATE INDEX idx_projects_service ON projects (service_id);
+CREATE INDEX idx_project_status_history_project_changed ON project_status_history (project_id, changed_at DESC);
 CREATE INDEX idx_project_milestones_project ON project_milestones (project_id);
 CREATE INDEX idx_project_milestones_status ON project_milestones (status);
 CREATE INDEX idx_milestone_payments_milestone ON milestone_payments (milestone_id);
@@ -1028,6 +1047,36 @@ CREATE INDEX idx_cms_pages_slug_active ON cms_pages (slug, deleted_at);
 -- =========================================================
 
 DELIMITER $$
+
+CREATE TRIGGER trg_milestone_payments_validate_currency_bi
+BEFORE INSERT ON milestone_payments
+FOR EACH ROW
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM project_milestones pm
+    JOIN projects p ON p.id = pm.project_id
+    WHERE pm.id = NEW.milestone_id
+      AND p.currency_code = NEW.currency_code
+  ) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Payment currency must match the project currency';
+  END IF;
+END$$
+
+CREATE TRIGGER trg_milestone_payments_validate_currency_bu
+BEFORE UPDATE ON milestone_payments
+FOR EACH ROW
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM project_milestones pm
+    JOIN projects p ON p.id = pm.project_id
+    WHERE pm.id = NEW.milestone_id
+      AND p.currency_code = NEW.currency_code
+  ) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Payment currency must match the project currency';
+  END IF;
+END$$
 
 CREATE TRIGGER trg_contact_attachments_validate_message
 BEFORE INSERT ON contact_case_attachments
