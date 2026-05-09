@@ -3,7 +3,21 @@ import { env } from '../config/env.js';
 
 export const pool = new pg.Pool({
   connectionString: env.databaseUrl,
-  ssl: env.isProduction ? { rejectUnauthorized: false } : undefined,
+  ssl: env.database.ssl ? { rejectUnauthorized: false } : undefined,
+  max: env.database.poolMax,
+  idleTimeoutMillis: env.database.idleTimeoutMs,
+  connectionTimeoutMillis: env.database.connectionTimeoutMs,
+  maxUses: env.database.maxUses,
+});
+
+pool.on('error', (error) => {
+  console.error(JSON.stringify({
+    timestamp: new Date().toISOString(),
+    level: 'error',
+    subsystem: 'postgres',
+    message: 'Unexpected idle PostgreSQL client error.',
+    error: error.message,
+  }));
 });
 
 

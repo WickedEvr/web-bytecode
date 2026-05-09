@@ -13,6 +13,8 @@
     "build:api": "npm run build -w @bytecode/api",
     "test:web-security": "node --import tsx --test \"tests/**/*.test.ts\"",
     "start:api": "npm run start -w @bytecode/api",
+    "db:migrate": "npm run db:migrate -w @bytecode/api",
+    "cloudinary:cleanup-orphans": "npm run cloudinary:cleanup-orphans -w @bytecode/api",
     "lint": "eslint .",
     "preview": "vite preview"
   },

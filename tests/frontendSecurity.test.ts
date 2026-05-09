@@ -6,9 +6,9 @@ test('admin route is protected while admin login remains public', async () => {
   const appSource = await readFile('src/App.tsx', 'utf8');
   const protectedRouteSource = await readFile('src/components/auth/ProtectedRoute.tsx', 'utf8');
 
-  assert.match(appSource, /path="\/admin\/login"\s+element=\{<Admin \/>\}/);
-  assert.match(appSource, /path="\/admin"[\s\S]*<ProtectedRoute>[\s\S]*<Admin \/>[\s\S]*<\/ProtectedRoute>/);
-  assert.match(protectedRouteSource, /apiRequest\('\/api\/auth\/me'\)/);
+  assert.match(appSource, /path="\/admin\/login"\s+element=\{<AdminLogin \/>\}/);
+  assert.match(appSource, /path="\/admin"[\s\S]*<ProtectedRoute>[\s\S]*<AdminLayout \/>[\s\S]*<\/ProtectedRoute>/);
+  assert.match(protectedRouteSource, /apiRequest(?:<[^>]+>)?\('\/api\/auth\/me'\)/);
   assert.match(protectedRouteSource, /\/admin\/login\?redirect=/);
 });
 

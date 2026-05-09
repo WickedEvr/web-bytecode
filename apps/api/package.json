@@ -9,7 +9,8 @@
     "start": "node dist/server.js",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "db:migrate": "tsx src/db/migrate.ts",
-    "admin:create": "tsx src/scripts/createAdmin.ts"
+    "admin:create": "tsx src/scripts/createAdmin.ts",
+    "cloudinary:cleanup-orphans": "tsx src/scripts/cleanupCloudinaryOrphans.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
