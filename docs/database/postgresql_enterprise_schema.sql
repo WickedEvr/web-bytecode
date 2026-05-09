@@ -367,6 +367,21 @@ CREATE TABLE file_assets (
   CONSTRAINT ck_file_assets_storage CHECK (storage_provider IN ('local', 's3', 'cloudinary', 'gcs', 'azure'))
 );
 
+CREATE TABLE milestone_payments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  milestone_id uuid NOT NULL REFERENCES project_milestones(id) ON DELETE CASCADE,
+  amount_paid numeric(14,2) NOT NULL,
+  currency_code char(3) NOT NULL DEFAULT 'PEN',
+  payment_method varchar(80) NOT NULL,
+  reference_number varchar(120),
+  receipt_file_id uuid REFERENCES file_assets(id) ON DELETE SET NULL,
+  paid_at timestamptz NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT ck_milestone_payments_amount CHECK (amount_paid > 0),
+  CONSTRAINT ck_milestone_payments_currency CHECK (currency_code = upper(currency_code))
+);
+
 -- =========================================================
 -- Contact module
 -- =========================================================
@@ -865,6 +880,11 @@ CREATE UNIQUE INDEX uq_organizations_ruc_active ON organizations (ruc) WHERE ruc
 CREATE UNIQUE INDEX uq_customer_documents_active ON customer_documents (document_type_id, document_number) WHERE deleted_at IS NULL;
 CREATE INDEX idx_customer_addresses_customer ON customer_addresses (customer_id, is_primary DESC);
 CREATE INDEX idx_customer_organizations_organization ON customer_organizations (organization_id);
+CREATE INDEX idx_projects_customer ON projects (customer_id);
+CREATE INDEX idx_projects_status ON projects (status);
+CREATE INDEX idx_projects_service ON projects (service_id);
+CREATE INDEX idx_project_milestones_project ON project_milestones (project_id);
+CREATE INDEX idx_project_milestones_status ON project_milestones (status);
 CREATE INDEX idx_contact_cases_status_created ON contact_cases (status_id, created_at DESC);
 CREATE INDEX idx_contact_cases_assignee_status ON contact_cases (assigned_to, status_id, created_at DESC);
 CREATE INDEX idx_contact_cases_customer_created ON contact_cases (customer_id, created_at DESC);
@@ -907,6 +927,7 @@ CREATE TRIGGER trg_customer_addresses_updated_at BEFORE UPDATE ON customer_addre
 CREATE TRIGGER trg_projects_updated_at BEFORE UPDATE ON projects FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_project_milestones_updated_at BEFORE UPDATE ON project_milestones FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_file_assets_updated_at BEFORE UPDATE ON file_assets FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE TRIGGER trg_milestone_payments_updated_at BEFORE UPDATE ON milestone_payments FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_contact_categories_updated_at BEFORE UPDATE ON contact_categories FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_contact_cases_updated_at BEFORE UPDATE ON contact_cases FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_contact_case_messages_updated_at BEFORE UPDATE ON contact_case_messages FOR EACH ROW EXECUTE FUNCTION set_updated_at();
