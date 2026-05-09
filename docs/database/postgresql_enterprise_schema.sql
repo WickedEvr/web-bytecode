@@ -339,7 +339,7 @@ CREATE TABLE project_milestones (
   completed_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT ck_project_milestones_status CHECK (status IN ('pending', 'completed', 'delayed')),
+  CONSTRAINT ck_project_milestones_status CHECK (status IN ('pending', 'completed', 'delayed', 'cancelled')),
   CONSTRAINT ck_project_milestones_payment CHECK (payment_percentage BETWEEN 0 AND 100)
 );
 
@@ -369,17 +369,20 @@ CREATE TABLE file_assets (
 
 CREATE TABLE milestone_payments (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  milestone_id uuid NOT NULL REFERENCES project_milestones(id) ON DELETE CASCADE,
+  milestone_id uuid NOT NULL REFERENCES project_milestones(id) ON DELETE RESTRICT,
   amount_paid numeric(14,2) NOT NULL,
   currency_code char(3) NOT NULL DEFAULT 'PEN',
   payment_method varchar(80) NOT NULL,
   reference_number varchar(120),
   receipt_file_id uuid REFERENCES file_assets(id) ON DELETE SET NULL,
   paid_at timestamptz NOT NULL,
+  status varchar(40) NOT NULL DEFAULT 'valid',
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
+  deleted_at timestamptz,
   CONSTRAINT ck_milestone_payments_amount CHECK (amount_paid > 0),
-  CONSTRAINT ck_milestone_payments_currency CHECK (currency_code = upper(currency_code))
+  CONSTRAINT ck_milestone_payments_currency CHECK (currency_code = upper(currency_code)),
+  CONSTRAINT ck_milestone_payments_status CHECK (status IN ('valid', 'refunded', 'voided'))
 );
 
 -- =========================================================
@@ -885,6 +888,7 @@ CREATE INDEX idx_projects_status ON projects (status);
 CREATE INDEX idx_projects_service ON projects (service_id);
 CREATE INDEX idx_project_milestones_project ON project_milestones (project_id);
 CREATE INDEX idx_project_milestones_status ON project_milestones (status);
+CREATE INDEX idx_milestone_payments_milestone ON milestone_payments (milestone_id);
 CREATE INDEX idx_contact_cases_status_created ON contact_cases (status_id, created_at DESC);
 CREATE INDEX idx_contact_cases_assignee_status ON contact_cases (assigned_to, status_id, created_at DESC);
 CREATE INDEX idx_contact_cases_customer_created ON contact_cases (customer_id, created_at DESC);

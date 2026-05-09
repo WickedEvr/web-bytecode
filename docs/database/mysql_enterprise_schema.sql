@@ -370,7 +370,7 @@ CREATE TABLE project_milestones (
   created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
   CONSTRAINT fk_project_milestones_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-  CONSTRAINT ck_project_milestones_status CHECK (status IN ('pending', 'completed', 'delayed')),
+  CONSTRAINT ck_project_milestones_status CHECK (status IN ('pending', 'completed', 'delayed', 'cancelled')),
   CONSTRAINT ck_project_milestones_payment CHECK (payment_percentage BETWEEN 0 AND 100)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
@@ -410,12 +410,15 @@ CREATE TABLE milestone_payments (
   reference_number VARCHAR(120) NULL,
   receipt_file_id CHAR(36) NULL,
   paid_at TIMESTAMP(6) NOT NULL,
+  status VARCHAR(40) NOT NULL DEFAULT 'valid',
   created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-  CONSTRAINT fk_milestone_payments_milestone FOREIGN KEY (milestone_id) REFERENCES project_milestones(id) ON DELETE CASCADE,
+  deleted_at TIMESTAMP(6) NULL,
+  CONSTRAINT fk_milestone_payments_milestone FOREIGN KEY (milestone_id) REFERENCES project_milestones(id) ON DELETE RESTRICT,
   CONSTRAINT fk_milestone_payments_receipt_file FOREIGN KEY (receipt_file_id) REFERENCES file_assets(id) ON DELETE SET NULL,
   CONSTRAINT ck_milestone_payments_amount CHECK (amount_paid > 0),
-  CONSTRAINT ck_milestone_payments_currency CHECK (currency_code = UPPER(currency_code))
+  CONSTRAINT ck_milestone_payments_currency CHECK (currency_code = UPPER(currency_code)),
+  CONSTRAINT ck_milestone_payments_status CHECK (status IN ('valid', 'refunded', 'voided'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE contact_categories (
@@ -998,6 +1001,7 @@ CREATE INDEX idx_projects_status ON projects (status);
 CREATE INDEX idx_projects_service ON projects (service_id);
 CREATE INDEX idx_project_milestones_project ON project_milestones (project_id);
 CREATE INDEX idx_project_milestones_status ON project_milestones (status);
+CREATE INDEX idx_milestone_payments_milestone ON milestone_payments (milestone_id);
 CREATE INDEX idx_contact_cases_status_created ON contact_cases (status_id, created_at DESC);
 CREATE INDEX idx_contact_cases_assignee_status ON contact_cases (assigned_to, status_id, created_at DESC);
 CREATE INDEX idx_contact_cases_customer_created ON contact_cases (customer_id, created_at DESC);
