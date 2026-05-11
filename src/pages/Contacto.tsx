@@ -313,6 +313,16 @@ const ServiceDropdown: React.FC<ServiceDropdownProps> = ({ value, onChange }) =>
 
   return (
     <div className="relative w-full" ref={dropdownRef}>
+      {/* Hidden input for native HTML5 validation */}
+      <input 
+        type="text" 
+        value={value} 
+        onChange={() => {}} 
+        required 
+        className="absolute opacity-0 w-full h-full -z-10 pointer-events-none" 
+        tabIndex={-1} 
+        aria-hidden="true" 
+      />
       <div 
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center justify-between w-full bg-white rounded-full px-6 py-[0.6rem] cursor-pointer shadow-sm transition-all ${isOpen ? 'ring-2 ring-[#06CFD6]' : ''}`}
@@ -456,6 +466,8 @@ const Contacto: React.FC = () => {
               placeholder="Nombre Completo"
               className={solidInput}
               required
+              minLength={2}
+              maxLength={160}
               value={formData.nombre}
               onChange={handleChange}
             />
@@ -469,6 +481,8 @@ const Contacto: React.FC = () => {
               placeholder="Cargo"
               className={solidInput}
               required
+              minLength={2}
+              maxLength={160}
               value={formData.cargo}
               onChange={handleChange}
             />
@@ -482,6 +496,8 @@ const Contacto: React.FC = () => {
               placeholder="Correo"
               className={solidInput}
               required
+              minLength={2}
+              maxLength={160}
               value={formData.email}
               onChange={handleChange}
             />
@@ -503,6 +519,8 @@ const Contacto: React.FC = () => {
               placeholder="Empresa"
               className={solidInput}
               required
+              minLength={2}
+              maxLength={160}
               value={formData.empresa}
               onChange={handleChange}
             />
@@ -516,6 +534,8 @@ const Contacto: React.FC = () => {
               placeholder="RUC"
               className={solidInput}
               required
+              minLength={2}
+              maxLength={160}
               value={formData.ruc}
               onChange={handleChange}
             />

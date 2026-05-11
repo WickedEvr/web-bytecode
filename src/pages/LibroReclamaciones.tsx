@@ -155,9 +155,9 @@ const AnimatedSubmitButton: React.FC<AnimatedButtonProps> = ({
 
 // 1. Dropdown Genérico (Basado en ServiceDropdown)
 interface DropdownOption { value: string; label: string; }
-interface CustomDropdownProps { value: string; options: DropdownOption[]; onChange: (val: string) => void; placeholder: string; }
+interface CustomDropdownProps { value: string; options: DropdownOption[]; onChange: (val: string) => void; placeholder: string; required?: boolean; }
 
-const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChange, placeholder }) => {
+const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChange, placeholder, required}) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const selectedLabel = options.find((opt) => opt.value === value)?.label || placeholder;
@@ -172,6 +172,16 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChang
 
   return (
     <div className="relative w-full" ref={dropdownRef}>
+      {/* Hidden input for native HTML5 validation */}
+      <input
+        type="text"
+        value={value}
+        onChange={() => {}}
+        required={required}
+        className="absolute opacity-0 w-full h-full -z-10 pointer-events-none"
+        tabIndex={-1}
+        aria-hidden="true"
+      />
       <div 
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center justify-between w-full bg-white rounded-full px-5 py-[0.6rem] cursor-pointer shadow-sm transition-all ${isOpen ? 'ring-2 ring-[#06CFD6]' : 'lg:hover:bg-gray-50'}`}
@@ -532,18 +542,18 @@ const LibroReclamaciones: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div><Label text="Nombres" required /><input name="nombres" type="text" placeholder="Nombres Completos" value={formData.nombres} onChange={handleChange} className={solidInput} required /></div>
-              <div><Label text="Apellidos" required /><input name="apellidos" type="text" placeholder="Apellidos Completos" value={formData.apellidos} onChange={handleChange} className={solidInput} required /></div>
+              <div><Label text="Nombres" required /><input name="nombres" type="text" placeholder="Nombres Completos" value={formData.nombres} onChange={handleChange} className={solidInput} required minLength={2} maxLength={160} /></div>
+              <div><Label text="Apellidos" required /><input name="apellidos" type="text" placeholder="Apellidos Completos" value={formData.apellidos} onChange={handleChange} className={solidInput} required minLength={2} maxLength={160} /></div>
             </div>
 
-            <div><Label text="Domicilio" required /><input name="domicilio" type="text" placeholder="Dirección completa" value={formData.domicilio} onChange={handleChange} className={solidInput} required /></div>
+            <div><Label text="Domicilio" required /><input name="domicilio" type="text" placeholder="Dirección completa" value={formData.domicilio} onChange={handleChange} className={solidInput} required minLength={4} maxLength={240} /></div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
                 <Label text="Tipo de Documento" required />
-                <CustomDropdown value={formData.tipoDoc} placeholder="Seleccione un tipo" onChange={(val) => handleCustomDropdown('tipoDoc', val)} options={documentTypeOptions} />
+                <CustomDropdown value={formData.tipoDoc} placeholder="Seleccione un tipo" onChange={(val) => handleCustomDropdown('tipoDoc', val)} options={documentTypeOptions} required />
               </div>
-              <div><Label text="Número de Documento" required /><input name="numeroDoc" type="text" placeholder="Número" value={formData.numeroDoc} onChange={handleChange} className={solidInput} required /></div>
+              <div><Label text="Número de Documento" required /><input name="numeroDoc" type="text" placeholder="Número" value={formData.numeroDoc} onChange={handleChange} className={solidInput} required minLength={4} maxLength={40} /></div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -551,7 +561,7 @@ const LibroReclamaciones: React.FC = () => {
                 <Label text="Número de celular" required />
                 <PhoneInputGroup value={formData.telefono} onChange={handleChange} onCountryChange={handleCountryChange} />
               </div>
-              <div><Label text="Correo Electrónico" required /><input name="email" type="email" placeholder="ejemplo@correo.com" value={formData.email} onChange={handleChange} className={solidInput} required /></div>
+              <div><Label text="Correo Electrónico" required /><input name="email" type="email" placeholder="ejemplo@correo.com" value={formData.email} onChange={handleChange} className={solidInput} required maxLength={180} /></div>
             </div>
           </div>
 
@@ -566,11 +576,11 @@ const LibroReclamaciones: React.FC = () => {
               <Radio name="goodType" value="servicio" label="Servicio" checked={formData.goodType === 'servicio'} onChange={handleChange} />
             </div>
 
-            <div><Label text="Monto Reclamado (Opcional)" /><input name="montoCuantificable" type="text" placeholder="Ej: S/ 1500.00" value={formData.montoCuantificable} onChange={handleChange} className={solidInput} /></div>
-            <div><Label text="Descripción" required /><input name="descripcion" type="text" placeholder="Descripción del producto o servicio" value={formData.descripcion} onChange={handleChange} className={solidInput} required /></div>
+            <div><Label text="Monto Reclamado (Opcional)" /><input name="montoCuantificable" type="text" placeholder="Ej: S/ 1500.00" value={formData.montoCuantificable} onChange={handleChange} className={solidInput} maxLength={80} /></div>
+            <div><Label text="Descripción" required /><input name="descripcion" type="text" placeholder="Descripción del producto o servicio" value={formData.descripcion} onChange={handleChange} className={solidInput} required minLength={2} maxLength={240} /></div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div><Label text="Nombre del proyecto/unidad" /><input name="nombreUnidad" type="text" placeholder="Ej: Landing Page Corporativa" value={formData.nombreUnidad} onChange={handleChange} className={solidInput} /></div>
+              <div><Label text="Nombre del proyecto/unidad" /><input name="nombreUnidad" type="text" placeholder="Ej: Landing Page Corporativa" value={formData.nombreUnidad} onChange={handleChange} className={solidInput} maxLength={160} /></div>
               <div>
                 <Label text="Categoría" />
                 <CustomDropdown value={formData.opcionBien} placeholder="Seleccione una opción" onChange={(val) => handleCustomDropdown('opcionBien', val)} options={serviceOptions} />
@@ -595,9 +605,9 @@ const LibroReclamaciones: React.FC = () => {
               )}
             </div>
 
-            <div><Label text="Motivo" required /><input name="tipoReclamo" type="text" placeholder="Ej: Incumplimiento de plazos" value={formData.tipoReclamo} onChange={handleChange} className={solidInput} required /></div>
-            <div><Label text="Detalle de la queja/reclamo" required /><textarea name="detalle" placeholder="Explique detalladamente lo sucedido..." rows={4} value={formData.detalle} onChange={handleChange} className={solidArea} required /></div>
-            <div><Label text="Pedido (Solución esperada)" required /><textarea name="pedido" placeholder="¿Qué solución espera de nuestra parte?" rows={3} value={formData.pedido} onChange={handleChange} className={solidArea} required /></div>
+            <div><Label text="Motivo" required /><input name="tipoReclamo" type="text" placeholder="Ej: Incumplimiento de plazos" value={formData.tipoReclamo} onChange={handleChange} className={solidInput} required minLength={2} maxLength={160} /></div>
+            <div><Label text="Detalle de la queja/reclamo" required /><textarea name="detalle" placeholder="Explique detalladamente lo sucedido..." rows={4} value={formData.detalle} onChange={handleChange} className={solidArea} required minLength={10} maxLength={3000} /></div>
+            <div><Label text="Pedido (Solución esperada)" required /><textarea name="pedido" placeholder="¿Qué solución espera de nuestra parte?" rows={3} value={formData.pedido} onChange={handleChange} className={solidArea} required minLength={5} maxLength={2000} /></div>
 
             {/* ── Adjuntar Archivo ── */}
             <div className="pt-4">
