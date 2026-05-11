@@ -24,7 +24,14 @@ function deferRenderBlockingCss(): PluginOption {
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), deferRenderBlockingCss()],
-  server: {},
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
+      },
+    },
+  },
   build: {
     rollupOptions: {
       output: {

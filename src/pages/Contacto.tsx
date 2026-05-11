@@ -4,7 +4,7 @@ import { motion, AnimatePresence, type HTMLMotionProps } from 'framer-motion';
 import SEO from '../components/shared/SEO';
 import LazyGalaxyBackground from '../components/effects/LazyGalaxyBackground';
 import ContactFooter from '../components/layout/ContactFooter';
-import { createContactSubmission } from '../lib/api';
+import { createContactSubmission, fetchCountries, fetchServices, type CountryData } from '../lib/api';
 
 const solidInput =
   'w-full bg-white rounded-full px-6 py-[0.6rem] text-[#333] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06CFD6] transition-all text-[20px] shadow-sm';
@@ -120,15 +120,7 @@ const AnimatedSubmitButton: React.FC<AnimatedButtonProps> = ({
   );
 };
 
-// 1. Interfaz preparada para tu futura BD SQL
-interface CountryData {
-  id: string;
-  iso: string;
-  name: string;
-  dialCode: string;
-  flag: string;
-  maxLength: number;
-}
+// 1. Interfaz preparada para tu futura BD SQL (Importada desde api.ts)
 
 interface PhoneInputProps {
   value: string;
@@ -146,21 +138,19 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
 
   // 2. Simulación de Fetch a BD (Futura integración SQL)
   useEffect(() => {
-    const fetchCountries = async () => {
-      // A futuro, esto será: const response = await fetch('/api/countries');
-      const mockDB: CountryData[] = [
-        { id: '1', iso: 'PE', name: 'Perú', dialCode: '+51', flag: '🇵🇪', maxLength: 9 },
-        { id: '2', iso: 'MX', name: 'México', dialCode: '+52', flag: '🇲🇽', maxLength: 10 },
-        { id: '3', iso: 'CO', name: 'Colombia', dialCode: '+57', flag: '🇨🇴', maxLength: 10 },
-        { id: '4', iso: 'CL', name: 'Chile', dialCode: '+56', flag: '🇨🇱', maxLength: 9 },
-        { id: '5', iso: 'US', name: 'Estados Unidos', dialCode: '+1', flag: '🇺🇸', maxLength: 10 },
-        { id: '6', iso: 'ES', name: 'España', dialCode: '+34', flag: '🇪🇸', maxLength: 9 },
-      ];
-      setCountries(mockDB);
-      setSelectedCountry(mockDB[0]); 
-      if (onCountryChange) onCountryChange(mockDB[0].dialCode);
+    const loadCountries = async () => {
+      try {
+        const data = await fetchCountries();
+        setCountries(data);
+        if (data.length > 0) {
+          setSelectedCountry(data[0]); 
+          if (onCountryChange) onCountryChange(data[0].dialCode);
+        }
+      } catch (error) {
+        console.error('Error fetching countries:', error);
+      }
     };
-    fetchCountries();
+    loadCountries();
   }, [onCountryChange]);
 
   useEffect(() => {
@@ -287,13 +277,20 @@ interface ServiceDropdownProps {
 
 const ServiceDropdown: React.FC<ServiceDropdownProps> = ({ value, onChange }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [options, setOptions] = useState<ServiceOption[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const options: ServiceOption[] = [
-    { value: 'web', label: 'Página Web' },
-    { value: 'app', label: 'App Móvil' },
-    { value: 'desktop', label: 'App de Escritorio' },
-  ];
+  useEffect(() => {
+    const loadServices = async () => {
+      try {
+        const data = await fetchServices();
+        setOptions(data.map(s => ({ value: s.code, label: s.name })));
+      } catch (error) {
+        console.error('Error fetching services:', error);
+      }
+    };
+    loadServices();
+  }, []);
 
   const selectedLabel = options.find((opt) => opt.value === value)?.label || 'Seleccione su servicio';
 

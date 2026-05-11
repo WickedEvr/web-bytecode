@@ -91,6 +91,16 @@ const parseClaimedAmount = (value: string) => {
 };
 
 // --- ENDPOINTS PARA CATÁLOGOS ---
+router.get('/catalog/countries', asyncHandler(async (_req: Request, res: Response) => {
+  const result = await pool.query('SELECT id, iso2 as iso, name, dial_code as "dialCode", phone_max_length as "maxLength" FROM countries WHERE is_active = true ORDER BY name ASC');
+  res.json({ items: result.rows });
+}));
+
+router.get('/catalog/services', asyncHandler(async (_req: Request, res: Response) => {
+  const result = await pool.query('SELECT id, code, name FROM service_catalog WHERE is_active = true ORDER BY name ASC');
+  res.json({ items: result.rows });
+}));
+
 router.get('/catalog/complaint-types', asyncHandler(async (_req: Request, res: Response) => {
   const result = await pool.query('SELECT id, code, name FROM complaint_types WHERE is_active = true ORDER BY name ASC');
   res.json({ items: result.rows });
