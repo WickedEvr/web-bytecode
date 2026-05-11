@@ -129,22 +129,25 @@ interface PhoneInputProps {
   onCountryChange?: (dialCode: string) => void; 
 }
 
+const defaultPeru: CountryData = { id: 'default', iso: 'PE', name: 'Perú', dialCode: '+51', maxLength: 9 };
+
 const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountryChange }) => {
-  const [countries, setCountries] = useState<CountryData[]>([]);
-  const [selectedCountry, setSelectedCountry] = useState<CountryData | null>(null);
+  const [countries, setCountries] = useState<CountryData[]>([defaultPeru]);
+  const [selectedCountry, setSelectedCountry] = useState<CountryData>(defaultPeru);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [error, setError] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // 2. Simulación de Fetch a BD (Futura integración SQL)
+  // 2. Fetch a BD (Integración SQL)
   useEffect(() => {
     const loadCountries = async () => {
       try {
         const data = await fetchCountries();
         setCountries(data);
         if (data.length > 0) {
-          setSelectedCountry(data[0]); 
-          if (onCountryChange) onCountryChange(data[0].dialCode);
+          const peru = data.find(c => c.iso === 'PE') || data[0];
+          setSelectedCountry(peru); 
+          if (onCountryChange) onCountryChange(peru.dialCode);
         }
       } catch (error) {
         console.error('Error fetching countries:', error);
@@ -182,8 +185,6 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
     if (onCountryChange) onCountryChange(country.dialCode);
     setError(''); 
   };
-
-  if (!selectedCountry) return null;
 
   return (
     <div className="relative w-full" ref={dropdownRef}>
@@ -284,7 +285,8 @@ const ServiceDropdown: React.FC<ServiceDropdownProps> = ({ value, onChange }) =>
     const loadServices = async () => {
       try {
         const data = await fetchServices();
-        setOptions(data.map(s => ({ value: s.code, label: s.name })));
+        const filteredData = data.filter(s => s.code !== 'custom_software');
+        setOptions(filteredData.map(s => ({ value: s.code, label: s.name })));
       } catch (error) {
         console.error('Error fetching services:', error);
       }
@@ -490,8 +492,6 @@ const Contacto: React.FC = () => {
             <PhoneInputGroup 
               value={formData.celular} 
               onChange={handleChange}
-              // Si en el futuro quieres guardar el +51 en la BD por separado:
-              // onCountryChange={(code) => setFormData({...formData, prefijo: code})}
             />
           </div>
 
