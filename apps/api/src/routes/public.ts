@@ -101,6 +101,11 @@ router.get('/catalog/services', asyncHandler(async (_req: Request, res: Response
   res.json({ items: result.rows });
 }));
 
+router.get('/catalog/document-types', asyncHandler(async (_req: Request, res: Response) => {
+  const result = await pool.query('SELECT id, code, name FROM document_types WHERE is_active = true ORDER BY name ASC');
+  res.json({ items: result.rows });
+}));
+
 router.get('/catalog/complaint-types', asyncHandler(async (_req: Request, res: Response) => {
   const result = await pool.query('SELECT id, code, name FROM complaint_types WHERE is_active = true ORDER BY name ASC');
   res.json({ items: result.rows });

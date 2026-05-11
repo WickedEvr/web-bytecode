@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, type HTMLMotionProps } from 'framer-motion';
 import ContactFooter from '../components/layout/ContactFooter';
 import LazyGalaxyBackground from '../components/effects/LazyGalaxyBackground';
-import { createComplaint, apiRequest } from '../lib/api';
+import { createComplaint, apiRequest, fetchCountries, fetchServices, fetchDocumentTypes, type CountryData } from '../lib/api';
 
 // --- ESTILOS UNIFICADOS (Basados en Contacto) ---
 const solidInput =
@@ -208,26 +208,33 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChang
 };
 
 // 2. Phone Input (Idéntico al de Contacto)
-interface CountryData { id: string; iso: string; name: string; dialCode: string; flag: string; maxLength: number; }
 interface PhoneInputProps { value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; onCountryChange?: (dialCode: string) => void; }
 
-const mockDB: CountryData[] = [
-  { id: '1', iso: 'PE', name: 'Perú', dialCode: '+51', flag: '🇵🇪', maxLength: 9 },
-  { id: '2', iso: 'MX', name: 'México', dialCode: '+52', flag: '🇲🇽', maxLength: 10 },
-  { id: '3', iso: 'CO', name: 'Colombia', dialCode: '+57', flag: '🇨🇴', maxLength: 10 },
-  { id: '4', iso: 'CL', name: 'Chile', dialCode: '+56', flag: '🇨🇱', maxLength: 9 },
-];
+const defaultPeru: CountryData = { id: 'default', iso: 'PE', name: 'Perú', dialCode: '+51', maxLength: 9 };
 
 const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountryChange }) => {
-  const [countries] = useState<CountryData[]>(mockDB);
-  const [selectedCountry, setSelectedCountry] = useState<CountryData | null>(mockDB[0]);
+  const [countries, setCountries] = useState<CountryData[]>([defaultPeru]);
+  const [selectedCountry, setSelectedCountry] = useState<CountryData>(defaultPeru);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [error, setError] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (onCountryChange && selectedCountry) onCountryChange(selectedCountry.dialCode);
-  }, [onCountryChange, selectedCountry]);
+    const loadCountries = async () => {
+      try {
+        const data = await fetchCountries();
+        setCountries(data);
+        if (data.length > 0) {
+          const peru = data.find(c => c.iso === 'PE') || data[0];
+          setSelectedCountry(peru); 
+          if (onCountryChange) onCountryChange(peru.dialCode);
+        }
+      } catch (error) {
+        console.error('Error fetching countries:', error);
+      }
+    };
+    loadCountries();
+  }, [onCountryChange]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -244,8 +251,6 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
     if (selectedCountry && val.length > 0 && val.length !== selectedCountry.maxLength) setError(`Debe tener ${selectedCountry.maxLength} dígitos`);
     else setError('');
   };
-
-  if (!selectedCountry) return null;
 
   return (
     <div className="relative w-full" ref={dropdownRef}>
@@ -308,6 +313,8 @@ const LibroReclamaciones: React.FC = () => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [complaintTypes, setComplaintTypes] = useState<{ id: string, code: string, name: string }[]>([]);
+  const [serviceOptions, setServiceOptions] = useState<DropdownOption[]>([]);
+  const [documentTypeOptions, setDocumentTypeOptions] = useState<DropdownOption[]>([]);
 
   useEffect(() => {
     apiRequest<{ items: { id: string, code: string, name: string }[] }>('/api/catalog/complaint-types')
@@ -322,6 +329,36 @@ const LibroReclamaciones: React.FC = () => {
         }
       })
       .catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    const loadServices = async () => {
+      try {
+        const data = await fetchServices();
+        const filteredData = data.filter(s => s.code !== 'custom_software');
+        setServiceOptions(filteredData.map(s => ({ value: s.code, label: s.name })));
+      } catch (error) {
+        console.error('Error fetching services:', error);
+      }
+    };
+    loadServices();
+  }, []);
+
+  useEffect(() => {
+    const loadDocumentTypes = async () => {
+      try {
+        const data = await fetchDocumentTypes();
+        setDocumentTypeOptions(data.map(dt => ({ value: dt.code, label: dt.name })));
+
+        // Optionally set a default value if not already set and options are available
+        if (data.length > 0) {
+          setFormData(prev => prev.tipoDoc ? prev : { ...prev, tipoDoc: data[0].code });
+        }
+      } catch (error) {
+        console.error('Error fetching document types:', error);
+      }
+    };
+    loadDocumentTypes();
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -455,7 +492,7 @@ const LibroReclamaciones: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
                 <Label text="Tipo de Documento" required />
-                <CustomDropdown value={formData.tipoDoc} placeholder="Seleccione un tipo" onChange={(val) => handleCustomDropdown('tipoDoc', val)} options={[{ value: 'DNI', label: 'DNI' }, { value: 'CE', label: 'CE' }, { value: 'RUC', label: 'RUC' }]} />
+                <CustomDropdown value={formData.tipoDoc} placeholder="Seleccione un tipo" onChange={(val) => handleCustomDropdown('tipoDoc', val)} options={documentTypeOptions.length > 0 ? documentTypeOptions : [{ value: '', label: 'Cargando...' }]} />
               </div>
               <div><Label text="Número de Documento" required /><input name="numeroDoc" type="text" placeholder="Número" value={formData.numeroDoc} onChange={handleChange} className={solidInput} required /></div>
             </div>
@@ -487,7 +524,7 @@ const LibroReclamaciones: React.FC = () => {
               <div><Label text="Nombre del proyecto/unidad" /><input name="nombreUnidad" type="text" placeholder="Ej: Landing Page Corporativa" value={formData.nombreUnidad} onChange={handleChange} className={solidInput} /></div>
               <div>
                 <Label text="Categoría" />
-                <CustomDropdown value={formData.opcionBien} placeholder="Seleccione una opción" onChange={(val) => handleCustomDropdown('opcionBien', val)} options={[{ value: 'opt1', label: 'Desarrollo Web' }, { value: 'opt2', label: 'Aplicación Móvil' }, { value: 'opt3', label: 'Software a Medida' }]} />
+                <CustomDropdown value={formData.opcionBien} placeholder="Seleccione una opción" onChange={(val) => handleCustomDropdown('opcionBien', val)} options={serviceOptions.length > 0 ? serviceOptions : [{ value: '', label: 'Cargando...' }]} />
               </div>
             </div>
           </div>

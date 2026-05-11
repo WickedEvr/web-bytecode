@@ -81,6 +81,12 @@ export interface ServiceData {
   name: string;
 }
 
+export interface DocumentTypeData {
+  id: string;
+  code: string;
+  name: string;
+}
+
 // --- Nuevas peticiones GET usando tu wrapper apiRequest ---
 export const fetchCountries = async () => {
   const response = await apiRequest<{ items: CountryData[] }>('/api/catalog/countries', {
@@ -91,6 +97,13 @@ export const fetchCountries = async () => {
 
 export const fetchServices = async () => {
   const response = await apiRequest<{ items: ServiceData[] }>('/api/catalog/services', {
+    method: 'GET',
+  });
+  return response.items;
+};
+
+export const fetchDocumentTypes = async () => {
+  const response = await apiRequest<{ items: DocumentTypeData[] }>('/api/catalog/document-types', {
     method: 'GET',
   });
   return response.items;
