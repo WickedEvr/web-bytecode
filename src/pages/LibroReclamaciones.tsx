@@ -252,30 +252,84 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
     else setError('');
   };
 
+  const handleSelectCountry = (country: CountryData) => {
+    setSelectedCountry(country);
+    setIsDropdownOpen(false);
+    if (onCountryChange) onCountryChange(country.dialCode);
+    setError(''); 
+  };
+
   return (
     <div className="relative w-full" ref={dropdownRef}>
-      <div className={`flex items-center w-full bg-white rounded-full transition-all shadow-sm ${error ? 'ring-2 ring-red-400' : 'focus-within:ring-2 focus-within:ring-[#06CFD6]'}`}>
-        <div onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="shrink-0 flex items-center gap-1.5 pl-4 pr-2 py-[0.6rem] border-r border-gray-200 cursor-pointer rounded-l-full lg:hover:bg-gray-50">
-          <img src={`https://flagcdn.com/w20/${selectedCountry.iso.toLowerCase()}.png`} alt={selectedCountry.name} className="w-6 h-auto rounded-sm" />
+      <div className={`flex items-center w-full bg-white rounded-full overflow-visible transition-all shadow-sm ${error ? 'ring-2 ring-red-400' : 'focus-within:ring-2 focus-within:ring-[#06CFD6]'}`}>
+        
+        <div 
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          className="shrink-0 flex items-center gap-1.5 md:gap-2 pl-4 md:pl-6 pr-2 md:pr-3 py-[0.6rem] border-r border-gray-200 bg-white cursor-pointer rounded-l-full select-none lg:hover:bg-gray-50"
+        >
+          <img
+            src={`https://flagcdn.com/w20/${selectedCountry.iso.toLowerCase()}.png`}
+            srcSet={`https://flagcdn.com/w40/${selectedCountry.iso.toLowerCase()}.png 2x`}
+            alt={selectedCountry.name}
+            className="w-6 h-auto object-contain rounded-sm"
+            title={selectedCountry.name}
+          />
           <span className="text-[18px] md:text-[20px] font-semibold text-gray-600">{selectedCountry.dialCode}</span>
-          <svg className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className={`w-3 h-3 text-gray-400 transition-transform duration-200 shrink-0 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </div>
-        <input type="tel" name="telefono" placeholder={`Ej: ${'9'.repeat(selectedCountry.maxLength)}`} required maxLength={selectedCountry.maxLength} value={value} onChange={handleInputChange} className="flex-1 bg-transparent px-4 py-[0.6rem] text-[#333] placeholder-gray-400 focus:outline-none text-[18px] md:text-[20px] rounded-r-full" />
+
+        <input
+          type="tel"
+          name="telefono"
+          placeholder={`Ej: ${'9'.repeat(selectedCountry.maxLength)}`}
+          className="flex-1 bg-transparent px-4 py-[0.6rem] text-[#333] placeholder-gray-400 focus:outline-none text-[18px] md:text-[20px] rounded-r-full"
+          required
+          maxLength={selectedCountry.maxLength}
+          value={value}
+          onChange={handleInputChange}
+        />
       </div>
+
       <AnimatePresence>
         {isDropdownOpen && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-full left-0 mt-2 w-[280px] bg-white border border-gray-100 shadow-xl rounded-xl z-[100] py-2">
-            {countries.map((c) => (
-              <div key={c.id} onClick={() => { setSelectedCountry(c); setIsDropdownOpen(false); if(onCountryChange) onCountryChange(c.dialCode); setError(''); }} className={`flex items-center justify-between px-5 py-3 cursor-pointer ${selectedCountry.id === c.id ? 'bg-[#06CFD6]/15 text-[#0CA3C6] font-bold' : 'text-gray-600 lg:hover:bg-gray-200 lg:hover:text-gray-900'}`}>
-                <div className="flex items-center gap-3"><img src={`https://flagcdn.com/w20/${c.iso.toLowerCase()}.png`} className="w-5" /><span className="font-bold text-[0.9rem]">{c.name}</span></div>
-                <span className="text-sm font-semibold opacity-100">{c.dialCode}</span>
-              </div>
-            ))}
+          <motion.div
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            style={{ transformOrigin: "top left" }}
+            className="absolute top-full left-0 mt-2 w-[280px] bg-white border border-gray-100 shadow-xl rounded-xl overflow-hidden z-[100]"
+          >
+            <div className="max-h-[240px] overflow-y-auto py-2 custom-scrollbar overscroll-contain">
+              {countries.map((country) => (
+                <div
+                  key={country.id}
+                  onClick={() => handleSelectCountry(country)}
+                  className={`flex items-center justify-between px-5 py-3 cursor-pointer transition-colors ${
+                    selectedCountry.id === country.id 
+                      ? 'bg-[#06CFD6]/15 text-[#0CA3C6] font-bold' 
+                      : 'text-gray-600 lg:hover:bg-gray-200 lg:hover:text-gray-900'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={`https://flagcdn.com/w20/${country.iso.toLowerCase()}.png`}
+                      srcSet={`https://flagcdn.com/w40/${country.iso.toLowerCase()}.png 2x`}
+                      alt={country.name}
+                      className="w-5 h-auto object-contain rounded-sm shadow-sm"
+                    />
+                    <span className="font-bold text-[0.9rem]">{country.name}</span>
+                  </div>
+                  <span className="text-sm font-semibold">{country.dialCode}</span>
+                </div>
+              ))}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
+
       {error && <span className="absolute -bottom-5 left-4 text-xs font-bold text-red-400">{error}</span>}
     </div>
   );
