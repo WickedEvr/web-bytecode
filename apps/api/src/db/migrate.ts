@@ -7,7 +7,7 @@ import { env } from '../config/env.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const schemaPath = path.resolve(__dirname, '../../../../../docs/database/postgresql_enterprise_schema.sql');
+const schemaPath = path.resolve(__dirname, '../../../../docs/database/postgresql_enterprise_schema.sql');
 
 async function seedAdmins() {
   for (const admin of env.adminSeeds) {
