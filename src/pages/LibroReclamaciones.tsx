@@ -524,7 +524,7 @@ const LibroReclamaciones: React.FC = () => {
               <div><Label text="Nombre del proyecto/unidad" /><input name="nombreUnidad" type="text" placeholder="Ej: Landing Page Corporativa" value={formData.nombreUnidad} onChange={handleChange} className={solidInput} /></div>
               <div>
                 <Label text="Categoría" />
-                <CustomDropdown value={formData.opcionBien} placeholder="Seleccione una opción" onChange={(val) => handleCustomDropdown('opcionBien', val)} options={serviceOptions.length > 0 ? serviceOptions : [{ value: '', label: 'Cargando...' }]} />
+                <CustomDropdown value={formData.opcionBien} placeholder="Seleccione una opción" onChange={(val) => handleCustomDropdown('opcionBien', val)} options={serviceOptions} />
               </div>
             </div>
           </div>
