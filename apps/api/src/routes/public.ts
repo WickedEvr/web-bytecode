@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { Router } from 'express';
+import type { Request, Response } from 'express';
 import multer from 'multer';
 import { z } from 'zod';
 import { env } from '../config/env.js';
@@ -22,7 +23,7 @@ const upload = multer({
   limits: {
     fileSize: env.maxUploadMb * 1024 * 1024,
   },
-  fileFilter: (_req, file, callback) => {
+  fileFilter: (_req: Request, file: Express.Multer.File, callback: (error: Error | null, acceptFile?: boolean) => void) => {
     if (!allowedUploadMimeTypeList.includes(file.mimetype)) {
       callback(new HttpError(400, 'Tipo MIME no permitido.'));
       return;
@@ -90,18 +91,18 @@ const parseClaimedAmount = (value: string) => {
 };
 
 // --- ENDPOINTS PARA CATÁLOGOS ---
-router.get('/catalog/complaint-types', asyncHandler(async (_req, res) => {
+router.get('/catalog/complaint-types', asyncHandler(async (_req: Request, res: Response) => {
   const result = await pool.query('SELECT id, code, name FROM complaint_types WHERE is_active = true ORDER BY name ASC');
   res.json({ items: result.rows });
 }));
 
-router.get('/catalog/statuses', asyncHandler(async (req, res) => {
+router.get('/catalog/statuses', asyncHandler(async (req: Request, res: Response) => {
   const domain = req.query.domain ? String(req.query.domain) : 'case';
   const result = await pool.query('SELECT id, code, name FROM status_catalog WHERE domain = $1 AND is_active = true ORDER BY sort_order ASC', [domain]);
   res.json({ items: result.rows });
 }));
 
-router.get('/catalog/pricing', asyncHandler(async (_req, res) => {
+router.get('/catalog/pricing', asyncHandler(async (_req: Request, res: Response) => {
   const result = await pool.query('SELECT id, item_code, name, description, pricing_model, base_price, max_price FROM pricing_catalog WHERE is_active = true ORDER BY name ASC');
   res.json({ items: result.rows });
 }));
@@ -109,7 +110,7 @@ router.get('/catalog/pricing', asyncHandler(async (_req, res) => {
 router.post(
   '/contact-submissions',
   publicFormLimiter,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const body = contactSchema.parse(req.body);
     const client = await pool.connect();
 
@@ -159,7 +160,7 @@ router.post(
       });
 
       res.status(201).json({ id: result.rows[0].id, createdAt: result.rows[0].created_at });
-    } catch (e) {
+    } catch (e: unknown) {
       await client.query('ROLLBACK');
       throw e;
     } finally {
@@ -172,9 +173,9 @@ router.post(
   '/complaints',
   publicFormLimiter,
   upload.single('archivoAdjunto'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const body = complaintSchema.parse(req.body);
-    const file = req.file;
+    const file: Express.Multer.File | undefined = req.file;
     const code = createComplaintCode();
     let validatedFile: ValidatedUpload | null = null;
     let cloudinaryAsset: CloudinaryStoredAsset | null = null;
@@ -189,7 +190,7 @@ router.post(
           originalName: validatedFile.originalName,
           mimeType: validatedFile.mimeType,
         });
-      } catch (error) {
+      } catch (error: unknown) {
         console.error('Cloudinary complaint evidence upload failed:', error);
         throw new HttpError(502, 'No se pudo almacenar el archivo adjunto.');
       }
@@ -292,7 +293,7 @@ router.post(
       });
 
       res.status(201).json({ id: complaintId, code: result.rows[0].complaint_code, createdAt: result.rows[0].created_at });
-    } catch (error) {
+    } catch (error: unknown) {
       await client.query('ROLLBACK');
       if (cloudinaryAsset) {
         await deleteCloudinaryAsset(cloudinaryAsset.publicId, cloudinaryAsset.resourceType).catch((cleanupError: unknown) => {

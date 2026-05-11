@@ -1,5 +1,5 @@
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
-import type { Request } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 
 export const loginRateLimitKey = (req: Request) => {
   const email = typeof req.body?.email === 'string' ? req.body.email.toLowerCase() : '';
@@ -12,7 +12,7 @@ export const loginLimiter = rateLimit({
   keyGenerator: loginRateLimitKey,
   standardHeaders: true,
   legacyHeaders: false,
-  handler: (_req, res) => {
+  handler: (_req: Request, res: Response, _next: NextFunction) => {
     res.status(429).json({ message: 'Demasiados intentos. Espera 15 minutos.' });
   },
 });
@@ -22,7 +22,7 @@ export const publicFormLimiter = rateLimit({
   limit: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  handler: (_req, res) => {
+  handler: (_req: Request, res: Response, _next: NextFunction) => {
     res.status(429).json({ message: 'Demasiados envíos. Intenta más tarde.' });
   },
 });
@@ -32,7 +32,7 @@ export const adminLimiter = rateLimit({
   limit: 300,
   standardHeaders: true,
   legacyHeaders: false,
-  handler: (_req, res) => {
+  handler: (_req: Request, res: Response, _next: NextFunction) => {
     res.status(429).json({ message: 'Límite de solicitudes administrativas alcanzado.' });
   },
 });

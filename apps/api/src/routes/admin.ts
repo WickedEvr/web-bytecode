@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { Router } from 'express';
+import type { Request, Response } from 'express';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { pool } from '../db/pool.js';
@@ -69,7 +70,7 @@ const createBusinessCode = (prefix: string) => `${prefix}-${crypto.randomBytes(4
 router.get(
   '/stats',
   requireRole(['admin', 'support_agent', 'legal_reviewer']),
-  asyncHandler(async (_req, res) => {
+  asyncHandler(async (_req: Request, res: Response) => {
     const [contactsStats, complaintsStats, recentContacts, recentComplaints, activeAdmins] = await Promise.all([
       pool.query('SELECT sc.code as status, count(*)::int AS total FROM contact_cases c JOIN status_catalog sc ON c.status_id = sc.id GROUP BY sc.code'),
       pool.query('SELECT sc.code as status, count(*)::int AS total FROM complaints c JOIN status_catalog sc ON c.status_id = sc.id GROUP BY sc.code'),
@@ -91,7 +92,7 @@ router.get(
 router.get(
   '/contacts',
   requireRole(['admin', 'support_agent']),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const query = listQuerySchema.parse(req.query);
     const { whereSql, params } = buildWhere(query.status, query.search, ['cu.first_name', 'cu.primary_email', 'c.subject']);
     const result = await pool.query(
@@ -114,7 +115,7 @@ router.get(
 router.get(
   '/contacts/:id',
   requireRole(['admin', 'support_agent']),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const result = await pool.query(
       `SELECT ${contactColumns} FROM contact_cases c JOIN customers cu ON c.customer_id = cu.id JOIN status_catalog sc ON c.status_id = sc.id WHERE c.id = $1`, 
@@ -129,7 +130,7 @@ router.patch(
   '/contacts/:id',
   requireCsrf,
   requireRole(['admin', 'support_agent']),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const body = updateSchema.parse(req.body);
     
@@ -165,7 +166,7 @@ router.patch(
 router.get(
   '/complaints',
   requireRole(['admin', 'support_agent', 'legal_reviewer']),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const query = listQuerySchema.parse(req.query);
     const { whereSql, params } = buildWhere(query.status, query.search, [
       'c.complaint_code',
@@ -198,7 +199,7 @@ router.get(
 router.get(
   '/complaints/:id',
   requireRole(['admin', 'support_agent', 'legal_reviewer']),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const result = await pool.query(
       `SELECT ${complaintColumns} 
@@ -222,7 +223,7 @@ router.patch(
   '/complaints/:id',
   requireCsrf,
   requireRole(['admin', 'support_agent', 'legal_reviewer']),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const body = updateSchema.parse(req.body);
     
@@ -267,7 +268,7 @@ router.patch(
 router.get(
   '/complaints/:id/attachment',
   requireRole(['admin', 'support_agent', 'legal_reviewer']),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const result = await pool.query(
       `
@@ -311,7 +312,7 @@ const userUpdateSchema = z.object({
 router.get(
   '/users',
   requireRole(['admin']),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const result = await pool.query(
       'SELECT id, email, name, role, is_active, created_at, last_login_at FROM admin_users ORDER BY created_at DESC'
     );
@@ -323,7 +324,7 @@ router.post(
   '/users',
   requireCsrf,
   requireRole(['admin']),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const body = userCreateSchema.parse(req.body);
     const passwordHash = await bcrypt.hash(body.password, 12);
 
@@ -348,7 +349,7 @@ router.patch(
   '/users/:id',
   requireCsrf,
   requireRole(['admin']),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const body = userUpdateSchema.parse(req.body);
 
@@ -381,7 +382,7 @@ router.patch(
   '/users/:id/roles',
   requireCsrf,
   requireRole(['admin']),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const { role } = z.object({ role: z.string() }).parse(req.body);
 
@@ -415,9 +416,9 @@ const settingsUpdateSchema = z.object({
 router.get(
   '/settings',
   requireRole(['admin']),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const result = await pool.query('SELECT setting_key, setting_value, description, is_sensitive FROM system_settings ORDER BY setting_key');
-    const items = result.rows.map(row => {
+    const items = result.rows.map((row: any) => {
       if (row.is_sensitive) {
         // Enmascarar contraseñas o tokens (ej: SMTP pass)
         const maskedValue = { ...row.setting_value };
@@ -438,7 +439,7 @@ router.patch(
   '/settings',
   requireCsrf,
   requireRole(['admin']),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const { settings } = settingsUpdateSchema.parse(req.body);
 
     for (const setting of settings) {
@@ -483,7 +484,7 @@ router.patch(
 router.get(
   '/logs',
   requireRole(['admin']),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const query = listQuerySchema.parse(req.query);
     const result = await pool.query(
       `
@@ -511,7 +512,7 @@ const cmsPageUpdateSchema = z.object({
 router.get(
   '/cms/pages',
   requireRole(['admin', 'partner_designer']),
-  asyncHandler(async (_req, res) => {
+  asyncHandler(async (_req: Request, res: Response) => {
     const result = await pool.query(
       'SELECT id, slug, title, meta_title, meta_description, is_published, created_at, updated_at FROM cms_pages ORDER BY slug'
     );
@@ -523,7 +524,7 @@ router.patch(
   '/cms/pages/:id',
   requireCsrf,
   requireRole(['admin', 'partner_designer']),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const body = cmsPageUpdateSchema.parse(req.body);
 
@@ -550,7 +551,7 @@ router.patch(
 router.get(
   '/catalog/pricing',
   requireRole(['admin', 'partner_designer']),
-  asyncHandler(async (_req, res) => {
+  asyncHandler(async (_req: Request, res: Response) => {
     const result = await pool.query(
       `
       SELECT id, item_code, name, description, pricing_model, base_price, max_price,
@@ -567,7 +568,7 @@ router.get(
 router.get(
   '/quotations',
   requireRole(['admin', 'partner_designer']),
-  asyncHandler(async (_req, res) => {
+  asyncHandler(async (_req: Request, res: Response) => {
     const result = await pool.query(
       `SELECT q.id, q.quote_code, q.total_amount, q.status, q.created_at, cu.first_name, cu.primary_email
        FROM quotes q
@@ -594,7 +595,7 @@ router.post(
   '/quotations',
   requireCsrf,
   requireRole(['admin', 'partner_designer']),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const body = createQuoteSchema.parse(req.body);
     
     const client = await pool.connect();
@@ -644,7 +645,7 @@ router.post(
       await audit(req.admin?.id, 'create', 'quote', quoteId);
       await client.query('COMMIT');
       res.status(201).json({ ok: true, quoteId });
-    } catch (e) {
+    } catch (e: unknown) {
       await client.query('ROLLBACK');
       throw e;
     } finally {
