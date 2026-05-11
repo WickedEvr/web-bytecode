@@ -6,7 +6,7 @@ import rateLimit from 'express-rate-limit';
 import multer from 'multer';
 import { ZodError } from 'zod';
 import { createRequire } from 'node:module';
-import type { RequestHandler } from 'express';
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { env } from './config/env.js';
 import authRoutes from './routes/auth.js';
 import publicRoutes from './routes/public.js';
@@ -23,15 +23,15 @@ const compressionMiddleware = (): RequestHandler => {
   try {
     const compression = require('compression') as () => RequestHandler;
     return compression();
-  } catch {
-    return (_req, _res, next) => next();
+  } catch (error: unknown) {
+    return (_req: Request, _res: Response, next: NextFunction) => next();
   }
 };
 
 app.set('trust proxy', 1);
 
 // Correlation ID Middleware
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   req.headers['x-correlation-id'] = req.headers['x-correlation-id'] || crypto.randomUUID();
   res.setHeader('x-correlation-id', req.headers['x-correlation-id']);
   next();
@@ -61,7 +61,7 @@ app.use(helmet({
 
 app.use(
   cors({
-    origin(origin, callback) {
+    origin(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
       if (!origin) {
         callback(null, false);
         return;
@@ -94,7 +94,7 @@ app.use(
 );
 
 // Structured Request Logging
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
   res.on('finish', () => {
     const duration = Date.now() - start;
@@ -116,12 +116,12 @@ app.use((req, res, next) => {
 import { pool } from './db/pool.js';
 
 // Healthchecks
-app.get('/health', async (_req, res) => {
+app.get('/health', async (_req: Request, res: Response) => {
   let dbOk = false;
   try {
     const resDb = await pool.query('SELECT 1');
     if (resDb.rowCount === 1) dbOk = true;
-  } catch {
+  } catch (error: unknown) {
     dbOk = false;
   }
   
@@ -138,12 +138,12 @@ app.use('/api/auth', authRoutes);
 app.use('/api', publicRoutes);
 app.use('/api/admin', adminLimiter, adminRoutes);
 
-app.use((_req, res) => {
+app.use((_req: Request, res: Response) => {
   res.status(404).json({ message: 'Ruta no encontrada.' });
 });
 
 // Global Error Handler
-app.use((error: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+app.use((error: unknown, req: Request, res: Response, _next: NextFunction) => {
   const correlationId = req.headers['x-correlation-id'];
   
   if (error instanceof ZodError) {

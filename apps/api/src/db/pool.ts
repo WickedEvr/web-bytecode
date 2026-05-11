@@ -10,13 +10,14 @@ export const pool = new pg.Pool({
   maxUses: env.database.maxUses,
 });
 
-pool.on('error', (error) => {
+pool.on('error', (error: unknown) => {
+  const message = error instanceof Error ? error.message : 'Unknown PostgreSQL client error';
   console.error(JSON.stringify({
     timestamp: new Date().toISOString(),
     level: 'error',
     subsystem: 'postgres',
     message: 'Unexpected idle PostgreSQL client error.',
-    error: error.message,
+    error: message,
   }));
 });
 

@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { Router } from 'express';
+import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { pool } from '../db/pool.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -18,7 +19,7 @@ const loginSchema = z.object({
 router.post(
   '/login',
   loginLimiter,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const body = loginSchema.parse(req.body);
     const result = await pool.query(
       `
@@ -63,13 +64,13 @@ router.post(
   }),
 );
 
-router.post('/logout', requireAdmin, asyncHandler(async (req, res) => {
+router.post('/logout', requireAdmin, asyncHandler(async (req: Request, res: Response) => {
   await audit(req.admin?.id, 'logout', 'admin_user', req.admin?.id);
   clearAdminCookie(res);
   res.json({ ok: true });
 }));
 
-router.get('/me', requireAdmin, (req, res) => {
+router.get('/me', requireAdmin, (req: Request, res: Response) => {
   res.json({ admin: req.admin });
 });
 

@@ -78,7 +78,7 @@ export const requireAdmin = async (req: Request, _res: Response, next: NextFunct
 
     req.admin = result.rows[0];
     next();
-  } catch (error) {
+  } catch (error: unknown) {
     next(error instanceof HttpError ? error : new HttpError(401, 'Sesión inválida.'));
   }
 };
