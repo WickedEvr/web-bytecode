@@ -349,11 +349,6 @@ const LibroReclamaciones: React.FC = () => {
       try {
         const data = await fetchDocumentTypes();
         setDocumentTypeOptions(data.map(dt => ({ value: dt.code, label: dt.name })));
-
-        // Optionally set a default value if not already set and options are available
-        if (data.length > 0) {
-          setFormData(prev => prev.tipoDoc ? prev : { ...prev, tipoDoc: data[0].code });
-        }
       } catch (error) {
         console.error('Error fetching document types:', error);
       }
