@@ -28,13 +28,34 @@ const rowsToHtml = (payload: Record<string, unknown>) =>
     .map(([key, value]) => `<tr><td><strong>${escapeHtml(key)}</strong></td><td>${escapeHtml(value)}</td></tr>`)
     .join('');
 
+const wait = (ms: number) => new Promise((resolve) => {
+  setTimeout(resolve, ms);
+});
+
+export async function verifyEmailTransport() {
+  if (!transporter) return { enabled: false, ok: true };
+
+  try {
+    await transporter.verify();
+    return { enabled: true, ok: true };
+  } catch (error) {
+    console.error(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      level: 'error',
+      subsystem: 'smtp',
+      message: error instanceof Error ? error.message : 'SMTP verification failed.',
+    }));
+    return { enabled: true, ok: false };
+  }
+}
+
 export async function notifyAdmins(subject: string, payload: Record<string, unknown>) {
   if (!transporter) {
     console.log(`Email skipped: ${subject}`);
     return;
   }
 
-  await transporter.sendMail({
+  const message = {
     from: env.smtp.from,
     to: env.notificationEmails,
     subject,
@@ -47,5 +68,26 @@ export async function notifyAdmins(subject: string, payload: Record<string, unkn
         <p style="margin-top: 24px;">Panel admin: ${escapeHtml(env.publicApiUrl)}</p>
       </div>
     `,
-  });
+  };
+
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= env.smtp.maxRetries; attempt += 1) {
+    try {
+      await transporter.sendMail(message);
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt < env.smtp.maxRetries) {
+        await wait(500 * (attempt + 1));
+      }
+    }
+  }
+
+  console.error(JSON.stringify({
+    timestamp: new Date().toISOString(),
+    level: 'error',
+    subsystem: 'smtp',
+    subject,
+    message: lastError instanceof Error ? lastError.message : 'SMTP send failed.',
+  }));
 }

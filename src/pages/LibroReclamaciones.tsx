@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, type HTMLMotionProps } from 'framer-motion';
 import ContactFooter from '../components/layout/ContactFooter';
-import GalaxyBackground from '../components/effects/GalaxyBackground';
-import { createComplaint } from '../lib/api';
+import LazyGalaxyBackground from '../components/effects/LazyGalaxyBackground';
+import { createComplaint, apiRequest, fetchCountries, fetchServices, fetchDocumentTypes, type CountryData } from '../lib/api';
 
 // --- ESTILOS UNIFICADOS (Basados en Contacto) ---
 const solidInput =
@@ -155,9 +155,9 @@ const AnimatedSubmitButton: React.FC<AnimatedButtonProps> = ({
 
 // 1. Dropdown Genérico (Basado en ServiceDropdown)
 interface DropdownOption { value: string; label: string; }
-interface CustomDropdownProps { value: string; options: DropdownOption[]; onChange: (val: string) => void; placeholder: string; }
+interface CustomDropdownProps { value: string; options: DropdownOption[]; onChange: (val: string) => void; placeholder: string; required?: boolean; }
 
-const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChange, placeholder }) => {
+const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChange, placeholder, required}) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const selectedLabel = options.find((opt) => opt.value === value)?.label || placeholder;
@@ -172,6 +172,16 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChang
 
   return (
     <div className="relative w-full" ref={dropdownRef}>
+      {/* Hidden input for native HTML5 validation */}
+      <input
+        type="text"
+        value={value}
+        onChange={() => {}}
+        required={required}
+        className="absolute opacity-0 w-full h-full -z-10 pointer-events-none"
+        tabIndex={-1}
+        aria-hidden="true"
+      />
       <div 
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center justify-between w-full bg-white rounded-full px-5 py-[0.6rem] cursor-pointer shadow-sm transition-all ${isOpen ? 'ring-2 ring-[#06CFD6]' : 'lg:hover:bg-gray-50'}`}
@@ -208,26 +218,33 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChang
 };
 
 // 2. Phone Input (Idéntico al de Contacto)
-interface CountryData { id: string; iso: string; name: string; dialCode: string; flag: string; maxLength: number; }
 interface PhoneInputProps { value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; onCountryChange?: (dialCode: string) => void; }
 
-const mockDB: CountryData[] = [
-  { id: '1', iso: 'PE', name: 'Perú', dialCode: '+51', flag: '🇵🇪', maxLength: 9 },
-  { id: '2', iso: 'MX', name: 'México', dialCode: '+52', flag: '🇲🇽', maxLength: 10 },
-  { id: '3', iso: 'CO', name: 'Colombia', dialCode: '+57', flag: '🇨🇴', maxLength: 10 },
-  { id: '4', iso: 'CL', name: 'Chile', dialCode: '+56', flag: '🇨🇱', maxLength: 9 },
-];
+const defaultPeru: CountryData = { id: 'default', iso: 'PE', name: 'Perú', dialCode: '+51', maxLength: 9 };
 
 const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountryChange }) => {
-  const [countries] = useState<CountryData[]>(mockDB);
-  const [selectedCountry, setSelectedCountry] = useState<CountryData | null>(mockDB[0]);
+  const [countries, setCountries] = useState<CountryData[]>([defaultPeru]);
+  const [selectedCountry, setSelectedCountry] = useState<CountryData>(defaultPeru);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [error, setError] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (onCountryChange && selectedCountry) onCountryChange(selectedCountry.dialCode);
-  }, [onCountryChange, selectedCountry]);
+    const loadCountries = async () => {
+      try {
+        const data = await fetchCountries();
+        setCountries(data);
+        if (data.length > 0) {
+          const peru = data.find(c => c.iso === 'PE') || data[0];
+          setSelectedCountry(peru); 
+          if (onCountryChange) onCountryChange(peru.dialCode);
+        }
+      } catch (error) {
+        console.error('Error fetching countries:', error);
+      }
+    };
+    loadCountries();
+  }, [onCountryChange]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -245,32 +262,84 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
     else setError('');
   };
 
-  if (!selectedCountry) return null;
+  const handleSelectCountry = (country: CountryData) => {
+    setSelectedCountry(country);
+    setIsDropdownOpen(false);
+    if (onCountryChange) onCountryChange(country.dialCode);
+    setError(''); 
+  };
 
   return (
     <div className="relative w-full" ref={dropdownRef}>
-      <div className={`flex items-center w-full bg-white rounded-full transition-all shadow-sm ${error ? 'ring-2 ring-red-400' : 'focus-within:ring-2 focus-within:ring-[#06CFD6]'}`}>
-        <div onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="shrink-0 flex items-center gap-1.5 pl-4 pr-2 py-[0.6rem] border-r border-gray-200 cursor-pointer rounded-l-full lg:hover:bg-gray-50">
-          <img src={`https://flagcdn.com/w20/${selectedCountry.iso.toLowerCase()}.png`} alt={selectedCountry.name} className="w-6 h-auto rounded-sm" />
+      <div className={`flex items-center w-full bg-white rounded-full overflow-visible transition-all shadow-sm ${error ? 'ring-2 ring-red-400' : 'focus-within:ring-2 focus-within:ring-[#06CFD6]'}`}>
+        
+        <div 
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          className="shrink-0 flex items-center gap-1.5 md:gap-2 pl-4 md:pl-6 pr-2 md:pr-3 py-[0.6rem] border-r border-gray-200 bg-white cursor-pointer rounded-l-full select-none lg:hover:bg-gray-50"
+        >
+          <img
+            src={`https://flagcdn.com/w20/${selectedCountry.iso.toLowerCase()}.png`}
+            srcSet={`https://flagcdn.com/w40/${selectedCountry.iso.toLowerCase()}.png 2x`}
+            alt={selectedCountry.name}
+            className="w-6 h-auto object-contain rounded-sm"
+            title={selectedCountry.name}
+          />
           <span className="text-[18px] md:text-[20px] font-semibold text-gray-600">{selectedCountry.dialCode}</span>
-          <svg className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className={`w-3 h-3 text-gray-400 transition-transform duration-200 shrink-0 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </div>
-        <input type="tel" name="telefono" placeholder={`Ej: ${'9'.repeat(selectedCountry.maxLength)}`} required maxLength={selectedCountry.maxLength} value={value} onChange={handleInputChange} className="flex-1 bg-transparent px-4 py-[0.6rem] text-[#333] placeholder-gray-400 focus:outline-none text-[18px] md:text-[20px] rounded-r-full" />
+
+        <input
+          type="tel"
+          name="telefono"
+          placeholder={`Ej: ${'9'.repeat(selectedCountry.maxLength)}`}
+          className="flex-1 bg-transparent px-4 py-[0.6rem] text-[#333] placeholder-gray-400 focus:outline-none text-[18px] md:text-[20px] rounded-r-full"
+          required
+          maxLength={selectedCountry.maxLength}
+          value={value}
+          onChange={handleInputChange}
+        />
       </div>
+
       <AnimatePresence>
         {isDropdownOpen && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-full left-0 mt-2 w-[280px] bg-white border border-gray-100 shadow-xl rounded-xl z-[100] py-2">
-            {countries.map((c) => (
-              <div key={c.id} onClick={() => { setSelectedCountry(c); setIsDropdownOpen(false); if(onCountryChange) onCountryChange(c.dialCode); setError(''); }} className={`flex items-center justify-between px-5 py-3 cursor-pointer ${selectedCountry.id === c.id ? 'bg-[#06CFD6]/15 text-[#0CA3C6] font-bold' : 'text-gray-600 lg:hover:bg-gray-200 lg:hover:text-gray-900'}`}>
-                <div className="flex items-center gap-3"><img src={`https://flagcdn.com/w20/${c.iso.toLowerCase()}.png`} className="w-5" /><span className="font-bold text-[0.9rem]">{c.name}</span></div>
-                <span className="text-sm font-semibold opacity-100">{c.dialCode}</span>
-              </div>
-            ))}
+          <motion.div
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            style={{ transformOrigin: "top left" }}
+            className="absolute top-full left-0 mt-2 w-[280px] bg-white border border-gray-100 shadow-xl rounded-xl overflow-hidden z-[100]"
+          >
+            <div className="max-h-[240px] overflow-y-auto py-2 custom-scrollbar overscroll-contain">
+              {countries.map((country) => (
+                <div
+                  key={country.id}
+                  onClick={() => handleSelectCountry(country)}
+                  className={`flex items-center justify-between px-5 py-3 cursor-pointer transition-colors ${
+                    selectedCountry.id === country.id 
+                      ? 'bg-[#06CFD6]/15 text-[#0CA3C6] font-bold' 
+                      : 'text-gray-600 lg:hover:bg-gray-200 lg:hover:text-gray-900'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={`https://flagcdn.com/w20/${country.iso.toLowerCase()}.png`}
+                      srcSet={`https://flagcdn.com/w40/${country.iso.toLowerCase()}.png 2x`}
+                      alt={country.name}
+                      className="w-5 h-auto object-contain rounded-sm shadow-sm"
+                    />
+                    <span className="font-bold text-[0.9rem]">{country.name}</span>
+                  </div>
+                  <span className="text-sm font-semibold">{country.dialCode}</span>
+                </div>
+              ))}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
+
       {error && <span className="absolute -bottom-5 left-4 text-xs font-bold text-red-400">{error}</span>}
     </div>
   );
@@ -307,6 +376,49 @@ const LibroReclamaciones: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [complaintTypes, setComplaintTypes] = useState<{ id: string, code: string, name: string }[]>([]);
+  const [serviceOptions, setServiceOptions] = useState<DropdownOption[]>([]);
+  const [documentTypeOptions, setDocumentTypeOptions] = useState<DropdownOption[]>([]);
+
+  useEffect(() => {
+    apiRequest<{ items: { id: string, code: string, name: string }[] }>('/api/catalog/complaint-types')
+      .then((res: { items: { id: string, code: string, name: string }[] }) => {
+        setComplaintTypes(res.items);
+        if (res.items.length > 0) {
+          setFormData(prev => (
+            !prev.claimType || !res.items.find((ct) => ct.code === prev.claimType)
+              ? { ...prev, claimType: res.items[0].code }
+              : prev
+          ));
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    const loadServices = async () => {
+      try {
+        const data = await fetchServices();
+        const filteredData = data.filter(s => s.code !== 'custom_software');
+        setServiceOptions(filteredData.map(s => ({ value: s.code, label: s.name })));
+      } catch (error) {
+        console.error('Error fetching services:', error);
+      }
+    };
+    loadServices();
+  }, []);
+
+  useEffect(() => {
+    const loadDocumentTypes = async () => {
+      try {
+        const data = await fetchDocumentTypes();
+        setDocumentTypeOptions(data.map(dt => ({ value: dt.code, label: dt.name })));
+      } catch (error) {
+        console.error('Error fetching document types:', error);
+      }
+    };
+    loadDocumentTypes();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -319,7 +431,17 @@ const LibroReclamaciones: React.FC = () => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setArchivoAdjunto(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/webp'];
+      if (!allowedTypes.includes(selectedFile.type) || selectedFile.size > 10 * 1024 * 1024) {
+        setArchivoAdjunto(null);
+        setSubmitError('Adjunta un archivo PDF, PNG, JPG, JPEG o WEBP de maximo 10MB.');
+        e.target.value = '';
+        return;
+      }
+
+      setSubmitError('');
+      setArchivoAdjunto(selectedFile);
     }
   };
 
@@ -359,7 +481,7 @@ const LibroReclamaciones: React.FC = () => {
     <div className="relative min-h-screen overflow-hidden font-sansation">
       {/* Fondo espacio */}
       <div className="absolute inset-0" style={{ backgroundColor: '#040e1f' }}>
-        <GalaxyBackground /> 
+        <LazyGalaxyBackground /> 
         <div className="absolute inset-0 bg-[#040e1f]/40" />
         <div className="absolute inset-0 bg-[#040e1f]/70" />
         <div className="absolute inset-0 opacity-70 mix-blend-screen" style={{ backgroundImage: `url(${import.meta.env.BASE_URL}vectors/designs/stardust.png)` }} />
@@ -420,18 +542,18 @@ const LibroReclamaciones: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div><Label text="Nombres" required /><input name="nombres" type="text" placeholder="Nombres Completos" value={formData.nombres} onChange={handleChange} className={solidInput} required /></div>
-              <div><Label text="Apellidos" required /><input name="apellidos" type="text" placeholder="Apellidos Completos" value={formData.apellidos} onChange={handleChange} className={solidInput} required /></div>
+              <div><Label text="Nombres" required /><input name="nombres" type="text" placeholder="Nombres Completos" value={formData.nombres} onChange={handleChange} className={solidInput} required minLength={2} maxLength={160} /></div>
+              <div><Label text="Apellidos" required /><input name="apellidos" type="text" placeholder="Apellidos Completos" value={formData.apellidos} onChange={handleChange} className={solidInput} required minLength={2} maxLength={160} /></div>
             </div>
 
-            <div><Label text="Domicilio" required /><input name="domicilio" type="text" placeholder="Dirección completa" value={formData.domicilio} onChange={handleChange} className={solidInput} required /></div>
+            <div><Label text="Domicilio" required /><input name="domicilio" type="text" placeholder="Dirección completa" value={formData.domicilio} onChange={handleChange} className={solidInput} required minLength={4} maxLength={240} /></div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
                 <Label text="Tipo de Documento" required />
-                <CustomDropdown value={formData.tipoDoc} placeholder="Seleccione un tipo" onChange={(val) => handleCustomDropdown('tipoDoc', val)} options={[{ value: 'DNI', label: 'DNI' }, { value: 'CE', label: 'CE' }, { value: 'RUC', label: 'RUC' }]} />
+                <CustomDropdown value={formData.tipoDoc} placeholder="Seleccione un tipo" onChange={(val) => handleCustomDropdown('tipoDoc', val)} options={documentTypeOptions} required />
               </div>
-              <div><Label text="Número de Documento" required /><input name="numeroDoc" type="text" placeholder="Número" value={formData.numeroDoc} onChange={handleChange} className={solidInput} required /></div>
+              <div><Label text="Número de Documento" required /><input name="numeroDoc" type="text" placeholder="Número" value={formData.numeroDoc} onChange={handleChange} className={solidInput} required minLength={4} maxLength={40} /></div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -439,7 +561,7 @@ const LibroReclamaciones: React.FC = () => {
                 <Label text="Número de celular" required />
                 <PhoneInputGroup value={formData.telefono} onChange={handleChange} onCountryChange={handleCountryChange} />
               </div>
-              <div><Label text="Correo Electrónico" required /><input name="email" type="email" placeholder="ejemplo@correo.com" value={formData.email} onChange={handleChange} className={solidInput} required /></div>
+              <div><Label text="Correo Electrónico" required /><input name="email" type="email" placeholder="ejemplo@correo.com" value={formData.email} onChange={handleChange} className={solidInput} required maxLength={180} /></div>
             </div>
           </div>
 
@@ -454,14 +576,14 @@ const LibroReclamaciones: React.FC = () => {
               <Radio name="goodType" value="servicio" label="Servicio" checked={formData.goodType === 'servicio'} onChange={handleChange} />
             </div>
 
-            <div><Label text="Monto Reclamado (Opcional)" /><input name="montoCuantificable" type="text" placeholder="Ej: S/ 1500.00" value={formData.montoCuantificable} onChange={handleChange} className={solidInput} /></div>
-            <div><Label text="Descripción" required /><input name="descripcion" type="text" placeholder="Descripción del producto o servicio" value={formData.descripcion} onChange={handleChange} className={solidInput} required /></div>
+            <div><Label text="Monto Reclamado (Opcional)" /><input name="montoCuantificable" type="text" placeholder="Ej: S/ 1500.00" value={formData.montoCuantificable} onChange={handleChange} className={solidInput} maxLength={80} /></div>
+            <div><Label text="Descripción" required /><input name="descripcion" type="text" placeholder="Descripción del producto o servicio" value={formData.descripcion} onChange={handleChange} className={solidInput} required minLength={2} maxLength={240} /></div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div><Label text="Nombre del proyecto/unidad" /><input name="nombreUnidad" type="text" placeholder="Ej: Landing Page Corporativa" value={formData.nombreUnidad} onChange={handleChange} className={solidInput} /></div>
+              <div><Label text="Nombre del proyecto/unidad" /><input name="nombreUnidad" type="text" placeholder="Ej: Landing Page Corporativa" value={formData.nombreUnidad} onChange={handleChange} className={solidInput} maxLength={160} /></div>
               <div>
                 <Label text="Categoría" />
-                <CustomDropdown value={formData.opcionBien} placeholder="Seleccione una opción" onChange={(val) => handleCustomDropdown('opcionBien', val)} options={[{ value: 'opt1', label: 'Desarrollo Web' }, { value: 'opt2', label: 'Aplicación Móvil' }, { value: 'opt3', label: 'Software a Medida' }]} />
+                <CustomDropdown value={formData.opcionBien} placeholder="Seleccione una opción" onChange={(val) => handleCustomDropdown('opcionBien', val)} options={serviceOptions} />
               </div>
             </div>
           </div>
@@ -473,13 +595,19 @@ const LibroReclamaciones: React.FC = () => {
             </h2>
 
             <div className="flex flex-col sm:flex-row gap-6 mb-4 px-2">
-              <Radio name="claimType" value="queja" label="Queja (Malestar o descontento)" checked={formData.claimType === 'queja'} onChange={handleChange} />
-              <Radio name="claimType" value="reclamo" label="Reclamo (Disconformidad con el servicio)" checked={formData.claimType === 'reclamo'} onChange={handleChange} />
+              {complaintTypes.length > 0 ? complaintTypes.map((ct) => (
+                <Radio key={ct.id} name="claimType" value={ct.code} label={ct.name} checked={formData.claimType === ct.code} onChange={handleChange} />
+              )) : (
+                <>
+                  <Radio name="claimType" value="queja" label="Queja (Malestar o descontento)" checked={formData.claimType === 'queja'} onChange={handleChange} />
+                  <Radio name="claimType" value="reclamo" label="Reclamo (Disconformidad con el servicio)" checked={formData.claimType === 'reclamo'} onChange={handleChange} />
+                </>
+              )}
             </div>
 
-            <div><Label text="Motivo" required /><input name="tipoReclamo" type="text" placeholder="Ej: Incumplimiento de plazos" value={formData.tipoReclamo} onChange={handleChange} className={solidInput} required /></div>
-            <div><Label text="Detalle de la queja/reclamo" required /><textarea name="detalle" placeholder="Explique detalladamente lo sucedido..." rows={4} value={formData.detalle} onChange={handleChange} className={solidArea} required /></div>
-            <div><Label text="Pedido (Solución esperada)" required /><textarea name="pedido" placeholder="¿Qué solución espera de nuestra parte?" rows={3} value={formData.pedido} onChange={handleChange} className={solidArea} required /></div>
+            <div><Label text="Motivo" required /><input name="tipoReclamo" type="text" placeholder="Ej: Incumplimiento de plazos" value={formData.tipoReclamo} onChange={handleChange} className={solidInput} required minLength={2} maxLength={160} /></div>
+            <div><Label text="Detalle de la queja/reclamo" required /><textarea name="detalle" placeholder="Explique detalladamente lo sucedido..." rows={4} value={formData.detalle} onChange={handleChange} className={solidArea} required minLength={10} maxLength={3000} /></div>
+            <div><Label text="Pedido (Solución esperada)" required /><textarea name="pedido" placeholder="¿Qué solución espera de nuestra parte?" rows={3} value={formData.pedido} onChange={handleChange} className={solidArea} required minLength={5} maxLength={2000} /></div>
 
             {/* ── Adjuntar Archivo ── */}
             <div className="pt-4">
@@ -489,9 +617,9 @@ const LibroReclamaciones: React.FC = () => {
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
                     <svg className="w-8 h-8 mb-3 text-[#06CFD6]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                     <p className="mb-1 text-base text-white/80"><span className="font-semibold text-[#06CFD6]">Haga clic para subir</span> o arrastre el archivo</p>
-                    <p className="text-sm text-white/50">{archivoAdjunto ? archivoAdjunto.name : 'PDF, JPG o PNG (Máx. 10MB)'}</p>
+                    <p className="text-sm text-white/50">{archivoAdjunto ? archivoAdjunto.name : 'PDF, JPG, PNG o WEBP (Máx. 10MB)'}</p>
                   </div>
-                  <input type="file" className="hidden" onChange={handleFileChange} accept=".pdf,image/*" />
+                  <input type="file" className="hidden" onChange={handleFileChange} accept=".pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/png,image/jpeg,image/webp" />
                 </label>
               </div>
             </div>

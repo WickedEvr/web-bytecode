@@ -6,6 +6,9 @@ process.env.NODE_ENV = 'production';
 process.env.CORS_ORIGINS = 'https://web.bytecode.test';
 process.env.DATABASE_URL = process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@localhost:5432/bytecode';
 process.env.JWT_SECRET = process.env.JWT_SECRET ?? 'test-secret';
+process.env.CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME ?? 'test-cloud';
+process.env.CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY ?? 'test-key';
+process.env.CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET ?? 'test-secret';
 
 const { app } = await import('../app.js');
 

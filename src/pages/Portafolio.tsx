@@ -1,12 +1,13 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import Carousel3D, { type Project } from '../components/sections/Carousel3D';
+import type { Project } from '../components/sections/Carousel3D';
 import Carousel from '../components/ui/carousel';
 import AltFooter from '../components/layout/AltFooter';
 import SpotlightText from '../components/typography/SpotlightText';
 import SEO from '../components/shared/SEO';
 
 const AuroraBackground = lazy(() => import('../components/effects/AuroraBackground'));
+const Carousel3D = lazy(() => import('../components/sections/Carousel3D'));
 
 const projects: Project[] = [
   { id: 1, name: 'Google 1', img: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=700&q=80', tags: ['React', 'TypeScript'] },
@@ -16,6 +17,17 @@ const projects: Project[] = [
 ];
 
 const Portafolio: React.FC = () => {
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const desktopQuery = window.matchMedia('(min-width: 1024px)');
+    const updateDesktop = () => setIsDesktop(desktopQuery.matches);
+
+    updateDesktop();
+    desktopQuery.addEventListener('change', updateDesktop);
+    return () => desktopQuery.removeEventListener('change', updateDesktop);
+  }, []);
+
   return (
     <div className="w-full min-h-screen font-sansation overflow-x-hidden flex flex-col relative bg-[#020611] select-none">
       <SEO 
@@ -34,7 +46,7 @@ const Portafolio: React.FC = () => {
       </div>
 
       {/* CONTENEDOR FRONTAL */}
-      <div className="w-full lg:min-h-[100dvh] flex flex-col relative z-10 pointer-events-none pt-[3rem]">
+      <div className="w-full lg:min-h-[100dvh] flex flex-col relative z-10 pointer-events-none pt-[3rem] [@media(max-height:650px)]:pt-[1.5rem]">
         
         {/* HERO SECTION */}
         <section className="px-6 text-center text-white relative z-10 pointer-events-none flex-shrink-0">
@@ -73,9 +85,13 @@ const Portafolio: React.FC = () => {
         </section>
 
         {/* CARRUSEL 3D (Solo Escritorio) */}
-        <section className="w-full relative z-10 pointer-events-auto flex-grow items-center justify-center xl:-mt-[11vh] 2xl:-mt-[10vh] hidden lg:flex">
-          <div className="w-full flex justify-center origin-center scale-[0.70] md:scale-[0.80] lg:scale-[0.85] xl:scale-[0.8] 2xl:scale-[1] transition-transform duration-500">
-            <Carousel3D projects={projects} />
+        <section className="w-full relative z-10 pointer-events-auto flex-grow items-center justify-center xl:-mt-[11vh] 2xl:-mt-[10vh] [@media(max-height:650px)]:-mt-[2vh] hidden lg:flex">
+          <div className="w-full flex justify-center origin-center scale-[0.70] md:scale-[0.80] lg:scale-[0.85] xl:scale-[0.8] 2xl:scale-[1] [@media(max-height:650px)]:scale-[0.60] transition-transform duration-500">
+            {isDesktop && (
+              <Suspense fallback={null}>
+                <Carousel3D projects={projects} />
+              </Suspense>
+            )}
           </div>
         </section>
       </div>

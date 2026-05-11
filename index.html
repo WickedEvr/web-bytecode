@@ -5,8 +5,20 @@
     
     <link rel="icon" type="image/svg+xml" href="/vectors/designs/mini_logo.svg" />
     <link rel="alternate icon" type="image/png" href="/favicon.png" />
+    <link rel="preload" as="image" href="/images/characters/astronauta.png" fetchpriority="high" />
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/Sansation-Regular.woff2" crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/Sansation-Bold.woff2" crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/Sansation-Light.woff2" crossorigin />
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style data-critical>
+      @font-face{font-family:'Sansation';font-style:normal;font-weight:400;src:url('/fonts/Sansation-Regular.woff2') format('woff2');font-display:swap}
+      @font-face{font-family:'Sansation';font-style:normal;font-weight:700;src:url('/fonts/Sansation-Bold.woff2') format('woff2');font-display:swap}
+      @font-face{font-family:'Sansation';font-style:normal;font-weight:300;src:url('/fonts/Sansation-Light.woff2') format('woff2');font-display:swap}
+      html{background:#060c1d}
+      body{margin:0;min-height:100vh;overflow-x:hidden;background:#060c1d;color:#fff;font-family:'Sansation',Arial,sans-serif}
+      #root{min-height:100vh}
+    </style>
     
     <title>Bytecode | Soluciones Tecnológicas de Alto Impacto</title>
     <meta name="description" content="Expertos en desarrollo de software, arquitectura escalable y transformación digital. Impulsamos tu negocio con tecnología de vanguardia." />

@@ -2,9 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, type HTMLMotionProps } from 'framer-motion';
 import SEO from '../components/shared/SEO';
-import GalaxyBackground from '../components/effects/GalaxyBackground';
+import LazyGalaxyBackground from '../components/effects/LazyGalaxyBackground';
 import ContactFooter from '../components/layout/ContactFooter';
-import { createContactSubmission } from '../lib/api';
+import { createContactSubmission, fetchCountries, fetchServices, type CountryData } from '../lib/api';
 
 const solidInput =
   'w-full bg-white rounded-full px-6 py-[0.6rem] text-[#333] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06CFD6] transition-all text-[20px] shadow-sm';
@@ -120,15 +120,7 @@ const AnimatedSubmitButton: React.FC<AnimatedButtonProps> = ({
   );
 };
 
-// 1. Interfaz preparada para tu futura BD SQL
-interface CountryData {
-  id: string;
-  iso: string;
-  name: string;
-  dialCode: string;
-  flag: string;
-  maxLength: number;
-}
+// 1. Interfaz preparada para tu futura BD SQL (Importada desde api.ts)
 
 interface PhoneInputProps {
   value: string;
@@ -137,30 +129,31 @@ interface PhoneInputProps {
   onCountryChange?: (dialCode: string) => void; 
 }
 
+const defaultPeru: CountryData = { id: 'default', iso: 'PE', name: 'Perú', dialCode: '+51', maxLength: 9 };
+
 const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountryChange }) => {
-  const [countries, setCountries] = useState<CountryData[]>([]);
-  const [selectedCountry, setSelectedCountry] = useState<CountryData | null>(null);
+  const [countries, setCountries] = useState<CountryData[]>([defaultPeru]);
+  const [selectedCountry, setSelectedCountry] = useState<CountryData>(defaultPeru);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [error, setError] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // 2. Simulación de Fetch a BD (Futura integración SQL)
+  // 2. Fetch a BD (Integración SQL)
   useEffect(() => {
-    const fetchCountries = async () => {
-      // A futuro, esto será: const response = await fetch('/api/countries');
-      const mockDB: CountryData[] = [
-        { id: '1', iso: 'PE', name: 'Perú', dialCode: '+51', flag: '🇵🇪', maxLength: 9 },
-        { id: '2', iso: 'MX', name: 'México', dialCode: '+52', flag: '🇲🇽', maxLength: 10 },
-        { id: '3', iso: 'CO', name: 'Colombia', dialCode: '+57', flag: '🇨🇴', maxLength: 10 },
-        { id: '4', iso: 'CL', name: 'Chile', dialCode: '+56', flag: '🇨🇱', maxLength: 9 },
-        { id: '5', iso: 'US', name: 'Estados Unidos', dialCode: '+1', flag: '🇺🇸', maxLength: 10 },
-        { id: '6', iso: 'ES', name: 'España', dialCode: '+34', flag: '🇪🇸', maxLength: 9 },
-      ];
-      setCountries(mockDB);
-      setSelectedCountry(mockDB[0]); 
-      if (onCountryChange) onCountryChange(mockDB[0].dialCode);
+    const loadCountries = async () => {
+      try {
+        const data = await fetchCountries();
+        setCountries(data);
+        if (data.length > 0) {
+          const peru = data.find(c => c.iso === 'PE') || data[0];
+          setSelectedCountry(peru); 
+          if (onCountryChange) onCountryChange(peru.dialCode);
+        }
+      } catch (error) {
+        console.error('Error fetching countries:', error);
+      }
     };
-    fetchCountries();
+    loadCountries();
   }, [onCountryChange]);
 
   useEffect(() => {
@@ -192,8 +185,6 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
     if (onCountryChange) onCountryChange(country.dialCode);
     setError(''); 
   };
-
-  if (!selectedCountry) return null;
 
   return (
     <div className="relative w-full" ref={dropdownRef}>
@@ -287,13 +278,21 @@ interface ServiceDropdownProps {
 
 const ServiceDropdown: React.FC<ServiceDropdownProps> = ({ value, onChange }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [options, setOptions] = useState<ServiceOption[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const options: ServiceOption[] = [
-    { value: 'web', label: 'Página Web' },
-    { value: 'app', label: 'App Móvil' },
-    { value: 'desktop', label: 'App de Escritorio' },
-  ];
+  useEffect(() => {
+    const loadServices = async () => {
+      try {
+        const data = await fetchServices();
+        const filteredData = data.filter(s => s.code !== 'custom_software');
+        setOptions(filteredData.map(s => ({ value: s.code, label: s.name })));
+      } catch (error) {
+        console.error('Error fetching services:', error);
+      }
+    };
+    loadServices();
+  }, []);
 
   const selectedLabel = options.find((opt) => opt.value === value)?.label || 'Seleccione su servicio';
 
@@ -314,6 +313,16 @@ const ServiceDropdown: React.FC<ServiceDropdownProps> = ({ value, onChange }) =>
 
   return (
     <div className="relative w-full" ref={dropdownRef}>
+      {/* Hidden input for native HTML5 validation */}
+      <input 
+        type="text" 
+        value={value} 
+        onChange={() => {}} 
+        required 
+        className="absolute opacity-0 w-full h-full -z-10 pointer-events-none" 
+        tabIndex={-1} 
+        aria-hidden="true" 
+      />
       <div 
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center justify-between w-full bg-white rounded-full px-6 py-[0.6rem] cursor-pointer shadow-sm transition-all ${isOpen ? 'ring-2 ring-[#06CFD6]' : ''}`}
@@ -416,7 +425,7 @@ const Contacto: React.FC = () => {
       
       {/* Fondo espacio */}
       <div className="absolute inset-0" style={{ backgroundColor: '#040e1f' }}>
-        <GalaxyBackground /> 
+        <LazyGalaxyBackground /> 
         <div className="absolute inset-0" style={{ background: 'rgba(4,14,31,0.30)' }} />
         <div className="absolute inset-0 bg-[#040e1f]/70" />
 
@@ -457,6 +466,8 @@ const Contacto: React.FC = () => {
               placeholder="Nombre Completo"
               className={solidInput}
               required
+              minLength={2}
+              maxLength={160}
               value={formData.nombre}
               onChange={handleChange}
             />
@@ -470,6 +481,8 @@ const Contacto: React.FC = () => {
               placeholder="Cargo"
               className={solidInput}
               required
+              minLength={2}
+              maxLength={160}
               value={formData.cargo}
               onChange={handleChange}
             />
@@ -483,6 +496,8 @@ const Contacto: React.FC = () => {
               placeholder="Correo"
               className={solidInput}
               required
+              minLength={2}
+              maxLength={160}
               value={formData.email}
               onChange={handleChange}
             />
@@ -493,8 +508,6 @@ const Contacto: React.FC = () => {
             <PhoneInputGroup 
               value={formData.celular} 
               onChange={handleChange}
-              // Si en el futuro quieres guardar el +51 en la BD por separado:
-              // onCountryChange={(code) => setFormData({...formData, prefijo: code})}
             />
           </div>
 
@@ -506,6 +519,8 @@ const Contacto: React.FC = () => {
               placeholder="Empresa"
               className={solidInput}
               required
+              minLength={2}
+              maxLength={160}
               value={formData.empresa}
               onChange={handleChange}
             />
@@ -519,6 +534,8 @@ const Contacto: React.FC = () => {
               placeholder="RUC"
               className={solidInput}
               required
+              minLength={2}
+              maxLength={160}
               value={formData.ruc}
               onChange={handleChange}
             />

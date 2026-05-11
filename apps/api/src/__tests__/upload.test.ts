@@ -1,14 +1,8 @@
 import http from 'node:http';
-import crypto from 'node:crypto';
-import os from 'node:os';
-import path from 'node:path';
-import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 
-const uploadDir = path.join(os.tmpdir(), `bytecode-upload-test-${crypto.randomUUID()}`);
 process.env.NODE_ENV = 'test';
-process.env.UPLOAD_DIR = uploadDir;
 
 const { app } = await import('../app.js');
 
@@ -29,7 +23,6 @@ after(async () => {
   await new Promise<void>((resolve, reject) => {
     server.close((error) => (error ? reject(error) : resolve()));
   });
-  await fs.rm(uploadDir, { recursive: true, force: true });
 });
 
 const validComplaintForm = () => {
@@ -69,7 +62,4 @@ test('rejects uploads whose magic bytes do not match an allowed file type', asyn
   const body = await response.json() as { message: string };
   assert.equal(response.status, 400);
   assert.equal(body.message, 'Archivo no permitido.');
-
-  const files = await fs.readdir(uploadDir).catch(() => []);
-  assert.equal(files.length, 0);
 });

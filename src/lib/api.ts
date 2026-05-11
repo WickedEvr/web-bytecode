@@ -22,6 +22,8 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   let body = options.body;
   const method = (options.method ?? 'GET').toUpperCase();
 
+  headers.set('Accept', 'application/json');
+
   if (options.json !== undefined) {
     headers.set('Content-Type', 'application/json');
     body = JSON.stringify(options.json);
@@ -62,3 +64,47 @@ export const createComplaint = (payload: FormData) =>
     method: 'POST',
     body: payload,
   });
+
+// --- Interfaces para tipar las respuestas del backend ---
+export interface CountryData {
+  id: string;
+  iso: string;
+  name: string;
+  dialCode: string;
+  maxLength: number;
+  is_active?: boolean;
+}
+
+export interface ServiceData {
+  id: string;
+  code: string;
+  name: string;
+}
+
+export interface DocumentTypeData {
+  id: string;
+  code: string;
+  name: string;
+}
+
+// --- Nuevas peticiones GET usando tu wrapper apiRequest ---
+export const fetchCountries = async () => {
+  const response = await apiRequest<{ items: CountryData[] }>('/api/catalog/countries', {
+    method: 'GET',
+  });
+  return response.items;
+};
+
+export const fetchServices = async () => {
+  const response = await apiRequest<{ items: ServiceData[] }>('/api/catalog/services', {
+    method: 'GET',
+  });
+  return response.items;
+};
+
+export const fetchDocumentTypes = async () => {
+  const response = await apiRequest<{ items: DocumentTypeData[] }>('/api/catalog/document-types', {
+    method: 'GET',
+  });
+  return response.items;
+};

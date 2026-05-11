@@ -1,34 +1,35 @@
 import crypto from 'node:crypto';
-import fs from 'node:fs/promises';
-import path from 'node:path';
 import { Router } from 'express';
+import type { Request, Response } from 'express';
 import multer from 'multer';
 import { z } from 'zod';
 import { env } from '../config/env.js';
 import { pool } from '../db/pool.js';
-import { validateUpload } from '../lib/validateUpload.js';
+import {
+  deleteCloudinaryAsset,
+  uploadComplaintEvidenceToCloudinary,
+  type CloudinaryStoredAsset,
+} from '../lib/cloudinary.js';
+import { allowedUploadMimeTypeList, validateUpload, type ValidatedUpload } from '../lib/validateUpload.js';
 import { publicFormLimiter } from '../middleware/rateLimiters.js';
 import { notifyAdmins } from '../services/email.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { HttpError } from '../utils/httpError.js';
 
 const router = Router();
 
-await fs.mkdir(env.uploadDir, { recursive: true });
-
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: (_req, _file, callback) => callback(null, env.uploadDir),
-    filename: (_req, file, callback) => {
-      const ext = path.extname(path.basename(file.originalname)).toLowerCase();
-      callback(null, `${crypto.randomUUID()}${ext}`);
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: {
-    fileSize: 10 * 1024 * 1024,
+    fileSize: env.maxUploadMb * 1024 * 1024,
   },
-  fileFilter: (_req, file, callback) => {
-    const allowedMimeTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
-    callback(null, allowedMimeTypes.includes(file.mimetype));
+  fileFilter: (_req: Request, file: Express.Multer.File, callback: (error: Error | null, acceptFile?: boolean) => void) => {
+    if (!allowedUploadMimeTypeList.includes(file.mimetype)) {
+      callback(new HttpError(400, 'Tipo MIME no permitido.'));
+      return;
+    }
+
+    callback(null, true);
   },
 });
 
@@ -70,31 +71,116 @@ const createComplaintCode = () => {
   return `REC-${datePart}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
 };
 
+const normalizeGoodType = (value: string) => {
+  const normalized = value.trim().toLowerCase();
+  if (['producto', 'product'].includes(normalized)) return 'product';
+  if (['servicio', 'service'].includes(normalized)) return 'service';
+  throw new HttpError(400, 'Tipo de bien no permitido.');
+};
+
+const parseClaimedAmount = (value: string) => {
+  const normalized = value.replace(/[^\d.,-]/g, '').replace(',', '.').trim();
+  if (!normalized) return null;
+
+  const amount = Number(normalized);
+  if (!Number.isFinite(amount) || amount < 0) {
+    throw new HttpError(400, 'Monto reclamado invalido.');
+  }
+
+  return amount;
+};
+
+// --- ENDPOINTS PARA CATÁLOGOS ---
+router.get('/catalog/countries', asyncHandler(async (_req: Request, res: Response) => {
+  const result = await pool.query('SELECT id, iso2 as iso, name, dial_code as "dialCode", phone_max_length as "maxLength" FROM countries WHERE is_active = true ORDER BY name ASC');
+  res.json({ items: result.rows });
+}));
+
+router.get('/catalog/services', asyncHandler(async (_req: Request, res: Response) => {
+  const result = await pool.query('SELECT id, code, name FROM service_catalog WHERE is_active = true ORDER BY name ASC');
+  res.json({ items: result.rows });
+}));
+
+router.get('/catalog/document-types', asyncHandler(async (_req: Request, res: Response) => {
+  const result = await pool.query('SELECT id, code, name FROM document_types WHERE is_active = true ORDER BY name ASC');
+  res.json({ items: result.rows });
+}));
+
+router.get('/catalog/complaint-types', asyncHandler(async (_req: Request, res: Response) => {
+  const result = await pool.query('SELECT id, code, name FROM complaint_types WHERE is_active = true ORDER BY name ASC');
+  res.json({ items: result.rows });
+}));
+
+router.get('/catalog/statuses', asyncHandler(async (req: Request, res: Response) => {
+  const domain = req.query.domain ? String(req.query.domain) : 'case';
+  const result = await pool.query('SELECT id, code, name FROM status_catalog WHERE domain = $1 AND is_active = true ORDER BY sort_order ASC', [domain]);
+  res.json({ items: result.rows });
+}));
+
+router.get('/catalog/pricing', asyncHandler(async (_req: Request, res: Response) => {
+  const result = await pool.query('SELECT id, item_code, name, description, pricing_model, base_price, max_price FROM pricing_catalog WHERE is_active = true ORDER BY name ASC');
+  res.json({ items: result.rows });
+}));
+
 router.post(
   '/contact-submissions',
   publicFormLimiter,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const body = contactSchema.parse(req.body);
-    const result = await pool.query(
-      `
-      INSERT INTO contact_submissions (nombre, cargo, email, celular, empresa, ruc, servicio)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING id, created_at
-      `,
-      [body.nombre, body.cargo, body.email, body.celular, body.empresa, body.ruc, body.servicio],
-    );
+    const client = await pool.connect();
 
-    await notifyAdmins('Nuevo mensaje de contacto', {
-      nombre: body.nombre,
-      cargo: body.cargo,
-      email: body.email,
-      celular: body.celular,
-      empresa: body.empresa,
-      ruc: body.ruc,
-      servicio: body.servicio,
-    });
+    try {
+      await client.query('BEGIN');
 
-    res.status(201).json({ id: result.rows[0].id, createdAt: result.rows[0].created_at });
+      const customerRes = await client.query(
+        `
+        INSERT INTO customers (customer_code, first_name, primary_email, primary_phone)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id
+        `,
+        [`CUS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, body.nombre, body.email.toLowerCase(), body.celular]
+      );
+      const customerId = customerRes.rows[0].id;
+
+      const statusRes = await client.query("SELECT id FROM status_catalog WHERE domain = 'case' AND code = 'new' LIMIT 1");
+      if (statusRes.rowCount === 0) throw new Error('Status catalog not initialized');
+      const statusId = statusRes.rows[0].id;
+
+      const result = await client.query(
+        `
+        INSERT INTO contact_cases (case_code, customer_id, status_id, subject, message, internal_notes) 
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id, created_at
+        `,
+        [
+          `CAS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, 
+          customerId, 
+          statusId, 
+          body.servicio, 
+          `Empresa: ${body.empresa}\nCargo: ${body.cargo}\nRUC: ${body.ruc}`, 
+          ''
+        ],
+      );
+
+      await client.query('COMMIT');
+
+      await notifyAdmins('Nuevo mensaje de contacto', {
+        nombre: body.nombre,
+        cargo: body.cargo,
+        email: body.email,
+        celular: body.celular,
+        empresa: body.empresa,
+        ruc: body.ruc,
+        servicio: body.servicio,
+      });
+
+      res.status(201).json({ id: result.rows[0].id, createdAt: result.rows[0].created_at });
+    } catch (e: unknown) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
   }),
 );
 
@@ -102,56 +188,114 @@ router.post(
   '/complaints',
   publicFormLimiter,
   upload.single('archivoAdjunto'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const body = complaintSchema.parse(req.body);
-    const file = req.file;
-    const safeOriginalName = file ? path.basename(file.originalname) : null;
-    const detectedMimeType = file ? await validateUpload(file.path) : null;
+    const file: Express.Multer.File | undefined = req.file;
     const code = createComplaintCode();
+    let validatedFile: ValidatedUpload | null = null;
+    let cloudinaryAsset: CloudinaryStoredAsset | null = null;
+
+    if (file) {
+      validatedFile = await validateUpload(file);
+
+      try {
+        cloudinaryAsset = await uploadComplaintEvidenceToCloudinary({
+          buffer: file.buffer,
+          complaintCode: code,
+          originalName: validatedFile.originalName,
+          mimeType: validatedFile.mimeType,
+        });
+      } catch (error: unknown) {
+        console.error('Cloudinary complaint evidence upload failed:', error);
+        throw new HttpError(502, 'No se pudo almacenar el archivo adjunto.');
+      }
+    }
+
+    const client = await pool.connect();
 
     try {
-      const result = await pool.query(
+      await client.query('BEGIN');
+
+      const customerRes = await client.query(
+        `
+        INSERT INTO customers (customer_code, first_name, last_name, primary_email, primary_phone)
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING id
+        `,
+        [`CUS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, body.nombres, body.apellidos, body.email.toLowerCase(), `${body.prefijoTelefono} ${body.telefono}`]
+      );
+      const customerId = customerRes.rows[0].id;
+
+      const statusRes = await client.query("SELECT id FROM status_catalog WHERE domain = 'case' AND code = 'new' LIMIT 1");
+      if (statusRes.rowCount === 0) throw new Error('Status catalog not initialized');
+      const statusId = statusRes.rows[0].id;
+
+      // Handle complaint_type_id mapping from string code (claimType = queja/reclamo)
+      const typeRes = await client.query("SELECT id FROM complaint_types WHERE code = $1 LIMIT 1", [body.claimType.toLowerCase()]);
+      const complaintTypeId = (typeRes.rowCount ?? 0) > 0 ? typeRes.rows[0].id : null;
+      if (!complaintTypeId) throw new Error('Tipo de reclamo inválido.');
+
+      let fileAssetId = null;
+      if (file && validatedFile && cloudinaryAsset) {
+        const fileRes = await client.query(
+          `
+          INSERT INTO file_assets (
+            original_name, storage_provider, storage_key, public_url,
+            mime_type, byte_size, checksum_sha256
+          )
+          VALUES ($1, 'cloudinary', $2, $3, $4, $5, $6)
+          RETURNING id
+          `,
+          [
+            validatedFile.originalName,
+            cloudinaryAsset.publicId,
+            cloudinaryAsset.secureUrl,
+            validatedFile.mimeType,
+            cloudinaryAsset.bytes || file.size,
+            validatedFile.checksumSha256,
+          ],
+        );
+        fileAssetId = fileRes.rows[0].id;
+      }
+
+      const result = await client.query(
         `
         INSERT INTO complaints (
-          code, nombres, apellidos, domicilio, tipo_doc, numero_doc, prefijo_telefono, telefono, email,
-          person_type, good_type, monto_cuantificable, descripcion, nombre_unidad, opcion_bien,
-          claim_type, tipo_reclamo, detalle, pedido, attachment_original_name, attachment_mime_type,
-          attachment_size, attachment_path
+          complaint_code, customer_id, complaint_type_id, status_id, 
+          legal_acceptance, legal_acceptance_at, legal_response_due_at, internal_notes
         )
-        VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9,
-          $10, $11, $12, $13, $14, $15,
-          $16, $17, $18, $19, $20, $21,
-          $22, $23
-        )
-        RETURNING id, code, created_at
+        VALUES ($1, $2, $3, $4, $5, now(), now() + interval '15 days', '')
+        RETURNING id, complaint_code, created_at
         `,
-        [
-          code,
-          body.nombres,
-          body.apellidos,
-          body.domicilio,
-          body.tipoDoc,
-          body.numeroDoc,
-          body.prefijoTelefono,
-          body.telefono,
-          body.email,
-          body.personType,
-          body.goodType,
-          body.montoCuantificable,
-          body.descripcion,
-          body.nombreUnidad,
-          body.opcionBien,
-          body.claimType,
-          body.tipoReclamo,
-          body.detalle,
-          body.pedido,
-          safeOriginalName,
-          detectedMimeType,
-          file?.size ?? null,
-          file?.path ?? null,
-        ],
+        [code, customerId, complaintTypeId, statusId, body.aceptaTerminos],
       );
+
+      const complaintId = result.rows[0].id;
+
+      await client.query(
+        `
+        INSERT INTO complaint_details (complaint_id, incident_detail, requested_solution, customer_ip, customer_user_agent)
+        VALUES ($1, $2, $3, $4, $5)
+        `,
+        [complaintId, body.detalle, body.pedido, req.ip, req.headers['user-agent']]
+      );
+
+      await client.query(
+        `
+        INSERT INTO complaint_goods (complaint_id, good_type, description, category, claimed_amount)
+        VALUES ($1, $2, $3, $4, $5)
+        `,
+        [complaintId, normalizeGoodType(body.goodType), body.descripcion, body.tipoReclamo, parseClaimedAmount(body.montoCuantificable)]
+      );
+
+      if (fileAssetId) {
+        await client.query(
+          `INSERT INTO complaint_evidences (complaint_id, file_asset_id) VALUES ($1, $2)`,
+          [complaintId, fileAssetId]
+        );
+      }
+
+      await client.query('COMMIT');
 
       await notifyAdmins('Nuevo reclamo o queja', {
         codigo: code,
@@ -160,17 +304,21 @@ router.post(
         telefono: `${body.prefijoTelefono} ${body.telefono}`,
         tipo: body.claimType,
         motivo: body.tipoReclamo,
-        adjunto: safeOriginalName ?? 'Sin adjunto',
+        adjunto: validatedFile?.originalName ?? 'Sin adjunto',
       });
 
-      res.status(201).json({ id: result.rows[0].id, code: result.rows[0].code, createdAt: result.rows[0].created_at });
-    } catch (error) {
-      if (file?.path) {
-        await fs.rm(file.path, { force: true });
+      res.status(201).json({ id: complaintId, code: result.rows[0].complaint_code, createdAt: result.rows[0].created_at });
+    } catch (error: unknown) {
+      await client.query('ROLLBACK');
+      if (cloudinaryAsset) {
+        await deleteCloudinaryAsset(cloudinaryAsset.publicId, cloudinaryAsset.resourceType).catch((cleanupError: unknown) => {
+          console.error('Cloudinary cleanup failed after database rollback:', cleanupError);
+        });
       }
       throw error;
+    } finally {
+      client.release();
     }
   }),
 );
-
 export default router;
