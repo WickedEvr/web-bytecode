@@ -21,9 +21,15 @@ const Sidebar: React.FC<SidebarProps> = ({ admin, onClose }) => {
     { to: '/admin/configuracion', icon: Settings, label: 'Configuración', roles: ['super_admin', 'admin'] },
   ];
 
-  const visibleNavItems = navItems.filter(item => 
-    !admin || admin.role === 'super_admin' || item.roles.includes(admin.role)
-  );
+  const visibleNavItems = navItems.filter(item => {
+  if (!admin || !admin.roles) return true; 
+
+  const isSuperAdmin = admin.roles.includes('super_admin');
+
+  const hasAllowedRole = admin.roles.some(userRole => item.roles.includes(userRole));
+
+  return isSuperAdmin || hasAllowedRole;
+});
 
   return (
     <aside className="w-64 border-r border-white/10 bg-[#040e1f] flex flex-col h-full shadow-2xl lg:shadow-none">
