@@ -41,7 +41,7 @@ const AdminSeguridad: React.FC = () => {
     void fetchSessions();
     const interval = setInterval(() => {
       void fetchSessions(false);
-    }, 30000);
+    }, 5000);
     return () => clearInterval(interval);
   }, [fetchSessions]);
 
