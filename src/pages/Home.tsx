@@ -283,18 +283,18 @@ const ServiciosSection: React.FC = () => {
                   src={services[slide].img}
                   alt={services[slide].title}
                   className="absolute inset-0 h-full w-full object-cover object-[center_20%]"
-                  initial={{ opacity: 0, scale: 1.04 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.97 }}
+                  initial={{ zIndex: 0, scale: 1.04 }}
+                  animate={{ zIndex: 1, scale: 1 }}
+                  exit={{ zIndex: 2, opacity: 0, scale: 1.04 }}
                   transition={{ duration: 0.7, ease: 'easeInOut' }}
                 />
               </AnimatePresence>
-              <div className="absolute inset-0 bg-black/15 lg:bg-black/28" />
-              <div className="absolute inset-0 bg-[url('/vectors/shapes/formaazul.svg')] bg-cover bg-center bg-no-repeat lg:hidden" />
+              <div className="absolute inset-0 bg-black/15 lg:bg-black/28 z-10" />
+              <div className="absolute inset-0 bg-[url('/vectors/shapes/formaazul.svg')] bg-cover bg-center bg-no-repeat lg:hidden z-10" />
               <AnimatePresence mode="wait">
                 <motion.div
                   key={`text-${slide}`}
-                  className="absolute bottom-6 left-5 right-[60px] md:bottom-[clamp(24px,4vw,60px)] md:left-[clamp(20px,4vw,60px)] md:right-[clamp(60px,12vw,150px)]"
+                  className="absolute bottom-6 left-5 right-[60px] md:bottom-[clamp(24px,4vw,60px)] md:left-[clamp(20px,4vw,60px)] md:right-[clamp(60px,12vw,150px)] z-20"
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
@@ -308,8 +308,8 @@ const ServiciosSection: React.FC = () => {
                   </p>
                 </motion.div>
               </AnimatePresence>
-              <img className="absolute bottom-0 right-0 hidden pointer-events-none lg:block" src="/vectors/shapes/esquina-derecha.svg" alt="" aria-hidden="true" />
-              <img className="absolute bottom-6 right-4 z-[2] w-10 pointer-events-none md:bottom-[5%] md:right-[2%] md:w-[clamp(25px,4vw,50px)]" src="/vectors/logos/isotipo.svg" alt="" aria-hidden="true" />
+              <img className="absolute bottom-0 right-0 hidden pointer-events-none lg:block z-10" src="/vectors/shapes/esquina-derecha.svg" alt="" aria-hidden="true" />
+              <img className="absolute bottom-6 right-4 z-20 w-10 pointer-events-none md:bottom-[5%] md:right-[2%] md:w-[clamp(25px,4vw,50px)]" src="/vectors/logos/isotipo.svg" alt="" aria-hidden="true" />
             </div>
           </div>
           <div className="relative z-20 mt-8 hidden items-center justify-center gap-4 lg:flex">

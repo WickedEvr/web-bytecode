@@ -2,15 +2,57 @@
 <html lang="es" translate="no">
   <head>
     <meta charset="UTF-8" />
-    
+
+    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/vectors/designs/mini_logo.svg" />
-    <link rel="alternate icon" type="image/png" href="/favicon.png" />
+
+    <!-- Preload critico para performance -->
     <link rel="preload" as="image" href="/images/characters/astronauta.png" fetchpriority="high" />
     <link rel="preload" as="font" type="font/woff2" href="/fonts/Sansation-Regular.woff2" crossorigin />
     <link rel="preload" as="font" type="font/woff2" href="/fonts/Sansation-Bold.woff2" crossorigin />
     <link rel="preload" as="font" type="font/woff2" href="/fonts/Sansation-Light.woff2" crossorigin />
 
+    <!-- Viewport -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+    <!-- SEO Meta Tags -->
+    <title>Bytecode | Desarrollo de Software, Web y Apps en Peru</title>
+    <meta name="description" content="Bytecode desarrolla paginas web, aplicaciones moviles, software de escritorio y soluciones digitales a medida para empresas en Peru. Agenda una consulta gratis." />
+    <meta name="keywords" content="Bytecode, desarrollo web Peru, desarrollo de software Peru, aplicaciones moviles, software a medida, transformacion digital, paginas web Lima, automatizacion de negocios" />
+    <meta name="author" content="Bytecode" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="language" content="Spanish" />
+    <meta name="revisit-after" content="7 days" />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://web-bytecode.com/" />
+
+    <!-- Open Graph Tags -->
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="es_PE" />
+    <meta property="og:title" content="Bytecode | Desarrollo de Software, Web y Apps en Peru" />
+    <meta property="og:description" content="Desarrollamos paginas web, apps moviles, software de escritorio y soluciones digitales a medida para impulsar negocios en Peru." />
+    <meta property="og:image" content="https://web-bytecode.com/images/characters/astronauta.png" />
+    <meta property="og:url" content="https://web-bytecode.com/" />
+    <meta property="og:site_name" content="Bytecode" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Bytecode | Desarrollo de Software, Web y Apps" />
+    <meta name="twitter:description" content="Soluciones digitales a medida: paginas web, apps moviles, software de escritorio y automatizacion para empresas." />
+    <meta name="twitter:image" content="https://web-bytecode.com/images/characters/astronauta.png" />
+
+    <!-- Geo Meta Tags para SEO local -->
+    <meta name="geo.placename" content="Lima, Peru" />
+    <meta name="geo.region" content="PE-LIM" />
+    <meta name="geo.position" content="-12.0463,-77.0428" />
+
+    <!-- Tema y colores -->
+    <meta name="theme-color" content="#060c1d" />
+    <meta name="msapplication-TileColor" content="#060c1d" />
+
+    <!-- Critical CSS inline -->
     <style data-critical>
       @font-face{font-family:'Sansation';font-style:normal;font-weight:400;src:url('/fonts/Sansation-Regular.woff2') format('woff2');font-display:swap}
       @font-face{font-family:'Sansation';font-style:normal;font-weight:700;src:url('/fonts/Sansation-Bold.woff2') format('woff2');font-display:swap}
@@ -19,20 +61,116 @@
       body{margin:0;min-height:100vh;overflow-x:hidden;background:#060c1d;color:#fff;font-family:'Sansation',Arial,sans-serif}
       #root{min-height:100vh}
     </style>
-    
-    <title>Bytecode | Soluciones Tecnológicas de Alto Impacto</title>
-    <meta name="description" content="Expertos en desarrollo de software, arquitectura escalable y transformación digital. Impulsamos tu negocio con tecnología de vanguardia." />
-    <meta name="theme-color" content="#060c1d" /> 
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="Bytecode | Tu socio tecnológico" />
-    <meta property="og:description" content="Desarrollo de software y soluciones digitales escalables." />
-    <meta property="og:image" content="/og-image.png" />
 
-    <link rel="dns-prefetch" href="https://api.tu-dominio.com">
+    <!-- DNS Prefetch y Preconnect para performance -->
+    <link rel="dns-prefetch" href="https://api.bytecode.pe" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+
+    <!-- JSON-LD Schema: Negocio local -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      "@id": "https://web-bytecode.com/#localbusiness",
+      "name": "Bytecode",
+      "alternateName": "Bytecode Systems",
+      "image": "https://web-bytecode.com/vectors/designs/variante_logo_color1.svg",
+      "logo": "https://web-bytecode.com/vectors/designs/mini_logo.svg",
+      "description": "Empresa peruana especializada en desarrollo de paginas web, aplicaciones moviles, software de escritorio, automatizacion y transformacion digital.",
+      "telephone": "+51 936 281 137",
+      "email": "contacto@bytecode.com.pe",
+      "url": "https://web-bytecode.com",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Lima",
+        "addressRegion": "Lima",
+        "addressCountry": "PE"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": "-12.0463",
+        "longitude": "-77.0428"
+      },
+      "areaServed": {
+        "@type": "City",
+        "name": "Lima",
+        "sameAs": "https://en.wikipedia.org/wiki/Lima"
+      },
+      "serviceType": ["Desarrollo Web", "Aplicaciones Moviles", "Software de Escritorio", "Software a Medida", "Automatizacion", "Transformacion Digital"],
+      "priceRange": "$$",
+      "sameAs": [
+        "https://www.facebook.com/bytecodesystems/",
+        "https://www.instagram.com/bytecodesw",
+        "https://www.linkedin.com/company/bytecodesw"
+      ]
+    }
+    </script>
+
+    <!-- JSON-LD Schema: Servicios -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ProfessionalService",
+      "@id": "https://web-bytecode.com/#professionalservice",
+      "name": "Bytecode - Desarrollo de Software",
+      "description": "Servicio profesional de desarrollo de paginas web, aplicaciones moviles, software de escritorio, software a medida y automatizacion para empresas.",
+      "url": "https://web-bytecode.com",
+      "areaServed": {
+        "@type": "City",
+        "name": "Lima",
+        "sameAs": "https://en.wikipedia.org/wiki/Lima"
+      },
+      "provider": {
+        "@type": "Organization",
+        "name": "Bytecode",
+        "url": "https://web-bytecode.com",
+        "telephone": "+51 936 281 137",
+        "email": "contacto@bytecode.com.pe"
+      },
+      "serviceType": ["Desarrollo Web", "Aplicaciones Moviles", "Software de Escritorio", "Software a Medida", "Automatizacion"]
+    }
+    </script>
+
+    <!-- JSON-LD Schema: Organizacion -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "@id": "https://web-bytecode.com/#organization",
+      "name": "Bytecode",
+      "url": "https://web-bytecode.com",
+      "logo": "https://web-bytecode.com/vectors/designs/mini_logo.svg",
+      "description": "Bytecode desarrolla software, paginas web, aplicaciones moviles y soluciones digitales a medida para empresas en Peru.",
+      "sameAs": [
+        "https://www.facebook.com/bytecodesystems/",
+        "https://www.instagram.com/bytecodesw",
+        "https://www.linkedin.com/company/bytecodesw"
+      ],
+      "contactPoint": [
+        {
+          "@type": "ContactPoint",
+          "contactType": "sales",
+          "telephone": "+51 936 281 137",
+          "email": "contacto@bytecode.com.pe",
+          "areaServed": "PE",
+          "availableLanguage": ["Spanish"]
+        },
+        {
+          "@type": "ContactPoint",
+          "contactType": "customer service",
+          "telephone": "+51 970 199 434",
+          "email": "contacto@bytecode.com.pe",
+          "areaServed": "PE",
+          "availableLanguage": ["Spanish"]
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
-    <noscript>Necesitas habilitar JavaScript para ejecutar esta aplicación.</noscript>
-    
+    <noscript>Necesitas habilitar JavaScript para ejecutar esta aplicacion.</noscript>
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
