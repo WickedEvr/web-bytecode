@@ -71,7 +71,7 @@ const AdminSeguridad: React.FC = () => {
   }
 
   return (
-    <div className="p-8 text-white max-w-auto w-full"> 
+    <div className="p-8 text-white max-w-auto w-full">
       <div className="mb-8">
         <h1 className="text-3xl font-bold flex items-center gap-3">
           <ShieldCheck className="w-8 h-8 text-[#06CFD6]" />
