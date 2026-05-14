@@ -480,7 +480,7 @@ const LibroReclamaciones: React.FC = () => {
   return (
     <div className="relative min-h-screen overflow-hidden font-sansation">
       {/* Fondo espacio */}
-      <div className="absolute inset-0" style={{ backgroundColor: '#040e1f' }}>
+      <div className="fixed inset-0" style={{ backgroundColor: '#040e1f' }}>
         <LazyGalaxyBackground /> 
         <div className="absolute inset-0 bg-[#040e1f]/40" />
         <div className="absolute inset-0 bg-[#040e1f]/70" />

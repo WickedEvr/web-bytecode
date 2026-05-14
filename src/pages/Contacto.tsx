@@ -424,7 +424,7 @@ const Contacto: React.FC = () => {
       />
       
       {/* Fondo espacio */}
-      <div className="absolute inset-0" style={{ backgroundColor: '#040e1f' }}>
+      <div className="fixed inset-0" style={{ backgroundColor: '#040e1f' }}>
         <LazyGalaxyBackground /> 
         <div className="absolute inset-0" style={{ background: 'rgba(4,14,31,0.30)' }} />
         <div className="absolute inset-0 bg-[#040e1f]/70" />
