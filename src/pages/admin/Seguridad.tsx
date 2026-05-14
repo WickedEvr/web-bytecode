@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiRequest } from '../../lib/api';
 import { Monitor, Smartphone, Tablet, Trash2, ShieldCheck, Clock } from 'lucide-react';
@@ -20,20 +20,30 @@ const AdminSeguridad: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchSessions = useCallback(async (showSpinner = false) => {
+    if (showSpinner) setIsRefreshing(true);
+    try {
+      const data = await apiRequest<{ sessions: Session[] }>('/api/auth/sessions');
+      setSessions(data.sessions);
+      if (error) setError('');
+    } catch (err) {
+      if (showSpinner) alert(err instanceof Error ? err.message : 'Error al actualizar sesiones');
+      else setError(err instanceof Error ? err.message : 'Error al cargar sesiones');
+    } finally {
+      if (showSpinner) setIsRefreshing(false);
+      setLoading(false);
+    }
+  }, [error]);
 
   useEffect(() => {
-    const fetchSessions = async () => {
-      try {
-        const data = await apiRequest<{ sessions: Session[] }>('/api/auth/sessions');
-        setSessions(data.sessions);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error al cargar sesiones');
-      } finally {
-        setLoading(false);
-      }
-    };
     void fetchSessions();
-  }, []);
+    const interval = setInterval(() => {
+      void fetchSessions(false);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [fetchSessions]);
 
   const handleRevoke = async (sessionId: string) => {
     // Optimistic UI update
@@ -75,14 +85,26 @@ const AdminSeguridad: React.FC = () => {
 
   return (
     <div className="p-8 text-white max-w-auto w-full">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold flex items-center gap-3">
-          <ShieldCheck className="w-8 h-8 text-[#06CFD6]" />
-          Dispositivos Activos
-        </h1>
-        <p className="text-white/60 mt-2 text-lg">
-          Gestiona las sesiones activas y los dispositivos que tienen acceso a tu cuenta.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 gap-4 sm:gap-0">
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <ShieldCheck className="w-8 h-8 text-[#06CFD6]" />
+            Dispositivos Activos
+          </h1>
+          <p className="text-white/60 mt-2 text-lg">
+            Gestiona las sesiones activas y los dispositivos que tienen acceso a tu cuenta.
+          </p>
+        </div>
+        <button
+          onClick={() => fetchSessions(true)}
+          disabled={isRefreshing}
+          className="flex items-center justify-center gap-2 text-sm text-white/70 hover:text-white transition-colors disabled:opacity-50 border border-white/10 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10"
+        >
+          <svg className={`w-5 h-5 ${isRefreshing ? 'animate-spin text-[#06CFD6]' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Refrescar
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

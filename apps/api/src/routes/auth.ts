@@ -153,19 +153,17 @@ router.get('/sessions', requireAdmin, asyncHandler(async (req: Request, res: Res
 
     const deviceType = device.type || 'desktop';
     
-    let osName = os.name ? `${os.name} ${os.version || ''}`.trim() : 'Unknown OS';
-    if (uaData.platform === 'Windows' && uaData.platformVersion) {
-      const majorVersion = parseInt(uaData.platformVersion.split('.')[0] || '0', 10);
-      if (majorVersion >= 13) {
-        osName = 'Windows 11';
-      } else if (majorVersion > 0) {
-        osName = 'Windows 10';
-      }
-    } else if (uaData.platform === 'Android' && uaData.platformVersion) {
-      osName = `Android ${uaData.platformVersion}`;
+    let osName = os.name || 'Unknown OS';
+    const platformToMatch = uaData.platform || os.name || '';
+    if (platformToMatch.includes('Windows')) {
+      osName = 'Windows';
+    } else if (platformToMatch.includes('Android')) {
+      osName = 'Android';
+    } else if (platformToMatch.includes('Mac OS') || platformToMatch.includes('iOS')) {
+      osName = platformToMatch.includes('iOS') ? 'iOS' : 'macOS';
     }
 
-    const browserName = browser.name ? `${browser.name} ${browser.version || ''}`.trim() : 'Unknown Browser';
+    const browserName = browser.name || 'Unknown Browser';
 
     return {
       id: row.id,
