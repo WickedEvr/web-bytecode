@@ -12,6 +12,8 @@ interface Session {
   created_at: string;
   expires_at: string;
   isCurrentSession: boolean;
+  userName: string;
+  userEmail: string;
 }
 
 const AdminSeguridad: React.FC = () => {
@@ -105,6 +107,7 @@ const AdminSeguridad: React.FC = () => {
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                       <div>
                         <h3 className="text-xl font-semibold truncate">{session.osName} - {session.browserName}</h3>
+                        <p className="text-sm font-semibold text-blue-400 mt-1">{session.userName} ({session.userEmail})</p>
                       </div>
                       {session.isCurrentSession && (
                         <span className="bg-[#06CFD6]/20 text-[#06CFD6] text-xs font-bold px-3 py-1.5 rounded-full border border-[#06CFD6]/30 shrink-0">
