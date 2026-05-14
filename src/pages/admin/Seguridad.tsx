@@ -113,7 +113,7 @@ const AdminSeguridad: React.FC = () => {
                       )}
                     </div>
 
-                    <div className="mt-5 space-y-2.5 text-sm text-white/50"> 
+                    <div className="mt-5 space-y-2.5 text-sm text-white/50">
                       <div className="flex items-center gap-2">
                         <span className="w-16 font-medium text-white/70">IP:</span>
                         <span className="text-white/90 bg-black/20 px-2 py-0.5 rounded">{session.ip_address}</span>
