@@ -17,6 +17,7 @@ const Sidebar: React.FC<SidebarProps> = ({ admin, onClose }) => {
     { to: '/admin/usuarios', icon: ShieldCheck, label: 'Usuarios', roles: ['super_admin', 'admin'] },
     { to: '/admin/cms', icon: Database, label: 'CMS', roles: ['super_admin', 'admin', 'partner_designer'] },
     { to: '/admin/auditoria', icon: ClipboardList, label: 'Auditoría', roles: ['super_admin', 'admin'] },
+    { to: '/admin/seguridad', icon: ShieldCheck, label: 'Seguridad', roles: ['super_admin', 'admin'] },
     { to: '/admin/configuracion', icon: Settings, label: 'Configuración', roles: ['super_admin', 'admin'] },
   ];
 

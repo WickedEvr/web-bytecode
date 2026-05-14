@@ -1,11 +1,14 @@
 import bcrypt from 'bcryptjs';
+import crypto from 'node:crypto';
 import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
+import { UAParser } from 'ua-parser-js';
+import { env } from '../config/env.js';
 import { pool } from '../db/pool.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { HttpError } from '../utils/httpError.js';
-import { clearAdminCookie, createAdminToken, requireAdmin, setAdminCookie } from '../middleware/auth.js';
+import { clearAdminCookie, requireAdmin } from '../middleware/auth.js';
 import { loginLimiter } from '../middleware/rateLimiters.js';
 import { audit } from '../services/audit.js';
 
@@ -50,6 +53,44 @@ router.post(
 
     await pool.query('UPDATE admin_users SET last_login_at = now(), updated_at = now() WHERE id = $1', [admin.id]);
 
+    // Phase 1: Secure Session Management
+    const plainToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(plainToken).digest('hex');
+    
+    // Extract Metadata
+    const ipAddress = req.ip || req.socket.remoteAddress || 'unknown';
+    const userAgent = req.get('user-agent') || 'unknown';
+    
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    // Database Insertion
+    await pool.query(
+      `
+      INSERT INTO admin_sessions (admin_user_id, token_hash, ip_address, user_agent, expires_at)
+      VALUES ($1, $2, $3, $4, $5)
+      `,
+      [admin.id, tokenHash, ipAddress, userAgent, expiresAt]
+    );
+
+    // Secure Cookies
+    res.cookie(env.cookieName, plainToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
+      path: '/',
+    });
+    
+    // Maintain CSRF compatibility cookie
+    res.cookie('bc_csrf', crypto.randomUUID(), {
+      httpOnly: false,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/',
+    });
+
     const publicAdmin = {
       id: admin.id,
       email: admin.email,
@@ -58,13 +99,15 @@ router.post(
       permissions: admin.permissions,
     };
 
-    setAdminCookie(res, createAdminToken(publicAdmin));
     await audit(admin.id, 'login', 'admin_user', admin.id);
     res.json({ admin: publicAdmin });
   }),
 );
 
 router.post('/logout', requireAdmin, asyncHandler(async (req: Request, res: Response) => {
+  if (req.sessionId) {
+    await pool.query('UPDATE admin_sessions SET revoked_at = NOW() WHERE id = $1', [req.sessionId]);
+  }
   await audit(req.admin?.id, 'logout', 'admin_user', req.admin?.id);
   clearAdminCookie(res);
   res.json({ ok: true });
@@ -73,5 +116,71 @@ router.post('/logout', requireAdmin, asyncHandler(async (req: Request, res: Resp
 router.get('/me', requireAdmin, (req: Request, res: Response) => {
   res.json({ admin: req.admin });
 });
+
+router.get('/sessions', requireAdmin, asyncHandler(async (req: Request, res: Response) => {
+  const result = await pool.query(
+    `
+    SELECT id, ip_address, user_agent, created_at, expires_at
+    FROM admin_sessions
+    WHERE admin_user_id = $1
+      AND revoked_at IS NULL
+      AND expires_at > NOW()
+    ORDER BY created_at DESC
+    `,
+    [req.admin?.id]
+  );
+
+  const sessions = result.rows.map((row) => {
+    const parser = new UAParser(row.user_agent || '');
+    const browser = parser.getBrowser();
+    const os = parser.getOS();
+    const device = parser.getDevice();
+
+    let readableDevice = 'Desktop';
+    if (device.type === 'mobile') readableDevice = 'Mobile';
+    else if (device.type === 'tablet') readableDevice = 'Tablet';
+
+    const browserName = browser.name ? `\${browser.name} \${browser.version || ''}`.trim() : 'Unknown Browser';
+    const osName = os.name ? `\${os.name} \${os.version || ''}`.trim() : 'Unknown OS';
+
+    return {
+      id: row.id,
+      ip_address: row.ip_address,
+      device: `\${readableDevice} - \${osName}`,
+      browser: browserName,
+      created_at: row.created_at,
+      expires_at: row.expires_at,
+      isCurrentSession: row.id === req.sessionId,
+    };
+  });
+
+  res.json({ sessions });
+}));
+
+const revokeSchema = z.object({
+  sessionId: z.string().uuid(),
+});
+
+router.post('/sessions/:sessionId/revoke', requireAdmin, asyncHandler(async (req: Request, res: Response) => {
+  const params = revokeSchema.parse(req.params);
+
+  const result = await pool.query(
+    `
+    UPDATE admin_sessions
+    SET revoked_at = NOW()
+    WHERE id = $1 AND admin_user_id = $2
+    RETURNING id
+    `,
+    [params.sessionId, req.admin?.id]
+  );
+
+  if (result.rowCount === 0) {
+    throw new HttpError(404, 'Sesión no encontrada o no pertenece al usuario.');
+  }
+
+  await audit(req.admin?.id, 'revoke_session', 'admin_sessions', params.sessionId);
+  
+  res.json({ ok: true, message: 'Sesión revocada exitosamente.' });
+}));
 
 export default router;
