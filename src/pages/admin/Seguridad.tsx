@@ -5,9 +5,10 @@ import { Monitor, Smartphone, Tablet, Trash2, ShieldCheck, Clock } from 'lucide-
 
 interface Session {
   id: string;
-  browser: string;
-  device: string;
   ip_address: string;
+  deviceType: string;
+  osName: string;
+  browserName: string;
   created_at: string;
   expires_at: string;
   isCurrentSession: boolean;
@@ -46,10 +47,10 @@ const AdminSeguridad: React.FC = () => {
     }
   };
 
-  const getDeviceIcon = (device: string) => {
-    if (device.toLowerCase().includes('mobile')) return <Smartphone className="w-6 h-6 text-white/70" />;
-    if (device.toLowerCase().includes('tablet')) return <Tablet className="w-6 h-6 text-white/70" />;
-    return <Monitor className="w-6 h-6 text-white/70" />;
+  const getDeviceIcon = (deviceType: string) => {
+    if (deviceType === 'mobile') return <Smartphone className="w-8 h-8 text-gray-500" />;
+    if (deviceType === 'tablet') return <Tablet className="w-8 h-8 text-gray-500" />;
+    return <Monitor className="w-8 h-8 text-gray-500" />;
   };
 
   const formatDate = (dateString: string) => {
@@ -97,14 +98,13 @@ const AdminSeguridad: React.FC = () => {
             >
               <div>
                 <div className="flex items-start gap-4">
-                  <div className="p-4 bg-white/10 rounded-xl shrink-0">
-                    {getDeviceIcon(session.device)}
+                  <div className="p-4 bg-white/10 rounded-xl shrink-0 flex items-center justify-center">
+                    {getDeviceIcon(session.deviceType)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                       <div>
-                        <h3 className="text-xl font-semibold truncate">{session.device}</h3>
-                        <p className="text-white/60 truncate">{session.browser}</p>
+                        <h3 className="text-xl font-semibold truncate">{session.osName} - {session.browserName}</h3>
                       </div>
                       {session.isCurrentSession && (
                         <span className="bg-[#06CFD6]/20 text-[#06CFD6] text-xs font-bold px-3 py-1.5 rounded-full border border-[#06CFD6]/30 shrink-0">

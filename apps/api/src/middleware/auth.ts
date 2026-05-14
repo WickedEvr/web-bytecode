@@ -32,6 +32,7 @@ export const requireAdmin = async (req: Request, res: Response, next: NextFuncti
       `
       SELECT 
         s.id AS session_id,
+        s.expires_at,
         u.id, u.email, u.name, u.role, u.is_active,
         COALESCE((
           SELECT array_agg(DISTINCT p.code)
@@ -60,6 +61,12 @@ export const requireAdmin = async (req: Request, res: Response, next: NextFuncti
     if (!row.is_active) {
       clearAdminCookie(res);
       throw new HttpError(401, 'Usuario inactivo.');
+    }
+
+    const timeRemaining = new Date(row.expires_at).getTime() - Date.now();
+    if (timeRemaining < (45 * 60 * 1000)) {
+      pool.query(`UPDATE admin_sessions SET expires_at = NOW() + INTERVAL '1 hour' WHERE id = $1`, [row.session_id]).catch(console.error);
+      res.cookie(env.cookieName, token, { httpOnly: true, secure: true, sameSite: 'none', maxAge: 60 * 60 * 1000, path: '/' });
     }
 
     req.admin = {

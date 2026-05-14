@@ -58,11 +58,12 @@ router.post(
     const tokenHash = crypto.createHash('sha256').update(plainToken).digest('hex');
     
     // Extract Metadata
-    const ipAddress = req.ip || req.socket.remoteAddress || 'unknown';
+    const forwardedFor = req.headers['x-forwarded-for'];
+    const ipAddress = typeof forwardedFor === 'string' ? forwardedFor.split(',')[0].trim() : req.socket.remoteAddress || req.ip;
     const userAgent = req.get('user-agent') || 'unknown';
     
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    const ONE_HOUR_MS = 60 * 60 * 1000;
+    const expiresAt = new Date(Date.now() + ONE_HOUR_MS);
 
     // Database Insertion
     await pool.query(
@@ -78,7 +79,7 @@ router.post(
       httpOnly: true,
       secure: true,
       sameSite: 'none',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
+      maxAge: ONE_HOUR_MS,
       path: '/',
     });
     
@@ -87,7 +88,7 @@ router.post(
       httpOnly: false,
       secure: true,
       sameSite: 'none',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: ONE_HOUR_MS,
       path: '/',
     });
 
@@ -136,18 +137,16 @@ router.get('/sessions', requireAdmin, asyncHandler(async (req: Request, res: Res
     const os = parser.getOS();
     const device = parser.getDevice();
 
-    let readableDevice = 'Desktop';
-    if (device.type === 'mobile') readableDevice = 'Mobile';
-    else if (device.type === 'tablet') readableDevice = 'Tablet';
-
-    const browserName = browser.name ? `\${browser.name} \${browser.version || ''}`.trim() : 'Unknown Browser';
-    const osName = os.name ? `\${os.name} \${os.version || ''}`.trim() : 'Unknown OS';
+    const deviceType = device.type || 'desktop';
+    const osName = os.name ? `${os.name} ${os.version || ''}`.trim() : 'Unknown OS';
+    const browserName = browser.name ? `${browser.name} ${browser.version || ''}`.trim() : 'Unknown Browser';
 
     return {
       id: row.id,
       ip_address: row.ip_address,
-      device: `\${readableDevice} - \${osName}`,
-      browser: browserName,
+      deviceType,
+      osName,
+      browserName,
       created_at: row.created_at,
       expires_at: row.expires_at,
       isCurrentSession: row.id === req.sessionId,
