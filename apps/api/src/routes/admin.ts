@@ -356,7 +356,7 @@ router.patch(
     const currentUser = await pool.query('SELECT role FROM admin_users WHERE id = $1', [id]);
     if (currentUser.rowCount === 0) throw new HttpError(404, 'Usuario no encontrado.');
 
-    if (currentUser.rows[0].role === 'super_admin' && req.admin?.role !== 'super_admin') {
+    if (currentUser.rows[0].role === 'super_admin' && !req.admin?.roles.includes('super_admin')) {
       throw new HttpError(403, 'No puedes modificar a un super administrador.');
     }
 
@@ -389,7 +389,7 @@ router.patch(
     const currentUser = await pool.query('SELECT role FROM admin_users WHERE id = $1', [id]);
     if (currentUser.rowCount === 0) throw new HttpError(404, 'Usuario no encontrado.');
 
-    if (currentUser.rows[0].role === 'super_admin' && req.admin?.role !== 'super_admin') {
+    if (currentUser.rows[0].role === 'super_admin' && !req.admin?.roles.includes('super_admin')) {
       throw new HttpError(403, 'No puedes modificar a un super administrador.');
     }
 
