@@ -12,6 +12,10 @@ const solidInput =
 const solidTextarea =
   'w-full min-h-[150px] resize-y bg-white rounded-3xl px-6 py-4 text-[#333] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06CFD6] transition-all text-[20px] shadow-sm';
 
+const stripDigits = (value: string) => value.replace(/\d/g, '');
+const stripNonDigits = (value: string) => value.replace(/\D/g, '');
+const stripSymbols = (value: string) => value.replace(/[^\p{L}\p{N}\s]/gu, '');
+
 const Label: React.FC<{ text: string; required?: boolean }> = ({ text, required }) => (
   <label className="block text-white/70 text-[24px] font-bold mb-1.5 pl-5 tracking-wide">
     {text}
@@ -220,6 +224,8 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
           placeholder={`Ej: ${'9'.repeat(selectedCountry.maxLength)}`}
           className="flex-1 bg-transparent px-4 py-[0.6rem] text-[#333] placeholder-gray-400 focus:outline-none text-[20px] rounded-r-full"
           required
+          inputMode="numeric"
+          pattern="\d*"
           maxLength={selectedCountry.maxLength}
           value={value}
           onChange={handleInputChange}
@@ -383,6 +389,7 @@ const ServiceDropdown: React.FC<ServiceDropdownProps> = ({ value, onChange }) =>
 const Contacto: React.FC = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
+    countryId: '',
     nombre: '',
     apellido: '',
     cargo: '',
@@ -407,15 +414,37 @@ const Contacto: React.FC = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleTextOnlyChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setFormData({ ...formData, [e.target.name]: stripDigits(e.target.value) });
+  };
+
+  const handleAlphanumericChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setFormData({ ...formData, [e.target.name]: stripSymbols(e.target.value) });
+  };
+
   const handleTaxIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const inputValue = e.target.value;
-  const taxRegex = new RegExp(selectedCountryData.tax_id_regex || '^[\\w-]{4,20}$', 'i');
-  if (!taxRegex.test(inputValue)) {
+    const inputValue = stripNonDigits(e.target.value);
+    const taxRegex = new RegExp(selectedCountryData.tax_id_regex || '^\\d{4,20}$');
+    if (inputValue && !taxRegex.test(inputValue)) {
       e.target.setCustomValidity(`Formato de ${selectedCountryData.tax_id_label || 'identificación'} inválido`);
     } else {
       e.target.setCustomValidity('');
     }
     setFormData({ ...formData, ruc: inputValue });
+  };
+
+  const handleCountrySelect = (country: CountryData) => {
+    setSelectedCountryData(country);
+    setFormData((current) => ({
+      ...current,
+      countryId: country.id === 'default' ? '' : country.id,
+      celular: '',
+      ruc: '',
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -492,7 +521,7 @@ const Contacto: React.FC = () => {
                 minLength={2}
                 maxLength={120}
                 value={formData.nombre}
-                onChange={handleChange}
+                onChange={handleTextOnlyChange}
               />
             </div>
 
@@ -507,7 +536,7 @@ const Contacto: React.FC = () => {
                 minLength={2}
                 maxLength={120}
                 value={formData.apellido}
-                onChange={handleChange}
+                onChange={handleTextOnlyChange}
               />
             </div>
           </div>
@@ -523,7 +552,7 @@ const Contacto: React.FC = () => {
               minLength={2}
               maxLength={160}
               value={formData.cargo}
-              onChange={handleChange}
+              onChange={handleTextOnlyChange}
             />
           </div>
 
@@ -547,7 +576,7 @@ const Contacto: React.FC = () => {
             <PhoneInputGroup 
               value={formData.celular} 
               onChange={handleChange}
-              onCountrySelect={setSelectedCountryData}
+              onCountrySelect={handleCountrySelect}
             />
           </div>
 
@@ -562,7 +591,7 @@ const Contacto: React.FC = () => {
               minLength={2}
               maxLength={160}
               value={formData.empresa}
-              onChange={handleChange}
+              onChange={handleAlphanumericChange}
             />
           </div>
 
@@ -574,6 +603,8 @@ const Contacto: React.FC = () => {
               placeholder={selectedCountryData.tax_id_placeholder || 'RUC'}
               className={solidInput}
               required
+              inputMode="numeric"
+              pattern="\d*"
               minLength={2}
               maxLength={160}
               value={formData.ruc}

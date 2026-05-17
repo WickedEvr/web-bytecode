@@ -5,6 +5,7 @@ import { Helmet } from 'react-helmet-async';
 import SEO from '../components/shared/SEO';
 import Stack from '../components/sections/Stack';
 import GalaxyBackground from '../components/effects/GalaxyBackground';
+import { warmupBackend } from '../lib/api';
 import './Home.css';
 
 /* ==========================================================================
@@ -497,6 +498,12 @@ const TestimonialsSection: React.FC = () => {
    ========================================================================== */
 
 const Home: React.FC = () => {
+  useEffect(() => {
+    void warmupBackend().catch(() => {
+      // Warmup is best-effort and must never affect the Home experience.
+    });
+  }, []);
+
   return (
     <div className="relative isolate overflow-x-hidden font-sansation">
       <Helmet>

@@ -59,6 +59,22 @@ export const createComplaint = (payload: FormData) =>
     body: payload,
   });
 
+export const warmupBackend = async () => {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 15000);
+
+  try {
+    await fetch(buildUrl('/api/warmup'), {
+      method: 'GET',
+      credentials: 'omit',
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+  } finally {
+    window.clearTimeout(timeout);
+  }
+};
+
 // --- Interfaces para tipar las respuestas del backend ---
 export interface CountryData {
   id: string;

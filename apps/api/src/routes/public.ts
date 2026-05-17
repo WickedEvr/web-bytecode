@@ -33,14 +33,19 @@ const upload = multer({
   },
 });
 
+const noDigitsText = z.string().trim().regex(/^[^\d]+$/, 'No debe contener números.');
+const digitsOnly = z.string().trim().regex(/^\d+$/, 'Solo se permiten números.');
+const lettersNumbersSpaces = z.string().trim().regex(/^[\p{L}\p{N}\s]+$/u, 'Solo se permiten letras, números y espacios.');
+
 const contactSchema = z.object({
-  nombre: z.string().trim().min(2).max(120),
-  apellido: z.string().trim().min(2).max(120),
-  cargo: z.string().trim().min(2).max(160),
+  countryId: z.preprocess((value) => value === '' ? undefined : value, z.string().uuid().optional()),
+  nombre: noDigitsText.min(2).max(120),
+  apellido: noDigitsText.min(2).max(120),
+  cargo: noDigitsText.min(2).max(160),
   email: z.string().trim().email().max(180),
-  celular: z.string().trim().min(6).max(40),
-  empresa: z.string().trim().min(2).max(180),
-  ruc: z.string().trim().min(6).max(30),
+  celular: digitsOnly.min(4).max(20),
+  empresa: lettersNumbersSpaces.min(2).max(180),
+  ruc: digitsOnly.min(4).max(30),
   servicio: z.string().trim().min(2).max(120),
   mensaje: z.string().trim().min(10).max(1200),
 });
@@ -126,6 +131,12 @@ router.get('/catalog/pricing', asyncHandler(async (_req: Request, res: Response)
   res.json({ items: result.rows });
 }));
 
+router.get('/warmup', asyncHandler(async (_req: Request, res: Response) => {
+  await pool.query('SELECT 1');
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ ok: true });
+}));
+
 router.post(
   '/contact-submissions',
   publicFormLimiter,
@@ -135,6 +146,39 @@ router.post(
 
     try {
       await client.query('BEGIN');
+
+      if (body.countryId) {
+        const countryRes = await client.query(
+          `
+          SELECT phone_max_length, tax_id_regex, tax_id_label
+          FROM countries
+          WHERE id = $1 AND is_active = true
+          LIMIT 1
+          `,
+          [body.countryId],
+        );
+
+        if (countryRes.rowCount === 0) {
+          throw new HttpError(400, 'País no válido.');
+        }
+
+        const country = countryRes.rows[0] as {
+          phone_max_length: number | null;
+          tax_id_regex: string | null;
+          tax_id_label: string | null;
+        };
+
+        if (country.phone_max_length && body.celular.length !== Number(country.phone_max_length)) {
+          throw new HttpError(400, `El celular debe tener ${country.phone_max_length} dígitos.`);
+        }
+
+        if (country.tax_id_regex) {
+          const taxRegex = new RegExp(country.tax_id_regex);
+          if (!taxRegex.test(body.ruc)) {
+            throw new HttpError(400, `Formato inválido para ${country.tax_id_label ?? 'identificación fiscal'}.`);
+          }
+        }
+      }
 
       const customerRes = await client.query(
         `
