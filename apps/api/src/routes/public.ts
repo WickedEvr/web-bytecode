@@ -91,6 +91,8 @@ const parseClaimedAmount = (value: string) => {
 };
 
 // --- ENDPOINTS PARA CATÁLOGOS ---
+let normalizedContactSchema: boolean | null = null;
+
 router.get('/catalog/countries', asyncHandler(async (_req: Request, res: Response) => {
   const result = await pool.query('SELECT id, iso2 as iso, name, dial_code as "dialCode", phone_max_length as "maxLength", tax_id_label, tax_id_regex, tax_id_placeholder FROM countries WHERE is_active = true ORDER BY name ASC');
   res.json({ items: result.rows });
@@ -142,65 +144,113 @@ router.post(
       );
       const customerId = customerRes.rows[0].id;
 
-      const organizationRes = await client.query(
-        `
-        INSERT INTO organizations (legal_name, trade_name, ruc)
-        VALUES ($1, $1, $2)
-        ON CONFLICT (ruc) WHERE deleted_at IS NULL
-        DO UPDATE SET
-          legal_name = EXCLUDED.legal_name,
-          trade_name = EXCLUDED.trade_name,
-          updated_at = now()
-        RETURNING id
-        `,
-        [body.empresa, body.ruc],
-      );
-      const organizationId = organizationRes.rows[0].id;
-
-      await client.query(
-        `
-        INSERT INTO customer_organizations (customer_id, organization_id, position_title, is_primary)
-        VALUES ($1, $2, $3, true)
-        ON CONFLICT (customer_id, organization_id)
-        DO UPDATE SET
-          position_title = EXCLUDED.position_title,
-          is_primary = true,
-          deleted_at = NULL,
-          updated_at = now()
-        `,
-        [customerId, organizationId, body.cargo],
-      );
-
-      const serviceRes = await client.query(
-        'SELECT id, name FROM service_catalog WHERE code = $1 AND is_active = true LIMIT 1',
-        [body.servicio],
-      );
-      const serviceId = serviceRes.rows[0]?.id ?? null;
-      const serviceName = serviceRes.rows[0]?.name ?? body.servicio;
-
       const statusRes = await client.query("SELECT id FROM status_catalog WHERE domain = 'case' AND code = 'new' LIMIT 1");
       if (statusRes.rowCount === 0) throw new Error('Status catalog not initialized');
       const statusId = statusRes.rows[0].id;
 
-      const result = await client.query(
-        `
-        INSERT INTO contact_cases (
-          case_code, customer_id, organization_id, service_id, status_id, subject, message, internal_notes
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        RETURNING id, created_at
-        `,
-        [
-          `CAS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, 
-          customerId, 
-          organizationId,
-          serviceId,
-          statusId, 
-          serviceName,
-          '',
-          ''
-        ],
-      );
+      if (normalizedContactSchema === null) {
+        const schemaRes = await client.query(`
+          SELECT
+            to_regclass('public.organizations') IS NOT NULL AS has_organizations,
+            to_regclass('public.customer_organizations') IS NOT NULL AS has_customer_organizations,
+            to_regclass('public.service_catalog') IS NOT NULL AS has_service_catalog,
+            EXISTS (
+              SELECT 1 FROM information_schema.columns
+              WHERE table_schema = 'public' AND table_name = 'contact_cases' AND column_name = 'organization_id'
+            ) AS has_organization_id,
+            EXISTS (
+              SELECT 1 FROM information_schema.columns
+              WHERE table_schema = 'public' AND table_name = 'contact_cases' AND column_name = 'service_id'
+            ) AS has_service_id
+        `);
+        const row = schemaRes.rows[0];
+        normalizedContactSchema = Boolean(
+          row?.has_organizations &&
+          row?.has_customer_organizations &&
+          row?.has_service_catalog &&
+          row?.has_organization_id &&
+          row?.has_service_id,
+        );
+      }
+
+      let result;
+
+      if (normalizedContactSchema) {
+        const existingOrganization = await client.query(
+          'SELECT id FROM organizations WHERE ruc = $1 AND deleted_at IS NULL LIMIT 1',
+          [body.ruc],
+        );
+        const organizationId = existingOrganization.rowCount
+          ? existingOrganization.rows[0].id
+          : (await client.query(
+              'INSERT INTO organizations (legal_name, trade_name, ruc) VALUES ($1, $1, $2) RETURNING id',
+              [body.empresa, body.ruc],
+            )).rows[0].id;
+
+        if (existingOrganization.rowCount) {
+          await client.query(
+            'UPDATE organizations SET legal_name = $2, trade_name = $2, updated_at = now() WHERE id = $1',
+            [organizationId, body.empresa],
+          );
+        }
+
+        await client.query(
+          `
+          INSERT INTO customer_organizations (customer_id, organization_id, position_title, is_primary)
+          VALUES ($1, $2, $3, true)
+          ON CONFLICT (customer_id, organization_id)
+          DO UPDATE SET
+            position_title = EXCLUDED.position_title,
+            is_primary = true,
+            deleted_at = NULL,
+            updated_at = now()
+          `,
+          [customerId, organizationId, body.cargo],
+        );
+
+        const serviceRes = await client.query(
+          'SELECT id, name FROM service_catalog WHERE code = $1 AND is_active = true LIMIT 1',
+          [body.servicio],
+        );
+        const serviceId = serviceRes.rows[0]?.id ?? null;
+        const serviceName = serviceRes.rows[0]?.name ?? body.servicio;
+
+        result = await client.query(
+          `
+          INSERT INTO contact_cases (
+            case_code, customer_id, organization_id, service_id, status_id, subject, message, internal_notes
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          RETURNING id, created_at
+          `,
+          [
+            `CAS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`,
+            customerId,
+            organizationId,
+            serviceId,
+            statusId,
+            serviceName,
+            '',
+            '',
+          ],
+        );
+      } else {
+        result = await client.query(
+          `
+          INSERT INTO contact_cases (case_code, customer_id, status_id, subject, message, internal_notes)
+          VALUES ($1, $2, $3, $4, $5, $6)
+          RETURNING id, created_at
+          `,
+          [
+            `CAS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`,
+            customerId,
+            statusId,
+            body.servicio,
+            `Empresa: ${body.empresa}\nCargo: ${body.cargo}\nRUC: ${body.ruc}`,
+            '',
+          ],
+        );
+      }
 
       await client.query('COMMIT');
 
