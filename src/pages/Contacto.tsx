@@ -156,7 +156,8 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
       }
     };
     loadCountries();
-  }, [onCountryChange, onCountrySelect]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
