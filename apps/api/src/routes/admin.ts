@@ -27,24 +27,18 @@ const updateSchema = z.object({
 });
 
 const contactColumns = `
-<<<<<<< HEAD
   c.id,
   cu.first_name as nombre,
-  COALESCE(co.position_title, NULLIF(trim(substring(c.message from 'Cargo:[[:space:]]*([^[:cntrl:]]+)')), ''), '') as cargo,
+  COALESCE(co.position_title, NULLIF(trim((regexp_match(c.message, 'Cargo:[[:space:]]*([^[:cntrl:]]+)'))[1]), ''), '') as cargo,
   cu.primary_email as email,
   cu.primary_phone as celular,
-  COALESCE(o.legal_name, NULLIF(trim(substring(c.message from 'Empresa:[[:space:]]*([^[:cntrl:]]+)')), ''), '') as empresa,
-  COALESCE(o.ruc, NULLIF(trim(substring(c.message from 'RUC:[[:space:]]*([^[:cntrl:]]+)')), ''), '') as ruc,
+  COALESCE(o.legal_name, NULLIF(trim((regexp_match(c.message, 'Empresa:[[:space:]]*([^[:cntrl:]]+)'))[1]), ''), '') as empresa,
+  COALESCE(o.ruc, NULLIF(trim((regexp_match(c.message, 'RUC:[[:space:]]*([^[:cntrl:]]+)'))[1]), ''), '') as ruc,
   COALESCE(s.name, c.subject) as servicio,
   c.message,
   sc.code as status,
   c.internal_notes as admin_notes, 
-  c.created_at, c.updated_at
-=======
-  c.id, cu.first_name as nombre, '' as cargo, cu.primary_email as email, cu.primary_phone as celular, 
-  '' as empresa, '' as ruc, c.subject as servicio, sc.code as status, c.internal_notes as admin_notes, 
   c.assigned_to, c.created_at, c.updated_at
->>>>>>> main
 `;
 
 const contactJoins = `
@@ -56,6 +50,56 @@ const contactJoins = `
     AND co.organization_id = c.organization_id
     AND co.deleted_at IS NULL
 `;
+
+const legacyContactColumns = `
+  c.id,
+  cu.first_name as nombre,
+  COALESCE(NULLIF(trim((regexp_match(c.message, 'Cargo:[[:space:]]*([^[:cntrl:]]+)'))[1]), ''), '') as cargo,
+  cu.primary_email as email,
+  cu.primary_phone as celular,
+  COALESCE(NULLIF(trim((regexp_match(c.message, 'Empresa:[[:space:]]*([^[:cntrl:]]+)'))[1]), ''), '') as empresa,
+  COALESCE(NULLIF(trim((regexp_match(c.message, 'RUC:[[:space:]]*([^[:cntrl:]]+)'))[1]), ''), '') as ruc,
+  c.subject as servicio,
+  c.message,
+  sc.code as status,
+  c.internal_notes as admin_notes,
+  c.assigned_to, c.created_at, c.updated_at
+`;
+
+const legacyContactJoins = `
+  JOIN customers cu ON c.customer_id = cu.id
+  JOIN status_catalog sc ON c.status_id = sc.id
+`;
+
+let normalizedContactSchema: boolean | null = null;
+
+const hasNormalizedContactSchema = async () => {
+  if (normalizedContactSchema !== null) return normalizedContactSchema;
+
+  const result = await pool.query(`
+    SELECT
+      to_regclass('public.organizations') IS NOT NULL AS has_organizations,
+      to_regclass('public.customer_organizations') IS NOT NULL AS has_customer_organizations,
+      EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'contact_cases' AND column_name = 'organization_id'
+      ) AS has_organization_id,
+      EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'contact_cases' AND column_name = 'service_id'
+      ) AS has_service_id
+  `);
+
+  const row = result.rows[0];
+  normalizedContactSchema = Boolean(
+    row?.has_organizations &&
+    row?.has_customer_organizations &&
+    row?.has_organization_id &&
+    row?.has_service_id,
+  );
+
+  return normalizedContactSchema;
+};
 
 const complaintColumns = `
   c.id, c.complaint_code as code, cu.first_name as nombres, cu.last_name as apellidos, 
@@ -119,22 +163,16 @@ router.get(
   requireRole(['admin', 'support_agent']),
   asyncHandler(async (req: Request, res: Response) => {
     const query = listQuerySchema.parse(req.query);
-    const { whereSql, params } = buildWhere(query.status, query.search, [
-      'cu.first_name',
-      'cu.primary_email',
-      'cu.primary_phone',
-      'c.subject',
-      'c.message',
-      'o.legal_name',
-      'o.ruc',
-      'co.position_title',
-      's.name',
-    ]);
+    const normalized = await hasNormalizedContactSchema();
+    const contactSearchFields = normalized
+      ? ['cu.first_name', 'cu.primary_email', 'cu.primary_phone', 'c.subject', 'c.message', 'o.legal_name', 'o.ruc', 'co.position_title', 's.name']
+      : ['cu.first_name', 'cu.primary_email', 'cu.primary_phone', 'c.subject', 'c.message'];
+    const { whereSql, params } = buildWhere(query.status, query.search, contactSearchFields);
     const result = await pool.query(
       `
-      SELECT ${contactColumns}
+      SELECT ${normalized ? contactColumns : legacyContactColumns}
       FROM contact_cases c
-      ${contactJoins}
+      ${normalized ? contactJoins : legacyContactJoins}
       ${whereSql}
       ORDER BY c.created_at DESC
       LIMIT $${params.length + 1} OFFSET $${params.length + 2}
@@ -151,8 +189,9 @@ router.get(
   requireRole(['admin', 'support_agent']),
   asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
+    const normalized = await hasNormalizedContactSchema();
     const result = await pool.query(
-      `SELECT ${contactColumns} FROM contact_cases c ${contactJoins} WHERE c.id = $1`, 
+      `SELECT ${normalized ? contactColumns : legacyContactColumns} FROM contact_cases c ${normalized ? contactJoins : legacyContactJoins} WHERE c.id = $1`, 
       [id]
     );
     if (result.rowCount === 0) throw new HttpError(404, 'Mensaje no encontrado.');
@@ -189,8 +228,9 @@ router.patch(
     if (result.rowCount === 0) throw new HttpError(404, 'Mensaje no encontrado.');
     await audit(req.admin?.id, 'update', 'contact_submission', id);
     
+    const normalized = await hasNormalizedContactSchema();
     const updated = await pool.query(
-      `SELECT ${contactColumns} FROM contact_cases c ${contactJoins} WHERE c.id = $1`, 
+      `SELECT ${normalized ? contactColumns : legacyContactColumns} FROM contact_cases c ${normalized ? contactJoins : legacyContactJoins} WHERE c.id = $1`, 
       [id]
     );
     res.json({ item: updated.rows[0] });
