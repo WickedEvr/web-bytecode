@@ -9,6 +9,9 @@ import { createContactSubmission, fetchCountries, fetchServices, type CountryDat
 const solidInput =
   'w-full bg-white rounded-full px-6 py-[0.6rem] text-[#333] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06CFD6] transition-all text-[20px] shadow-sm';
 
+const solidTextarea =
+  'w-full min-h-[150px] resize-y bg-white rounded-3xl px-6 py-4 text-[#333] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06CFD6] transition-all text-[20px] shadow-sm';
+
 const Label: React.FC<{ text: string; required?: boolean }> = ({ text, required }) => (
   <label className="block text-white/70 text-[24px] font-bold mb-1.5 pl-5 tracking-wide">
     {text}
@@ -387,6 +390,7 @@ const Contacto: React.FC = () => {
     empresa: '',
     ruc: '',
     servicio: '',
+    mensaje: '',
   });
   
   const [selectedCountryData, setSelectedCountryData] = useState<CountryData>(defaultPeru);
@@ -397,7 +401,7 @@ const Contacto: React.FC = () => {
   const [submitError, setSubmitError] = useState('');
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -564,6 +568,20 @@ const Contacto: React.FC = () => {
             <ServiceDropdown 
               value={formData.servicio}
               onChange={(newValue) => setFormData({ ...formData, servicio: newValue })}
+            />
+          </div>
+
+          <div>
+            <Label text="Mensaje" />
+            <textarea
+              name="mensaje"
+              placeholder="Cuéntanos brevemente qué necesitas"
+              className={solidTextarea}
+              required
+              minLength={10}
+              maxLength={1200}
+              value={formData.mensaje}
+              onChange={handleChange}
             />
           </div>
 

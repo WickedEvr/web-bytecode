@@ -41,6 +41,7 @@ const contactSchema = z.object({
   empresa: z.string().trim().min(2).max(180),
   ruc: z.string().trim().min(6).max(30),
   servicio: z.string().trim().min(2).max(120),
+  mensaje: z.string().trim().min(10).max(1200),
 });
 
 const complaintSchema = z.object({
@@ -230,7 +231,7 @@ router.post(
             serviceId,
             statusId,
             serviceName,
-            '',
+            body.mensaje,
             '',
           ],
         );
@@ -246,7 +247,7 @@ router.post(
             customerId,
             statusId,
             body.servicio,
-            `Empresa: ${body.empresa}\nCargo: ${body.cargo}\nRUC: ${body.ruc}`,
+            `Empresa: ${body.empresa}\nCargo: ${body.cargo}\nRUC: ${body.ruc}\nMensaje: ${body.mensaje}`,
             '',
           ],
         );
@@ -262,6 +263,7 @@ router.post(
         empresa: body.empresa,
         ruc: body.ruc,
         servicio: body.servicio,
+        mensaje: body.mensaje,
       });
 
       res.status(201).json({ id: result.rows[0].id, createdAt: result.rows[0].created_at });
