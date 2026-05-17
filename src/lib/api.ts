@@ -6,9 +6,21 @@ interface RequestOptions extends RequestInit {
 
 const buildUrl = (path: string) => `${API_BASE_URL}${path}`;
 
-const getCsrfToken = () => {
-  const match = document.cookie.match(/(?:^|;\s*)bc_csrf=([^;]*)/);
-  return match ? match[1] : null;
+let cachedCsrfToken: string | null = null;
+
+export const initCsrf = async (): Promise<string | null> => {
+  if (cachedCsrfToken) return cachedCsrfToken;
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/auth/csrf`, { credentials: 'include' });
+    if (res.ok) {
+      const data = await res.json();
+      cachedCsrfToken = data.csrfToken;
+      return cachedCsrfToken;
+    }
+  } catch (error) {
+    console.error('CSRF Handshake failed', error);
+  }
+  return null;
 };
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -23,8 +35,9 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     body = JSON.stringify(options.json);
   }
 
-  if (method !== 'GET' && !headers.has('x-csrf-token')) {
-    const csrfToken = getCsrfToken();
+  const isMutation = method !== 'GET';
+  if (isMutation && !headers.has('x-csrf-token')) {
+    const csrfToken = await initCsrf();
     if (csrfToken) {
       headers.set('x-csrf-token', csrfToken);
     }

@@ -110,6 +110,21 @@ router.post(
   }),
 );
 
+router.get('/csrf', (req: Request, res: Response) => {
+  let token = req.cookies?.bc_csrf;
+  if (!token) {
+    token = crypto.randomUUID();
+    res.cookie('bc_csrf', token, {
+      httpOnly: false,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 60 * 60 * 1000, // 1 Hour
+      path: '/',
+    });
+  }
+  return res.status(200).json({ csrfToken: token });
+});
+
 router.post('/logout', requireAdmin, asyncHandler(async (req: Request, res: Response) => {
   if (req.sessionId) {
     await pool.query('UPDATE admin_sessions SET revoked_at = NOW() WHERE id = $1', [req.sessionId]);
