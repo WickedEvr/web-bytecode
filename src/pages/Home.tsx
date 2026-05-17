@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import SEO from '../components/shared/SEO';
 import Stack from '../components/sections/Stack';
 import GalaxyBackground from '../components/effects/GalaxyBackground';
@@ -498,6 +499,9 @@ const TestimonialsSection: React.FC = () => {
 const Home: React.FC = () => {
   return (
     <div className="relative isolate overflow-x-hidden font-sansation">
+      <Helmet>
+        <link rel="preload" href="/images/characters/astronauta.png" as="image" />
+      </Helmet>
       <SEO 
         title="Inicio" 
         description="Bytecode es tu socio tecnológico experto en desarrollo de software, aplicaciones móviles y transformación digital."

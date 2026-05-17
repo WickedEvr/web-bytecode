@@ -27,6 +27,7 @@ const updateSchema = z.object({
 });
 
 const contactColumns = `
+<<<<<<< HEAD
   c.id,
   cu.first_name as nombre,
   COALESCE(co.position_title, NULLIF(trim(substring(c.message from 'Cargo:[[:space:]]*([^[:cntrl:]]+)')), ''), '') as cargo,
@@ -39,6 +40,11 @@ const contactColumns = `
   sc.code as status,
   c.internal_notes as admin_notes, 
   c.created_at, c.updated_at
+=======
+  c.id, cu.first_name as nombre, '' as cargo, cu.primary_email as email, cu.primary_phone as celular, 
+  '' as empresa, '' as ruc, c.subject as servicio, sc.code as status, c.internal_notes as admin_notes, 
+  c.assigned_to, c.created_at, c.updated_at
+>>>>>>> main
 `;
 
 const contactJoins = `
@@ -60,7 +66,7 @@ const complaintColumns = `
   cd.incident_detail as detalle, cd.requested_solution as pedido, sc.code as status,
   c.internal_notes as admin_notes, fa.original_name as attachment_original_name, 
   fa.mime_type as attachment_mime_type, fa.byte_size as attachment_size,
-  c.created_at, c.updated_at
+  c.assigned_to, c.created_at, c.updated_at
 `;
 
 const buildWhere = (status?: string, search?: string, fields: string[] = []) => {
@@ -191,6 +197,77 @@ router.patch(
   }),
 );
 
+const assignSchema = z.object({
+  assigned_to: z.string().uuid(),
+  notes: z.string().max(3000).optional(),
+});
+
+router.post(
+  '/contacts/:id/assign',
+  requireCsrf,
+  requireRole(['admin', 'support_agent']),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = String(req.params.id);
+    const body = assignSchema.parse(req.body);
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+      
+      await client.query(
+        'UPDATE contact_case_assignments SET unassigned_at = NOW() WHERE contact_case_id = $1 AND unassigned_at IS NULL',
+        [id]
+      );
+      
+      await client.query(
+        'INSERT INTO contact_case_assignments (contact_case_id, assigned_to, assigned_by, notes) VALUES ($1, $2, $3, $4)',
+        [id, body.assigned_to, req.admin?.id, body.notes ?? null]
+      );
+      
+      const updateResult = await client.query(
+        'UPDATE contact_cases SET assigned_to = $2, updated_at = NOW() WHERE id = $1 RETURNING id',
+        [id, body.assigned_to]
+      );
+      
+      if (updateResult.rowCount === 0) {
+        throw new HttpError(404, 'Mensaje no encontrado.');
+      }
+      
+      await client.query('COMMIT');
+      await audit(req.admin?.id, 'assign', 'contact_submission', id);
+      
+      const updated = await pool.query(
+        `SELECT ${contactColumns} FROM contact_cases c JOIN customers cu ON c.customer_id = cu.id JOIN status_catalog sc ON c.status_id = sc.id WHERE c.id = $1`, 
+        [id]
+      );
+      res.json({ item: updated.rows[0] });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }),
+);
+
+router.get(
+  '/contacts/:id/history',
+  requireRole(['admin', 'support_agent']),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = String(req.params.id);
+    const result = await pool.query(
+      `SELECT a.*, u1.name as assigned_to_name, u2.name as assigned_by_name 
+      FROM contact_case_assignments a 
+      JOIN admin_users u1 ON a.assigned_to = u1.id 
+      LEFT JOIN admin_users u2 ON a.assigned_by = u2.id 
+      WHERE a.contact_case_id = $1 
+      ORDER BY a.assigned_at DESC`,
+      [id]
+    );
+    res.json({ items: result.rows });
+  }),
+);
+
 router.get(
   '/complaints',
   requireRole(['admin', 'support_agent', 'legal_reviewer']),
@@ -231,15 +308,15 @@ router.get(
     const id = String(req.params.id);
     const result = await pool.query(
       `SELECT ${complaintColumns} 
-       FROM complaints c
-       JOIN customers cu ON c.customer_id = cu.id
-       JOIN status_catalog sc ON c.status_id = sc.id
-       JOIN complaint_types ct ON c.complaint_type_id = ct.id
-       LEFT JOIN complaint_details cd ON c.id = cd.complaint_id
-       LEFT JOIN complaint_goods cg ON c.id = cg.complaint_id
-       LEFT JOIN complaint_evidences ce ON c.id = ce.complaint_id
-       LEFT JOIN file_assets fa ON ce.file_asset_id = fa.id
-       WHERE c.id = $1`, 
+      FROM complaints c
+      JOIN customers cu ON c.customer_id = cu.id
+      JOIN status_catalog sc ON c.status_id = sc.id
+      JOIN complaint_types ct ON c.complaint_type_id = ct.id
+      LEFT JOIN complaint_details cd ON c.id = cd.complaint_id
+      LEFT JOIN complaint_goods cg ON c.id = cg.complaint_id
+      LEFT JOIN complaint_evidences ce ON c.id = ce.complaint_id
+      LEFT JOIN file_assets fa ON ce.file_asset_id = fa.id
+      WHERE c.id = $1`, 
       [id]
     );
     if (result.rowCount === 0) throw new HttpError(404, 'Reclamo no encontrado.');
@@ -278,15 +355,15 @@ router.patch(
     
     const updated = await pool.query(
       `SELECT ${complaintColumns} 
-       FROM complaints c
-       JOIN customers cu ON c.customer_id = cu.id
-       JOIN status_catalog sc ON c.status_id = sc.id
-       JOIN complaint_types ct ON c.complaint_type_id = ct.id
-       LEFT JOIN complaint_details cd ON c.id = cd.complaint_id
-       LEFT JOIN complaint_goods cg ON c.id = cg.complaint_id
-       LEFT JOIN complaint_evidences ce ON c.id = ce.complaint_id
-       LEFT JOIN file_assets fa ON ce.file_asset_id = fa.id
-       WHERE c.id = $1`, 
+      FROM complaints c
+      JOIN customers cu ON c.customer_id = cu.id
+      JOIN status_catalog sc ON c.status_id = sc.id
+      JOIN complaint_types ct ON c.complaint_type_id = ct.id
+      LEFT JOIN complaint_details cd ON c.id = cd.complaint_id
+      LEFT JOIN complaint_goods cg ON c.id = cg.complaint_id
+      LEFT JOIN complaint_evidences ce ON c.id = ce.complaint_id
+      LEFT JOIN file_assets fa ON ce.file_asset_id = fa.id
+      WHERE c.id = $1`, 
       [id]
     );
     res.json({ item: updated.rows[0] });
@@ -341,10 +418,26 @@ router.get(
   '/users',
   requireRole(['admin']),
   asyncHandler(async (req: Request, res: Response) => {
-    const result = await pool.query(
-      'SELECT id, email, name, role, is_active, created_at, last_login_at FROM admin_users ORDER BY created_at DESC'
-    );
-    res.json({ items: result.rows });
+    try {
+      const result = await pool.query(`
+        SELECT 
+          u.id, 
+          u.name, 
+          u.email, 
+          u.is_active,
+          array_remove(array_agg(r.code), NULL) as roles
+        FROM admin_users u
+        LEFT JOIN admin_user_roles aur ON u.id = aur.admin_user_id
+        LEFT JOIN roles r ON aur.role_id = r.id
+        WHERE u.deleted_at IS NULL AND u.is_active = true
+        GROUP BY u.id
+        ORDER BY u.name ASC
+      `);
+      res.json({ items: result.rows });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
   }),
 );
 
@@ -384,19 +477,19 @@ router.patch(
     const currentUser = await pool.query('SELECT role FROM admin_users WHERE id = $1', [id]);
     if (currentUser.rowCount === 0) throw new HttpError(404, 'Usuario no encontrado.');
 
-    if (currentUser.rows[0].role === 'super_admin' && req.admin?.role !== 'super_admin') {
+    if (currentUser.rows[0].role === 'super_admin' && !req.admin?.roles.includes('super_admin')) {
       throw new HttpError(403, 'No puedes modificar a un super administrador.');
     }
 
     const result = await pool.query(
       `UPDATE admin_users 
-       SET name = COALESCE($2, name), 
-           role = COALESCE($3, role), 
-           is_active = COALESCE($4, is_active),
-           updated_at = now(),
-           updated_by = $5
-       WHERE id = $1 
-       RETURNING id, email, name, role, is_active, updated_at`,
+        SET name = COALESCE($2, name), 
+            role = COALESCE($3, role), 
+            is_active = COALESCE($4, is_active),
+            updated_at = now(),
+            updated_by = $5
+        WHERE id = $1 
+        RETURNING id, email, name, role, is_active, updated_at`,
       [id, body.name ?? null, body.role ?? null, body.isActive ?? null, req.admin?.id]
     );
 
@@ -417,7 +510,7 @@ router.patch(
     const currentUser = await pool.query('SELECT role FROM admin_users WHERE id = $1', [id]);
     if (currentUser.rowCount === 0) throw new HttpError(404, 'Usuario no encontrado.');
 
-    if (currentUser.rows[0].role === 'super_admin' && req.admin?.role !== 'super_admin') {
+    if (currentUser.rows[0].role === 'super_admin' && !req.admin?.roles.includes('super_admin')) {
       throw new HttpError(403, 'No puedes modificar a un super administrador.');
     }
 

@@ -26,17 +26,19 @@ router.post(
     const body = loginSchema.parse(req.body);
     const result = await pool.query(
       `
-      SELECT u.id, u.email, u.name, u.role, u.password_hash,
+      SELECT u.id, u.email, u.name, u.password_hash,
+      COALESCE(array_agg(DISTINCT r.code) FILTER (WHERE r.code IS NOT NULL), ARRAY[]::varchar[]) as roles,
       COALESCE((
         SELECT array_agg(DISTINCT p.code)
         FROM permissions p
         JOIN role_permissions rp ON p.id = rp.permission_id
-        JOIN roles r ON rp.role_id = r.id
-        LEFT JOIN admin_user_roles aur ON r.id = aur.role_id AND aur.admin_user_id = u.id
-        WHERE r.code = u.role OR aur.admin_user_id = u.id
+        WHERE rp.role_id IN (SELECT role_id FROM admin_user_roles WHERE admin_user_id = u.id)
       ), ARRAY[]::varchar[]) as permissions
       FROM admin_users u 
+      LEFT JOIN admin_user_roles aur ON u.id = aur.admin_user_id
+      LEFT JOIN roles r ON aur.role_id = r.id
       WHERE u.email = $1 AND u.is_active = true
+      GROUP BY u.id
       `,
       [body.email.toLowerCase()],
     );
@@ -58,11 +60,15 @@ router.post(
     const tokenHash = crypto.createHash('sha256').update(plainToken).digest('hex');
     
     // Extract Metadata
-    const ipAddress = req.ip || req.socket.remoteAddress || 'unknown';
-    const userAgent = req.get('user-agent') || 'unknown';
+    const forwardedFor = req.headers['x-forwarded-for'];
+    const ipAddress = typeof forwardedFor === 'string' ? forwardedFor.split(',')[0].trim() : req.socket.remoteAddress || req.ip;
+    const rawUa = req.headers['user-agent'] || '';
+    const chPlatform = req.headers['sec-ch-ua-platform'];
+    const chPlatformVersion = req.headers['sec-ch-ua-platform-version'];
+    const userAgent = JSON.stringify({ raw: rawUa, platform: chPlatform, platformVersion: chPlatformVersion });
     
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    const ONE_HOUR_MS = 60 * 60 * 1000;
+    const expiresAt = new Date(Date.now() + ONE_HOUR_MS);
 
     // Database Insertion
     await pool.query(
@@ -78,7 +84,7 @@ router.post(
       httpOnly: true,
       secure: true,
       sameSite: 'none',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
+      maxAge: ONE_HOUR_MS,
       path: '/',
     });
     
@@ -87,7 +93,7 @@ router.post(
       httpOnly: false,
       secure: true,
       sameSite: 'none',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: ONE_HOUR_MS,
       path: '/',
     });
 
@@ -95,7 +101,7 @@ router.post(
       id: admin.id,
       email: admin.email,
       name: admin.name,
-      role: admin.role,
+      roles: admin.roles,
       permissions: admin.permissions,
     };
 
@@ -120,37 +126,58 @@ router.get('/me', requireAdmin, (req: Request, res: Response) => {
 router.get('/sessions', requireAdmin, asyncHandler(async (req: Request, res: Response) => {
   const result = await pool.query(
     `
-    SELECT id, ip_address, user_agent, created_at, expires_at
-    FROM admin_sessions
-    WHERE admin_user_id = $1
-      AND revoked_at IS NULL
-      AND expires_at > NOW()
-    ORDER BY created_at DESC
-    `,
-    [req.admin?.id]
+    SELECT s.*, u.email as user_email, u.name as user_name
+    FROM admin_sessions s
+    JOIN admin_users u ON s.admin_user_id = u.id
+    WHERE s.revoked_at IS NULL
+      AND s.expires_at > NOW()
+    ORDER BY s.created_at DESC
+    `
   );
 
   const sessions = result.rows.map((row) => {
-    const parser = new UAParser(row.user_agent || '');
+    let uaData: { raw: string; platform?: string; platformVersion?: string } = { raw: '' };
+    try {
+      const parsed = JSON.parse(row.user_agent || '{}');
+      if (parsed && typeof parsed === 'object' && 'raw' in parsed) {
+        uaData = parsed;
+      } else {
+        uaData = { raw: row.user_agent || '' };
+      }
+    } catch {
+      uaData = { raw: row.user_agent || '' };
+    }
+
+    const parser = new UAParser(uaData.raw);
     const browser = parser.getBrowser();
     const os = parser.getOS();
     const device = parser.getDevice();
 
-    let readableDevice = 'Desktop';
-    if (device.type === 'mobile') readableDevice = 'Mobile';
-    else if (device.type === 'tablet') readableDevice = 'Tablet';
+    const deviceType = device.type || 'desktop';
+    
+    let osName = os.name || 'Unknown OS';
+    const platformToMatch = uaData.platform || os.name || '';
+    if (platformToMatch.includes('Windows')) {
+      osName = 'Windows';
+    } else if (platformToMatch.includes('Android')) {
+      osName = 'Android';
+    } else if (platformToMatch.includes('Mac OS') || platformToMatch.includes('iOS')) {
+      osName = platformToMatch.includes('iOS') ? 'iOS' : 'macOS';
+    }
 
-    const browserName = browser.name ? `\${browser.name} \${browser.version || ''}`.trim() : 'Unknown Browser';
-    const osName = os.name ? `\${os.name} \${os.version || ''}`.trim() : 'Unknown OS';
+    const browserName = browser.name || 'Unknown Browser';
 
     return {
       id: row.id,
       ip_address: row.ip_address,
-      device: `\${readableDevice} - \${osName}`,
-      browser: browserName,
+      deviceType,
+      osName,
+      browserName,
       created_at: row.created_at,
       expires_at: row.expires_at,
       isCurrentSession: row.id === req.sessionId,
+      userName: row.user_name,
+      userEmail: row.user_email,
     };
   });
 
@@ -168,14 +195,14 @@ router.post('/sessions/:sessionId/revoke', requireAdmin, asyncHandler(async (req
     `
     UPDATE admin_sessions
     SET revoked_at = NOW()
-    WHERE id = $1 AND admin_user_id = $2
+    WHERE id = $1
     RETURNING id
     `,
-    [params.sessionId, req.admin?.id]
+    [params.sessionId]
   );
 
   if (result.rowCount === 0) {
-    throw new HttpError(404, 'Sesión no encontrada o no pertenece al usuario.');
+    throw new HttpError(404, 'Sesión no encontrada.');
   }
 
   await audit(req.admin?.id, 'revoke_session', 'admin_sessions', params.sessionId);

@@ -14,7 +14,13 @@ const RoleGuard: React.FC<RoleGuardProps> = ({ children, allowedRoles }) => {
     return null; // Should not happen since AdminLayout waits for admin
   }
 
-  if (admin.role !== 'super_admin' && !allowedRoles.includes(admin.role)) {
+  const userRoles = admin.roles || [];
+
+  const isSuperAdmin = userRoles.includes('super_admin');
+
+  const hasAllowedRole = userRoles.some(role => allowedRoles.includes(role));
+
+  if (!isSuperAdmin && !hasAllowedRole) {
     return <Navigate to="/admin/dashboard" replace />;
   }
 

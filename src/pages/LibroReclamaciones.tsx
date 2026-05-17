@@ -218,11 +218,11 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChang
 };
 
 // 2. Phone Input (Idéntico al de Contacto)
-interface PhoneInputProps { value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; onCountryChange?: (dialCode: string) => void; }
+interface PhoneInputProps { value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; onCountrySelect?: (country: CountryData) => void; }
 
-const defaultPeru: CountryData = { id: 'default', iso: 'PE', name: 'Perú', dialCode: '+51', maxLength: 9 };
+const defaultPeru: CountryData = { id: 'default', iso: 'PE', name: 'Perú', dialCode: '+51', maxLength: 9, tax_id_label: 'RUC', tax_id_regex: '^(10|20)\\d{9}$', tax_id_placeholder: 'Ej. 20123456789' };
 
-const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountryChange }) => {
+const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountrySelect }) => {
   const [countries, setCountries] = useState<CountryData[]>([defaultPeru]);
   const [selectedCountry, setSelectedCountry] = useState<CountryData>(defaultPeru);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -237,14 +237,15 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
         if (data.length > 0) {
           const peru = data.find(c => c.iso === 'PE') || data[0];
           setSelectedCountry(peru); 
-          if (onCountryChange) onCountryChange(peru.dialCode);
+          if (onCountrySelect) onCountrySelect(peru);
         }
       } catch (error) {
         console.error('Error fetching countries:', error);
       }
     };
     loadCountries();
-  }, [onCountryChange]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -265,7 +266,7 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
   const handleSelectCountry = (country: CountryData) => {
     setSelectedCountry(country);
     setIsDropdownOpen(false);
-    if (onCountryChange) onCountryChange(country.dialCode);
+    if (onCountrySelect) onCountrySelect(country);
     setError(''); 
   };
 
@@ -371,6 +372,7 @@ const LibroReclamaciones: React.FC = () => {
   });
   
   const [archivoAdjunto, setArchivoAdjunto] = useState<File | null>(null);
+  const [selectedCountryData, setSelectedCountryData] = useState<CountryData>(defaultPeru);
   
   // Estados para la animación del botón
   const [isLoading, setIsLoading] = useState(false);
@@ -419,6 +421,12 @@ const LibroReclamaciones: React.FC = () => {
     };
     loadDocumentTypes();
   }, []);
+
+  useEffect(() => {
+    if (formData.personType === 'empresa' && selectedCountryData.tax_id_label) {
+      setFormData(prev => prev.tipoDoc !== selectedCountryData.tax_id_label ? { ...prev, tipoDoc: selectedCountryData.tax_id_label! } : prev);
+    }
+  }, [formData.personType, selectedCountryData.tax_id_label]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -542,8 +550,8 @@ const LibroReclamaciones: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div><Label text="Nombres" required /><input name="nombres" type="text" placeholder="Nombres Completos" value={formData.nombres} onChange={handleChange} className={solidInput} required minLength={2} maxLength={160} /></div>
-              <div><Label text="Apellidos" required /><input name="apellidos" type="text" placeholder="Apellidos Completos" value={formData.apellidos} onChange={handleChange} className={solidInput} required minLength={2} maxLength={160} /></div>
+              <div><Label text={formData.personType === 'empresa' ? 'Razón Social' : 'Nombres'} required /><input name="nombres" type="text" placeholder={formData.personType === 'empresa' ? 'Nombre legal de la empresa' : 'Nombres Completos'} value={formData.nombres} onChange={handleChange} className={solidInput} required minLength={2} maxLength={160} /></div>
+              <div><Label text={formData.personType === 'empresa' ? 'Representante Legal' : 'Apellidos'} required /><input name="apellidos" type="text" placeholder={formData.personType === 'empresa' ? 'Nombres y apellidos' : 'Apellidos Completos'} value={formData.apellidos} onChange={handleChange} className={solidInput} required minLength={2} maxLength={160} /></div>
             </div>
 
             <div><Label text="Domicilio" required /><input name="domicilio" type="text" placeholder="Dirección completa" value={formData.domicilio} onChange={handleChange} className={solidInput} required minLength={4} maxLength={240} /></div>
@@ -551,15 +559,47 @@ const LibroReclamaciones: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
                 <Label text="Tipo de Documento" required />
-                <CustomDropdown value={formData.tipoDoc} placeholder="Seleccione un tipo" onChange={(val) => handleCustomDropdown('tipoDoc', val)} options={documentTypeOptions} required />
+                {formData.personType === 'empresa' ? (
+                  <div className="w-full bg-white/60 rounded-full px-5 py-[0.6rem] text-[#333] border border-gray-200 shadow-sm opacity-80 cursor-not-allowed">
+                    <span className="text-[18px] md:text-[20px] font-semibold text-gray-700">{selectedCountryData.tax_id_label || 'Identificación Fiscal'}</span>
+                  </div>
+                ) : (
+                  <CustomDropdown value={formData.tipoDoc} placeholder="Seleccione un tipo" onChange={(val) => handleCustomDropdown('tipoDoc', val)} options={documentTypeOptions} required />
+                )}
               </div>
-              <div><Label text="Número de Documento" required /><input name="numeroDoc" type="text" placeholder="Número" value={formData.numeroDoc} onChange={handleChange} className={solidInput} required minLength={4} maxLength={40} /></div>
+              <div>
+                <Label text={formData.personType === 'empresa' ? (selectedCountryData.tax_id_label || 'Identificación Fiscal') : 'Número de Documento'} required />
+                <input 
+                  name="numeroDoc" 
+                  type="text" 
+                  placeholder={formData.personType === 'empresa' ? (selectedCountryData.tax_id_placeholder || 'Número') : 'Número'} 
+                  value={formData.numeroDoc} 
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (formData.personType === 'empresa') {
+                      const regex = new RegExp(selectedCountryData.tax_id_regex || '^[\\w-]{4,20}$', 'i');
+                      if (!regex.test(val) && val.length > 0) {
+                        e.target.setCustomValidity(`Formato inválido para ${selectedCountryData.tax_id_label || 'el documento'}`);
+                      } else {
+                        e.target.setCustomValidity('');
+                      }
+                    } else {
+                      e.target.setCustomValidity('');
+                    }
+                    handleChange(e);
+                  }} 
+                  className={solidInput} 
+                  required 
+                  minLength={4} 
+                  maxLength={40} 
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="mb-2 md:mb-0">
                 <Label text="Número de celular" required />
-                <PhoneInputGroup value={formData.telefono} onChange={handleChange} onCountryChange={handleCountryChange} />
+                <PhoneInputGroup value={formData.telefono} onChange={handleChange} onCountrySelect={(country) => { setSelectedCountryData(country); handleCountryChange(country.dialCode); }} />
               </div>
               <div><Label text="Correo Electrónico" required /><input name="email" type="email" placeholder="ejemplo@correo.com" value={formData.email} onChange={handleChange} className={solidInput} required maxLength={180} /></div>
             </div>

@@ -2,8 +2,19 @@ export interface AdminUser {
   id: string;
   email: string;
   name: string;
-  role: string;
+  roles: string[];
   permissions: string[];
+}
+
+export interface Country {
+  id: string;
+  iso: string;
+  name: string;
+  dialCode: string;
+  maxLength: number;
+  tax_id_label: string;
+  tax_id_regex: string;
+  tax_id_placeholder: string;
 }
 
 declare global {

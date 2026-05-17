@@ -32,20 +32,23 @@ export const requireAdmin = async (req: Request, res: Response, next: NextFuncti
       `
       SELECT 
         s.id AS session_id,
-        u.id, u.email, u.name, u.role, u.is_active,
+        s.expires_at,
+        u.id, u.email, u.name, u.is_active,
+        COALESCE(array_agg(DISTINCT r.code) FILTER (WHERE r.code IS NOT NULL), ARRAY[]::varchar[]) as roles,
         COALESCE((
           SELECT array_agg(DISTINCT p.code)
           FROM permissions p
           JOIN role_permissions rp ON p.id = rp.permission_id
-          JOIN roles r ON rp.role_id = r.id
-          LEFT JOIN admin_user_roles aur ON r.id = aur.role_id AND aur.admin_user_id = u.id
-          WHERE r.code = u.role OR aur.admin_user_id = u.id
+          WHERE rp.role_id IN (SELECT role_id FROM admin_user_roles WHERE admin_user_id = u.id)
         ), ARRAY[]::varchar[]) as permissions
       FROM admin_sessions s
       JOIN admin_users u ON s.admin_user_id = u.id
+      LEFT JOIN admin_user_roles aur ON u.id = aur.admin_user_id
+      LEFT JOIN roles r ON aur.role_id = r.id
       WHERE s.token_hash = $1
         AND s.expires_at > NOW()
         AND s.revoked_at IS NULL
+      GROUP BY s.id, u.id
       `,
       [tokenHash],
     );
@@ -62,11 +65,17 @@ export const requireAdmin = async (req: Request, res: Response, next: NextFuncti
       throw new HttpError(401, 'Usuario inactivo.');
     }
 
+    const timeRemaining = new Date(row.expires_at).getTime() - Date.now();
+    if (timeRemaining < (45 * 60 * 1000)) {
+      pool.query(`UPDATE admin_sessions SET expires_at = NOW() + INTERVAL '1 hour' WHERE id = $1`, [row.session_id]).catch(console.error);
+      res.cookie(env.cookieName, token, { httpOnly: true, secure: true, sameSite: 'none', maxAge: 60 * 60 * 1000, path: '/' });
+    }
+
     req.admin = {
       id: row.id,
       email: row.email,
       name: row.name,
-      role: row.role,
+      roles: row.roles,
       permissions: row.permissions,
     };
     req.sessionId = row.session_id;
@@ -80,9 +89,10 @@ export const requireAdmin = async (req: Request, res: Response, next: NextFuncti
 export const requireRole = (allowedRoles: string[]) => {
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.admin) return next(new HttpError(401, 'No autenticado.'));
-    if (req.admin.role === 'super_admin') return next();
+    if (req.admin.roles.includes('super_admin')) return next();
     
-    if (!allowedRoles.includes(req.admin.role)) {
+    const hasRole = req.admin.roles.some((role) => allowedRoles.includes(role));
+    if (!hasRole) {
       return next(new HttpError(403, 'Acceso denegado (Rol no autorizado).'));
     }
     next();
@@ -92,7 +102,7 @@ export const requireRole = (allowedRoles: string[]) => {
 export const requirePermission = (permissionCode: string) => {
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.admin) return next(new HttpError(401, 'No autenticado.'));
-    if (req.admin.role === 'super_admin') return next();
+    if (req.admin.roles.includes('super_admin')) return next();
     
     if (!req.admin.permissions?.includes(permissionCode)) {
       return next(new HttpError(403, 'Acceso denegado (Permiso requerido).'));

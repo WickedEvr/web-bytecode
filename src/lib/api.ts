@@ -5,16 +5,10 @@ interface RequestOptions extends RequestInit {
 }
 
 const buildUrl = (path: string) => `${API_BASE_URL}${path}`;
-const csrfCookieName = 'bc_csrf';
 
-const getCookie = (name: string) => {
-  const cookies = document.cookie ? document.cookie.split('; ') : [];
-  const encodedName = `${encodeURIComponent(name)}=`;
-  const cookie = cookies.find((item) => item.startsWith(encodedName));
-
-  if (!cookie) return '';
-
-  return decodeURIComponent(cookie.slice(encodedName.length));
+const getCsrfToken = () => {
+  const match = document.cookie.match(/(?:^|;\s*)bc_csrf=([^;]*)/);
+  return match ? match[1] : null;
 };
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -30,7 +24,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
 
   if (method !== 'GET' && !headers.has('x-csrf-token')) {
-    const csrfToken = getCookie(csrfCookieName);
+    const csrfToken = getCsrfToken();
     if (csrfToken) {
       headers.set('x-csrf-token', csrfToken);
     }
@@ -73,6 +67,9 @@ export interface CountryData {
   dialCode: string;
   maxLength: number;
   is_active?: boolean;
+  tax_id_label: string;
+  tax_id_regex: string;
+  tax_id_placeholder: string;
 }
 
 export interface ServiceData {
