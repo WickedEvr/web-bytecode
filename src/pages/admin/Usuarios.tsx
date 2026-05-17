@@ -111,59 +111,63 @@ const Usuarios: React.FC = () => {
     val ? new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(val)) : 'Nunca';
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Usuarios Admin</h1>
+    <div className="flex flex-col gap-6 font-sansation">
+      <div className="flex items-center justify-between pb-4 border-b border-white/5">
+        <h1 className="text-2xl font-semibold tracking-wide text-white/90">Usuarios Administradores</h1>
         <div className="flex gap-3">
-          <button onClick={loadUsers} className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-sm font-bold transition hover:border-[#06CFD6]">
-            <RefreshCw className="h-4 w-4" /> Actualizar
+          <button onClick={loadUsers} className="flex items-center gap-2 rounded-lg bg-white/5 border border-white/10 px-4 py-2 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white">
+            <RefreshCw className="h-4 w-4" /> <span>Actualizar</span>
           </button>
-          <button onClick={handleOpenCreate} className="inline-flex items-center gap-2 rounded-full bg-[#06CFD6] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#0CA3C6]">
-            <Plus className="h-4 w-4" /> Nuevo Usuario
+          <button onClick={handleOpenCreate} className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-white/90">
+            <Plus className="h-4 w-4" /> <span>Nuevo Usuario</span>
           </button>
         </div>
       </div>
 
-      {error && !isModalOpen && <p className="rounded-xl bg-red-500/15 px-4 py-3 text-red-100">{error}</p>}
+      {error && !isModalOpen && (
+        <p className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300">
+          {error}
+        </p>
+      )}
 
-      <div className="rounded-2xl border border-white/10 bg-white/[0.04] overflow-hidden">
+      <div className="rounded-xl border border-white/5 bg-[#0a0a0a] overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-white/5 text-white/60">
+          <table className="w-full text-left text-sm whitespace-nowrap">
+            <thead className="bg-white/[0.02] text-white/50 text-xs uppercase tracking-wider">
               <tr>
-                <th className="px-5 py-4 font-medium">Nombre</th>
-                <th className="px-5 py-4 font-medium">Email</th>
-                <th className="px-5 py-4 font-medium">Rol</th>
-                <th className="px-5 py-4 font-medium">Estado</th>
-                <th className="px-5 py-4 font-medium">Último Login</th>
-                <th className="px-5 py-4 font-medium text-right">Acciones</th>
+                <th className="px-6 py-4 font-medium">Nombre</th>
+                <th className="px-6 py-4 font-medium">Email</th>
+                <th className="px-6 py-4 font-medium">Rol</th>
+                <th className="px-6 py-4 font-medium">Estado</th>
+                <th className="px-6 py-4 font-medium">Último Login</th>
+                <th className="px-6 py-4 font-medium text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/10">
+            <tbody className="divide-y divide-white/5 text-white/80">
               {users.map(user => (
-                <tr key={user.id} className="transition hover:bg-white/[0.02]">
-                  <td className="px-5 py-4 font-bold">{user.name}</td>
-                  <td className="px-5 py-4">{user.email}</td>
-                  <td className="px-5 py-4">
-                    <span className="rounded-full bg-white/10 px-2 py-1 text-xs text-[#06CFD6]">
+                <tr key={user.id} className="transition-colors hover:bg-white/[0.02]">
+                  <td className="px-6 py-4 font-medium">{user.name}</td>
+                  <td className="px-6 py-4 text-white/60">{user.email}</td>
+                  <td className="px-6 py-4">
+                    <span className="rounded bg-white/5 border border-white/5 px-2 py-0.5 text-[10px] text-white/70">
                       {ROLES.find(r => r.value === user.role)?.label || user.role}
                     </span>
                   </td>
-                  <td className="px-5 py-4">
-                    <span className={`rounded-full px-2 py-1 text-xs ${user.is_active ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}>
+                  <td className="px-6 py-4">
+                    <span className={`rounded px-2 py-0.5 text-[10px] font-medium border ${user.is_active ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
                       {user.is_active ? 'Activo' : 'Inactivo'}
                     </span>
                   </td>
-                  <td className="px-5 py-4 text-white/50">{formatDate(user.last_login_at)}</td>
-                  <td className="px-5 py-4 text-right">
-                    <button onClick={() => handleOpenEdit(user)} className="text-sm font-bold text-[#06CFD6] hover:underline">
+                  <td className="px-6 py-4 text-white/40 text-xs">{formatDate(user.last_login_at)}</td>
+                  <td className="px-6 py-4 text-right">
+                    <button onClick={() => handleOpenEdit(user)} className="text-sm font-medium text-white/60 hover:text-white transition-colors">
                       Editar
                     </button>
                   </td>
                 </tr>
               ))}
               {users.length === 0 && !loading && (
-                <tr><td colSpan={6} className="px-5 py-8 text-center text-white/50">No hay usuarios registrados.</td></tr>
+                <tr><td colSpan={6} className="px-6 py-10 text-center text-white/30 text-sm">No hay usuarios registrados.</td></tr>
               )}
             </tbody>
           </table>
@@ -171,86 +175,90 @@ const Usuarios: React.FC = () => {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-[#040e1f] border border-white/10 p-6 shadow-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold">{isEditing ? 'Editar Usuario' : 'Nuevo Usuario'}</h2>
-              <button onClick={() => setIsModalOpen(false)} className="rounded-lg p-2 hover:bg-white/10">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl bg-[#0a0a0a] border border-white/10 p-6 md:p-8 shadow-2xl">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/5">
+              <h2 className="text-lg font-semibold text-white/90">{isEditing ? 'Editar Usuario' : 'Nuevo Usuario'}</h2>
+              <button onClick={() => setIsModalOpen(false)} className="rounded-lg p-2 text-white/40 hover:text-white hover:bg-white/5 transition-colors">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            {error && isModalOpen && <p className="mb-4 rounded-xl bg-red-500/15 px-4 py-3 text-sm text-red-200">{error}</p>}
+            {error && isModalOpen && (
+              <p className="mb-6 rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300">
+                {error}
+              </p>
+            )}
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
               {!isEditing && (
                 <div>
-                  <label className="mb-1 block text-sm font-bold text-white/70">Correo Electrónico</label>
+                  <label className="mb-1.5 block text-xs font-medium text-white/60 uppercase tracking-wider">Correo Electrónico</label>
                   <input
                     type="email"
                     required
                     value={formData.email}
                     onChange={e => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-2 outline-none focus:border-[#06CFD6]"
+                    className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors"
                   />
                 </div>
               )}
               
               <div>
-                <label className="mb-1 block text-sm font-bold text-white/70">Nombre Completo</label>
+                <label className="mb-1.5 block text-xs font-medium text-white/60 uppercase tracking-wider">Nombre Completo</label>
                 <input
                   type="text"
                   required
                   value={formData.name}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-2 outline-none focus:border-[#06CFD6]"
+                  className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors"
                 />
               </div>
 
               {!isEditing && (
                 <div>
-                  <label className="mb-1 block text-sm font-bold text-white/70">Contraseña Temporal</label>
+                  <label className="mb-1.5 block text-xs font-medium text-white/60 uppercase tracking-wider">Contraseña Temporal</label>
                   <input
                     type="password"
                     required
                     minLength={8}
                     value={formData.password}
                     onChange={e => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-2 outline-none focus:border-[#06CFD6]"
+                    className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors"
                   />
                 </div>
               )}
 
               <div>
-                <label className="mb-1 block text-sm font-bold text-white/70">Rol de Acceso</label>
+                <label className="mb-1.5 block text-xs font-medium text-white/60 uppercase tracking-wider">Rol de Acceso</label>
                 <select
                   value={formData.role}
                   onChange={e => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-2 outline-none [&>option]:bg-[#040e1f]"
+                  className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors appearance-none"
                 >
                   {ROLES.map(role => (
-                    <option key={role.value} value={role.value}>{role.label}</option>
+                    <option key={role.value} value={role.value} className="bg-[#121212]">{role.label}</option>
                   ))}
                 </select>
               </div>
 
               {isEditing && (
-                <label className="flex items-center gap-3 py-2 cursor-pointer">
+                <label className="flex items-center gap-3 py-2 cursor-pointer mt-2">
                   <input
                     type="checkbox"
                     checked={formData.isActive}
                     onChange={e => setFormData({ ...formData, isActive: e.target.checked })}
-                    className="h-5 w-5 rounded border-white/20 bg-white/10 text-[#06CFD6] focus:ring-[#06CFD6] focus:ring-offset-gray-900"
+                    className="h-4 w-4 rounded border-white/20 bg-white/5 text-white focus:ring-white/20 focus:ring-offset-black"
                   />
-                  <span className="text-sm font-bold text-white/80">Cuenta Activa</span>
+                  <span className="text-sm font-medium text-white/80">Cuenta Activa</span>
                 </label>
               )}
 
-              <div className="mt-4 flex gap-3">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 rounded-xl border border-white/10 py-3 font-bold hover:bg-white/5">
+              <div className="mt-4 flex gap-3 pt-4 border-t border-white/5">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 rounded-lg border border-white/10 py-2.5 text-sm font-medium text-white/70 hover:bg-white/5 transition-colors">
                   Cancelar
                 </button>
-                <button type="submit" disabled={loading} className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-[#06CFD6] py-3 font-bold hover:bg-[#0CA3C6] disabled:opacity-50">
+                <button type="submit" disabled={loading} className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-white text-black py-2.5 text-sm font-medium transition-colors hover:bg-white/90 disabled:opacity-50">
                   <Save className="h-4 w-4" /> {loading ? 'Guardando...' : 'Guardar'}
                 </button>
               </div>

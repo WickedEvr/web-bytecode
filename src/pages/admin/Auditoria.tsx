@@ -38,59 +38,59 @@ const Auditoria: React.FC = () => {
     new Intl.DateTimeFormat('es-PE', { dateStyle: 'short', timeStyle: 'medium' }).format(new Date(val));
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-6 font-sansation">
+      <div className="flex items-center justify-between pb-4 border-b border-white/5">
         <div className="flex items-center gap-3">
-          <ClipboardList className="h-8 w-8 text-[#06CFD6]" />
+          <ClipboardList className="h-6 w-6 text-white/50" />
           <div>
-            <h1 className="text-3xl font-bold">Auditoría</h1>
-            <p className="text-white/60 text-sm">Registro de actividad del sistema</p>
+            <h1 className="text-2xl font-semibold tracking-wide text-white/90">Auditoría</h1>
+            <p className="text-white/40 text-xs mt-1 uppercase tracking-widest">Registro de actividad del sistema</p>
           </div>
         </div>
-        <button onClick={loadLogs} className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-sm font-bold transition hover:border-[#06CFD6]">
-          <RefreshCw className="h-4 w-4" /> Actualizar
+        <button onClick={loadLogs} className="flex items-center gap-2 rounded-lg bg-white/5 border border-white/10 px-4 py-2 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white">
+          <RefreshCw className="h-4 w-4" /> <span>Actualizar</span>
         </button>
       </div>
 
-      {error && <p className="rounded-xl bg-red-500/15 px-4 py-3 text-red-100">{error}</p>}
+      {error && <p className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-red-300 text-sm">{error}</p>}
 
-      <div className="rounded-2xl border border-white/10 bg-white/[0.04] overflow-hidden">
+      <div className="rounded-xl border border-white/5 bg-[#0a0a0a] overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-white/5 text-white/60">
+          <table className="w-full text-left text-sm whitespace-nowrap">
+            <thead className="bg-white/[0.02] text-white/50 text-xs uppercase tracking-wider">
               <tr>
-                <th className="px-5 py-4 font-medium">Fecha</th>
-                <th className="px-5 py-4 font-medium">Usuario</th>
-                <th className="px-5 py-4 font-medium">Acción</th>
-                <th className="px-5 py-4 font-medium">Entidad</th>
-                <th className="px-5 py-4 font-medium">ID Entidad</th>
+                <th className="px-6 py-4 font-medium">Fecha</th>
+                <th className="px-6 py-4 font-medium">Usuario</th>
+                <th className="px-6 py-4 font-medium">Acción</th>
+                <th className="px-6 py-4 font-medium">Entidad</th>
+                <th className="px-6 py-4 font-medium">ID Entidad</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/10">
+            <tbody className="divide-y divide-white/5 text-white/80">
               {logs.map(log => (
-                <tr key={log.id} className="transition hover:bg-white/[0.02]">
-                  <td className="px-5 py-4 text-white/60 whitespace-nowrap">{formatDate(log.created_at)}</td>
-                  <td className="px-5 py-4">
+                <tr key={log.id} className="transition-colors hover:bg-white/[0.02]">
+                  <td className="px-6 py-4 text-white/50 text-xs">{formatDate(log.created_at)}</td>
+                  <td className="px-6 py-4">
                     {log.admin_name ? (
                       <div>
-                        <p className="font-bold">{log.admin_name}</p>
-                        <p className="text-xs text-white/50">{log.admin_email}</p>
+                        <p className="font-medium text-white/90">{log.admin_name}</p>
+                        <p className="text-[10px] text-white/40">{log.admin_email}</p>
                       </div>
                     ) : (
-                      <span className="text-white/40">Sistema</span>
+                      <span className="text-white/30 italic">Sistema</span>
                     )}
                   </td>
-                  <td className="px-5 py-4">
-                    <span className="rounded-full bg-[#06CFD6]/10 px-2 py-1 text-xs font-bold text-[#06CFD6] uppercase tracking-wide">
+                  <td className="px-6 py-4">
+                    <span className="rounded bg-white/5 border border-white/5 px-2 py-0.5 text-[10px] font-medium text-white/60 uppercase tracking-widest">
                       {log.action}
                     </span>
                   </td>
-                  <td className="px-5 py-4 text-white/80">{log.entity_type}</td>
-                  <td className="px-5 py-4 text-xs font-mono text-white/40">{log.entity_id || '-'}</td>
+                  <td className="px-6 py-4 text-white/80">{log.entity_type}</td>
+                  <td className="px-6 py-4 text-xs font-mono text-white/30">{log.entity_id || '-'}</td>
                 </tr>
               ))}
               {logs.length === 0 && !loading && (
-                <tr><td colSpan={5} className="px-5 py-8 text-center text-white/50">No hay registros de auditoría.</td></tr>
+                <tr><td colSpan={5} className="px-6 py-10 text-center text-white/30 text-sm">No hay registros de auditoría.</td></tr>
               )}
             </tbody>
           </table>

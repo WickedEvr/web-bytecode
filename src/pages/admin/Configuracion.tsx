@@ -103,137 +103,137 @@ const AdminConfiguracion: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-6 font-sansation">
+      <div className="flex items-center justify-between pb-4 border-b border-white/5">
         <div className="flex items-center gap-3">
-          <Settings className="h-8 w-8 text-[#06CFD6]" />
+          <Settings className="h-6 w-6 text-white/50" />
           <div>
-            <h1 className="text-3xl font-bold">Configuración</h1>
-            <p className="text-white/60 text-sm">Gestión de variables dinámicas del sistema</p>
+            <h1 className="text-2xl font-semibold tracking-wide text-white/90">Configuración</h1>
+            <p className="text-white/40 text-xs mt-1 uppercase tracking-widest">Variables del sistema</p>
           </div>
         </div>
-        <button onClick={loadSettings} className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-sm font-bold transition hover:border-[#06CFD6]">
-          <RefreshCw className="h-4 w-4" /> Actualizar
+        <button onClick={loadSettings} className="flex items-center gap-2 rounded-lg bg-white/5 border border-white/10 px-4 py-2 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white">
+          <RefreshCw className="h-4 w-4" /> <span>Actualizar</span>
         </button>
       </div>
 
-      {error && <p className="rounded-xl bg-red-500/15 px-4 py-3 text-red-100">{error}</p>}
-      {success && <p className="rounded-xl bg-green-500/15 px-4 py-3 text-green-200">Configuración guardada correctamente.</p>}
+      {error && <p className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-red-300 text-sm">{error}</p>}
+      {success && <p className="rounded-lg bg-green-500/10 border border-green-500/20 px-4 py-3 text-green-400 text-sm">Configuración guardada correctamente.</p>}
 
       <form onSubmit={handleSave} className="grid gap-6 lg:grid-cols-2">
         {/* Contact Info */}
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
-          <h2 className="text-xl font-bold mb-4">Información de Contacto</h2>
-          <div className="flex flex-col gap-4">
+        <div className="rounded-xl border border-white/5 bg-[#0a0a0a] p-6 lg:p-8">
+          <h2 className="text-lg font-medium mb-6 text-white/90">Información de Contacto</h2>
+          <div className="flex flex-col gap-5">
             <div>
-              <label className="mb-1 block text-sm font-bold text-white/70">Correo Electrónico</label>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">Correo Electrónico</label>
               <input
                 type="email"
                 value={contactInfo.email}
                 onChange={e => setContactInfo({ ...contactInfo, email: e.target.value })}
-                className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-2 outline-none focus:border-[#06CFD6]"
+                className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-bold text-white/70">Teléfono</label>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">Teléfono</label>
               <input
                 type="text"
                 value={contactInfo.phone}
                 onChange={e => setContactInfo({ ...contactInfo, phone: e.target.value })}
-                className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-2 outline-none focus:border-[#06CFD6]"
+                className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-bold text-white/70">Dirección Física</label>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">Dirección Física</label>
               <input
                 type="text"
                 value={contactInfo.address}
                 onChange={e => setContactInfo({ ...contactInfo, address: e.target.value })}
-                className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-2 outline-none focus:border-[#06CFD6]"
+                className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors"
               />
             </div>
           </div>
         </div>
 
         {/* Features Toggle */}
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
-          <h2 className="text-xl font-bold mb-4">Módulos del Sistema</h2>
-          <div className="flex flex-col gap-4">
-            <label className="flex items-center gap-3 py-2 cursor-pointer">
+        <div className="rounded-xl border border-white/5 bg-[#0a0a0a] p-6 lg:p-8">
+          <h2 className="text-lg font-medium mb-6 text-white/90">Módulos del Sistema</h2>
+          <div className="flex flex-col gap-6">
+            <label className="flex items-center gap-4 cursor-pointer group">
               <input
                 type="checkbox"
                 checked={features.enable_chat}
                 onChange={e => setFeatures({ ...features, enable_chat: e.target.checked })}
-                className="h-5 w-5 rounded border-white/20 bg-white/10 text-[#06CFD6] focus:ring-[#06CFD6]"
+                className="h-4 w-4 rounded border-white/20 bg-white/5 text-white focus:ring-white/20 focus:ring-offset-black"
               />
               <div>
-                <span className="block text-sm font-bold text-white">Chat en vivo</span>
-                <span className="text-xs text-white/50">Habilitar el widget de atención al cliente</span>
+                <span className="block text-sm font-medium text-white/90 group-hover:text-white transition-colors">Chat en vivo</span>
+                <span className="text-xs text-white/40">Habilitar el widget de atención al cliente</span>
               </div>
             </label>
-            <label className="flex items-center gap-3 py-2 cursor-pointer">
+            <label className="flex items-center gap-4 cursor-pointer group">
               <input
                 type="checkbox"
                 checked={features.enable_quotes}
                 onChange={e => setFeatures({ ...features, enable_quotes: e.target.checked })}
-                className="h-5 w-5 rounded border-white/20 bg-white/10 text-[#06CFD6] focus:ring-[#06CFD6]"
+                className="h-4 w-4 rounded border-white/20 bg-white/5 text-white focus:ring-white/20 focus:ring-offset-black"
               />
               <div>
-                <span className="block text-sm font-bold text-white">Cotizador Público</span>
-                <span className="text-xs text-white/50">Permitir a los usuarios generar cotizaciones automáticas</span>
+                <span className="block text-sm font-medium text-white/90 group-hover:text-white transition-colors">Cotizador Público</span>
+                <span className="text-xs text-white/40">Permitir a los usuarios generar cotizaciones automáticas</span>
               </div>
             </label>
           </div>
         </div>
 
         {/* SMTP Config */}
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 lg:col-span-2">
-          <h2 className="text-xl font-bold mb-4">Servidor de Correos (SMTP)</h2>
-          <div className="grid gap-4 md:grid-cols-2">
+        <div className="rounded-xl border border-white/5 bg-[#0a0a0a] p-6 lg:p-8 lg:col-span-2">
+          <h2 className="text-lg font-medium mb-6 text-white/90">Servidor de Correos (SMTP)</h2>
+          <div className="grid gap-5 md:grid-cols-2">
             <div>
-              <label className="mb-1 block text-sm font-bold text-white/70">Servidor (Host)</label>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">Servidor (Host)</label>
               <input
                 type="text"
                 value={smtpConfig.host}
                 onChange={e => setSmtpConfig({ ...smtpConfig, host: e.target.value })}
-                className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-2 outline-none focus:border-[#06CFD6]"
+                className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-bold text-white/70">Puerto</label>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">Puerto</label>
               <input
                 type="text"
                 value={smtpConfig.port}
                 onChange={e => setSmtpConfig({ ...smtpConfig, port: e.target.value })}
-                className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-2 outline-none focus:border-[#06CFD6]"
+                className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-bold text-white/70">Usuario (Correo)</label>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">Usuario (Correo)</label>
               <input
                 type="text"
                 value={smtpConfig.user}
                 onChange={e => setSmtpConfig({ ...smtpConfig, user: e.target.value })}
-                className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-2 outline-none focus:border-[#06CFD6]"
+                className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-bold text-white/70">Contraseña</label>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">Contraseña</label>
               <input
                 type="password"
                 placeholder="********"
                 value={smtpConfig.pass}
                 onChange={e => setSmtpConfig({ ...smtpConfig, pass: e.target.value })}
-                className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-2 outline-none focus:border-[#06CFD6]"
+                className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors"
               />
-              <p className="mt-1 text-xs text-white/40">Déjalo en blanco (u ocúltalo como ********) si no deseas cambiarlo.</p>
+              <p className="mt-1.5 text-[10px] text-white/30 uppercase tracking-widest">Dejar en blanco si no se cambia</p>
             </div>
           </div>
         </div>
 
         <div className="lg:col-span-2 flex justify-end">
-          <button type="submit" disabled={loading} className="inline-flex items-center gap-2 rounded-full bg-[#06CFD6] px-8 py-3 font-bold text-white transition hover:bg-[#0CA3C6] disabled:opacity-50">
-            <Save className="h-5 w-5" /> {loading ? 'Guardando...' : 'Guardar Cambios'}
+          <button type="submit" disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-8 py-3 text-sm font-medium text-black transition-colors hover:bg-white/90 disabled:opacity-50">
+            <Save className="h-4 w-4" /> {loading ? 'Guardando...' : 'Guardar Cambios'}
           </button>
         </div>
       </form>

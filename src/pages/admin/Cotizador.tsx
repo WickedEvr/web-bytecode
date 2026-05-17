@@ -115,58 +115,58 @@ const AdminCotizador: React.FC = () => {
     new Intl.DateTimeFormat('es-PE', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(val));
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-6 font-sansation">
+      <div className="flex items-center justify-between pb-4 border-b border-white/5">
         <div className="flex items-center gap-3">
-          <Calculator className="h-8 w-8 text-[#06CFD6]" />
+          <Calculator className="h-6 w-6 text-white/50" />
           <div>
-            <h1 className="text-3xl font-bold">Cotizador</h1>
-            <p className="text-white/60 text-sm">Generación dinámica de cotizaciones</p>
+            <h1 className="text-2xl font-semibold tracking-wide text-white/90">Cotizador</h1>
+            <p className="text-white/40 text-xs mt-1 uppercase tracking-widest">Generación dinámica de cotizaciones</p>
           </div>
         </div>
         <div className="flex gap-3">
-          <button onClick={loadData} className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-sm font-bold transition hover:border-[#06CFD6]">
-            <RefreshCw className="h-4 w-4" /> Actualizar
+          <button onClick={loadData} className="flex items-center gap-2 rounded-lg bg-white/5 border border-white/10 px-4 py-2 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white">
+            <RefreshCw className="h-4 w-4" /> <span>Actualizar</span>
           </button>
-          <button onClick={() => setIsModalOpen(true)} className="inline-flex items-center gap-2 rounded-full bg-[#06CFD6] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#0CA3C6]">
-            <Plus className="h-4 w-4" /> Nueva Cotización
+          <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-white/90">
+            <Plus className="h-4 w-4" /> <span>Nueva Cotización</span>
           </button>
         </div>
       </div>
 
-      {error && !isModalOpen && <p className="rounded-xl bg-red-500/15 px-4 py-3 text-red-100">{error}</p>}
+      {error && !isModalOpen && <p className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-red-300 text-sm">{error}</p>}
 
-      <div className="rounded-2xl border border-white/10 bg-white/[0.04] overflow-hidden">
+      <div className="rounded-xl border border-white/5 bg-[#0a0a0a] overflow-hidden flex flex-col">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-white/5 text-white/60">
+          <table className="w-full text-left text-sm whitespace-nowrap">
+            <thead className="bg-white/[0.02] text-white/50 text-xs uppercase tracking-wider">
               <tr>
-                <th className="px-5 py-4 font-medium">Código</th>
-                <th className="px-5 py-4 font-medium">Cliente</th>
-                <th className="px-5 py-4 font-medium">Monto Total</th>
-                <th className="px-5 py-4 font-medium">Estado</th>
-                <th className="px-5 py-4 font-medium">Fecha</th>
+                <th className="px-6 py-4 font-medium">Código</th>
+                <th className="px-6 py-4 font-medium">Cliente</th>
+                <th className="px-6 py-4 font-medium">Monto Total</th>
+                <th className="px-6 py-4 font-medium">Estado</th>
+                <th className="px-6 py-4 font-medium">Fecha</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/10">
+            <tbody className="divide-y divide-white/5 text-white/80">
               {quotes.map(quote => (
-                <tr key={quote.id} className="transition hover:bg-white/[0.02]">
-                  <td className="px-5 py-4 font-bold">{quote.quote_code}</td>
-                  <td className="px-5 py-4">
-                    <p className="font-bold">{quote.first_name || 'Desconocido'}</p>
-                    <p className="text-xs text-white/50">{quote.primary_email}</p>
+                <tr key={quote.id} className="transition-colors hover:bg-white/[0.02]">
+                  <td className="px-6 py-4 font-medium">{quote.quote_code}</td>
+                  <td className="px-6 py-4">
+                    <p className="font-medium">{quote.first_name || 'Desconocido'}</p>
+                    <p className="text-xs text-white/40">{quote.primary_email}</p>
                   </td>
-                  <td className="px-5 py-4 font-mono text-[#06CFD6]">S/ {Number(quote.total_amount).toFixed(2)}</td>
-                  <td className="px-5 py-4">
-                    <span className="rounded-full bg-white/10 px-2 py-1 text-xs font-bold text-white/80 uppercase tracking-wide">
+                  <td className="px-6 py-4 font-mono">S/ {Number(quote.total_amount).toFixed(2)}</td>
+                  <td className="px-6 py-4">
+                    <span className="rounded bg-white/5 border border-white/5 px-2 py-0.5 text-[10px] font-medium text-white/60 uppercase tracking-widest">
                       {quote.status || 'Draft'}
                     </span>
                   </td>
-                  <td className="px-5 py-4 text-white/50">{formatDate(quote.created_at)}</td>
+                  <td className="px-6 py-4 text-white/40 text-xs">{formatDate(quote.created_at)}</td>
                 </tr>
               ))}
               {quotes.length === 0 && !loading && (
-                <tr><td colSpan={5} className="px-5 py-8 text-center text-white/50">No hay cotizaciones registradas.</td></tr>
+                <tr><td colSpan={5} className="px-6 py-10 text-center text-white/30 text-sm">No hay cotizaciones registradas.</td></tr>
               )}
             </tbody>
           </table>
@@ -174,98 +174,98 @@ const AdminCotizador: React.FC = () => {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-[#040e1f] border border-white/10 p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold">Nueva Cotización</h2>
-              <button onClick={() => setIsModalOpen(false)} className="rounded-lg p-2 hover:bg-white/10">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-[#0a0a0a] border border-white/10 p-6 md:p-8 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/5">
+              <h2 className="text-lg font-semibold text-white/90">Nueva Cotización</h2>
+              <button onClick={() => setIsModalOpen(false)} className="rounded-lg p-2 text-white/40 hover:text-white hover:bg-white/5 transition-colors">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            {error && isModalOpen && <p className="mb-4 rounded-xl bg-red-500/15 px-4 py-3 text-sm text-red-200">{error}</p>}
+            {error && isModalOpen && <p className="mb-6 rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300">{error}</p>}
 
             <form onSubmit={handleCreate} className="flex flex-col gap-5">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-5">
                 <div>
-                  <label className="mb-1 block text-sm font-bold text-white/70">Nombre del Cliente</label>
+                  <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">Nombre del Cliente</label>
                   <input
                     type="text"
                     required
                     value={formData.customerName}
                     onChange={e => setFormData({ ...formData, customerName: e.target.value })}
-                    className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-2 outline-none focus:border-[#06CFD6]"
+                    className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-bold text-white/70">Correo Electrónico</label>
+                  <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">Correo Electrónico</label>
                   <input
                     type="email"
                     required
                     value={formData.customerEmail}
                     onChange={e => setFormData({ ...formData, customerEmail: e.target.value })}
-                    className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-2 outline-none focus:border-[#06CFD6]"
+                    className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-bold text-white/70">Agregar Ítem del Catálogo</label>
+                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">Agregar Ítem del Catálogo</label>
                 <select
                   onChange={e => addItem(e.target.value)}
                   value=""
-                  className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-2 outline-none [&>option]:bg-[#040e1f]"
+                  className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors appearance-none"
                 >
-                  <option value="">-- Seleccionar Servicio / Producto --</option>
+                  <option value="" className="bg-[#121212]">-- Seleccionar Servicio / Producto --</option>
                   {catalog.map(item => (
-                    <option key={item.id} value={item.id}>{item.name} - S/ {item.unit_price}</option>
+                    <option key={item.id} value={item.id} className="bg-[#121212]">{item.name} - S/ {item.unit_price}</option>
                   ))}
                 </select>
               </div>
 
               {selectedItems.length > 0 && (
-                <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                  <h3 className="text-sm font-bold mb-3 text-white/80">Ítems Seleccionados</h3>
-                  <div className="flex flex-col gap-2">
+                <div className="rounded-xl border border-white/5 bg-white/[0.02] p-5">
+                  <h3 className="text-[10px] font-medium uppercase tracking-wider text-white/50 mb-4">Ítems Seleccionados</h3>
+                  <div className="flex flex-col gap-3">
                     {selectedItems.map(item => {
                       const cItem = catalog.find(c => c.id === item.catalog_item_id);
                       return (
                         <div key={item.catalog_item_id} className="flex items-center justify-between text-sm">
-                          <span className="flex-1">{cItem?.name}</span>
-                          <span className="w-24 text-center font-mono text-[#06CFD6]">S/ {cItem?.unit_price}</span>
+                          <span className="flex-1 text-white/80">{cItem?.name}</span>
+                          <span className="w-24 text-center font-mono text-white/60">S/ {cItem?.unit_price}</span>
                           <input
                             type="number"
                             min="0"
                             value={item.quantity}
                             onChange={e => updateQuantity(item.catalog_item_id, parseInt(e.target.value) || 0)}
-                            className="w-16 rounded bg-white/10 px-2 py-1 text-center outline-none"
+                            className="w-16 rounded-md bg-white/5 border border-white/10 px-2 py-1.5 text-center text-white/90 outline-none focus:border-white/30"
                           />
                         </div>
                       )
                     })}
                   </div>
-                  <div className="mt-4 border-t border-white/10 pt-3 text-right">
-                    <span className="font-bold text-white/70">Total Estimado: </span>
-                    <span className="text-xl font-bold text-[#06CFD6]">S/ {calculateTotal().toFixed(2)}</span>
+                  <div className="mt-5 border-t border-white/5 pt-4 text-right flex items-center justify-end gap-3">
+                    <span className="text-[10px] font-medium uppercase tracking-wider text-white/50">Total Estimado: </span>
+                    <span className="text-lg font-mono text-white">S/ {calculateTotal().toFixed(2)}</span>
                   </div>
                 </div>
               )}
 
               <div>
-                <label className="mb-1 block text-sm font-bold text-white/70">Observaciones Internas</label>
+                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">Observaciones Internas</label>
                 <textarea
                   rows={2}
                   value={formData.notes}
                   onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                  className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-2 outline-none focus:border-[#06CFD6] resize-none"
+                  className="w-full resize-none rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors custom-scrollbar"
                 />
               </div>
 
-              <div className="mt-2 flex gap-3">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 rounded-xl border border-white/10 py-3 font-bold hover:bg-white/5">
+              <div className="mt-2 flex gap-3 pt-4 border-t border-white/5">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 rounded-lg border border-white/10 py-2.5 text-sm font-medium text-white/70 hover:bg-white/5 transition-colors">
                   Cancelar
                 </button>
-                <button type="submit" disabled={loading} className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-[#06CFD6] py-3 font-bold hover:bg-[#0CA3C6] disabled:opacity-50">
+                <button type="submit" disabled={loading} className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-white text-black py-2.5 text-sm font-medium transition-colors hover:bg-white/90 disabled:opacity-50">
                   <Save className="h-4 w-4" /> {loading ? 'Generando...' : 'Generar Cotización'}
                 </button>
               </div>
