@@ -134,13 +134,49 @@ router.post(
 
       const customerRes = await client.query(
         `
-        INSERT INTO customers (customer_code, first_name, primary_email, primary_phone)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO customers (customer_code, first_name, person_type, primary_email, primary_phone)
+        VALUES ($1, $2, 'company_contact', $3, $4)
         RETURNING id
         `,
         [`CUS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, body.nombre, body.email.toLowerCase(), body.celular]
       );
       const customerId = customerRes.rows[0].id;
+
+      const organizationRes = await client.query(
+        `
+        INSERT INTO organizations (legal_name, trade_name, ruc)
+        VALUES ($1, $1, $2)
+        ON CONFLICT (ruc) WHERE deleted_at IS NULL
+        DO UPDATE SET
+          legal_name = EXCLUDED.legal_name,
+          trade_name = EXCLUDED.trade_name,
+          updated_at = now()
+        RETURNING id
+        `,
+        [body.empresa, body.ruc],
+      );
+      const organizationId = organizationRes.rows[0].id;
+
+      await client.query(
+        `
+        INSERT INTO customer_organizations (customer_id, organization_id, position_title, is_primary)
+        VALUES ($1, $2, $3, true)
+        ON CONFLICT (customer_id, organization_id)
+        DO UPDATE SET
+          position_title = EXCLUDED.position_title,
+          is_primary = true,
+          deleted_at = NULL,
+          updated_at = now()
+        `,
+        [customerId, organizationId, body.cargo],
+      );
+
+      const serviceRes = await client.query(
+        'SELECT id, name FROM service_catalog WHERE code = $1 AND is_active = true LIMIT 1',
+        [body.servicio],
+      );
+      const serviceId = serviceRes.rows[0]?.id ?? null;
+      const serviceName = serviceRes.rows[0]?.name ?? body.servicio;
 
       const statusRes = await client.query("SELECT id FROM status_catalog WHERE domain = 'case' AND code = 'new' LIMIT 1");
       if (statusRes.rowCount === 0) throw new Error('Status catalog not initialized');
@@ -148,16 +184,20 @@ router.post(
 
       const result = await client.query(
         `
-        INSERT INTO contact_cases (case_code, customer_id, status_id, subject, message, internal_notes) 
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO contact_cases (
+          case_code, customer_id, organization_id, service_id, status_id, subject, message, internal_notes
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING id, created_at
         `,
         [
           `CAS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, 
           customerId, 
+          organizationId,
+          serviceId,
           statusId, 
-          body.servicio, 
-          `Empresa: ${body.empresa}\nCargo: ${body.cargo}\nRUC: ${body.ruc}`, 
+          serviceName,
+          '',
           ''
         ],
       );
