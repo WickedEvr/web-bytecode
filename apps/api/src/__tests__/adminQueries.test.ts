@@ -25,3 +25,17 @@ test('quote queries use the enterprise schema column names', async () => {
   assert.doesNotMatch(source, /INSERT INTO quote_items \(quote_id, catalog_item_id/);
   assert.doesNotMatch(source, /INSERT INTO quotes \(quote_code, customer_id, total_amount, status_id, notes/);
 });
+
+test('contact admin queries return separated company fields', async () => {
+  const source = await readFile(adminRoutePath, 'utf8');
+  const contactColumns = source.match(/const contactColumns = `([\s\S]*?)`;/)?.[1] ?? '';
+
+  assert.doesNotMatch(contactColumns, /'' as cargo/);
+  assert.doesNotMatch(contactColumns, /'' as empresa/);
+  assert.doesNotMatch(contactColumns, /'' as ruc/);
+  assert.match(contactColumns, /co\.position_title/);
+  assert.match(contactColumns, /o\.legal_name/);
+  assert.match(contactColumns, /o\.ruc/);
+  assert.match(source, /LEFT JOIN organizations o ON c\.organization_id = o\.id/);
+  assert.match(source, /LEFT JOIN customer_organizations co ON co\.customer_id = c\.customer_id/);
+});

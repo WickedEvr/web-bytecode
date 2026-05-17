@@ -27,9 +27,28 @@ const updateSchema = z.object({
 });
 
 const contactColumns = `
-  c.id, cu.first_name as nombre, '' as cargo, cu.primary_email as email, cu.primary_phone as celular, 
-  '' as empresa, '' as ruc, c.subject as servicio, sc.code as status, c.internal_notes as admin_notes, 
+  c.id,
+  cu.first_name as nombre,
+  COALESCE(co.position_title, NULLIF(trim(substring(c.message from 'Cargo:[[:space:]]*([^[:cntrl:]]+)')), ''), '') as cargo,
+  cu.primary_email as email,
+  cu.primary_phone as celular,
+  COALESCE(o.legal_name, NULLIF(trim(substring(c.message from 'Empresa:[[:space:]]*([^[:cntrl:]]+)')), ''), '') as empresa,
+  COALESCE(o.ruc, NULLIF(trim(substring(c.message from 'RUC:[[:space:]]*([^[:cntrl:]]+)')), ''), '') as ruc,
+  COALESCE(s.name, c.subject) as servicio,
+  c.message,
+  sc.code as status,
+  c.internal_notes as admin_notes, 
   c.created_at, c.updated_at
+`;
+
+const contactJoins = `
+  JOIN customers cu ON c.customer_id = cu.id
+  JOIN status_catalog sc ON c.status_id = sc.id
+  LEFT JOIN organizations o ON c.organization_id = o.id
+  LEFT JOIN service_catalog s ON c.service_id = s.id
+  LEFT JOIN customer_organizations co ON co.customer_id = c.customer_id
+    AND co.organization_id = c.organization_id
+    AND co.deleted_at IS NULL
 `;
 
 const complaintColumns = `
@@ -94,13 +113,22 @@ router.get(
   requireRole(['admin', 'support_agent']),
   asyncHandler(async (req: Request, res: Response) => {
     const query = listQuerySchema.parse(req.query);
-    const { whereSql, params } = buildWhere(query.status, query.search, ['cu.first_name', 'cu.primary_email', 'c.subject']);
+    const { whereSql, params } = buildWhere(query.status, query.search, [
+      'cu.first_name',
+      'cu.primary_email',
+      'cu.primary_phone',
+      'c.subject',
+      'c.message',
+      'o.legal_name',
+      'o.ruc',
+      'co.position_title',
+      's.name',
+    ]);
     const result = await pool.query(
       `
       SELECT ${contactColumns}
       FROM contact_cases c
-      JOIN customers cu ON c.customer_id = cu.id
-      JOIN status_catalog sc ON c.status_id = sc.id
+      ${contactJoins}
       ${whereSql}
       ORDER BY c.created_at DESC
       LIMIT $${params.length + 1} OFFSET $${params.length + 2}
@@ -118,7 +146,7 @@ router.get(
   asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const result = await pool.query(
-      `SELECT ${contactColumns} FROM contact_cases c JOIN customers cu ON c.customer_id = cu.id JOIN status_catalog sc ON c.status_id = sc.id WHERE c.id = $1`, 
+      `SELECT ${contactColumns} FROM contact_cases c ${contactJoins} WHERE c.id = $1`, 
       [id]
     );
     if (result.rowCount === 0) throw new HttpError(404, 'Mensaje no encontrado.');
@@ -156,7 +184,7 @@ router.patch(
     await audit(req.admin?.id, 'update', 'contact_submission', id);
     
     const updated = await pool.query(
-      `SELECT ${contactColumns} FROM contact_cases c JOIN customers cu ON c.customer_id = cu.id JOIN status_catalog sc ON c.status_id = sc.id WHERE c.id = $1`, 
+      `SELECT ${contactColumns} FROM contact_cases c ${contactJoins} WHERE c.id = $1`, 
       [id]
     );
     res.json({ item: updated.rows[0] });
