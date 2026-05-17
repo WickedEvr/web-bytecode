@@ -5,6 +5,7 @@ import { apiRequest } from '../../lib/api';
 
 type ContactItem = {
   id: string;
+  case_code?: string;
   nombre: string;
   apellido?: string;
   cargo: string;
@@ -34,7 +35,7 @@ type AssignmentHistoryItem = {
 type DetailItem = Record<string, string | number | null | undefined>;
 
 const detailFields: Array<{ key: string; label: string }> = [
-  { key: 'id', label: 'ID' },
+  { key: 'case_code', label: 'Código' },
   { key: 'nombre', label: 'Nombre' },
   { key: 'apellido', label: 'Apellido' },
   { key: 'cargo', label: 'Cargo' },

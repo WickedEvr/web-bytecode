@@ -28,6 +28,7 @@ const updateSchema = z.object({
 
 const contactColumns = `
   c.id,
+  c.case_code,
   cu.first_name as nombre,
   cu.last_name as apellido,
   COALESCE(co.position_title, NULLIF(trim((regexp_match(c.message, 'Cargo:[[:space:]]*([^[:cntrl:]]+)'))[1]), ''), '') as cargo,
@@ -54,6 +55,7 @@ const contactJoins = `
 
 const legacyContactColumns = `
   c.id,
+  c.case_code,
   cu.first_name as nombre,
   cu.last_name as apellido,
   COALESCE(NULLIF(trim((regexp_match(c.message, 'Cargo:[[:space:]]*([^[:cntrl:]]+)'))[1]), ''), '') as cargo,
