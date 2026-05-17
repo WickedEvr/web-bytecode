@@ -126,12 +126,13 @@ interface PhoneInputProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   // Opcional: callback para enviar el código de país al formulario padre si lo necesitas
-  onCountryChange?: (dialCode: string) => void; 
+  onCountryChange?: (dialCode: string) => void;
+  onCountrySelect?: (country: CountryData) => void;
 }
 
-const defaultPeru: CountryData = { id: 'default', iso: 'PE', name: 'Perú', dialCode: '+51', maxLength: 9 };
+const defaultPeru: CountryData = { id: 'default', iso: 'PE', name: 'Perú', dialCode: '+51', maxLength: 9, tax_id_label: 'RUC', tax_id_regex: '^[0-9]{11}$', tax_id_placeholder: '10468060100' };
 
-const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountryChange }) => {
+const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountryChange, onCountrySelect }) => {
   const [countries, setCountries] = useState<CountryData[]>([defaultPeru]);
   const [selectedCountry, setSelectedCountry] = useState<CountryData>(defaultPeru);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -148,13 +149,14 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
           const peru = data.find(c => c.iso === 'PE') || data[0];
           setSelectedCountry(peru); 
           if (onCountryChange) onCountryChange(peru.dialCode);
+          if (onCountrySelect) onCountrySelect(peru);
         }
       } catch (error) {
         console.error('Error fetching countries:', error);
       }
     };
     loadCountries();
-  }, [onCountryChange]);
+  }, [onCountryChange, onCountrySelect]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -183,6 +185,7 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
     setSelectedCountry(country);
     setIsDropdownOpen(false);
     if (onCountryChange) onCountryChange(country.dialCode);
+    if (onCountrySelect) onCountrySelect(country);
     setError(''); 
   };
 
@@ -385,6 +388,8 @@ const Contacto: React.FC = () => {
     servicio: '',
   });
   
+  const [selectedCountryData, setSelectedCountryData] = useState<CountryData>(defaultPeru);
+
   // Agregamos el estado de éxito a nuestra lógica
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -394,6 +399,17 @@ const Contacto: React.FC = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleTaxIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const inputValue = e.target.value;
+  const taxRegex = new RegExp(selectedCountryData.tax_id_regex || '^[\\w-]{4,20}$', 'i');
+  if (!taxRegex.test(inputValue)) {
+      e.target.setCustomValidity(`Formato de ${selectedCountryData.tax_id_label || 'identificación'} inválido`);
+    } else {
+      e.target.setCustomValidity('');
+    }
+    setFormData({ ...formData, ruc: inputValue });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -508,6 +524,7 @@ const Contacto: React.FC = () => {
             <PhoneInputGroup 
               value={formData.celular} 
               onChange={handleChange}
+              onCountrySelect={setSelectedCountryData}
             />
           </div>
 
@@ -527,17 +544,17 @@ const Contacto: React.FC = () => {
           </div>
 
           <div>
-            <Label text="RUC" />
+            <Label text={selectedCountryData.tax_id_label || 'RUC'} />
             <input
               type="text"
               name="ruc"
-              placeholder="RUC"
+              placeholder={selectedCountryData.tax_id_placeholder || 'RUC'}
               className={solidInput}
               required
               minLength={2}
               maxLength={160}
               value={formData.ruc}
-              onChange={handleChange}
+              onChange={handleTaxIdChange}
             />
           </div>
 

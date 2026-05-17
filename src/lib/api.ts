@@ -73,6 +73,9 @@ export interface CountryData {
   dialCode: string;
   maxLength: number;
   is_active?: boolean;
+  tax_id_label: string;
+  tax_id_regex: string;
+  tax_id_placeholder: string;
 }
 
 export interface ServiceData {
