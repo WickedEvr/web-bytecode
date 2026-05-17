@@ -384,6 +384,7 @@ const Contacto: React.FC = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     nombre: '',
+    apellido: '',
     cargo: '',
     email: '',
     celular: '',
@@ -479,19 +480,36 @@ const Contacto: React.FC = () => {
           onSubmit={handleSubmit}
           className="w-full flex flex-col gap-4"
         >
-          <div>
-            <Label text="Nombre Completo" />
-            <input
-              type="text"
-              name="nombre"
-              placeholder="Nombre Completo"
-              className={solidInput}
-              required
-              minLength={2}
-              maxLength={160}
-              value={formData.nombre}
-              onChange={handleChange}
-            />
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <Label text="Nombre" />
+              <input
+                type="text"
+                name="nombre"
+                placeholder="Nombre"
+                className={solidInput}
+                required
+                minLength={2}
+                maxLength={120}
+                value={formData.nombre}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div>
+              <Label text="Apellido" />
+              <input
+                type="text"
+                name="apellido"
+                placeholder="Apellido"
+                className={solidInput}
+                required
+                minLength={2}
+                maxLength={120}
+                value={formData.apellido}
+                onChange={handleChange}
+              />
+            </div>
           </div>
 
           <div>

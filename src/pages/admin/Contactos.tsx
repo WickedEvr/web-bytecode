@@ -6,6 +6,7 @@ import { apiRequest } from '../../lib/api';
 type ContactItem = {
   id: string;
   nombre: string;
+  apellido?: string;
   cargo: string;
   email: string;
   celular: string;
@@ -32,6 +33,21 @@ type AssignmentHistoryItem = {
 
 type DetailItem = Record<string, string | number | null | undefined>;
 
+const detailFields: Array<{ key: string; label: string }> = [
+  { key: 'id', label: 'ID' },
+  { key: 'nombre', label: 'Nombre' },
+  { key: 'apellido', label: 'Apellido' },
+  { key: 'cargo', label: 'Cargo' },
+  { key: 'email', label: 'Email' },
+  { key: 'celular', label: 'Celular' },
+  { key: 'empresa', label: 'Empresa' },
+  { key: 'ruc', label: 'RUC' },
+  { key: 'servicio', label: 'Servicio' },
+  { key: 'message', label: 'Mensaje' },
+  { key: 'created_at', label: 'Creado' },
+  { key: 'updated_at', label: 'Actualizado' },
+];
+
 const formatDate = (value?: string) =>
   value
     ? new Intl.DateTimeFormat('es-PE', {
@@ -39,6 +55,9 @@ const formatDate = (value?: string) =>
         timeStyle: 'short',
       }).format(new Date(value))
     : '';
+
+const formatFullName = (item: Pick<ContactItem, 'nombre' | 'apellido'>) =>
+  [item.nombre, item.apellido].filter(Boolean).join(' ');
 
 interface DropdownOption { value: string; label: string; }
 interface CustomDropdownProps { value: string; options: DropdownOption[]; onChange: (val: string) => void; placeholder: string; required?: boolean; }
@@ -222,7 +241,7 @@ const Contactos: React.FC = () => {
                 className={`grid w-full gap-2 px-5 py-4 text-left transition hover:bg-white/[0.06] md:grid-cols-[1fr_auto] ${selectedId === item.id ? 'bg-[#06CFD6]/10' : ''}`}
               >
                 <div>
-                  <p className="font-bold">{item.nombre}</p>
+                  <p className="font-bold">{formatFullName(item)}</p>
                   <p className="text-sm text-white/60">{item.empresa}</p>
                   <p className="mt-1 text-sm text-white/45">{formatDate(item.created_at)}</p>
                 </div>
@@ -254,14 +273,16 @@ const Contactos: React.FC = () => {
             <div className="flex flex-col h-full">
               <h2 className="text-xl font-bold mb-5">Detalle</h2>
               <div className="mb-5 max-h-[46vh] space-y-3 overflow-y-auto pr-2 flex-1 custom-scrollbar">
-                {Object.entries(detail)
-                  .filter(([key]) => !['admin_notes', 'status', 'attachment_path', 'assigned_to'].includes(key))
-                  .map(([key, value]) => (
-                    <div key={key} className="rounded-xl bg-black/20 p-3">
-                      <p className="text-xs uppercase tracking-wide text-[#06CFD6]">{key}</p>
-                      <p className="break-words text-sm text-white/85">{String(value ?? '-')}</p>
-                    </div>
-                  ))}
+                {detailFields.map(({ key, label }) => (
+                  <div key={key} className="rounded-xl bg-black/20 p-3">
+                    <p className="text-xs uppercase tracking-wide text-[#06CFD6]">{label}</p>
+                    <p className="break-words text-sm text-white/85">
+                      {key === 'created_at' || key === 'updated_at'
+                        ? formatDate(String(detail[key] ?? ''))
+                        : String(detail[key] ?? '-')}
+                    </p>
+                  </div>
+                ))}
 
                 {history.length > 0 && (
                   <div className="mt-4 pt-4 border-t border-white/10">

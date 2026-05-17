@@ -29,6 +29,7 @@ const updateSchema = z.object({
 const contactColumns = `
   c.id,
   cu.first_name as nombre,
+  cu.last_name as apellido,
   COALESCE(co.position_title, NULLIF(trim((regexp_match(c.message, 'Cargo:[[:space:]]*([^[:cntrl:]]+)'))[1]), ''), '') as cargo,
   cu.primary_email as email,
   cu.primary_phone as celular,
@@ -54,6 +55,7 @@ const contactJoins = `
 const legacyContactColumns = `
   c.id,
   cu.first_name as nombre,
+  cu.last_name as apellido,
   COALESCE(NULLIF(trim((regexp_match(c.message, 'Cargo:[[:space:]]*([^[:cntrl:]]+)'))[1]), ''), '') as cargo,
   cu.primary_email as email,
   cu.primary_phone as celular,
@@ -165,8 +167,8 @@ router.get(
     const query = listQuerySchema.parse(req.query);
     const normalized = await hasNormalizedContactSchema();
     const contactSearchFields = normalized
-      ? ['cu.first_name', 'cu.primary_email', 'cu.primary_phone', 'c.subject', 'c.message', 'o.legal_name', 'o.ruc', 'co.position_title', 's.name']
-      : ['cu.first_name', 'cu.primary_email', 'cu.primary_phone', 'c.subject', 'c.message'];
+      ? ['cu.first_name', 'cu.last_name', 'cu.primary_email', 'cu.primary_phone', 'c.subject', 'c.message', 'o.legal_name', 'o.ruc', 'co.position_title', 's.name']
+      : ['cu.first_name', 'cu.last_name', 'cu.primary_email', 'cu.primary_phone', 'c.subject', 'c.message'];
     const { whereSql, params } = buildWhere(query.status, query.search, contactSearchFields);
     const result = await pool.query(
       `
@@ -276,8 +278,9 @@ router.post(
       await client.query('COMMIT');
       await audit(req.admin?.id, 'assign', 'contact_submission', id);
       
+      const normalized = await hasNormalizedContactSchema();
       const updated = await pool.query(
-        `SELECT ${contactColumns} FROM contact_cases c JOIN customers cu ON c.customer_id = cu.id JOIN status_catalog sc ON c.status_id = sc.id WHERE c.id = $1`, 
+        `SELECT ${normalized ? contactColumns : legacyContactColumns} FROM contact_cases c ${normalized ? contactJoins : legacyContactJoins} WHERE c.id = $1`, 
         [id]
       );
       res.json({ item: updated.rows[0] });
