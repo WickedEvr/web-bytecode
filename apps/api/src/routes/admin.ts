@@ -274,15 +274,15 @@ router.get(
     const id = String(req.params.id);
     const result = await pool.query(
       `SELECT ${complaintColumns} 
-       FROM complaints c
-       JOIN customers cu ON c.customer_id = cu.id
-       JOIN status_catalog sc ON c.status_id = sc.id
-       JOIN complaint_types ct ON c.complaint_type_id = ct.id
-       LEFT JOIN complaint_details cd ON c.id = cd.complaint_id
-       LEFT JOIN complaint_goods cg ON c.id = cg.complaint_id
-       LEFT JOIN complaint_evidences ce ON c.id = ce.complaint_id
-       LEFT JOIN file_assets fa ON ce.file_asset_id = fa.id
-       WHERE c.id = $1`, 
+      FROM complaints c
+      JOIN customers cu ON c.customer_id = cu.id
+      JOIN status_catalog sc ON c.status_id = sc.id
+      JOIN complaint_types ct ON c.complaint_type_id = ct.id
+      LEFT JOIN complaint_details cd ON c.id = cd.complaint_id
+      LEFT JOIN complaint_goods cg ON c.id = cg.complaint_id
+      LEFT JOIN complaint_evidences ce ON c.id = ce.complaint_id
+      LEFT JOIN file_assets fa ON ce.file_asset_id = fa.id
+      WHERE c.id = $1`, 
       [id]
     );
     if (result.rowCount === 0) throw new HttpError(404, 'Reclamo no encontrado.');
@@ -321,15 +321,15 @@ router.patch(
     
     const updated = await pool.query(
       `SELECT ${complaintColumns} 
-       FROM complaints c
-       JOIN customers cu ON c.customer_id = cu.id
-       JOIN status_catalog sc ON c.status_id = sc.id
-       JOIN complaint_types ct ON c.complaint_type_id = ct.id
-       LEFT JOIN complaint_details cd ON c.id = cd.complaint_id
-       LEFT JOIN complaint_goods cg ON c.id = cg.complaint_id
-       LEFT JOIN complaint_evidences ce ON c.id = ce.complaint_id
-       LEFT JOIN file_assets fa ON ce.file_asset_id = fa.id
-       WHERE c.id = $1`, 
+      FROM complaints c
+      JOIN customers cu ON c.customer_id = cu.id
+      JOIN status_catalog sc ON c.status_id = sc.id
+      JOIN complaint_types ct ON c.complaint_type_id = ct.id
+      LEFT JOIN complaint_details cd ON c.id = cd.complaint_id
+      LEFT JOIN complaint_goods cg ON c.id = cg.complaint_id
+      LEFT JOIN complaint_evidences ce ON c.id = ce.complaint_id
+      LEFT JOIN file_assets fa ON ce.file_asset_id = fa.id
+      WHERE c.id = $1`, 
       [id]
     );
     res.json({ item: updated.rows[0] });
@@ -384,10 +384,26 @@ router.get(
   '/users',
   requireRole(['admin']),
   asyncHandler(async (req: Request, res: Response) => {
-    const result = await pool.query(
-      'SELECT id, email, name, role, is_active, created_at, last_login_at FROM admin_users ORDER BY created_at DESC'
-    );
-    res.json({ items: result.rows });
+    try {
+      const result = await pool.query(`
+        SELECT 
+          u.id, 
+          u.name, 
+          u.email, 
+          u.is_active,
+          array_remove(array_agg(r.code), NULL) as roles
+        FROM admin_users u
+        LEFT JOIN admin_user_roles aur ON u.id = aur.admin_user_id
+        LEFT JOIN roles r ON aur.role_id = r.id
+        WHERE u.deleted_at IS NULL AND u.is_active = true
+        GROUP BY u.id
+        ORDER BY u.name ASC
+      `);
+      res.json({ items: result.rows });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
   }),
 );
 
@@ -433,13 +449,13 @@ router.patch(
 
     const result = await pool.query(
       `UPDATE admin_users 
-       SET name = COALESCE($2, name), 
-           role = COALESCE($3, role), 
-           is_active = COALESCE($4, is_active),
-           updated_at = now(),
-           updated_by = $5
-       WHERE id = $1 
-       RETURNING id, email, name, role, is_active, updated_at`,
+        SET name = COALESCE($2, name), 
+            role = COALESCE($3, role), 
+            is_active = COALESCE($4, is_active),
+            updated_at = now(),
+            updated_by = $5
+        WHERE id = $1 
+        RETURNING id, email, name, role, is_active, updated_at`,
       [id, body.name ?? null, body.role ?? null, body.isActive ?? null, req.admin?.id]
     );
 
