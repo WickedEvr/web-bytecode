@@ -34,7 +34,8 @@ const upload = multer({
 });
 
 const contactSchema = z.object({
-  nombre: z.string().trim().min(2).max(160),
+  nombre: z.string().trim().min(2).max(120),
+  apellido: z.string().trim().min(2).max(120),
   cargo: z.string().trim().min(2).max(160),
   email: z.string().trim().email().max(180),
   celular: z.string().trim().min(6).max(40),
@@ -137,11 +138,11 @@ router.post(
 
       const customerRes = await client.query(
         `
-        INSERT INTO customers (customer_code, first_name, person_type, primary_email, primary_phone)
-        VALUES ($1, $2, 'company_contact', $3, $4)
+        INSERT INTO customers (customer_code, first_name, last_name, person_type, primary_email, primary_phone)
+        VALUES ($1, $2, $3, 'company_contact', $4, $5)
         RETURNING id
         `,
-        [`CUS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, body.nombre, body.email.toLowerCase(), body.celular]
+        [`CUS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, body.nombre, body.apellido, body.email.toLowerCase(), body.celular]
       );
       const customerId = customerRes.rows[0].id;
 
@@ -257,6 +258,7 @@ router.post(
 
       await notifyAdmins('Nuevo mensaje de contacto', {
         nombre: body.nombre,
+        apellido: body.apellido,
         cargo: body.cargo,
         email: body.email,
         celular: body.celular,
