@@ -46,8 +46,9 @@ const contactSchema = z.object({
   cargo: noDigitsText.min(2).max(160),
   email: z.string().trim().email().max(180),
   celular: digitsOnly.min(4).max(20),
-  empresa: lettersNumbersSpaces.min(2).max(180),
-  ruc: alphanumericId,
+  empresa: lettersNumbersSpaces.min(2).max(180).optional(),
+  ruc: alphanumericId.optional(),
+  tipoDoc: z.string().trim().min(1).max(50).optional(),
   servicio: z.string().trim().min(2).max(120),
   mensaje: z.string().trim().min(10).max(1200),
 });
@@ -56,18 +57,18 @@ const complaintSchema = z.object({
   nombres: z.string().trim().min(2).max(160),
   apellidos: z.string().trim().min(2).max(160),
   domicilio: z.string().trim().min(4).max(240),
-  tipoDoc: z.string().trim().min(1).max(30),
+  tipoDoc: z.string().trim().min(1).max(50),
   numeroDoc: alphanumericId,
   prefijoTelefono: z.string().trim().min(1).max(10).default('+51'),
   telefono: digitsOnly.min(6).max(40),
   email: z.string().trim().email().max(180),
-  personType: z.string().trim().min(1).max(40),
-  goodType: z.string().trim().min(1).max(40),
+  personType: z.string().trim().min(1).max(50),
+  goodType: z.string().trim().min(1).max(50),
   montoCuantificable: z.string().trim().max(80).optional().default(''),
   descripcion: z.string().trim().min(2).max(240),
   nombreUnidad: z.string().trim().max(160).optional().default(''),
   opcionBien: z.string().trim().max(120).optional().default(''),
-  claimType: z.string().trim().min(1).max(40),
+  claimType: z.string().trim().min(1).max(50),
   tipoReclamo: z.string().trim().min(2).max(160),
   detalle: z.string().trim().min(10).max(3000),
   pedido: z.string().trim().min(5).max(2000),
@@ -176,7 +177,7 @@ router.post(
 
         if (country.tax_id_regex) {
           const taxRegex = new RegExp(country.tax_id_regex);
-          if (!taxRegex.test(body.ruc)) {
+          if (body.ruc && !taxRegex.test(body.ruc)) {
             throw new HttpError(400, `Formato inválido para ${country.tax_id_label ?? 'identificación fiscal'}.`);
           }
         }
