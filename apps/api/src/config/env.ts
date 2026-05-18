@@ -33,7 +33,6 @@ const requireInProduction = (key: string, value: string | undefined) => {
   }
 };
 
-const notificationEmails = parseList(process.env.ADMIN_NOTIFICATION_EMAILS);
 const smtpHasPartialConfig = Boolean(process.env.SMTP_HOST || process.env.SMTP_USER || process.env.SMTP_PASS);
 const smtpRequired = parseBoolean(process.env.REQUIRE_SMTP, false);
 
@@ -49,7 +48,7 @@ if (process.env.NODE_ENV === 'production' && process.env.JWT_SECRET === 'dev-onl
   process.exit(1);
 }
 
-if (process.env.NODE_ENV === 'production' && smtpRequired && notificationEmails.length > 0) {
+if (process.env.NODE_ENV === 'production' && smtpRequired) {
   requireInProduction('SMTP_HOST', process.env.SMTP_HOST);
   requireInProduction('SMTP_USER', process.env.SMTP_USER);
   requireInProduction('SMTP_PASS', process.env.SMTP_PASS);
@@ -62,17 +61,10 @@ if (smtpHasPartialConfig && !(process.env.SMTP_HOST && process.env.SMTP_USER && 
 
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
-  port: Number(process.env.PORT ?? 4000),
   databaseUrl: process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@localhost:5432/bytecode',
   jwtSecret: process.env.JWT_SECRET ?? 'dev-only-change-this-secret',
-  cookieName: process.env.COOKIE_NAME ?? 'bc_admin',
-  cookieSameSite: (process.env.COOKIE_SAME_SITE ?? (process.env.NODE_ENV === 'production' ? 'none' : 'lax')) as
-    | 'lax'
-    | 'strict'
-    | 'none',
   corsOrigins: parseList(process.env.CORS_ORIGINS),
   publicApiUrl: process.env.PUBLIC_API_URL ?? `http://localhost:${process.env.PORT ?? 4000}`,
-  maxUploadMb: parseNumber(process.env.MAX_UPLOAD_MB, 10),
   database: {
     ssl: parseBoolean(process.env.DATABASE_SSL, process.env.NODE_ENV === 'production'),
     poolMax: parseNumber(process.env.DATABASE_POOL_MAX, 10),
@@ -84,7 +76,6 @@ export const env = {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME,
     apiKey: process.env.CLOUDINARY_API_KEY,
     apiSecret: process.env.CLOUDINARY_API_SECRET,
-    uploadFolder: process.env.CLOUDINARY_UPLOAD_FOLDER ?? 'bytecode/complaints',
     uploadTimeoutMs: Number(process.env.CLOUDINARY_UPLOAD_TIMEOUT_MS ?? 30000),
   },
   smtp: {
@@ -94,10 +85,8 @@ export const env = {
     secure: parseBoolean(process.env.SMTP_SECURE, false),
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
-    from: process.env.MAIL_FROM ?? 'Bytecode Web <no-reply@bytecode.com.pe>',
     maxRetries: parseNumber(process.env.SMTP_MAX_RETRIES, 2),
   },
-  notificationEmails,
   adminSeeds: [
     {
       name: process.env.ADMIN_1_NAME,

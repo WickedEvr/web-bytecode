@@ -8,6 +8,7 @@ import { ZodError } from 'zod';
 import { createRequire } from 'node:module';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { env } from './config/env.js';
+import { MAX_UPLOAD_MB } from './config/constants.js';
 import authRoutes from './routes/auth.js';
 import publicRoutes from './routes/public.js';
 import adminRoutes from './routes/admin.js';
@@ -167,7 +168,7 @@ app.use((error: unknown, req: Request, res: Response, _next: NextFunction) => {
 
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
-      res.status(413).json({ message: `El archivo supera el limite de ${env.maxUploadMb}MB.`, correlationId });
+      res.status(413).json({ message: `El archivo supera el limite de ${MAX_UPLOAD_MB}MB.`, correlationId });
       return;
     }
 

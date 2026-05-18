@@ -4,6 +4,7 @@ import type { Request, Response } from 'express';
 import multer from 'multer';
 import { z } from 'zod';
 import { env } from '../config/env.js';
+import { MAX_UPLOAD_MB } from '../config/constants.js';
 import { pool } from '../db/pool.js';
 import {
   deleteCloudinaryAsset,
@@ -21,7 +22,7 @@ const router = Router();
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: env.maxUploadMb * 1024 * 1024,
+    fileSize: MAX_UPLOAD_MB * 1024 * 1024,
   },
   fileFilter: (_req: Request, file: Express.Multer.File, callback: (error: Error | null, acceptFile?: boolean) => void) => {
     if (!allowedUploadMimeTypeList.includes(file.mimetype)) {
@@ -34,8 +35,9 @@ const upload = multer({
 });
 
 const noDigitsText = z.string().trim().regex(/^[^\d]+$/, 'No debe contener números.');
-const digitsOnly = z.string().trim().regex(/^\d+$/, 'Solo se permiten números.');
-const lettersNumbersSpaces = z.string().trim().regex(/^[\p{L}\p{N}\s]+$/u, 'Solo se permiten letras, números y espacios.');
+const digitsOnly = z.string().trim().regex(/^[\d\s+-]+$/, 'Solo se permiten números y símbolos de teléfono (+, -).');
+const alphanumericId = z.string().trim().regex(/^[\w-]{4,40}$/, 'Formato de identificación inválido (alfanumérico, guiones o guiones bajos).');
+const lettersNumbersSpaces = z.string().trim().regex(/^[\p{L}\p{N}\s.\-&]+$/u, 'Solo se permiten letras, números, espacios y caracteres básicos de empresa.');
 
 const contactSchema = z.object({
   countryId: z.preprocess((value) => value === '' ? undefined : value, z.string().uuid().optional()),
@@ -44,8 +46,9 @@ const contactSchema = z.object({
   cargo: noDigitsText.min(2).max(160),
   email: z.string().trim().email().max(180),
   celular: digitsOnly.min(4).max(20),
-  empresa: lettersNumbersSpaces.min(2).max(180),
-  ruc: digitsOnly.min(4).max(30),
+  empresa: lettersNumbersSpaces.min(2).max(180).optional(),
+  ruc: alphanumericId.optional(),
+  tipoDoc: z.string().trim().min(1).max(50).optional(),
   servicio: z.string().trim().min(2).max(120),
   mensaje: z.string().trim().min(10).max(1200),
 });
@@ -54,18 +57,18 @@ const complaintSchema = z.object({
   nombres: z.string().trim().min(2).max(160),
   apellidos: z.string().trim().min(2).max(160),
   domicilio: z.string().trim().min(4).max(240),
-  tipoDoc: z.string().trim().min(1).max(30),
-  numeroDoc: z.string().trim().min(4).max(40),
+  tipoDoc: z.string().trim().min(1).max(50),
+  numeroDoc: alphanumericId,
   prefijoTelefono: z.string().trim().min(1).max(10).default('+51'),
-  telefono: z.string().trim().min(6).max(40),
+  telefono: digitsOnly.min(6).max(40),
   email: z.string().trim().email().max(180),
-  personType: z.string().trim().min(1).max(40),
-  goodType: z.string().trim().min(1).max(40),
+  personType: z.string().trim().min(1).max(50),
+  goodType: z.string().trim().min(1).max(50),
   montoCuantificable: z.string().trim().max(80).optional().default(''),
   descripcion: z.string().trim().min(2).max(240),
   nombreUnidad: z.string().trim().max(160).optional().default(''),
   opcionBien: z.string().trim().max(120).optional().default(''),
-  claimType: z.string().trim().min(1).max(40),
+  claimType: z.string().trim().min(1).max(50),
   tipoReclamo: z.string().trim().min(2).max(160),
   detalle: z.string().trim().min(10).max(3000),
   pedido: z.string().trim().min(5).max(2000),
@@ -223,7 +226,7 @@ router.post(
 
         if (country.tax_id_regex) {
           const taxRegex = new RegExp(country.tax_id_regex);
-          if (!taxRegex.test(body.ruc)) {
+          if (body.ruc && !taxRegex.test(body.ruc)) {
             throw new HttpError(400, `Formato inválido para ${country.tax_id_label ?? 'identificación fiscal'}.`);
           }
         }
@@ -492,7 +495,7 @@ router.post(
         tipo: body.claimType,
         motivo: body.tipoReclamo,
         adjunto: validatedFile?.originalName ?? 'Sin adjunto',
-      });
+      }, ['super_admin', 'support_agent', 'legal_reviewer']);
 
       res.status(201).json({ id: complaintId, code: result.rows[0].complaint_code, createdAt: result.rows[0].created_at });
     } catch (error: unknown) {

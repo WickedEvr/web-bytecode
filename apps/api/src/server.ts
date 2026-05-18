@@ -1,6 +1,7 @@
 import { app } from './app.js';
-import { env } from './config/env.js';
 
-app.listen(env.port, () => {
-  console.log(`Bytecode API listening on port ${env.port}`);
+const PORT = process.env.PORT || 4000;
+
+app.listen(PORT, () => {
+  console.log(`Bytecode API listening on port ${PORT}`);
 });

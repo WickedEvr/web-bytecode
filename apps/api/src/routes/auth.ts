@@ -5,6 +5,7 @@ import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { UAParser } from 'ua-parser-js';
 import { env } from '../config/env.js';
+import { COOKIE_NAME } from '../config/constants.js';
 import { pool } from '../db/pool.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { HttpError } from '../utils/httpError.js';
@@ -95,7 +96,7 @@ router.post(
     );
 
     // Secure Cookies
-    res.cookie(env.cookieName, plainToken, {
+    res.cookie(COOKIE_NAME, plainToken, {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
@@ -124,6 +125,21 @@ router.post(
     res.json({ admin: publicAdmin });
   }),
 );
+
+router.get('/csrf', (req: Request, res: Response) => {
+  let token = req.cookies?.bc_csrf;
+  if (!token) {
+    token = crypto.randomUUID();
+    res.cookie('bc_csrf', token, {
+      httpOnly: false,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 60 * 60 * 1000, // 1 Hour
+      path: '/',
+    });
+  }
+  return res.status(200).json({ csrfToken: token });
+});
 
 router.post('/logout', requireAdmin, asyncHandler(async (req: Request, res: Response) => {
   if (req.sessionId) {

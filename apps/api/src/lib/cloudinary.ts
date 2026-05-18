@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { v2 as cloudinary, type UploadApiResponse } from 'cloudinary';
 import { env } from '../config/env.js';
+import { CLOUDINARY_UPLOAD_FOLDER } from '../config/constants.js';
 
 export type CloudinaryResourceType = 'image' | 'raw';
 
@@ -57,7 +58,7 @@ export async function uploadComplaintEvidenceToCloudinary(input: {
 
     const stream = cloudinary.uploader.upload_stream(
       {
-        folder: env.cloudinary.uploadFolder,
+        folder: CLOUDINARY_UPLOAD_FOLDER,
         public_id: createPublicId(input.complaintCode),
         resource_type: resourceType,
         overwrite: false,
