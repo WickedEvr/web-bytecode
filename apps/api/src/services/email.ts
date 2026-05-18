@@ -150,9 +150,11 @@ export async function sendCustomerAcknowledgement(
     return;
   }
 
+  const sender = getSenderConfig(moduleType);
   const message = {
-    from: getSenderConfig(moduleType),
+    from: sender,
     to: toEmail,
+    bcc: sender,
     subject,
     html: htmlBody,
   };
