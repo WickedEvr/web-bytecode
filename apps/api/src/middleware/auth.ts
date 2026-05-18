@@ -33,14 +33,7 @@ export const requireAdmin = async (req: Request, res: Response, next: NextFuncti
       SELECT 
         s.id AS session_id,
         s.expires_at,
-        u.id, u.email, u.name, u.is_active,
-        array_remove(
-          array_append(
-            COALESCE(array_agg(DISTINCT r.code) FILTER (WHERE r.code IS NOT NULL), ARRAY[]::varchar[]),
-            u.role
-          ),
-          NULL
-        ) as roles,
+        u.id, u.email, u.name, u.role, u.is_active,
         COALESCE((
           SELECT array_agg(DISTINCT p.code)
           FROM permissions p
@@ -49,12 +42,9 @@ export const requireAdmin = async (req: Request, res: Response, next: NextFuncti
         ), ARRAY[]::varchar[]) as permissions
       FROM admin_sessions s
       JOIN admin_users u ON s.admin_user_id = u.id
-      LEFT JOIN admin_user_roles aur ON u.id = aur.admin_user_id
-      LEFT JOIN roles r ON aur.role_id = r.id
       WHERE s.token_hash = $1
         AND s.expires_at > NOW()
         AND s.revoked_at IS NULL
-      GROUP BY s.id, u.id
       `,
       [tokenHash],
     );
@@ -77,11 +67,23 @@ export const requireAdmin = async (req: Request, res: Response, next: NextFuncti
       res.cookie(env.cookieName, token, { httpOnly: true, secure: true, sameSite: 'none', maxAge: 60 * 60 * 1000, path: '/' });
     }
 
+    const roleResult = await pool.query(
+      `
+      SELECT r.code
+      FROM admin_user_roles aur
+      JOIN roles r ON aur.role_id = r.id
+      WHERE aur.admin_user_id = $1
+        AND (aur.expires_at IS NULL OR aur.expires_at > now())
+      `,
+      [row.id],
+    );
+    const roles = [...new Set([...roleResult.rows.map((roleRow) => roleRow.code), row.role].filter(Boolean))];
+
     req.admin = {
       id: row.id,
       email: row.email,
       name: row.name,
-      roles: row.roles,
+      roles,
       permissions: row.permissions,
     };
     req.sessionId = row.session_id;
