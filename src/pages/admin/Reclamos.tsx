@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Download, Mail, MessageSquareText, RefreshCw } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Download, Mail, MessageSquareText, RefreshCw, X } from 'lucide-react';
 import { apiRequest, apiUrl } from '../../lib/api';
 
 type ComplaintItem = {
@@ -26,6 +27,10 @@ const formatDate = (value?: string) =>
       }).format(new Date(value))
     : '';
 
+import AdminPanel from '../../components/admin/AdminPanel';
+
+// ... (skip to the component rendering)
+
 const Reclamos: React.FC = () => {
   const [complaints, setComplaints] = useState<ComplaintItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -35,6 +40,7 @@ const Reclamos: React.FC = () => {
   const [listLoading, setListLoading] = useState(false);
   const [error, setError] = useState('');
   const [statuses, setStatuses] = useState<{ value: string, label: string }[]>([]);
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
 
   const statusLabel = (statusCode: string) => statuses.find((item) => item.value === statusCode)?.label ?? statusCode;
 
@@ -68,6 +74,9 @@ const Reclamos: React.FC = () => {
       setDetail(result.item);
       setStatus(String(result.item.status ?? 'new'));
       setNotes(String(result.item.admin_notes ?? ''));
+      if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches) {
+        setMobileDetailOpen(true);
+      }
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'No se pudo cargar el detalle.');
     }
@@ -92,102 +101,180 @@ const Reclamos: React.FC = () => {
     }
   };
 
-  return (
-    <div className="flex flex-col gap-6 h-full min-h-[80vh]">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Reclamos</h1>
-        <button onClick={loadList} className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-sm font-bold transition hover:border-[#06CFD6]">
-          <RefreshCw className="h-4 w-4" /> Actualizar
-        </button>
-      </div>
+  const renderDetailContent = () => {
+    if (!detail) {
+      return (
+        <div className="flex min-h-[420px] flex-col items-center justify-center text-center text-white/30 p-8">
+          <MessageSquareText className="h-8 w-8 mb-4 opacity-50" />
+          <p className="text-sm">Selecciona un registro para ver el detalle.</p>
+        </div>
+      );
+    }
 
-      {error && <p className="rounded-xl bg-red-500/15 px-4 py-3 text-red-100">{error}</p>}
-
-      <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_420px] flex-1">
-        <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] flex flex-col">
-          <div className="border-b border-white/10 px-5 py-4 text-sm text-white/60">
-            {listLoading ? 'Cargando...' : `${complaints.length} registros`}
-          </div>
-          <div className="divide-y divide-white/10 overflow-y-auto flex-1">
-            {complaints.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => loadDetail(item.id)}
-                className={`grid w-full gap-2 px-5 py-4 text-left transition hover:bg-white/[0.06] md:grid-cols-[1fr_auto] ${selectedId === item.id ? 'bg-[#06CFD6]/10' : ''}`}
+    return (
+      <div className="flex flex-col">
+        <div className="p-6 lg:p-8 flex flex-col gap-8">
+          <div className="flex items-center justify-between pb-4 border-b border-white/5">
+            <h2 className="text-xl font-semibold text-white/90">Detalle del Reclamo</h2>
+            {detail.attachment_original_name && selectedId && (
+              <a
+                href={apiUrl(`/api/admin/complaints/${selectedId}/attachment`)}
+                className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-white/20"
               >
-                <div>
-                  <p className="font-bold">{item.code} · {item.nombres} {item.apellidos}</p>
-                  <p className="text-sm text-white/60">{item.tipo_reclamo}</p>
-                  <p className="mt-1 text-sm text-white/45">{formatDate(item.created_at)}</p>
-                </div>
-                <span className="h-fit rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-[#06CFD6] whitespace-nowrap">
-                  {statusLabel(item.status)}
-                </span>
-              </button>
-            ))}
-            {!listLoading && complaints.length === 0 && (
-              <div className="px-5 py-12 text-center text-white/50">No hay registros todavía.</div>
+                <Download className="h-3.5 w-3.5" /> Adjunto
+              </a>
             )}
+          </div>
+
+          <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+            {Object.entries(detail)
+              .filter(([key]) => !['admin_notes', 'status', 'attachment_path'].includes(key))
+              .map(([key, value]) => (
+                <div key={key} className={key === 'detalle' || key === 'pedido' ? 'sm:col-span-2' : ''}>
+                  <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1">{key.replace(/_/g, ' ')}</p>
+                  <p className="break-words text-sm text-white/80">
+                    {key === 'created_at' || key === 'updated_at'
+                      ? formatDate(String(value ?? ''))
+                      : String(value ?? '-')}
+                  </p>
+                </div>
+              ))}
+          </div>
+
+          <div className="pt-6 border-t border-white/5 flex flex-col gap-5">
+            <div>
+              <label className="mb-1.5 block text-[10px] uppercase tracking-wider text-white/40">Estado</label>
+              <select
+                value={status}
+                onChange={(event) => setStatus(event.target.value)}
+                className="w-full rounded-lg bg-white/5 border border-white/5 px-3 py-2.5 text-sm text-white/80 outline-none focus:border-white/20 transition-colors appearance-none"
+              >
+                {statuses.map((item) => (
+                  <option key={item.value} value={item.value} className="bg-[#121212]">{item.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-[10px] uppercase tracking-wider text-white/40">Notas Internas</label>
+              <textarea
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                rows={3}
+                placeholder="Observaciones..."
+                className="w-full resize-none rounded-lg bg-white/5 border border-white/5 px-3 py-2.5 text-sm text-white/80 outline-none focus:border-white/20 transition-colors custom-scrollbar"
+              />
+            </div>
           </div>
         </div>
 
-        <aside className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 flex flex-col">
-          {!detail ? (
-            <div className="flex h-full flex-col items-center justify-center text-center text-white/50">
-              <MessageSquareText className="mb-3 h-10 w-10 text-[#06CFD6]" />
-              Selecciona un registro para ver el detalle.
-            </div>
-          ) : (
-            <div className="flex flex-col h-full">
-              <div className="mb-5 flex items-center justify-between gap-3">
-                <h2 className="text-xl font-bold">Detalle</h2>
-                {detail.attachment_original_name && selectedId && (
-                  <a
-                    href={apiUrl(`/api/admin/complaints/${selectedId}/attachment`)}
-                    className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-sm font-bold text-[#040e1f]"
-                  >
-                    <Download className="h-4 w-4" /> Adjunto
-                  </a>
-                )}
-              </div>
+        <div className="p-6 border-t border-white/5 bg-[#0a0a0a]">
+          <div className="grid grid-cols-2 gap-4">
+            {detail.email ? (
+              <a href={`mailto:${detail.email}`} className="flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 py-2.5 text-sm font-medium transition hover:bg-white/10 text-white/80">
+                <Mail className="h-4 w-4" /> Responder
+              </a>
+            ) : (
+              <div />
+            )}
+            <button onClick={handleSave} className="flex items-center justify-center gap-2 rounded-lg bg-white text-black py-2.5 text-sm font-medium transition hover:bg-white/90">
+              Guardar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
-              <div className="mb-5 max-h-[46vh] space-y-3 overflow-y-auto pr-2 flex-1">
-                {Object.entries(detail)
-                  .filter(([key]) => !['admin_notes', 'status', 'attachment_path'].includes(key))
-                  .map(([key, value]) => (
-                    <div key={key} className="rounded-xl bg-black/20 p-3">
-                      <p className="text-xs uppercase tracking-wide text-[#06CFD6]">{key}</p>
-                      <p className="break-words text-sm text-white/85">{String(value ?? '-')}</p>
-                    </div>
-                  ))}
-              </div>
+  return (
+    <div className="flex flex-col gap-6 min-h-[calc(100vh-120px)] font-sansation">
+      <div className="flex items-center justify-between pb-4 border-b border-white/5">
+        <h1 className="text-2xl font-semibold tracking-wide text-white/90">Gestión de Reclamos</h1>
+        <button onClick={loadList} className="flex items-center gap-2 rounded-lg bg-white/5 border border-white/10 px-4 py-2 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white">
+          <RefreshCw className="h-4 w-4" /> <span>Actualizar</span>
+        </button>
+      </div>
 
-              <div>
-                <label className="mb-2 block text-sm font-bold text-white/70">Estado</label>
-                <select value={status} onChange={(event) => setStatus(event.target.value)} className="mb-4 w-full rounded-xl bg-white px-4 py-3 text-black outline-none">
-                  {statuses.map((item) => (
-                    <option key={item.value} value={item.value}>{item.label}</option>
-                  ))}
-                </select>
+      {error && (
+        <p className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-red-300 text-sm">
+          {error}
+        </p>
+      )}
 
-                <label className="mb-2 block text-sm font-bold text-white/70">Notas internas</label>
-                <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={4} className="mb-4 w-full resize-none rounded-xl bg-white px-4 py-3 text-black outline-none" />
+      <section className="grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">
+        
+        {/* Panel Izquierdo: Lista */}
+        <AdminPanel className="flex max-h-[calc(100vh-190px)] flex-col overflow-hidden lg:max-h-none">
+          <div className="border-b border-white/5 px-5 py-4 flex items-center justify-between bg-white/[0.01]">
+            <span className="text-xs font-semibold text-white/50 uppercase tracking-widest">Reclamos</span>
+            <span className="bg-white/5 text-white/70 text-[10px] px-2 py-0.5 rounded font-medium">{complaints.length}</span>
+          </div>
+          <div className="divide-y divide-white/5 overflow-y-auto flex-1 custom-scrollbar">
+            {listLoading ? (
+              <div className="px-5 py-10 text-center text-white/30 text-sm">Cargando...</div>
+            ) : complaints.length === 0 ? (
+              <div className="px-5 py-10 text-center text-white/30 text-sm">No hay registros.</div>
+            ) : (
+              complaints.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => loadDetail(item.id)}
+                  className={`w-full grid gap-2 px-5 py-4 text-left transition-colors duration-200 md:grid-cols-[1fr_auto] border-l-2 ${selectedId === item.id ? 'bg-white/5 border-white/40' : 'border-transparent hover:bg-white/[0.02]'}`}
+                >
+                  <div className="flex flex-col gap-0.5">
+                    <p className={`font-medium text-sm transition-colors ${selectedId === item.id ? 'text-white' : 'text-white/80'}`}>{item.code} · {item.nombres} {item.apellidos}</p>
+                    <p className="text-xs text-white/40">{item.tipo_reclamo}</p>
+                    <p className="text-[10px] text-white/30 mt-1">{formatDate(item.created_at)}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5 justify-start">
+                    <span className="h-fit rounded-md bg-white/5 px-2 py-0.5 text-[10px] text-white/60 whitespace-nowrap">
+                      {statusLabel(item.status)}
+                    </span>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </AdminPanel>
 
-                <div className="grid grid-cols-2 gap-3 pt-2">
-                  {detail.email && (
-                    <a href={`mailto:${detail.email}`} className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 py-3 font-bold transition hover:border-[#06CFD6]">
-                      <Mail className="h-4 w-4" /> Responder
-                    </a>
-                  )}
-                  <button onClick={handleSave} className="rounded-full bg-[#06CFD6] py-3 font-bold transition hover:bg-[#0CA3C6]">
-                    Guardar
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </aside>
+        {/* Panel Derecho: Detalle y Controles */}
+        <AdminPanel className="hidden flex-col overflow-hidden lg:flex">
+          {renderDetailContent()}
+        </AdminPanel>
       </section>
+
+      <AnimatePresence>
+        {mobileDetailOpen && detail && (
+          <motion.div
+            className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm lg:hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setMobileDetailOpen(false)}
+          >
+            <motion.div
+              className="max-h-[92vh] w-full overflow-y-auto rounded-2xl border border-white/10 bg-[#060c1d] shadow-2xl custom-scrollbar"
+              initial={{ y: 32, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 32, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-[#060c1d]/95 px-5 py-4 backdrop-blur">
+                <span className="text-xs font-semibold uppercase tracking-widest text-white/50">Detalle de reclamo</span>
+                <button
+                  type="button"
+                  onClick={() => setMobileDetailOpen(false)}
+                  className="rounded-lg border border-white/10 bg-white/5 p-2 text-white/70 transition hover:bg-white/10 hover:text-white"
+                  aria-label="Cerrar detalle"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              {renderDetailContent()}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

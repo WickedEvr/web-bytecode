@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, MessageSquareText, RefreshCw, UserCheck } from 'lucide-react';
+import { Mail, MessageSquareText, RefreshCw, UserCheck, X } from 'lucide-react';
 import { apiRequest } from '../../lib/api';
 
 type ContactItem = {
@@ -35,7 +35,6 @@ type AssignmentHistoryItem = {
 type DetailItem = Record<string, string | number | null | undefined>;
 
 const detailFields: Array<{ key: string; label: string }> = [
-  { key: 'case_code', label: 'Código' },
   { key: 'nombre', label: 'Nombre' },
   { key: 'apellido', label: 'Apellido' },
   { key: 'cargo', label: 'Cargo' },
@@ -54,6 +53,15 @@ const formatDate = (value?: string) =>
     ? new Intl.DateTimeFormat('es-PE', {
         dateStyle: 'medium',
         timeStyle: 'short',
+      }).format(new Date(value))
+    : '';
+
+const formatShortDate = (value?: string) =>
+  value
+    ? new Intl.DateTimeFormat('es-PE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: '2-digit',
       }).format(new Date(value))
     : '';
 
@@ -78,7 +86,6 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChang
 
   return (
     <div className="relative w-full" ref={dropdownRef}>
-      {/* Hidden input for native HTML5 validation */}
       <input
         type="text"
         value={value}
@@ -90,12 +97,12 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChang
       />
       <div 
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center justify-between w-full bg-white rounded-xl px-4 py-3 cursor-pointer shadow-sm transition-all ${isOpen ? 'ring-2 ring-[#06CFD6]' : 'lg:hover:bg-gray-50'}`}
+        className={`flex items-center justify-between w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 cursor-pointer shadow-sm transition-all backdrop-blur-sm ${isOpen ? 'border-[#06CFD6] ring-1 ring-[#06CFD6]' : 'hover:bg-white/10'}`}
       >
-        <span className={`text-[14px] ${value ? 'text-[#333]' : 'text-gray-400'}`}>
+        <span className={`text-[14px] ${value ? 'text-white' : 'text-white/40'}`}>
           {selectedLabel}
         </span>
-        <svg className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className={`w-4 h-4 text-white/50 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </div>
@@ -103,14 +110,14 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChang
         {isOpen && (
           <motion.div
             initial={{ opacity: 0, y: -10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.95 }} transition={{ duration: 0.2 }}
-            className="absolute top-full left-0 mt-2 w-full bg-white border border-gray-100 shadow-xl rounded-xl overflow-hidden z-[100]"
+            className="absolute top-full left-0 mt-2 w-full bg-[#060c1d] border border-white/10 shadow-2xl rounded-xl overflow-hidden z-[100] backdrop-blur-xl"
           >
             <div className="py-2 max-h-[200px] overflow-y-auto custom-scrollbar">
               {options.map((option) => (
                 <div
                   key={option.value}
                   onClick={() => { onChange(option.value); setIsOpen(false); }}
-                  className={`px-4 py-2 cursor-pointer transition-colors ${value === option.value ? 'bg-[#06CFD6]/15 text-[#06CFD6] font-bold' : 'text-gray-600 lg:hover:bg-gray-200 lg:hover:text-gray-900'}`}
+                  className={`px-4 py-2 cursor-pointer transition-colors ${value === option.value ? 'bg-[#06CFD6]/20 text-[#06CFD6] font-bold' : 'text-white/70 hover:bg-white/10 hover:text-white'}`}
                 >
                   <span className="text-[14px]">{option.label}</span>
                 </div>
@@ -122,6 +129,10 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChang
     </div>
   );
 };
+
+import AdminPanel from '../../components/admin/AdminPanel';
+
+// ... (skip to the component rendering)
 
 const Contactos: React.FC = () => {
   const [contacts, setContacts] = useState<ContactItem[]>([]);
@@ -136,6 +147,7 @@ const Contactos: React.FC = () => {
   const [adminsList, setAdminsList] = useState<{ value: string, label: string }[]>([]);
   const [history, setHistory] = useState<AssignmentHistoryItem[]>([]);
   const [isAssigning, setIsAssigning] = useState(false);
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
 
   const statusLabel = (statusCode: string) => statuses.find((item) => item.value === statusCode)?.label ?? statusCode;
 
@@ -175,6 +187,9 @@ const Contactos: React.FC = () => {
       
       const histResult = await apiRequest<{ items: AssignmentHistoryItem[] }>(`/api/admin/contacts/${id}/history`);
       setHistory(histResult.items);
+      if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches) {
+        setMobileDetailOpen(true);
+      }
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'No se pudo cargar el detalle.');
     }
@@ -199,6 +214,140 @@ const Contactos: React.FC = () => {
     }
   };
 
+  const renderDetailContent = () => {
+    if (!detail) {
+      return (
+        <div className="flex min-h-[420px] flex-col items-center justify-center text-center text-white/30 p-8">
+          <MessageSquareText className="h-8 w-8 mb-4 opacity-50" />
+          <p className="text-sm">Selecciona un registro para ver el detalle.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col">
+        <div className="p-6 lg:p-8 flex flex-col gap-8">
+          <div className="flex items-center justify-between pb-4 border-b border-white/5">
+            <h2 className="text-xl font-semibold text-white/90">Detalle del Contacto</h2>
+            {detail.case_code && (
+              <span className="text-sm font-mono text-white/50">
+                #{String(detail.case_code)}
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+            {detailFields.map(({ key, label }) => (
+              <div key={key} className={key === 'message' ? 'sm:col-span-2' : ''}>
+                <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1">{label}</p>
+                <p className="break-words text-sm text-white/80">
+                  {key === 'created_at' || key === 'updated_at'
+                    ? formatDate(String(detail[key] ?? ''))
+                    : String(detail[key] ?? '-')}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {history.length > 0 && (
+            <div className="pt-6 border-t border-white/5">
+              <h3 className="text-[10px] uppercase tracking-wider text-white/40 mb-8">Historial de Asignaciones</h3>
+              <div className="flex flex-wrap items-center gap-y-12">
+                {history.map((item, index) => {
+                  const isEven = index % 2 === 0;
+                  return (
+                    <React.Fragment key={item.id}>
+                      <div className="relative z-10 group">
+                        <div className="w-8 h-8 rounded-full border border-white/10 bg-white/5 flex items-center justify-center text-white/50 cursor-pointer transition-colors hover:bg-white/10 hover:text-white relative z-20">
+                          <UserCheck className="w-3.5 h-3.5" />
+                        </div>
+                        <div className={`absolute left-1/2 -translate-x-1/2 w-max text-center pointer-events-none ${isEven ? 'top-full mt-2' : 'bottom-full mb-2'}`}>
+                          <span className="text-[9px] text-white/30 font-mono block whitespace-nowrap">
+                            {formatShortDate(item.assigned_at)}
+                          </span>
+                        </div>
+                        <div className={`absolute left-1/2 -translate-x-1/2 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 bg-[#121212] border border-white/10 rounded-lg p-3 shadow-xl z-50 pointer-events-none ${isEven ? 'bottom-full mb-3' : 'top-full mt-3'}`}>
+                          <div className="text-[10px] text-white/40 mb-1">{formatDate(item.assigned_at)}</div>
+                          <div className="text-xs text-white/80">
+                            A <span className="text-white font-medium">{item.assigned_to_name}</span><br />
+                            <span className="text-[10px] text-white/40">por {item.assigned_by_name || 'Sistema'}</span>
+                          </div>
+                          {item.notes && (
+                            <div className="mt-2 text-[10px] text-white/50 border-l border-white/20 pl-2">
+                              "{item.notes}"
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {index < history.length - 1 && (
+                        <div className="w-6 h-px bg-white/10 mx-1"></div>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="pt-6 border-t border-white/5 flex flex-col gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label className="mb-1.5 block text-[10px] uppercase tracking-wider text-white/40">Agente</label>
+                {isAssigning ? (
+                  <div className="w-full rounded-lg bg-white/5 border border-white/5 px-3 py-2.5 text-sm text-white/40 text-center animate-pulse">Asignando...</div>
+                ) : (
+                  <CustomDropdown
+                    value={String(detail.assigned_to ?? '')}
+                    placeholder="Seleccionar..."
+                    onChange={handleAssignCase}
+                    options={adminsList}
+                  />
+                )}
+              </div>
+              <div>
+                <label className="mb-1.5 block text-[10px] uppercase tracking-wider text-white/40">Estado</label>
+                <select
+                  value={status}
+                  onChange={(event) => setStatus(event.target.value)}
+                  className="w-full rounded-lg bg-white/5 border border-white/5 px-3 py-2.5 text-sm text-white/80 outline-none focus:border-white/20 transition-colors appearance-none"
+                >
+                  {statuses.map((item) => (
+                    <option key={item.value} value={item.value} className="bg-[#121212]">{item.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-[10px] uppercase tracking-wider text-white/40">Notas</label>
+              <textarea
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                rows={2}
+                placeholder="Observaciones..."
+                className="w-full resize-none rounded-lg bg-white/5 border border-white/5 px-3 py-2.5 text-sm text-white/80 outline-none focus:border-white/20 transition-colors custom-scrollbar"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 border-t border-white/5 bg-[#0a0a0a]">
+          <div className="grid grid-cols-2 gap-4">
+            {detail.email ? (
+              <a href={`mailto:${detail.email}`} className="flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 py-2.5 text-sm font-medium transition hover:bg-white/10 text-white/80">
+                <Mail className="h-4 w-4" /> Responder
+              </a>
+            ) : (
+              <div />
+            )}
+            <button onClick={handleSave} className="flex items-center justify-center gap-2 rounded-lg bg-white text-black py-2.5 text-sm font-medium transition hover:bg-white/90">
+              Guardar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const handleAssignCase = async (adminId: string) => {
     if (!selectedId) return;
     setIsAssigning(true);
@@ -219,147 +368,99 @@ const Contactos: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6 h-full min-h-[80vh]">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Contactos</h1>
-        <button onClick={loadList} className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-sm font-bold transition hover:border-[#06CFD6]">
-          <RefreshCw className="h-4 w-4" /> Actualizar
+    <div className="flex flex-col gap-6 min-h-[calc(100vh-120px)] font-sansation">
+      <div className="flex items-center justify-between pb-4 border-b border-white/5">
+        <h1 className="text-2xl font-semibold tracking-wide text-white/90">Gestión de Contactos</h1>
+        <button onClick={loadList} className="flex items-center gap-2 rounded-lg bg-white/5 border border-white/10 px-4 py-2 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white">
+          <RefreshCw className="h-4 w-4" /> <span>Actualizar</span>
         </button>
       </div>
 
-      {error && <p className="rounded-xl bg-red-500/15 px-4 py-3 text-red-100">{error}</p>}
+      {error && (
+        <p className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-red-300 text-sm">
+          {error}
+        </p>
+      )}
 
-      <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_420px] flex-1">
-        <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] flex flex-col">
-          <div className="border-b border-white/10 px-5 py-4 text-sm text-white/60">
-            {listLoading ? 'Cargando...' : `${contacts.length} registros`}
+      <section className="grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">
+        
+        {/* Panel Izquierdo: Lista de Contactos */}
+        <AdminPanel className="flex max-h-[calc(100vh-190px)] flex-col overflow-hidden lg:max-h-none">
+          <div className="border-b border-white/5 px-5 py-4 flex items-center justify-between bg-white/[0.01]">
+            <span className="text-xs font-semibold text-white/50 uppercase tracking-widest">Bandeja</span>
+            <span className="bg-white/5 text-white/70 text-[10px] px-2 py-0.5 rounded font-medium">{contacts.length}</span>
           </div>
-          <div className="divide-y divide-white/10 overflow-y-auto flex-1">
-            {contacts.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => loadDetail(item.id)}
-                className={`grid w-full gap-2 px-5 py-4 text-left transition hover:bg-white/[0.06] md:grid-cols-[1fr_auto] ${selectedId === item.id ? 'bg-[#06CFD6]/10' : ''}`}
-              >
-                <div>
-                  <p className="font-bold">{formatFullName(item)}</p>
-                  <p className="text-sm text-white/60">{item.empresa}</p>
-                  <p className="mt-1 text-sm text-white/45">{formatDate(item.created_at)}</p>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  <span className="h-fit rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-[#06CFD6] whitespace-nowrap">
-                    {statusLabel(item.status)}
-                  </span>
-                  {item.assigned_to && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#06CFD6]/20 px-2 py-0.5 text-[10px] font-semibold text-[#06CFD6]">
-                      <UserCheck className="h-3 w-3" /> Asignado
+          <div className="divide-y divide-white/5 overflow-y-auto flex-1 custom-scrollbar">
+            {listLoading ? (
+              <div className="px-5 py-10 text-center text-white/30 text-sm">Cargando...</div>
+            ) : contacts.length === 0 ? (
+              <div className="px-5 py-10 text-center text-white/30 text-sm">No hay registros.</div>
+            ) : (
+              contacts.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => loadDetail(item.id)}
+                  className={`w-full grid gap-2 px-5 py-4 text-left transition-colors duration-200 md:grid-cols-[1fr_auto] border-l-2 ${selectedId === item.id ? 'bg-white/5 border-white/40' : 'border-transparent hover:bg-white/[0.02]'}`}
+                >
+                  <div className="flex flex-col gap-0.5">
+                    <p className={`font-medium text-base transition-colors ${selectedId === item.id ? 'text-white' : 'text-white/80'}`}>{formatFullName(item)}</p>
+                    <p className="text-xs text-white/40">{item.empresa}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5 justify-start">
+                    <span className="h-fit rounded-md bg-white/5 px-2 py-0.5 text-[10px] text-white/60 whitespace-nowrap">
+                      {statusLabel(item.status)}
                     </span>
-                  )}
-                </div>
-              </button>
-            ))}
-            {!listLoading && contacts.length === 0 && (
-              <div className="px-5 py-12 text-center text-white/50">No hay registros todavía.</div>
+                    {item.assigned_to && (
+                      <span className="inline-flex items-center gap-1 text-[10px] text-[#06CFD6]/70">
+                        <UserCheck className="h-3 w-3" />
+                      </span>
+                    )}
+                  </div>
+                </button>
+              ))
             )}
           </div>
-        </div>
+        </AdminPanel>
 
-        <aside className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 flex flex-col">
-          {!detail ? (
-            <div className="flex h-full flex-col items-center justify-center text-center text-white/50">
-              <MessageSquareText className="mb-3 h-10 w-10 text-[#06CFD6]" />
-              Selecciona un registro para ver el detalle.
-            </div>
-          ) : (
-            <div className="flex flex-col h-full">
-              <h2 className="text-xl font-bold mb-5">Detalle</h2>
-              <div className="mb-5 max-h-[46vh] space-y-3 overflow-y-auto pr-2 flex-1 custom-scrollbar">
-                {detailFields.map(({ key, label }) => (
-                  <div key={key} className="rounded-xl bg-black/20 p-3">
-                    <p className="text-xs uppercase tracking-wide text-[#06CFD6]">{label}</p>
-                    <p className="break-words text-sm text-white/85">
-                      {key === 'created_at' || key === 'updated_at'
-                        ? formatDate(String(detail[key] ?? ''))
-                        : String(detail[key] ?? '-')}
-                    </p>
-                  </div>
-                ))}
-
-                {history.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-white/10">
-                    <h3 className="text-sm font-bold text-white/70 mb-3">Historial de Asignaciones</h3>
-                    <div className="space-y-4 relative before:absolute before:inset-0 before:ml-2 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-white/10 before:to-transparent">
-                      {history.map((item, index) => (
-                        <motion.div 
-                          key={item.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active"
-                        >
-                          <div className="flex items-center justify-center w-5 h-5 rounded-full border border-white/20 bg-[#06CFD6]/20 text-[#06CFD6] shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow">
-                            <UserCheck className="w-3 h-3" />
-                          </div>
-                          <div className="w-[calc(100%-2rem)] md:w-[calc(50%-1.5rem)] p-3 rounded-xl border border-white/10 bg-black/20 shadow">
-                            <div className="flex items-center justify-between mb-1">
-                              <div className="text-xs text-white/50">{formatDate(item.assigned_at)}</div>
-                            </div>
-                            <div className="text-sm text-white/85">
-                              Asignado a <span className="font-bold text-white">{item.assigned_to_name}</span> por <span className="text-white/70">{item.assigned_by_name || 'Sistema'}</span>
-                            </div>
-                            {item.notes && (
-                              <blockquote className="mt-2 text-xs italic text-white/60 border-l-2 border-[#06CFD6]/50 pl-2">
-                                "{item.notes}"
-                              </blockquote>
-                            )}
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-bold text-white/70">Asignado a:</label>
-                <div className="mb-4">
-                  {isAssigning ? (
-                    <div className="w-full rounded-xl bg-white/5 px-4 py-3 text-sm text-white/60 text-center animate-pulse">Asignando...</div>
-                  ) : (
-                    <CustomDropdown 
-                      value={String(detail.assigned_to ?? '')} 
-                      placeholder="Seleccionar agente..." 
-                      onChange={handleAssignCase} 
-                      options={adminsList} 
-                    />
-                  )}
-                </div>
-
-                <label className="mb-2 block text-sm font-bold text-white/70">Estado</label>
-                <select value={status} onChange={(event) => setStatus(event.target.value)} className="mb-4 w-full rounded-xl bg-white px-4 py-3 text-black outline-none">
-                  {statuses.map((item) => (
-                    <option key={item.value} value={item.value}>{item.label}</option>
-                  ))}
-                </select>
-
-                <label className="mb-2 block text-sm font-bold text-white/70">Notas internas</label>
-                <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={4} className="mb-4 w-full resize-none rounded-xl bg-white px-4 py-3 text-black outline-none custom-scrollbar" />
-
-                <div className="grid grid-cols-2 gap-3 pt-2">
-                  {detail.email && (
-                    <a href={`mailto:${detail.email}`} className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 py-3 font-bold transition hover:border-[#06CFD6]">
-                      <Mail className="h-4 w-4" /> Responder
-                    </a>
-                  )}
-                  <button onClick={handleSave} className="rounded-full bg-[#06CFD6] py-3 font-bold transition hover:bg-[#0CA3C6]">
-                    Guardar
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </aside>
+        {/* Panel Derecho: Detalle y Controles */}
+        <AdminPanel className="hidden flex-col overflow-hidden lg:flex">
+          {renderDetailContent()}
+        </AdminPanel>
       </section>
+
+      <AnimatePresence>
+        {mobileDetailOpen && detail && (
+          <motion.div
+            className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm lg:hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setMobileDetailOpen(false)}
+          >
+            <motion.div
+              className="max-h-[92vh] w-full overflow-y-auto rounded-2xl border border-white/10 bg-[#060c1d] shadow-2xl custom-scrollbar"
+              initial={{ y: 32, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 32, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-[#060c1d]/95 px-5 py-4 backdrop-blur">
+                <span className="text-xs font-semibold uppercase tracking-widest text-white/50">Detalle de contacto</span>
+                <button
+                  type="button"
+                  onClick={() => setMobileDetailOpen(false)}
+                  className="rounded-lg border border-white/10 bg-white/5 p-2 text-white/70 transition hover:bg-white/10 hover:text-white"
+                  aria-label="Cerrar detalle"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              {renderDetailContent()}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
