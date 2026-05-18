@@ -4,6 +4,7 @@ import type { Request, Response } from 'express';
 import multer from 'multer';
 import { z } from 'zod';
 import { env } from '../config/env.js';
+import { MAX_UPLOAD_MB } from '../config/constants.js';
 import { pool } from '../db/pool.js';
 import {
   deleteCloudinaryAsset,
@@ -21,7 +22,7 @@ const router = Router();
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: env.maxUploadMb * 1024 * 1024,
+    fileSize: MAX_UPLOAD_MB * 1024 * 1024,
   },
   fileFilter: (_req: Request, file: Express.Multer.File, callback: (error: Error | null, acceptFile?: boolean) => void) => {
     if (!allowedUploadMimeTypeList.includes(file.mimetype)) {
@@ -443,7 +444,7 @@ router.post(
         tipo: body.claimType,
         motivo: body.tipoReclamo,
         adjunto: validatedFile?.originalName ?? 'Sin adjunto',
-      });
+      }, ['super_admin', 'support_agent', 'legal_reviewer']);
 
       res.status(201).json({ id: complaintId, code: result.rows[0].complaint_code, createdAt: result.rows[0].created_at });
     } catch (error: unknown) {

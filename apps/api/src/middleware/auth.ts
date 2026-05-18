@@ -3,17 +3,18 @@ import type { NextFunction, Request, Response } from 'express';
 import { env } from '../config/env.js';
 import { pool } from '../db/pool.js';
 import { HttpError } from '../utils/httpError.js';
+import { COOKIE_NAME, COOKIE_SAME_SITE } from '../config/constants.js';
 
 export const clearAdminCookie = (res: Response) => {
-  res.clearCookie(env.cookieName, {
+  res.clearCookie(COOKIE_NAME, {
     httpOnly: true,
-    sameSite: env.cookieSameSite,
+    sameSite: COOKIE_SAME_SITE,
     secure: env.isProduction,
     path: '/',
   });
   res.clearCookie('bc_csrf', {
     httpOnly: false,
-    sameSite: env.cookieSameSite,
+    sameSite: COOKIE_SAME_SITE,
     secure: env.isProduction,
     path: '/',
   });
@@ -21,7 +22,7 @@ export const clearAdminCookie = (res: Response) => {
 
 export const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const token = req.cookies?.[env.cookieName];
+    const token = req.cookies?.[COOKIE_NAME];
     if (!token) {
       throw new HttpError(401, 'No autenticado.');
     }
@@ -68,7 +69,7 @@ export const requireAdmin = async (req: Request, res: Response, next: NextFuncti
     const timeRemaining = new Date(row.expires_at).getTime() - Date.now();
     if (timeRemaining < (45 * 60 * 1000)) {
       pool.query(`UPDATE admin_sessions SET expires_at = NOW() + INTERVAL '1 hour' WHERE id = $1`, [row.session_id]).catch(console.error);
-      res.cookie(env.cookieName, token, { httpOnly: true, secure: true, sameSite: 'none', maxAge: 60 * 60 * 1000, path: '/' });
+      res.cookie(COOKIE_NAME, token, { httpOnly: true, secure: true, sameSite: 'none', maxAge: 60 * 60 * 1000, path: '/' });
     }
 
     req.admin = {

@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileTypeFromBuffer } from 'file-type';
-import { env } from '../config/env.js';
+import { MAX_UPLOAD_MB } from '../config/constants.js';
 import { HttpError } from '../utils/httpError.js';
 
 const allowedUploadMimeTypes = new Set([
@@ -36,9 +36,9 @@ export async function validateUpload(file: Express.Multer.File): Promise<Validat
     throw new HttpError(400, 'Archivo no disponible.');
   }
 
-  const maxBytes = env.maxUploadMb * 1024 * 1024;
+  const maxBytes = MAX_UPLOAD_MB * 1024 * 1024;
   if (file.size > maxBytes) {
-    throw new HttpError(413, `El archivo supera el limite de ${env.maxUploadMb}MB.`);
+    throw new HttpError(413, `El archivo supera el limite de ${MAX_UPLOAD_MB}MB.`);
   }
 
   const originalName = sanitizeOriginalFileName(file.originalname);
