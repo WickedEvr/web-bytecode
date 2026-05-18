@@ -360,7 +360,7 @@ router.post(
         mensaje: body.mensaje,
       };
 
-      notifyAdmins('Nueva solicitud de contacto web', contactNotificationPayload, ['support_agent'], 'contact').catch(console.error);
+      notifyAdmins('Nueva solicitud de contacto web', contactNotificationPayload, ['support_agent', 'super_admin'], 'contact').catch(console.error);
       sendCustomerAcknowledgement(
         body.email,
         'Hemos recibido tu mensaje - Bytecode',
