@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiRequest } from '../../lib/api';
 import { Monitor, Smartphone, Tablet, Trash2, ShieldCheck, Clock } from 'lucide-react';
+import AdminPanel from '../../components/admin/AdminPanel';
 
 interface Session {
   id: string;
@@ -84,26 +85,24 @@ const AdminSeguridad: React.FC = () => {
   }
 
   return (
-    <div className="p-8 text-white max-w-auto w-full">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 gap-4 sm:gap-0">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <ShieldCheck className="w-8 h-8 text-[#06CFD6]" />
-            Dispositivos Activos
-          </h1>
-          <p className="text-white/60 mt-2 text-lg">
-            Gestiona las sesiones activas y los dispositivos que tienen acceso a tu cuenta.
-          </p>
+    <div className="flex flex-col gap-6 font-sansation">
+      <div className="flex items-center justify-between pb-4 border-b border-white/5">
+        <div className="flex items-center gap-3">
+          <ShieldCheck className="h-6 w-6 text-white/50" />
+          <div>
+            <h1 className="text-2xl font-semibold tracking-wide text-white/90">Seguridad</h1>
+            <p className="text-white/40 text-xs mt-1 uppercase tracking-widest">Dispositivos y sesiones activas</p>
+          </div>
         </div>
         <button
           onClick={() => fetchSessions(true)}
           disabled={isRefreshing}
-          className="flex items-center justify-center gap-2 text-sm text-white/70 hover:text-white transition-colors disabled:opacity-50 border border-white/10 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10"
+          className="flex items-center gap-2 rounded-lg bg-white/5 border border-white/10 px-4 py-2 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50"
         >
-          <svg className={`w-5 h-5 ${isRefreshing ? 'animate-spin text-[#06CFD6]' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          Refrescar
+          <span>Actualizar</span>
         </button>
       </div>
 
@@ -112,44 +111,42 @@ const AdminSeguridad: React.FC = () => {
           {sessions.map((session) => (
             <motion.div
               key={session.id}
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9, x: -20 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ duration: 0.2 }}
-              className={`bg-white/5 border rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between ${
-                session.isCurrentSession ? 'border-[#06CFD6]/50 shadow-[0_0_20px_rgba(6,207,214,0.15)] bg-[#06CFD6]/5' : 'border-white/10'
-              }`}
             >
+              <AdminPanel className="p-6 relative overflow-hidden flex flex-col justify-between h-full">
               <div>
-                <div className="flex items-start gap-4">
-                  <div className="p-4 bg-white/10 rounded-xl shrink-0 flex items-center justify-center">
+                <div className="flex items-start gap-5">
+                  <div className="p-3 bg-white/5 border border-white/5 rounded-lg shrink-0 flex items-center justify-center opacity-70">
                     {getDeviceIcon(session.deviceType)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
                       <div>
-                        <h3 className="text-xl font-semibold truncate">{session.osName} - {session.browserName}</h3>
-                        <p className="text-sm font-semibold text-blue-400 mt-1">{session.userName} ({session.userEmail})</p>
+                        <h3 className="text-base font-medium text-white/90 truncate">{session.osName} - {session.browserName}</h3>
+                        <p className="text-xs text-white/50 mt-0.5">{session.userName} ({session.userEmail})</p>
                       </div>
                       {session.isCurrentSession && (
-                        <span className="bg-[#06CFD6]/20 text-[#06CFD6] text-xs font-bold px-3 py-1.5 rounded-full border border-[#06CFD6]/30 shrink-0">
+                        <span className="bg-white/10 text-white/90 text-[10px] font-medium px-2 py-1 rounded border border-white/10 shrink-0">
                           Dispositivo Actual
                         </span>
                       )}
                     </div>
 
-                    <div className="mt-5 space-y-2.5 text-sm text-white/50">
+                    <div className="mt-5 space-y-2 text-xs text-white/40 font-mono">
                       <div className="flex items-center gap-2">
-                        <span className="w-16 font-medium text-white/70">IP:</span>
-                        <span className="text-white/90 bg-black/20 px-2 py-0.5 rounded">{session.ip_address}</span>
+                        <span className="w-12 text-white/30 uppercase">IP:</span>
+                        <span className="text-white/60">{session.ip_address}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-[#06CFD6]/70 shrink-0" />
-                        <span><span className="text-white/70">Iniciado:</span> {formatDate(session.created_at)}</span>
+                        <span className="w-12 text-white/30 uppercase">Login:</span>
+                        <span className="text-white/60">{formatDate(session.created_at)}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-red-400/70 shrink-0" />
-                        <span><span className="text-white/70">Expira:</span> {formatDate(session.expires_at)}</span>
+                        <span className="w-12 text-white/30 uppercase">Expira:</span>
+                        <span className="text-white/60">{formatDate(session.expires_at)}</span>
                       </div>
                     </div>
                   </div>
@@ -159,12 +156,13 @@ const AdminSeguridad: React.FC = () => {
               {!session.isCurrentSession && (
                 <button
                   onClick={() => handleRevoke(session.id)}
-                  className="mt-6 flex items-center justify-center sm:justify-start gap-2 text-red-400 hover:text-red-300 hover:bg-red-400/10 px-4 py-2.5 rounded-xl transition-colors font-medium text-sm self-start"
+                  className="mt-6 flex items-center justify-center sm:justify-start gap-2 text-red-400/80 hover:text-red-400 hover:bg-red-400/10 px-3 py-2 rounded-lg transition-colors font-medium text-xs self-start border border-transparent hover:border-red-400/20"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-3.5 h-3.5" />
                   Revocar Acceso
                 </button>
               )}
+              </AdminPanel>
             </motion.div>
           ))}
         </AnimatePresence>

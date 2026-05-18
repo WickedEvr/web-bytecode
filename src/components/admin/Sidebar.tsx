@@ -32,31 +32,30 @@ const Sidebar: React.FC<SidebarProps> = ({ admin, onClose }) => {
 });
 
   return (
-    <aside className="w-64 border-r border-white/10 bg-[#040e1f] flex flex-col h-full shadow-2xl lg:shadow-none">
-      <div className="p-6 flex items-center justify-between border-b border-white/10">
+    <aside className="w-64 border-r border-white/5 bg-[#0a0a0a] flex flex-col h-full shadow-2xl lg:shadow-none">
+      <div className="p-6 flex items-center justify-between border-b border-white/5">
         <div className="flex items-center gap-3">
-          <ShieldCheck className="h-8 w-8 text-[#06CFD6]" />
-          <h1 className="text-xl font-bold">Bytecode</h1>
+          <img src="/vectors/designs/logo_en_blanco.svg" alt="Bytecode Logo" className="h-8" />
         </div>
         {onClose && (
-          <button onClick={onClose} className="lg:hidden p-2 rounded-lg hover:bg-white/10">
+          <button onClick={onClose} className="lg:hidden p-2 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-colors">
             <X className="h-5 w-5" />
           </button>
         )}
       </div>
-      <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+      <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto custom-scrollbar">
         {visibleNavItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             onClick={onClose}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-xl transition font-bold ${
-                isActive ? 'bg-[#06CFD6] text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'
+              `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm ${
+                isActive ? 'bg-white/10 text-white font-medium' : 'text-white/50 hover:bg-white/5 hover:text-white/80'
               }`
             }
           >
-            <item.icon className="h-5 w-5" />
+            <item.icon className="h-4 w-4" />
             {item.label}
           </NavLink>
         ))}

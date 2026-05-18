@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { ShieldCheck } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiRequest } from '../../lib/api';
 
@@ -28,33 +27,39 @@ const Login: React.FC = () => {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#040e1f] px-6 font-sansation text-white">
-      <form onSubmit={handleLogin} className="w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.06] p-8 shadow-[0_0_40px_rgba(6,207,214,0.12)]">
-        <div className="mb-8 flex items-center gap-3">
-          <ShieldCheck className="h-8 w-8 text-[#06CFD6]" />
+    <main className="flex min-h-screen items-center justify-center bg-black px-6 font-sansation text-white/90">
+      <form onSubmit={handleLogin} className="w-full max-w-sm rounded-2xl border border-white/5 bg-[#0a0a0a] p-8 shadow-2xl">
+        <div className="mb-10 text-center">
+          <div className="flex justify-center mb-6">
+             <img src="/vectors/designs/logo_en_blanco.svg" alt="Bytecode" className="h-10 opacity-90" />
+          </div>
+          <h1 className="text-xl font-semibold tracking-wide">Panel Administrativo</h1>
+          <p className="text-xs text-white/40 mt-2 uppercase tracking-widest">Acceso Restringido</p>
+        </div>
+        <div className="flex flex-col gap-5">
           <div>
-            <h1 className="text-2xl font-bold">Panel Bytecode</h1>
-            <p className="text-sm text-white/60">Acceso solo para administradores.</p>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">Correo Electrónico</label>
+            <input
+              type="email"
+              value={credentials.email}
+              onChange={(event) => setCredentials((prev) => ({ ...prev, email: event.target.value }))}
+              className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-3 text-sm text-white/90 outline-none focus:border-white/30 transition-colors"
+              required
+            />
+          </div>
+          <div className="mb-2">
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">Contraseña</label>
+            <input
+              type="password"
+              value={credentials.password}
+              onChange={(event) => setCredentials((prev) => ({ ...prev, password: event.target.value }))}
+              className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-3 text-sm text-white/90 outline-none focus:border-white/30 transition-colors"
+              required
+            />
           </div>
         </div>
-        <label className="mb-2 block text-sm font-bold text-white/70">Correo</label>
-        <input
-          type="email"
-          value={credentials.email}
-          onChange={(event) => setCredentials((prev) => ({ ...prev, email: event.target.value }))}
-          className="mb-4 w-full rounded-full bg-white px-5 py-3 text-black outline-none focus:ring-2 focus:ring-[#06CFD6]"
-          required
-        />
-        <label className="mb-2 block text-sm font-bold text-white/70">Contraseña</label>
-        <input
-          type="password"
-          value={credentials.password}
-          onChange={(event) => setCredentials((prev) => ({ ...prev, password: event.target.value }))}
-          className="mb-6 w-full rounded-full bg-white px-5 py-3 text-black outline-none focus:ring-2 focus:ring-[#06CFD6]"
-          required
-        />
-        {error && <p className="mb-4 rounded-xl bg-red-500/15 px-4 py-3 text-sm text-red-200">{error}</p>}
-        <button disabled={loginLoading} className="w-full rounded-full bg-[#06CFD6] py-3 text-lg font-bold text-white transition hover:bg-[#0CA3C6] disabled:opacity-60">
+        {error && <p className="mb-4 mt-2 rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300">{error}</p>}
+        <button disabled={loginLoading} className="mt-8 w-full rounded-lg bg-white py-3 text-sm font-medium text-black transition-colors hover:bg-white/90 disabled:opacity-50">
           {loginLoading ? 'Ingresando...' : 'Ingresar'}
         </button>
       </form>
