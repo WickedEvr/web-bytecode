@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { Router } from 'express';
-import type { Request, Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import type { PoolClient } from 'pg';
 import multer from 'multer';
 import { z } from 'zod';
@@ -36,6 +36,15 @@ const upload = multer({
     callback(null, true);
   },
 });
+
+const optionalImageUpload = (req: Request, res: Response, next: NextFunction) => {
+  if (req.is('multipart/form-data')) {
+    upload.single('image')(req, res, next);
+    return;
+  }
+
+  next();
+};
 
 const listQuerySchema = z.object({
   status: z.string().optional(),
@@ -737,10 +746,55 @@ router.patch(
 
 // --- Portfolio Endpoints ---
 
+const normalizeWebsiteUrl = (value: unknown) => {
+  if (value === '' || value === null || value === undefined) return undefined;
+  if (typeof value !== 'string') return value;
+
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (/^www\./i.test(trimmed)) return `https://${trimmed}`;
+  return `https://www.${trimmed}`;
+};
+
 const optionalUrl = z.preprocess(
-  (value) => (value === '' || value === null ? undefined : value),
+  normalizeWebsiteUrl,
   z.string().url().max(255).optional(),
 );
+
+const parseBooleanField = (value: unknown) => {
+  if (typeof value !== 'string') return value;
+  if (value.toLowerCase() === 'true') return true;
+  if (value.toLowerCase() === 'false') return false;
+  return value;
+};
+
+const parseTechnologyIds = (value: unknown) => {
+  if (value === undefined || value === null || value === '') return [];
+  if (Array.isArray(value)) return value;
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      return value.split(',').map((item) => item.trim()).filter(Boolean);
+    }
+  }
+
+  return value;
+};
+
+const parseOptionalTechnologyIds = (value: unknown) => {
+  if (value === undefined) return undefined;
+  return parseTechnologyIds(value);
+};
+
+const portfolioBoolean = (defaultValue: boolean) =>
+  z.preprocess(parseBooleanField, z.boolean().default(defaultValue));
+
+const technologyIdsSchema = z.preprocess(parseTechnologyIds, z.array(z.string().uuid()));
+const optionalTechnologyIdsSchema = z.preprocess(parseOptionalTechnologyIds, z.array(z.string().uuid()).optional());
 
 const portfolioItemSchema = z.object({
   name: z.string().trim().min(2).max(180),
@@ -748,13 +802,13 @@ const portfolioItemSchema = z.object({
   description: z.string().trim().max(2000).optional().default(''),
   websiteUrl: optionalUrl,
   sortOrder: z.coerce.number().int().min(0).max(100000).default(0),
-  isFeatured: z.coerce.boolean().default(true),
-  isPublished: z.coerce.boolean().default(true),
-  technologyIds: z.array(z.string().uuid()).default([]),
+  isFeatured: portfolioBoolean(true),
+  isPublished: portfolioBoolean(true),
+  technologyIds: technologyIdsSchema,
 });
 
 const portfolioItemUpdateSchema = portfolioItemSchema.partial().extend({
-  technologyIds: z.array(z.string().uuid()).optional(),
+  technologyIds: optionalTechnologyIdsSchema,
 });
 
 const technologyCreateSchema = z.object({
@@ -898,13 +952,32 @@ router.post(
   '/portfolio',
   requireCsrf,
   requireRole(['admin', 'partner_designer']),
+  optionalImageUpload,
   asyncHandler(async (req: Request, res: Response) => {
     const body = portfolioItemSchema.parse(req.body);
+    const imageBody = portfolioImageSchema.parse(req.body);
+    const file = req.file;
+    const itemCode = createBusinessCode('PORT');
+    let validatedFile: Awaited<ReturnType<typeof validateUpload>> | null = null;
+    let cloudinaryAsset: CloudinaryStoredAsset | null = null;
     const client = await pool.connect();
 
     try {
+      if (file) {
+        validatedFile = await validateUpload(file);
+        if (!validatedFile.mimeType.startsWith('image/')) {
+          throw new HttpError(400, 'Solo se permiten imagenes para el portafolio.');
+        }
+
+        cloudinaryAsset = await uploadPortfolioImageToCloudinary({
+          buffer: file.buffer,
+          itemCode,
+          originalName: validatedFile.originalName,
+          mimeType: validatedFile.mimeType,
+        });
+      }
+
       await client.query('BEGIN');
-      const itemCode = createBusinessCode('PORT');
       const result = await client.query(
         `INSERT INTO portfolio_items (
           item_code, name, client_name, description, website_url, sort_order,
@@ -926,13 +999,47 @@ router.post(
       );
       const id = result.rows[0].id;
       await replacePortfolioTechnologies(client, id, body.technologyIds, req.admin?.id);
+
+      if (file && validatedFile && cloudinaryAsset) {
+        const fileResult = await client.query(
+          `INSERT INTO file_assets (
+            original_name, storage_provider, storage_key, public_url,
+            mime_type, byte_size, checksum_sha256, uploaded_by, created_by
+          )
+          VALUES ($1, 'cloudinary', $2, $3, $4, $5, $6, $7, $7)
+          RETURNING id`,
+          [
+            validatedFile.originalName,
+            cloudinaryAsset.publicId,
+            cloudinaryAsset.secureUrl,
+            validatedFile.mimeType,
+            cloudinaryAsset.bytes || file.size,
+            validatedFile.checksumSha256,
+            req.admin?.id ?? null,
+          ],
+        );
+
+        await client.query(
+          `INSERT INTO portfolio_item_assets (
+            portfolio_item_id, file_asset_id, asset_role, alt_text, sort_order, created_by
+          )
+          VALUES ($1, $2, 'cover', $3, 0, $4)`,
+          [id, fileResult.rows[0].id, imageBody.altText || body.name, req.admin?.id ?? null],
+        );
+      }
+
       await client.query('COMMIT');
       await audit(req.admin?.id, 'create', 'portfolio_item', id);
 
       const created = await pool.query(`${selectPortfolioItemsSql} AND pi.id = $1 ${portfolioGroupOrderSql}`, [id]);
       res.status(201).json({ item: created.rows[0] });
     } catch (error) {
-      await client.query('ROLLBACK');
+      await client.query('ROLLBACK').catch(() => undefined);
+      if (cloudinaryAsset) {
+        await deleteCloudinaryAsset(cloudinaryAsset.publicId, cloudinaryAsset.resourceType).catch((cleanupError: unknown) => {
+          console.error('Cloudinary cleanup failed after portfolio creation rollback:', cleanupError);
+        });
+      }
       throw error;
     } finally {
       client.release();
