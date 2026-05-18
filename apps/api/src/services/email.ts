@@ -82,8 +82,13 @@ export async function getAdminNotificationEmails(roles: string[]): Promise<strin
   return result.rows.map((row) => row.email);
 }
 
-// 2. ACTUALIZACIÓN: NOTIFICACIONES INTERNAS (Usa el alias 'system')
-export async function notifyAdmins(subject: string, payload: Record<string, unknown>, roles: string[] = ['super_admin', 'support_agent']) {
+// 2. ACTUALIZACIÓN: NOTIFICACIONES INTERNAS (Usa el alias del módulo)
+export async function notifyAdmins(
+  subject: string,
+  payload: Record<string, unknown>,
+  roles: string[] = ['super_admin', 'support_agent'],
+  moduleType: EmailModuleType = 'system',
+) {
   if (!transporter) {
     console.log(`Email skipped: ${subject}`);
     return;
@@ -96,7 +101,7 @@ export async function notifyAdmins(subject: string, payload: Record<string, unkn
   }
 
   const message = {
-    from: getSenderConfig('system'), // <-- Aquí aplicamos el remitente dinámico interno
+    from: getSenderConfig(moduleType),
     to,
     subject,
     html: `
@@ -134,14 +139,19 @@ export async function notifyAdmins(subject: string, payload: Record<string, unkn
 }
 
 // 3. NUEVA FUNCIÓN: NOTIFICACIONES A CLIENTES (Lista para usar los alias de Zoho)
-export async function notifyCustomer(toEmail: string, subject: string, htmlBody: string, moduleType: EmailModuleType) {
+export async function sendCustomerAcknowledgement(
+  toEmail: string,
+  subject: string,
+  htmlBody: string,
+  moduleType: EmailModuleType,
+) {
   if (!transporter) {
     console.log(`Customer email skipped: ${subject} to ${toEmail}`);
     return;
   }
 
   const message = {
-    from: getSenderConfig(moduleType), // <-- Aquí aplicamos el remitente dinámico según el contexto (Ej. 'complaint')
+    from: getSenderConfig(moduleType),
     to: toEmail,
     subject,
     html: htmlBody,
@@ -168,3 +178,5 @@ export async function notifyCustomer(toEmail: string, subject: string, htmlBody:
     message: lastError instanceof Error ? lastError.message : 'SMTP customer send failed.',
   }));
 }
+
+export const notifyCustomer = sendCustomerAcknowledgement;
