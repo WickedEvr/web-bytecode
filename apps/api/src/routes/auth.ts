@@ -53,7 +53,6 @@ router.post(
         FROM admin_user_roles aur
         JOIN roles r ON aur.role_id = r.id
         WHERE aur.admin_user_id = $1
-          AND (aur.expires_at IS NULL OR aur.expires_at > now())
         `,
         [admin.id],
       ),
@@ -64,7 +63,6 @@ router.post(
         JOIN role_permissions rp ON p.id = rp.permission_id
         JOIN admin_user_roles aur ON aur.role_id = rp.role_id
         WHERE aur.admin_user_id = $1
-          AND (aur.expires_at IS NULL OR aur.expires_at > now())
         `,
         [admin.id],
       ),

@@ -73,7 +73,6 @@ export const requireAdmin = async (req: Request, res: Response, next: NextFuncti
       FROM admin_user_roles aur
       JOIN roles r ON aur.role_id = r.id
       WHERE aur.admin_user_id = $1
-        AND (aur.expires_at IS NULL OR aur.expires_at > now())
       `,
       [row.id],
     );
