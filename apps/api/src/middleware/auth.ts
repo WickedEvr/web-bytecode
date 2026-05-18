@@ -35,7 +35,13 @@ export const requireAdmin = async (req: Request, res: Response, next: NextFuncti
         s.id AS session_id,
         s.expires_at,
         u.id, u.email, u.name, u.is_active,
-        COALESCE(array_agg(DISTINCT r.code) FILTER (WHERE r.code IS NOT NULL), ARRAY[]::varchar[]) as roles,
+        array_remove(
+          array_append(
+            COALESCE(array_agg(DISTINCT r.code) FILTER (WHERE r.code IS NOT NULL), ARRAY[]::varchar[]),
+            u.role
+          ),
+          NULL
+        ) as roles,
         COALESCE((
           SELECT array_agg(DISTINCT p.code)
           FROM permissions p
