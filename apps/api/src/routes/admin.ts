@@ -1,9 +1,17 @@
 import crypto from 'node:crypto';
 import { Router } from 'express';
 import type { Request, Response } from 'express';
+import type { PoolClient } from 'pg';
+import multer from 'multer';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { pool } from '../db/pool.js';
+import {
+  deleteCloudinaryAsset,
+  uploadPortfolioImageToCloudinary,
+  type CloudinaryStoredAsset,
+} from '../lib/cloudinary.js';
+import { allowedUploadMimeTypeList, validateUpload } from '../lib/validateUpload.js';
 import { requireAdmin, requireRole } from '../middleware/auth.js';
 import { requireCsrf } from '../middleware/csrf.js';
 import { audit } from '../services/audit.js';
@@ -13,6 +21,21 @@ import { HttpError } from '../utils/httpError.js';
 const router = Router();
 
 router.use(requireAdmin);
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 8 * 1024 * 1024,
+  },
+  fileFilter: (_req: Request, file: Express.Multer.File, callback: (error: Error | null, acceptFile?: boolean) => void) => {
+    if (!allowedUploadMimeTypeList.includes(file.mimetype)) {
+      callback(new HttpError(400, 'Tipo MIME no permitido.'));
+      return;
+    }
+
+    callback(null, true);
+  },
+});
 
 const listQuerySchema = z.object({
   status: z.string().optional(),
@@ -710,6 +733,390 @@ router.patch(
     await audit(req.admin?.id, 'update', 'cms_page', id);
     res.json({ item: result.rows[0] });
   })
+);
+
+// --- Portfolio Endpoints ---
+
+const optionalUrl = z.preprocess(
+  (value) => (value === '' || value === null ? undefined : value),
+  z.string().url().max(255).optional(),
+);
+
+const portfolioItemSchema = z.object({
+  name: z.string().trim().min(2).max(180),
+  clientName: z.string().trim().max(180).optional().default(''),
+  description: z.string().trim().max(2000).optional().default(''),
+  websiteUrl: optionalUrl,
+  sortOrder: z.coerce.number().int().min(0).max(100000).default(0),
+  isFeatured: z.coerce.boolean().default(true),
+  isPublished: z.coerce.boolean().default(true),
+  technologyIds: z.array(z.string().uuid()).default([]),
+});
+
+const portfolioItemUpdateSchema = portfolioItemSchema.partial().extend({
+  technologyIds: z.array(z.string().uuid()).optional(),
+});
+
+const technologyCreateSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  sortOrder: z.coerce.number().int().min(0).max(100000).default(0),
+});
+
+const portfolioImageSchema = z.object({
+  altText: z.string().trim().max(180).optional().default(''),
+});
+
+const normalizeTechnologyCode = (name: string) =>
+  name
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-+/g, '-');
+
+const selectPortfolioItemsSql = `
+  SELECT
+    pi.id,
+    pi.item_code,
+    pi.name,
+    pi.client_name,
+    pi.description,
+    pi.website_url,
+    pi.sort_order,
+    pi.is_featured,
+    pi.is_published,
+    pi.published_at,
+    pi.created_at,
+    pi.updated_at,
+    COALESCE(fa.public_url, fa.storage_key) AS image_url,
+    pia.alt_text,
+    COALESCE(
+      jsonb_agg(
+        jsonb_build_object('id', tc.id, 'name', tc.name)
+        ORDER BY pit.sort_order, tc.sort_order, tc.name
+      ) FILTER (WHERE tc.id IS NOT NULL),
+      '[]'::jsonb
+    ) AS technologies
+  FROM portfolio_items pi
+  LEFT JOIN portfolio_item_assets pia
+    ON pia.portfolio_item_id = pi.id
+    AND pia.asset_role = 'cover'
+    AND pia.is_active = true
+    AND pia.deleted_at IS NULL
+  LEFT JOIN file_assets fa
+    ON fa.id = pia.file_asset_id
+    AND fa.deleted_at IS NULL
+  LEFT JOIN portfolio_item_technologies pit
+    ON pit.portfolio_item_id = pi.id
+  LEFT JOIN technology_catalog tc
+    ON tc.id = pit.technology_id
+    AND tc.deleted_at IS NULL
+  WHERE pi.deleted_at IS NULL
+`;
+
+const portfolioGroupOrderSql = `
+  GROUP BY pi.id, fa.public_url, fa.storage_key, pia.alt_text
+  ORDER BY pi.sort_order ASC, pi.created_at DESC
+`;
+
+const replacePortfolioTechnologies = async (client: PoolClient, portfolioItemId: string, technologyIds: string[], adminId?: string) => {
+  await client.query('DELETE FROM portfolio_item_technologies WHERE portfolio_item_id = $1', [portfolioItemId]);
+
+  for (const [index, technologyId] of technologyIds.entries()) {
+    const technology = await client.query(
+      'SELECT id FROM technology_catalog WHERE id = $1 AND deleted_at IS NULL AND is_active = true',
+      [technologyId],
+    );
+
+    if (technology.rowCount === 0) {
+      throw new HttpError(400, 'Tecnologia invalida.');
+    }
+
+    await client.query(
+      `INSERT INTO portfolio_item_technologies (portfolio_item_id, technology_id, sort_order, created_by)
+       VALUES ($1, $2, $3, $4)`,
+      [portfolioItemId, technologyId, index, adminId ?? null],
+    );
+  }
+};
+
+router.get(
+  '/portfolio/technologies',
+  requireRole(['admin', 'partner_designer']),
+  asyncHandler(async (_req: Request, res: Response) => {
+    const result = await pool.query(
+      `SELECT id, code, name, sort_order, is_active, created_at, updated_at
+       FROM technology_catalog
+       WHERE deleted_at IS NULL
+       ORDER BY sort_order ASC, name ASC`,
+    );
+    res.json({ items: result.rows });
+  }),
+);
+
+router.post(
+  '/portfolio/technologies',
+  requireCsrf,
+  requireRole(['admin', 'partner_designer']),
+  asyncHandler(async (req: Request, res: Response) => {
+    const body = technologyCreateSchema.parse(req.body);
+    const code = normalizeTechnologyCode(body.name);
+
+    if (!code) throw new HttpError(400, 'Nombre de tecnologia invalido.');
+
+    const result = await pool.query(
+      `INSERT INTO technology_catalog (code, name, sort_order, created_by)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (code) DO UPDATE
+       SET name = EXCLUDED.name,
+           sort_order = EXCLUDED.sort_order,
+           is_active = true,
+           deleted_at = NULL,
+           updated_at = now(),
+           updated_by = EXCLUDED.created_by
+       RETURNING id, code, name, sort_order, is_active, created_at, updated_at`,
+      [code, body.name, body.sortOrder, req.admin?.id ?? null],
+    );
+
+    await audit(req.admin?.id, 'upsert', 'technology_catalog', result.rows[0].id);
+    res.status(201).json({ item: result.rows[0] });
+  }),
+);
+
+router.get(
+  '/portfolio',
+  requireRole(['admin', 'partner_designer']),
+  asyncHandler(async (_req: Request, res: Response) => {
+    const result = await pool.query(`${selectPortfolioItemsSql} ${portfolioGroupOrderSql}`);
+    res.json({ items: result.rows });
+  }),
+);
+
+router.post(
+  '/portfolio',
+  requireCsrf,
+  requireRole(['admin', 'partner_designer']),
+  asyncHandler(async (req: Request, res: Response) => {
+    const body = portfolioItemSchema.parse(req.body);
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+      const itemCode = createBusinessCode('PORT');
+      const result = await client.query(
+        `INSERT INTO portfolio_items (
+          item_code, name, client_name, description, website_url, sort_order,
+          is_featured, is_published, published_at, created_by
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CASE WHEN $8 THEN now() ELSE NULL END, $9)
+        RETURNING id`,
+        [
+          itemCode,
+          body.name,
+          body.clientName || null,
+          body.description || null,
+          body.websiteUrl ?? null,
+          body.sortOrder,
+          body.isFeatured,
+          body.isPublished,
+          req.admin?.id ?? null,
+        ],
+      );
+      const id = result.rows[0].id;
+      await replacePortfolioTechnologies(client, id, body.technologyIds, req.admin?.id);
+      await client.query('COMMIT');
+      await audit(req.admin?.id, 'create', 'portfolio_item', id);
+
+      const created = await pool.query(`${selectPortfolioItemsSql} AND pi.id = $1 ${portfolioGroupOrderSql}`, [id]);
+      res.status(201).json({ item: created.rows[0] });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }),
+);
+
+router.patch(
+  '/portfolio/:id',
+  requireCsrf,
+  requireRole(['admin', 'partner_designer']),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = String(req.params.id);
+    const body = portfolioItemUpdateSchema.parse(req.body);
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+      const result = await client.query(
+        `UPDATE portfolio_items
+         SET name = COALESCE($2, name),
+             client_name = COALESCE($3, client_name),
+             description = COALESCE($4, description),
+             website_url = COALESCE($5, website_url),
+             sort_order = COALESCE($6, sort_order),
+             is_featured = COALESCE($7, is_featured),
+             is_published = COALESCE($8, is_published),
+             published_at = CASE
+               WHEN $8::boolean = true AND published_at IS NULL THEN now()
+               WHEN $8::boolean = false THEN NULL
+               ELSE published_at
+             END,
+             updated_by = $9,
+             updated_at = now()
+         WHERE id = $1 AND deleted_at IS NULL
+         RETURNING id`,
+        [
+          id,
+          body.name ?? null,
+          body.clientName ?? null,
+          body.description ?? null,
+          body.websiteUrl ?? null,
+          body.sortOrder ?? null,
+          body.isFeatured ?? null,
+          body.isPublished ?? null,
+          req.admin?.id ?? null,
+        ],
+      );
+
+      if (result.rowCount === 0) throw new HttpError(404, 'Proyecto de portafolio no encontrado.');
+
+      if (body.technologyIds) {
+        await replacePortfolioTechnologies(client, id, body.technologyIds, req.admin?.id);
+      }
+
+      await client.query('COMMIT');
+      await audit(req.admin?.id, 'update', 'portfolio_item', id);
+
+      const updated = await pool.query(`${selectPortfolioItemsSql} AND pi.id = $1 ${portfolioGroupOrderSql}`, [id]);
+      res.json({ item: updated.rows[0] });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }),
+);
+
+router.delete(
+  '/portfolio/:id',
+  requireCsrf,
+  requireRole(['admin', 'partner_designer']),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = String(req.params.id);
+    const result = await pool.query(
+      `UPDATE portfolio_items
+       SET deleted_at = now(), updated_at = now(), updated_by = $2
+       WHERE id = $1 AND deleted_at IS NULL
+       RETURNING id`,
+      [id, req.admin?.id ?? null],
+    );
+
+    if (result.rowCount === 0) throw new HttpError(404, 'Proyecto de portafolio no encontrado.');
+    await audit(req.admin?.id, 'delete', 'portfolio_item', id);
+    res.json({ ok: true });
+  }),
+);
+
+router.post(
+  '/portfolio/:id/image',
+  requireCsrf,
+  requireRole(['admin', 'partner_designer']),
+  upload.single('image'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = String(req.params.id);
+    const body = portfolioImageSchema.parse(req.body);
+    const file = req.file;
+
+    if (!file) throw new HttpError(400, 'Imagen requerida.');
+
+    const itemResult = await pool.query(
+      'SELECT item_code, name FROM portfolio_items WHERE id = $1 AND deleted_at IS NULL',
+      [id],
+    );
+    if (itemResult.rowCount === 0) throw new HttpError(404, 'Proyecto de portafolio no encontrado.');
+
+    const validatedFile = await validateUpload(file);
+    if (!validatedFile.mimeType.startsWith('image/')) {
+      throw new HttpError(400, 'Solo se permiten imagenes para el portafolio.');
+    }
+
+    let cloudinaryAsset: CloudinaryStoredAsset | null = null;
+    const client = await pool.connect();
+
+    try {
+      cloudinaryAsset = await uploadPortfolioImageToCloudinary({
+        buffer: file.buffer,
+        itemCode: itemResult.rows[0].item_code,
+        originalName: validatedFile.originalName,
+        mimeType: validatedFile.mimeType,
+      });
+
+      await client.query('BEGIN');
+
+      const fileResult = await client.query(
+        `INSERT INTO file_assets (
+          original_name, storage_provider, storage_key, public_url,
+          mime_type, byte_size, checksum_sha256, uploaded_by, created_by
+        )
+        VALUES ($1, 'cloudinary', $2, $3, $4, $5, $6, $7, $7)
+        RETURNING id`,
+        [
+          validatedFile.originalName,
+          cloudinaryAsset.publicId,
+          cloudinaryAsset.secureUrl,
+          validatedFile.mimeType,
+          cloudinaryAsset.bytes || file.size,
+          validatedFile.checksumSha256,
+          req.admin?.id ?? null,
+        ],
+      );
+
+      await client.query(
+        `UPDATE portfolio_item_assets
+         SET is_active = false,
+             deleted_at = now(),
+             sort_order = COALESCE((
+               SELECT max(pia2.sort_order) + 1
+               FROM portfolio_item_assets pia2
+               WHERE pia2.portfolio_item_id = portfolio_item_assets.portfolio_item_id
+                 AND pia2.asset_role = portfolio_item_assets.asset_role
+             ), sort_order + 1),
+             updated_at = now(),
+             updated_by = $2
+         WHERE portfolio_item_id = $1 AND asset_role = 'cover' AND deleted_at IS NULL`,
+        [id, req.admin?.id ?? null],
+      );
+
+      await client.query(
+        `INSERT INTO portfolio_item_assets (
+          portfolio_item_id, file_asset_id, asset_role, alt_text, sort_order, created_by
+        )
+        VALUES ($1, $2, 'cover', $3, 0, $4)`,
+        [id, fileResult.rows[0].id, body.altText || itemResult.rows[0].name, req.admin?.id ?? null],
+      );
+
+      await client.query('COMMIT');
+      await audit(req.admin?.id, 'upload_image', 'portfolio_item', id);
+
+      const updated = await pool.query(`${selectPortfolioItemsSql} AND pi.id = $1 ${portfolioGroupOrderSql}`, [id]);
+      res.status(201).json({ item: updated.rows[0] });
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      if (cloudinaryAsset) {
+        await deleteCloudinaryAsset(cloudinaryAsset.publicId, cloudinaryAsset.resourceType).catch((cleanupError: unknown) => {
+          console.error('Cloudinary cleanup failed after portfolio image rollback:', cleanupError);
+        });
+      }
+      throw error;
+    } finally {
+      client.release();
+    }
+  }),
 );
 
 // --- Quotes Endpoints ---
