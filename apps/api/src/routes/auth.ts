@@ -27,7 +27,7 @@ router.post(
     const body = loginSchema.parse(req.body);
     const result = await pool.query(
       `
-      SELECT u.id, u.email, u.name, u.password_hash,
+      SELECT u.id, u.email, u.name, u.role, u.password_hash,
       COALESCE(array_agg(DISTINCT r.code) FILTER (WHERE r.code IS NOT NULL), ARRAY[]::varchar[]) as roles,
       COALESCE((
         SELECT array_agg(DISTINCT p.code)
@@ -102,7 +102,7 @@ router.post(
       id: admin.id,
       email: admin.email,
       name: admin.name,
-      roles: admin.roles,
+      roles: [...new Set([...(admin.roles ?? []), admin.role].filter(Boolean))],
       permissions: admin.permissions,
     };
 
