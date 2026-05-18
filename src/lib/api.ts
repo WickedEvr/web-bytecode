@@ -134,3 +134,46 @@ export const fetchDocumentTypes = async () => {
   });
   return response.items;
 };
+
+export interface PortfolioProjectData {
+  id: string;
+  name: string;
+  clientName?: string | null;
+  description?: string | null;
+  url?: string | null;
+  img?: string | null;
+  tags: string[];
+}
+
+export interface PortfolioTechnologyData {
+  id: string;
+  code: string;
+  name: string;
+  sort_order: number;
+  is_active: boolean;
+}
+
+export interface AdminPortfolioItemData {
+  id: string;
+  item_code: string;
+  name: string;
+  client_name: string | null;
+  description: string | null;
+  website_url: string | null;
+  sort_order: number;
+  is_featured: boolean;
+  is_published: boolean;
+  published_at: string | null;
+  image_url: string | null;
+  alt_text: string | null;
+  technologies: Array<{ id: string; name: string }>;
+  created_at: string;
+  updated_at: string;
+}
+
+export const fetchPortfolio = async () => {
+  const response = await apiRequest<{ items: PortfolioProjectData[] }>('/api/portfolio', {
+    method: 'GET',
+  });
+  return response.items;
+};

@@ -5,11 +5,12 @@ import Carousel from '../components/ui/carousel';
 import AltFooter from '../components/layout/AltFooter';
 import SpotlightText from '../components/typography/SpotlightText';
 import SEO from '../components/shared/SEO';
+import { fetchPortfolio } from '../lib/api';
 
 const AuroraBackground = lazy(() => import('../components/effects/AuroraBackground'));
 const Carousel3D = lazy(() => import('../components/sections/Carousel3D'));
 
-const projects: Project[] = [
+const fallbackProjects: Project[] = [
   { id: 1, name: 'Google 1', img: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=700&q=80', tags: ['React', 'TypeScript'] },
   { id: 2, name: 'Google 2', img: 'https://images.unsplash.com/photo-1551650975-87deedd944c3?w=700&q=80', tags: ['Next.js', 'GSAP'] },
   { id: 3, name: 'Google 3', img: 'https://images.unsplash.com/photo-1547658719-da2b51169166?w=700&q=80', tags: ['Vite', 'Tailwind'] },
@@ -18,6 +19,7 @@ const projects: Project[] = [
 
 const Portafolio: React.FC = () => {
   const [isDesktop, setIsDesktop] = useState(false);
+  const [projects, setProjects] = useState<Project[]>(fallbackProjects);
 
   useEffect(() => {
     const desktopQuery = window.matchMedia('(min-width: 1024px)');
@@ -26,6 +28,33 @@ const Portafolio: React.FC = () => {
     updateDesktop();
     desktopQuery.addEventListener('change', updateDesktop);
     return () => desktopQuery.removeEventListener('change', updateDesktop);
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchPortfolio()
+      .then((items) => {
+        if (!isMounted) return;
+        const publishedProjects = items
+          .filter((item) => item.img)
+          .map((item) => ({
+            id: item.id,
+            name: item.clientName || item.name,
+            img: String(item.img),
+            url: item.url ?? undefined,
+            tags: item.tags,
+          }));
+
+        if (publishedProjects.length > 0) {
+          setProjects(publishedProjects);
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return (
