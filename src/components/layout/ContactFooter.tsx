@@ -71,7 +71,7 @@ const ContactFooter: React.FC = () => {
                         <Link to="/privacidad" className="transition-colors lg:hover:text-[#06CFD6]">Privacidad</Link>
                         <span className="group relative inline-flex cursor-not-allowed text-gray-500 transition-colors lg:hover:text-[#06CFD6]">
                             Libro de Reclamaciones
-                            <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-3 hidden -translate-x-1/2 whitespace-nowrap rounded-lg border border-[#06CFD6]/25 bg-[#010b10]/95 px-4 py-2 text-[11px] font-medium tracking-wide text-white/85 shadow-[0_12px_30px_rgba(0,0,0,0.35)] backdrop-blur-md lg:block lg:opacity-0 lg:translate-y-1 lg:transition-all lg:duration-200 lg:group-hover:opacity-100 lg:group-hover:translate-y-0 before:absolute before:-top-1 before:left-1/2 before:h-2 before:w-2 before:-translate-x-1/2 before:rotate-45 before:border-l before:border-t before:border-[#06CFD6]/25 before:bg-[#010b10]">
+                            <span className="pointer-events-none absolute left-1/2 bottom-full z-20 mb-3 hidden -translate-x-1/2 whitespace-nowrap rounded-lg border border-[#06CFD6]/40 bg-[#010b10]/95 px-4 py-2 text-[11px] font-bold tracking-wide text-white/85 shadow-[0_12px_30px_rgba(0,0,0,0.35)] backdrop-blur-md lg:block lg:opacity-0 lg:translate-y-1 lg:transition-all lg:duration-200 lg:group-hover:opacity-100 lg:group-hover:translate-y-0 before:absolute before:-bottom-1 before:left-1/2 before:h-2 before:w-2 before:-translate-x-1/2 before:rotate-45 before:border-b before:border-r before:border-[#06CFD6]/25 before:bg-[#010b10]">
                                 En proceso de construcción
                             </span>
                         </span>
