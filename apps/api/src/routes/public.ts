@@ -35,8 +35,9 @@ const upload = multer({
 });
 
 const noDigitsText = z.string().trim().regex(/^[^\d]+$/, 'No debe contener números.');
-const digitsOnly = z.string().trim().regex(/^\d+$/, 'Solo se permiten números.');
-const lettersNumbersSpaces = z.string().trim().regex(/^[\p{L}\p{N}\s]+$/u, 'Solo se permiten letras, números y espacios.');
+const digitsOnly = z.string().trim().regex(/^[\d\s+-]+$/, 'Solo se permiten números y símbolos de teléfono (+, -).');
+const alphanumericId = z.string().trim().regex(/^[\w-]{4,40}$/, 'Formato de identificación inválido (alfanumérico, guiones o guiones bajos).');
+const lettersNumbersSpaces = z.string().trim().regex(/^[\p{L}\p{N}\s.\-&]+$/u, 'Solo se permiten letras, números, espacios y caracteres básicos de empresa.');
 
 const contactSchema = z.object({
   countryId: z.preprocess((value) => value === '' ? undefined : value, z.string().uuid().optional()),
@@ -46,7 +47,7 @@ const contactSchema = z.object({
   email: z.string().trim().email().max(180),
   celular: digitsOnly.min(4).max(20),
   empresa: lettersNumbersSpaces.min(2).max(180),
-  ruc: digitsOnly.min(4).max(30),
+  ruc: alphanumericId,
   servicio: z.string().trim().min(2).max(120),
   mensaje: z.string().trim().min(10).max(1200),
 });
@@ -56,9 +57,9 @@ const complaintSchema = z.object({
   apellidos: z.string().trim().min(2).max(160),
   domicilio: z.string().trim().min(4).max(240),
   tipoDoc: z.string().trim().min(1).max(30),
-  numeroDoc: z.string().trim().min(4).max(40),
+  numeroDoc: alphanumericId,
   prefijoTelefono: z.string().trim().min(1).max(10).default('+51'),
-  telefono: z.string().trim().min(6).max(40),
+  telefono: digitsOnly.min(6).max(40),
   email: z.string().trim().email().max(180),
   personType: z.string().trim().min(1).max(40),
   goodType: z.string().trim().min(1).max(40),
