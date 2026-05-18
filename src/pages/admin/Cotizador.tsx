@@ -19,6 +19,10 @@ type CatalogItem = {
   unit_price: string;
 };
 
+import AdminPanel from '../../components/admin/AdminPanel';
+
+// ... (skip to component)
+
 const AdminCotizador: React.FC = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
@@ -136,7 +140,7 @@ const AdminCotizador: React.FC = () => {
 
       {error && !isModalOpen && <p className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-red-300 text-sm">{error}</p>}
 
-      <div className="rounded-xl border border-white/5 bg-[#0a0a0a] overflow-hidden flex flex-col">
+      <AdminPanel className="flex flex-col overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="bg-white/[0.02] text-white/50 text-xs uppercase tracking-wider">
@@ -171,7 +175,8 @@ const AdminCotizador: React.FC = () => {
             </tbody>
           </table>
         </div>
-      </div>
+      </AdminPanel>
+
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">

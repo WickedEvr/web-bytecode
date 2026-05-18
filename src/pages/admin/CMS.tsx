@@ -12,6 +12,10 @@ type CMSPage = {
   updated_at: string;
 };
 
+import AdminPanel from '../../components/admin/AdminPanel';
+
+// ... (skip to component)
+
 const AdminCMS: React.FC = () => {
   const [pages, setPages] = useState<CMSPage[]>([]);
   const [loading, setLoading] = useState(false);
@@ -86,7 +90,7 @@ const AdminCMS: React.FC = () => {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
         {/* Pages List */}
-        <div className="rounded-xl border border-white/5 bg-[#0a0a0a] overflow-hidden flex flex-col">
+        <AdminPanel className="flex flex-col overflow-hidden">
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="bg-white/[0.02] text-white/50 text-xs uppercase tracking-wider">
               <tr>
@@ -118,10 +122,10 @@ const AdminCMS: React.FC = () => {
               )}
             </tbody>
           </table>
-        </div>
+        </AdminPanel>
 
         {/* Edit Panel */}
-        <aside className="rounded-xl border border-white/5 bg-[#0a0a0a] p-6 flex flex-col">
+        <AdminPanel className="p-6 flex flex-col">
           {!editingId ? (
             <div className="flex h-full flex-col items-center justify-center text-center text-white/30">
               <Database className="mb-4 h-8 w-8 opacity-50" />
@@ -184,7 +188,7 @@ const AdminCMS: React.FC = () => {
               </div>
             </div>
           )}
-        </aside>
+        </AdminPanel>
       </div>
     </div>
   );

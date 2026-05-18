@@ -22,6 +22,10 @@ const asRecord = (value: unknown) => (
 const readString = (value: unknown, fallback: string) => (typeof value === 'string' ? value : fallback);
 const readBoolean = (value: unknown, fallback: boolean) => (typeof value === 'boolean' ? value : fallback);
 
+import AdminPanel from '../../components/admin/AdminPanel';
+
+// ... (skip to component)
+
 const AdminConfiguracion: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -122,7 +126,7 @@ const AdminConfiguracion: React.FC = () => {
 
       <form onSubmit={handleSave} className="grid gap-6 lg:grid-cols-2">
         {/* Contact Info */}
-        <div className="rounded-xl border border-white/5 bg-[#0a0a0a] p-6 lg:p-8">
+        <AdminPanel className="p-6 lg:p-8">
           <h2 className="text-lg font-medium mb-6 text-white/90">Información de Contacto</h2>
           <div className="flex flex-col gap-5">
             <div>
@@ -153,10 +157,10 @@ const AdminConfiguracion: React.FC = () => {
               />
             </div>
           </div>
-        </div>
+        </AdminPanel>
 
         {/* Features Toggle */}
-        <div className="rounded-xl border border-white/5 bg-[#0a0a0a] p-6 lg:p-8">
+        <AdminPanel className="p-6 lg:p-8">
           <h2 className="text-lg font-medium mb-6 text-white/90">Módulos del Sistema</h2>
           <div className="flex flex-col gap-6">
             <label className="flex items-center gap-4 cursor-pointer group">
@@ -184,10 +188,10 @@ const AdminConfiguracion: React.FC = () => {
               </div>
             </label>
           </div>
-        </div>
+        </AdminPanel>
 
         {/* SMTP Config */}
-        <div className="rounded-xl border border-white/5 bg-[#0a0a0a] p-6 lg:p-8 lg:col-span-2">
+        <AdminPanel className="p-6 lg:p-8 lg:col-span-2">
           <h2 className="text-lg font-medium mb-6 text-white/90">Servidor de Correos (SMTP)</h2>
           <div className="grid gap-5 md:grid-cols-2">
             <div>
@@ -229,7 +233,7 @@ const AdminConfiguracion: React.FC = () => {
               <p className="mt-1.5 text-[10px] text-white/30 uppercase tracking-widest">Dejar en blanco si no se cambia</p>
             </div>
           </div>
-        </div>
+        </AdminPanel>
 
         <div className="lg:col-span-2 flex justify-end">
           <button type="submit" disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-8 py-3 text-sm font-medium text-black transition-colors hover:bg-white/90 disabled:opacity-50">

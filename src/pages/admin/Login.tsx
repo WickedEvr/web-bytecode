@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { ShieldCheck } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiRequest } from '../../lib/api';
 

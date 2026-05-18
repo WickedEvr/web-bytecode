@@ -12,6 +12,10 @@ type AuditLog = {
   admin_email: string | null;
 };
 
+import AdminPanel from '../../components/admin/AdminPanel';
+
+// ... (skip to component)
+
 const Auditoria: React.FC = () => {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(false);
@@ -54,7 +58,7 @@ const Auditoria: React.FC = () => {
 
       {error && <p className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-red-300 text-sm">{error}</p>}
 
-      <div className="rounded-xl border border-white/5 bg-[#0a0a0a] overflow-hidden">
+      <AdminPanel className="flex flex-col overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="bg-white/[0.02] text-white/50 text-xs uppercase tracking-wider">
@@ -95,7 +99,7 @@ const Auditoria: React.FC = () => {
             </tbody>
           </table>
         </div>
-      </div>
+      </AdminPanel>
     </div>
   );
 };

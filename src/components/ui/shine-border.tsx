@@ -53,7 +53,7 @@ export default function ShineBorder({
                             "--background-radial-gradient": `radial-gradient(transparent, transparent, ${colors}, transparent, transparent)`,
                         } as React.CSSProperties
                     }
-                    className={`pointer-events-none absolute inset-0 w-full h-full rounded-[var(--border-radius)] p-[var(--border-width)] will-change-[background-position] ![-webkit-mask-composite:xor] ![mask-composite:exclude] [-webkit-mask:var(--mask-linear-gradient)] [mask:var(--mask-linear-gradient)] [background-image:var(--background-radial-gradient)] [background-size:300%_300%] animate-shine-magic`}
+                    className={`hidden md:block pointer-events-none absolute inset-0 w-full h-full rounded-[var(--border-radius)] p-[var(--border-width)] will-change-[background-position] ![-webkit-mask-composite:xor] ![mask-composite:exclude] [-webkit-mask:var(--mask-linear-gradient)] [mask:var(--mask-linear-gradient)] [background-image:var(--background-radial-gradient)] [background-size:300%_300%] animate-shine-magic`}
                 />
 
                 {children}

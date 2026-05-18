@@ -20,6 +20,10 @@ const ROLES = [
   { value: 'partner_designer', label: 'Diseñador Socio' },
 ];
 
+import AdminPanel from '../../components/admin/AdminPanel';
+
+// ... (skip to component)
+
 const Usuarios: React.FC = () => {
   const [users, setUsers] = useState<AdminUserRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -130,7 +134,7 @@ const Usuarios: React.FC = () => {
         </p>
       )}
 
-      <div className="rounded-xl border border-white/5 bg-[#0a0a0a] overflow-hidden">
+      <AdminPanel className="flex flex-col overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="bg-white/[0.02] text-white/50 text-xs uppercase tracking-wider">
@@ -172,7 +176,7 @@ const Usuarios: React.FC = () => {
             </tbody>
           </table>
         </div>
-      </div>
+      </AdminPanel>
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">

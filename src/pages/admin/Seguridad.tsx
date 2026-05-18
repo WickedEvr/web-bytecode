@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiRequest } from '../../lib/api';
 import { Monitor, Smartphone, Tablet, Trash2, ShieldCheck, Clock } from 'lucide-react';
+import AdminPanel from '../../components/admin/AdminPanel';
 
 interface Session {
   id: string;
@@ -114,10 +115,8 @@ const AdminSeguridad: React.FC = () => {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ duration: 0.2 }}
-              className={`bg-[#0a0a0a] border rounded-xl p-6 relative overflow-hidden flex flex-col justify-between ${
-                session.isCurrentSession ? 'border-white/20' : 'border-white/5'
-              }`}
             >
+              <AdminPanel className="p-6 relative overflow-hidden flex flex-col justify-between h-full">
               <div>
                 <div className="flex items-start gap-5">
                   <div className="p-3 bg-white/5 border border-white/5 rounded-lg shrink-0 flex items-center justify-center opacity-70">
@@ -163,6 +162,7 @@ const AdminSeguridad: React.FC = () => {
                   Revocar Acceso
                 </button>
               )}
+              </AdminPanel>
             </motion.div>
           ))}
         </AnimatePresence>

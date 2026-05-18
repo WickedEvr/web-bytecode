@@ -13,6 +13,10 @@ type DashboardData = {
   activeAdminsTotal: number;
 };
 
+import AdminPanel from '../../components/admin/AdminPanel';
+
+// ... (skip to component)
+
 const Dashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -91,7 +95,7 @@ const Dashboard: React.FC = () => {
 
       {/* Recent Activity */}
       <div className="grid gap-5 lg:grid-cols-2">
-        <div className="rounded-xl border border-white/5 bg-[#0a0a0a] flex flex-col overflow-hidden">
+        <AdminPanel className="flex flex-col overflow-hidden h-full">
           <div className="border-b border-white/5 p-4 bg-white/[0.01]">
             <h2 className="text-sm font-semibold text-white/70 tracking-wide">Contactos Recientes</h2>
           </div>
@@ -111,9 +115,9 @@ const Dashboard: React.FC = () => {
               ))}
             {!loading && data?.recentContacts.length === 0 && <p className="p-4 text-center text-white/30 text-sm">No hay contactos recientes.</p>}
           </div>
-        </div>
+        </AdminPanel>
 
-        <div className="rounded-xl border border-white/5 bg-[#0a0a0a] flex flex-col overflow-hidden">
+        <AdminPanel className="flex flex-col overflow-hidden h-full">
           <div className="border-b border-white/5 p-4 bg-white/[0.01]">
             <h2 className="text-sm font-semibold text-white/70 tracking-wide">Reclamos Recientes</h2>
           </div>
@@ -133,7 +137,7 @@ const Dashboard: React.FC = () => {
               ))}
             {!loading && data?.recentComplaints.length === 0 && <p className="p-4 text-center text-white/30 text-sm">No hay reclamos recientes.</p>}
           </div>
-        </div>
+        </AdminPanel>
       </div>
     </div>
   );
