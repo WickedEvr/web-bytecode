@@ -154,7 +154,7 @@ const AltFooter: React.FC = () => {
           <div className="flex flex-wrap items-center justify-center gap-6 md:gap-14 text-gray-400 text-sm md:text-base font-normal w-full">
             <Link to="/condiciones" className="transition-colors lg:hover:text-[#06CFD6]">Condiciones</Link>
             <Link to="/privacidad" className="transition-colors lg:hover:text-[#06CFD6]">Privacidad</Link>
-            <Link to="/reclamaciones" className="transition-colors lg:hover:text-[#06CFD6]">Libro de Reclamaciones</Link>
+            <span className="cursor-default">Libro de Reclamaciones</span>
           </div>
 
           {/* --- FILA 3: Copyright Móvil/Tablet/Laptop --- */}
