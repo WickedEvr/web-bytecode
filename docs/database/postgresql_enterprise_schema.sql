@@ -383,6 +383,68 @@ CREATE TABLE file_assets (
   CONSTRAINT ck_file_assets_storage CHECK (storage_provider IN ('local', 's3', 'cloudinary', 'gcs', 'azure'))
 );
 
+CREATE TABLE technology_catalog (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  code varchar(80) NOT NULL UNIQUE,
+  name varchar(120) NOT NULL,
+  sort_order integer NOT NULL DEFAULT 0,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  deleted_at timestamptz,
+  created_by uuid REFERENCES admin_users(id) ON DELETE SET NULL,
+  updated_by uuid REFERENCES admin_users(id) ON DELETE SET NULL,
+  CONSTRAINT ck_technology_catalog_code CHECK (code ~ '^[a-z0-9_:.+-]+$')
+);
+
+CREATE TABLE portfolio_items (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  item_code varchar(40) NOT NULL UNIQUE,
+  name varchar(180) NOT NULL,
+  client_name varchar(180),
+  description text,
+  website_url varchar(255),
+  sort_order integer NOT NULL DEFAULT 0,
+  is_featured boolean NOT NULL DEFAULT true,
+  is_published boolean NOT NULL DEFAULT true,
+  published_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  deleted_at timestamptz,
+  created_by uuid REFERENCES admin_users(id) ON DELETE SET NULL,
+  updated_by uuid REFERENCES admin_users(id) ON DELETE SET NULL,
+  CONSTRAINT ck_portfolio_items_code CHECK (item_code ~ '^[A-Z0-9_-]+$'),
+  CONSTRAINT ck_portfolio_items_website_url CHECK (
+    website_url IS NULL OR website_url ~* '^https?://'
+  )
+);
+
+CREATE TABLE portfolio_item_assets (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  portfolio_item_id uuid NOT NULL REFERENCES portfolio_items(id) ON DELETE CASCADE,
+  file_asset_id uuid NOT NULL REFERENCES file_assets(id) ON DELETE RESTRICT,
+  asset_role varchar(40) NOT NULL DEFAULT 'cover',
+  alt_text varchar(180),
+  sort_order integer NOT NULL DEFAULT 0,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  deleted_at timestamptz,
+  created_by uuid REFERENCES admin_users(id) ON DELETE SET NULL,
+  updated_by uuid REFERENCES admin_users(id) ON DELETE SET NULL,
+  CONSTRAINT ck_portfolio_item_assets_role CHECK (asset_role IN ('cover', 'gallery')),
+  CONSTRAINT uq_portfolio_item_assets_role_order UNIQUE (portfolio_item_id, asset_role, sort_order)
+);
+
+CREATE TABLE portfolio_item_technologies (
+  portfolio_item_id uuid NOT NULL REFERENCES portfolio_items(id) ON DELETE CASCADE,
+  technology_id uuid NOT NULL REFERENCES technology_catalog(id) ON DELETE RESTRICT,
+  sort_order integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  created_by uuid REFERENCES admin_users(id) ON DELETE SET NULL,
+  PRIMARY KEY (portfolio_item_id, technology_id)
+);
+
 CREATE TABLE milestone_payments (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   milestone_id uuid NOT NULL REFERENCES project_milestones(id) ON DELETE RESTRICT,
@@ -968,6 +1030,10 @@ CREATE INDEX idx_projects_service ON projects (service_id);
 CREATE INDEX idx_project_status_history_project_changed ON project_status_history (project_id, changed_at DESC);
 CREATE INDEX idx_project_milestones_project ON project_milestones (project_id);
 CREATE INDEX idx_project_milestones_status ON project_milestones (status);
+CREATE INDEX idx_technology_catalog_active_order ON technology_catalog (is_active, sort_order, name) WHERE deleted_at IS NULL;
+CREATE INDEX idx_portfolio_items_public_order ON portfolio_items (is_published, is_featured, sort_order, created_at DESC) WHERE deleted_at IS NULL;
+CREATE INDEX idx_portfolio_item_assets_item_order ON portfolio_item_assets (portfolio_item_id, asset_role, sort_order) WHERE deleted_at IS NULL AND is_active = true;
+CREATE INDEX idx_portfolio_item_technologies_technology ON portfolio_item_technologies (technology_id, sort_order);
 CREATE INDEX idx_milestone_payments_milestone ON milestone_payments (milestone_id);
 CREATE INDEX idx_pricing_catalog_active_model ON pricing_catalog (is_active, pricing_model);
 CREATE INDEX idx_quotes_customer_status ON quotes (customer_id, status, created_at DESC);
@@ -1014,6 +1080,9 @@ CREATE TRIGGER trg_customer_addresses_updated_at BEFORE UPDATE ON customer_addre
 CREATE TRIGGER trg_projects_updated_at BEFORE UPDATE ON projects FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_project_milestones_updated_at BEFORE UPDATE ON project_milestones FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_file_assets_updated_at BEFORE UPDATE ON file_assets FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE TRIGGER trg_technology_catalog_updated_at BEFORE UPDATE ON technology_catalog FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE TRIGGER trg_portfolio_items_updated_at BEFORE UPDATE ON portfolio_items FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE TRIGGER trg_portfolio_item_assets_updated_at BEFORE UPDATE ON portfolio_item_assets FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_milestone_payments_updated_at BEFORE UPDATE ON milestone_payments FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_pricing_catalog_updated_at BEFORE UPDATE ON pricing_catalog FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_quotes_updated_at BEFORE UPDATE ON quotes FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -1166,6 +1235,17 @@ INSERT INTO service_catalog (code, name) VALUES
   ('app', 'App movil'),
   ('desktop', 'App de escritorio'),
   ('custom_software', 'Software a medida')
+ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO technology_catalog (code, name, sort_order) VALUES
+  ('laravel', 'Laravel', 10),
+  ('php', 'PHP', 20),
+  ('react', 'React', 30),
+  ('typescript', 'TypeScript', 40),
+  ('nextjs', 'Next.js', 50),
+  ('tailwind', 'Tailwind CSS', 60),
+  ('nodejs', 'Node.js', 70),
+  ('postgresql', 'PostgreSQL', 80)
 ON CONFLICT (code) DO NOTHING;
 
 INSERT INTO pricing_catalog (item_code, name, description, pricing_model, base_price, max_price, currency_code) VALUES

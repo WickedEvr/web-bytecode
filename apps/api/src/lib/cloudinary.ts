@@ -88,6 +88,59 @@ export async function uploadComplaintEvidenceToCloudinary(input: {
   });
 }
 
+export async function uploadPortfolioImageToCloudinary(input: {
+  buffer: Buffer;
+  itemCode: string;
+  originalName: string;
+  mimeType: string;
+}): Promise<CloudinaryStoredAsset> {
+  assertCloudinaryConfigured();
+
+  return new Promise((resolve, reject) => {
+    let isSettled = false;
+    const fail = (error: unknown) => {
+      if (isSettled) return;
+      isSettled = true;
+      clearTimeout(timeout);
+      reject(error);
+    };
+    const timeout = setTimeout(() => {
+      stream.destroy(new Error('Cloudinary upload timed out.'));
+      fail(new Error('Cloudinary upload timed out.'));
+    }, env.cloudinary.uploadTimeoutMs);
+
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: 'bytecode/portfolio',
+        public_id: createPublicId(input.itemCode),
+        resource_type: 'image',
+        overwrite: false,
+        use_filename: false,
+        unique_filename: false,
+        filename_override: input.originalName,
+      },
+      (error, result?: UploadApiResponse) => {
+        if (error || !result) {
+          fail(error ?? new Error('Cloudinary upload did not return a result.'));
+          return;
+        }
+
+        if (isSettled) return;
+        isSettled = true;
+        clearTimeout(timeout);
+        resolve({
+          publicId: result.public_id,
+          secureUrl: result.secure_url,
+          bytes: result.bytes,
+          resourceType: 'image',
+        });
+      },
+    );
+
+    stream.end(input.buffer);
+  });
+}
+
 export async function deleteCloudinaryAsset(publicId: string, resourceType: CloudinaryResourceType) {
   assertCloudinaryConfigured();
   await cloudinary.uploader.destroy(publicId, {

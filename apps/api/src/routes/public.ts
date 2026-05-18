@@ -140,6 +140,55 @@ router.get('/warmup', asyncHandler(async (_req: Request, res: Response) => {
   res.json({ ok: true });
 }));
 
+router.get('/portfolio', asyncHandler(async (_req: Request, res: Response) => {
+  const result = await pool.query(`
+    SELECT
+      pi.id,
+      pi.name,
+      pi.client_name,
+      pi.description,
+      pi.website_url,
+      COALESCE(fa.public_url, fa.storage_key) AS image_url,
+      COALESCE(
+        array_agg(tc.name ORDER BY pit.sort_order, tc.sort_order, tc.name)
+          FILTER (WHERE tc.id IS NOT NULL),
+        ARRAY[]::text[]
+      ) AS tags
+    FROM portfolio_items pi
+    LEFT JOIN portfolio_item_assets pia
+      ON pia.portfolio_item_id = pi.id
+      AND pia.asset_role = 'cover'
+      AND pia.is_active = true
+      AND pia.deleted_at IS NULL
+    LEFT JOIN file_assets fa
+      ON fa.id = pia.file_asset_id
+      AND fa.deleted_at IS NULL
+    LEFT JOIN portfolio_item_technologies pit
+      ON pit.portfolio_item_id = pi.id
+    LEFT JOIN technology_catalog tc
+      ON tc.id = pit.technology_id
+      AND tc.is_active = true
+      AND tc.deleted_at IS NULL
+    WHERE pi.is_published = true
+      AND pi.deleted_at IS NULL
+      AND (pi.published_at IS NULL OR pi.published_at <= now())
+    GROUP BY pi.id, fa.public_url, fa.storage_key
+    ORDER BY pi.sort_order ASC, pi.created_at DESC
+  `);
+
+  res.json({
+    items: result.rows.map((item) => ({
+      id: item.id,
+      name: item.name,
+      clientName: item.client_name,
+      description: item.description,
+      url: item.website_url,
+      img: item.image_url,
+      tags: item.tags,
+    })),
+  });
+}));
+
 router.post(
   '/contact-submissions',
   publicFormLimiter,

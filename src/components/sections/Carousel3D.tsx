@@ -5,7 +5,7 @@ import gsap from 'gsap';
   Types
 ───────────────────────────────────────────────────── */
 export interface Project {
-  id: number;
+  id: string | number;
   name: string;
   img: string;
   url?: string;
