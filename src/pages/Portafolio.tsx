@@ -10,16 +10,9 @@ import { fetchPortfolio } from '../lib/api';
 const AuroraBackground = lazy(() => import('../components/effects/AuroraBackground'));
 const Carousel3D = lazy(() => import('../components/sections/Carousel3D'));
 
-const fallbackProjects: Project[] = [
-  { id: 1, name: 'Google 1', img: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=700&q=80', tags: ['React', 'TypeScript'] },
-  { id: 2, name: 'Google 2', img: 'https://images.unsplash.com/photo-1551650975-87deedd944c3?w=700&q=80', tags: ['Next.js', 'GSAP'] },
-  { id: 3, name: 'Google 3', img: 'https://images.unsplash.com/photo-1547658719-da2b51169166?w=700&q=80', tags: ['Vite', 'Tailwind'] },
-  { id: 4, name: 'Google 4', img: 'https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?w=700&q=80', tags: ['Laravel', 'PHP'] },
-];
-
 const Portafolio: React.FC = () => {
   const [isDesktop, setIsDesktop] = useState(false);
-  const [projects, setProjects] = useState<Project[]>(fallbackProjects);
+  const [projects, setProjects] = useState<Project[]>([]);
 
   useEffect(() => {
     const desktopQuery = window.matchMedia('(min-width: 1024px)');
@@ -46,9 +39,7 @@ const Portafolio: React.FC = () => {
             tags: item.tags,
           }));
 
-        if (publishedProjects.length > 0) {
-          setProjects(publishedProjects);
-        }
+        setProjects(publishedProjects);
       })
       .catch(() => undefined);
 
@@ -107,22 +98,26 @@ const Portafolio: React.FC = () => {
         </section>
 
         {/* CARRUSEL ANIMADO (Móvil y Tablet) */}
-        <section className="w-full relative z-10 pointer-events-auto mt-6 md:mt-10 lg:hidden">
-          <div className="w-full flex justify-center pb-24 md:pb-28">
-            <Carousel slides={projects} />
-          </div>
-        </section>
+        {projects.length > 0 && (
+          <section className="w-full relative z-10 pointer-events-auto mt-6 md:mt-10 lg:hidden">
+            <div className="w-full flex justify-center pb-24 md:pb-28">
+              <Carousel slides={projects} />
+            </div>
+          </section>
+        )}
 
         {/* CARRUSEL 3D (Solo Escritorio) */}
-        <section className="w-full relative z-10 pointer-events-auto flex-grow items-center justify-center xl:-mt-[11vh] 2xl:-mt-[10vh] [@media(max-height:650px)]:-mt-[2vh] hidden lg:flex">
-          <div className="w-full flex justify-center origin-center scale-[0.70] md:scale-[0.80] lg:scale-[0.85] xl:scale-[0.8] 2xl:scale-[1] [@media(max-height:650px)]:scale-[0.60] transition-transform duration-500">
-            {isDesktop && (
-              <Suspense fallback={null}>
-                <Carousel3D projects={projects} />
-              </Suspense>
-            )}
-          </div>
-        </section>
+        {projects.length > 0 && (
+          <section className="w-full relative z-10 pointer-events-auto flex-grow items-center justify-center xl:-mt-[11vh] 2xl:-mt-[10vh] [@media(max-height:650px)]:-mt-[2vh] hidden lg:flex">
+            <div className="w-full flex justify-center origin-center scale-[0.70] md:scale-[0.80] lg:scale-[0.85] xl:scale-[0.8] 2xl:scale-[1] [@media(max-height:650px)]:scale-[0.60] transition-transform duration-500">
+              {isDesktop && (
+                <Suspense fallback={null}>
+                  <Carousel3D projects={projects} />
+                </Suspense>
+              )}
+            </div>
+          </section>
+        )}
       </div>
 
       {/* EL FOOTER */}
