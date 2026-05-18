@@ -22,6 +22,7 @@ interface Props {
 const DRAG_SENSITIVITY = 0.28;   // degrees per pixel of horizontal drag
 const MOMENTUM_MS      = 200;    // window (ms) used to project snap target
 const AUTO_PLAY_SPEED  = -0.08;  // Velocidad de auto-rotación (negativo = derecha a izquierda)
+const FOCUS_PAUSE_MS   = 3200;
 
 /* ─────────────────────────────────────────────────────
   Component
@@ -37,6 +38,7 @@ const Carousel3D: React.FC<Props> = ({ projects }) => {
 
   // Plain object that GSAP tweens – avoids React re-renders during animation
   const rotObj = useRef({ value: 0 });
+  const pauseUntilRef = useRef(0);
 
   const drag = useRef({
     active:   false,
@@ -103,6 +105,7 @@ const Carousel3D: React.FC<Props> = ({ projects }) => {
     if (isDragging) return;
 
     const tick = () => {
+      if (Date.now() < pauseUntilRef.current) return;
       if (!gsap.isTweening(rotObj.current)) {
         applyRotation(rotObj.current.value + AUTO_PLAY_SPEED);
       }
@@ -149,6 +152,7 @@ const Carousel3D: React.FC<Props> = ({ projects }) => {
     const projected   = currentRot + velContrib;
     const nearestStep = Math.round(projected / stepAngle);
     const snapRot     = nearestStep * stepAngle;
+    pauseUntilRef.current = Date.now() + FOCUS_PAUSE_MS;
 
     gsap.to(rotObj.current, {
       value:    snapRot,
@@ -266,6 +270,19 @@ const Carousel3D: React.FC<Props> = ({ projects }) => {
                       </span>
                     ))}
                   </div>
+                )}
+
+                {isActive && project.url && (
+                  <a
+                    href={project.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={(event) => event.stopPropagation()}
+                    className="pointer-events-auto mt-4 inline-flex w-fit items-center rounded-md border border-[#06CFD6]/50 bg-[#06CFD6]/15 px-3 py-1.5 font-inter text-[0.78rem] font-medium text-[#06CFD6] transition hover:bg-[#06CFD6]/25"
+                  >
+                    Visitar el sitio
+                  </a>
                 )}
               </div>
 

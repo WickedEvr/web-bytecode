@@ -16,7 +16,7 @@ const Slide = ({ slide, index, current, handleSlideClick }: SlideProps) => {
     event.currentTarget.style.opacity = "1";
   };
 
-  const { img, name, tags } = slide;
+  const { img, name, tags, url } = slide;
   const isActive = current === index;
 
   return (
@@ -73,6 +73,18 @@ const Slide = ({ slide, index, current, handleSlideClick }: SlideProps) => {
                   </span>
                 ))}
               </div>
+            )}
+
+            {isActive && url && (
+              <a
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(event) => event.stopPropagation()}
+                className="pointer-events-auto mt-4 inline-flex w-fit items-center rounded-md border border-[#06CFD6]/50 bg-[#06CFD6]/15 px-3 py-1.5 font-inter text-[0.78rem] font-medium text-[#06CFD6] transition active:translate-y-px"
+              >
+                Visitar el sitio
+              </a>
             )}
           </div>
           
