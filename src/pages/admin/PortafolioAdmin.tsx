@@ -44,6 +44,14 @@ const toForm = (item: AdminPortfolioItemData): PortfolioForm => ({
   technologyIds: item.technologies.map((technology) => technology.id),
 });
 
+const normalizeWebsiteUrl = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (/^www\./i.test(trimmed)) return `https://${trimmed}`;
+  return `https://www.${trimmed}`;
+};
+
 const AdminPortafolio: React.FC = () => {
   const [items, setItems] = useState<AdminPortfolioItemData[]>([]);
   const [technologies, setTechnologies] = useState<PortfolioTechnologyData[]>([]);
@@ -51,6 +59,7 @@ const AdminPortafolio: React.FC = () => {
   const [form, setForm] = useState<PortfolioForm>(emptyForm);
   const [newTechnology, setNewTechnology] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState('');
   const [imageAlt, setImageAlt] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -82,6 +91,17 @@ const AdminPortafolio: React.FC = () => {
     void loadData();
   }, []);
 
+  useEffect(() => {
+    if (!imageFile) {
+      setImagePreviewUrl('');
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(imageFile);
+    setImagePreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [imageFile]);
+
   const handleSelect = (item: AdminPortfolioItemData) => {
     setSelectedId(item.id);
     setForm(toForm(item));
@@ -109,26 +129,54 @@ const AdminPortafolio: React.FC = () => {
     setSaving(true);
     setError('');
     try {
+      const normalizedWebsiteUrl = normalizeWebsiteUrl(form.websiteUrl);
       const payload = {
         name: form.name,
         clientName: form.clientName,
         description: form.description,
-        websiteUrl: form.websiteUrl || undefined,
+        websiteUrl: normalizedWebsiteUrl || undefined,
         sortOrder: form.sortOrder,
         isFeatured: form.isFeatured,
         isPublished: form.isPublished,
         technologyIds: form.technologyIds,
       };
 
-      const response = selectedId
-        ? await apiRequest<{ item: AdminPortfolioItemData }>(`/api/admin/portfolio/${selectedId}`, {
-            method: 'PATCH',
-            json: payload,
-          })
-        : await apiRequest<{ item: AdminPortfolioItemData }>('/api/admin/portfolio', {
+      let response: { item: AdminPortfolioItemData };
+
+      if (selectedId) {
+        response = await apiRequest<{ item: AdminPortfolioItemData }>(`/api/admin/portfolio/${selectedId}`, {
+          method: 'PATCH',
+          json: payload,
+        });
+
+        if (imageFile) {
+          const imageFormData = new FormData();
+          imageFormData.append('image', imageFile);
+          imageFormData.append('altText', imageAlt || form.name);
+
+          response = await apiRequest<{ item: AdminPortfolioItemData }>(`/api/admin/portfolio/${selectedId}/image`, {
             method: 'POST',
-            json: payload,
+            body: imageFormData,
           });
+        }
+      } else {
+        const formData = new FormData();
+        formData.append('name', form.name);
+        formData.append('clientName', form.clientName);
+        formData.append('description', form.description);
+        if (normalizedWebsiteUrl) formData.append('websiteUrl', normalizedWebsiteUrl);
+        formData.append('sortOrder', String(form.sortOrder));
+        formData.append('isFeatured', String(form.isFeatured));
+        formData.append('isPublished', String(form.isPublished));
+        formData.append('technologyIds', JSON.stringify(form.technologyIds));
+        formData.append('altText', imageAlt || form.name);
+        if (imageFile) formData.append('image', imageFile);
+
+        response = await apiRequest<{ item: AdminPortfolioItemData }>('/api/admin/portfolio', {
+          method: 'POST',
+          body: formData,
+        });
+      }
 
       setSelectedId(response.item.id);
       setForm(toForm(response.item));
@@ -138,32 +186,10 @@ const AdminPortafolio: React.FC = () => {
           ? current.map((item) => (item.id === response.item.id ? response.item : item))
           : [response.item, ...current];
       });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo guardar el proyecto.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleUploadImage = async () => {
-    if (!selectedId || !imageFile) return;
-    setSaving(true);
-    setError('');
-    try {
-      const formData = new FormData();
-      formData.append('image', imageFile);
-      formData.append('altText', imageAlt || form.name);
-
-      const response = await apiRequest<{ item: AdminPortfolioItemData }>(`/api/admin/portfolio/${selectedId}/image`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      setItems((current) => current.map((item) => (item.id === response.item.id ? response.item : item)));
       setImageFile(null);
       setImageAlt(response.item.alt_text ?? '');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo subir la imagen.');
+      setError(err instanceof Error ? err.message : 'No se pudo guardar el proyecto.');
     } finally {
       setSaving(false);
     }
@@ -284,7 +310,7 @@ const AdminPortafolio: React.FC = () => {
             <div className="flex items-start justify-between gap-4 border-b border-white/5 pb-4">
               <div>
                 <h2 className="text-lg font-semibold text-white/90">{selectedId ? 'Editar proyecto' : 'Nuevo proyecto'}</h2>
-                <p className="mt-1 text-xs text-white/40">{selectedItem ? `Actualizado: ${formatDate(selectedItem.updated_at)}` : 'Guarda el proyecto para habilitar la subida de imagen.'}</p>
+                <p className="mt-1 text-xs text-white/40">{selectedItem ? `Actualizado: ${formatDate(selectedItem.updated_at)}` : 'Completa los datos y la imagen antes de guardar.'}</p>
               </div>
               {selectedId && (
                 <button onClick={handleDelete} disabled={saving} className="rounded-lg border border-red-500/20 bg-red-500/10 p-2 text-red-300 transition hover:bg-red-500/20 disabled:opacity-50">
@@ -300,7 +326,7 @@ const AdminPortafolio: React.FC = () => {
               </label>
               <label className="grid gap-1.5 md:col-span-2">
                 <span className="text-[10px] uppercase tracking-wider text-white/40">URL publica</span>
-                <input value={form.websiteUrl} onChange={(event) => setForm({ ...form, websiteUrl: event.target.value })} placeholder="https://..." className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition focus:border-white/30" />
+                <input value={form.websiteUrl} onBlur={() => setForm((current) => ({ ...current, websiteUrl: normalizeWebsiteUrl(current.websiteUrl) }))} onChange={(event) => setForm({ ...form, websiteUrl: event.target.value })} placeholder="bytebox.pe" className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition focus:border-white/30" />
               </label>
               <label className="grid gap-1.5">
                 <span className="text-[10px] uppercase tracking-wider text-white/40">Orden</span>
@@ -341,21 +367,15 @@ const AdminPortafolio: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex justify-end border-t border-white/5 pt-5">
-              <button onClick={handleSave} disabled={saving || !form.name.trim()} className="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black transition hover:bg-white/90 disabled:opacity-50">
-                <Save className="h-4 w-4" /> Guardar proyecto
-              </button>
-            </div>
-
             <div className="grid gap-4 border-t border-white/5 pt-5">
               <div>
                 <h3 className="text-xs font-semibold uppercase tracking-widest text-white/50">Imagen del carrusel</h3>
-                {!selectedId && <p className="mt-2 text-xs text-white/35">Primero guarda el proyecto para poder subir la imagen.</p>}
+                <p className="mt-2 text-xs text-white/35">Selecciona una imagen y revisa la miniatura antes de guardar.</p>
               </div>
               <div className="grid gap-5 lg:grid-cols-[220px_1fr]">
                 <div className="aspect-video overflow-hidden rounded-xl border border-white/10 bg-white/5">
-                  {selectedItem?.image_url ? (
-                    <img src={selectedItem.image_url} alt="" className="h-full w-full object-cover" />
+                  {imagePreviewUrl || selectedItem?.image_url ? (
+                    <img src={imagePreviewUrl || selectedItem?.image_url || ''} alt="" className="h-full w-full object-cover" />
                   ) : (
                     <div className="flex h-full items-center justify-center text-white/20">
                       <ImageUp className="h-8 w-8" />
@@ -363,13 +383,16 @@ const AdminPortafolio: React.FC = () => {
                   )}
                 </div>
                 <div className="grid gap-3">
-                  <input type="file" accept="image/png,image/jpeg,image/webp" disabled={!selectedId} onChange={(event) => setImageFile(event.target.files?.[0] ?? null)} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/70 file:mr-3 file:rounded-md file:border-0 file:bg-white file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-black disabled:opacity-50" />
-                  <input value={imageAlt} disabled={!selectedId} onChange={(event) => setImageAlt(event.target.value)} placeholder="Texto alternativo" className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition focus:border-white/30 disabled:opacity-50" />
-                  <button onClick={handleUploadImage} disabled={saving || !selectedId || !imageFile} className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white/80 transition hover:bg-white/10 disabled:opacity-50">
-                    <ImageUp className="h-4 w-4" /> Subir imagen
-                  </button>
+                  <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => setImageFile(event.target.files?.[0] ?? null)} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/70 file:mr-3 file:rounded-md file:border-0 file:bg-white file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-black" />
+                  <input value={imageAlt} onChange={(event) => setImageAlt(event.target.value)} placeholder="Texto alternativo" className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition focus:border-white/30" />
                 </div>
               </div>
+            </div>
+
+            <div className="flex justify-end border-t border-white/5 pt-5">
+              <button onClick={handleSave} disabled={saving || !form.name.trim()} className="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black transition hover:bg-white/90 disabled:opacity-50">
+                <Save className="h-4 w-4" /> Guardar proyecto
+              </button>
             </div>
           </div>
         </AdminPanel>
