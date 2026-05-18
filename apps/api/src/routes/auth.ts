@@ -27,10 +27,19 @@ router.post(
     const body = loginSchema.parse(req.body);
     const result = await pool.query(
       `
-      SELECT u.id, u.email, u.name, u.role, u.password_hash
-      FROM admin_users u
+      SELECT u.id, u.email, u.name, u.password_hash,
+      COALESCE(array_agg(DISTINCT r.code) FILTER (WHERE r.code IS NOT NULL), ARRAY[]::varchar[]) as roles,
+      COALESCE((
+        SELECT array_agg(DISTINCT p.code)
+        FROM permissions p
+        JOIN role_permissions rp ON p.id = rp.permission_id
+        WHERE rp.role_id IN (SELECT role_id FROM admin_user_roles WHERE admin_user_id = u.id)
+      ), ARRAY[]::varchar[]) as permissions
+      FROM admin_users u 
+      LEFT JOIN admin_user_roles aur ON u.id = aur.admin_user_id
+      LEFT JOIN roles r ON aur.role_id = r.id
       WHERE u.email = $1 AND u.is_active = true
-      LIMIT 1
+      GROUP BY u.id
       `,
       [body.email.toLowerCase()],
     );
@@ -46,30 +55,6 @@ router.post(
     }
 
     await pool.query('UPDATE admin_users SET last_login_at = now(), updated_at = now() WHERE id = $1', [admin.id]);
-
-    const [roleResult, permissionResult] = await Promise.all([
-      pool.query(
-        `
-        SELECT r.code
-        FROM admin_user_roles aur
-        JOIN roles r ON aur.role_id = r.id
-        WHERE aur.admin_user_id = $1
-        `,
-        [admin.id],
-      ),
-      pool.query(
-        `
-        SELECT DISTINCT p.code
-        FROM permissions p
-        JOIN role_permissions rp ON p.id = rp.permission_id
-        JOIN admin_user_roles aur ON aur.role_id = rp.role_id
-        WHERE aur.admin_user_id = $1
-        `,
-        [admin.id],
-      ),
-    ]);
-    const roles = [...new Set([...roleResult.rows.map((roleRow) => roleRow.code), admin.role].filter(Boolean))];
-    const permissions = permissionResult.rows.map((permissionRow) => permissionRow.code);
 
     // Phase 1: Secure Session Management
     const plainToken = crypto.randomBytes(32).toString('hex');
@@ -117,8 +102,8 @@ router.post(
       id: admin.id,
       email: admin.email,
       name: admin.name,
-      roles,
-      permissions,
+      roles: admin.roles,
+      permissions: admin.permissions,
     };
 
     await audit(admin.id, 'login', 'admin_user', admin.id);
