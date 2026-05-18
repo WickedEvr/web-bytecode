@@ -111,7 +111,7 @@ export async function uploadPortfolioImageToCloudinary(input: {
 
     const stream = cloudinary.uploader.upload_stream(
       {
-        folder: `${env.cloudinary.uploadFolder}/portfolio`,
+        folder: 'bytecode/portfolio',
         public_id: createPublicId(input.itemCode),
         resource_type: 'image',
         overwrite: false,
