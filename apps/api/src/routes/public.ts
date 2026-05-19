@@ -10,7 +10,7 @@ import { deleteCloudinaryAsset, uploadComplaintEvidenceToCloudinary, type Cloudi
 import { allowedUploadMimeTypeList, validateUpload, type ValidatedUpload } from '../lib/validateUpload.js';
 import { publicFormLimiter } from '../middleware/rateLimiters.js';
 import { notifyAdmins, sendCustomerAcknowledgement } from '../services/email.js';
-import { buildContactReceipt, buildComplaintReceipt } from '../services/emailTemplates.js';
+import { buildContactReceipt, buildComplaintReceipt, capitalize } from '../services/emailTemplates.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { HttpError } from '../utils/httpError.js';
 
@@ -495,30 +495,33 @@ router.post(
       await client.query('COMMIT');
 
       const complaintNotificationPayload = {
-        codigo: code,
-        nombres: body.nombres,
-        apellidos: body.apellidos,
-        tipoDocumento: body.tipoDoc,
-        numeroDocumento: body.numeroDoc,
-        domicilio: body.domicilio,
-        email: body.email,
-        telefono: `${body.prefijoTelefono} ${body.telefono}`,
-        tipo: body.claimType,
-        motivo: body.tipoReclamo,
-        adjunto: validatedFile?.originalName ?? 'Sin adjunto',
+        Código: code,
+        Nombres: body.nombres,
+        'Representante Legal': body.apellidos,
+        'Tipo de Documento': body.tipoDoc,
+        'Número de Documento': body.numeroDoc,
+        Domicilio: body.domicilio,
+        Email: body.email,
+        Teléfono: `${body.prefijoTelefono} ${body.telefono}`,
+        'Tipo de Trámite': capitalize(body.claimType),
+        'Bien Contratado': capitalize(body.goodType),
+        'Monto Reclamado': body.montoCuantificable ? `S/ ${body.montoCuantificable}` : 'No especificado',
+        'Detalle del Incidente': body.detalle,
+        'Pedido del Cliente': body.pedido,
+        Adjunto: validatedFile?.originalName ?? 'Sin adjunto',
       };
 
       const customerReceiptPayload = {
         Cliente: `${body.nombres} ${body.apellidos}`,
         Nombres: body.nombres,
-        Apellidos: body.apellidos,
+        'Representante Legal': body.apellidos,
         'Tipo de Documento': body.tipoDoc,
         'Número de Documento': body.numeroDoc,
         Domicilio: body.domicilio,
-        'Número de Celular': `${body.prefijoTelefono} ${body.telefono}`,
-        'Correo Electrónico': body.email,
-        'Tipo de Trámite': body.claimType,
-        'Bien Contratado': body.goodType,
+        Email: body.email,
+        Teléfono: `${body.prefijoTelefono} ${body.telefono}`,
+        'Tipo de Trámite': capitalize(body.claimType),
+        'Bien Contratado': capitalize(body.goodType),
         'Monto Reclamado': body.montoCuantificable ? `S/ ${body.montoCuantificable}` : 'No especificado',
         'Detalle del Incidente': body.detalle,
         'Pedido del Cliente': body.pedido,

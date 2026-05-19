@@ -7,7 +7,7 @@ export const escapeHtml = (value: unknown) =>
     .replace(/'/g, '&#039;');
 
 // Función auxiliar para capitalizar la primera letra para el renderizado visual
-const capitalize = (str: string) => {
+export const capitalize = (str: string) => {
   if (!str) return '';
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 };
@@ -19,14 +19,17 @@ export function masterLayout(contentHTML: string): string {
   <head>
     <meta charset="UTF-8">
     <style>
-      body { margin: 0; padding: 0; background-color: #040e1f; color: #ffffff; font-family: Arial, sans-serif; -webkit-font-smoothing: antialiased; }
-      .container { max-width: 600px; margin: 0 auto; background-color: #040e1f; }
+      @font-face { font-family: 'Sansation'; src: url('https://www.bytecode.com.pe/fonts/Sansation-Regular.woff2') format('woff2'); font-weight: normal; font-style: normal; }
+      body { margin: 0; padding: 0; background-color: #040e1f; color: #ffffff; font-family: 'Sansation', Arial, Helvetica, sans-serif; -webkit-font-smoothing: antialiased; box-sizing: border-box; }
+      *, *:before, *:after { box-sizing: inherit; }
+      .container { max-width: 600px; margin: 0 auto; background-color: #040e1f; box-sizing: border-box; }
       .header { text-align: center; padding: 30px 20px; background-color: #010b10; border-bottom: 2px solid #06CFD6; }
       .content { padding: 40px 20px; color: #e2e8f0; line-height: 1.6; }
       .footer { text-align: center; padding: 30px 20px; background-color: #010b10; font-size: 12px; color: #94a3b8; }
       .footer a { color: #06CFD6; text-decoration: none; margin: 0 10px; }
       .button { display: inline-block; padding: 14px 28px; background-color: #06CFD6; color: #010b10; text-decoration: none; font-weight: bold; border-radius: 4px; margin-top: 20px; }
-      .card { background-color: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 20px; margin: 20px 0; }
+      .card { background-color: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 20px; margin: 20px 0; box-sizing: border-box; }
+      .card table { font-family: 'Sansation', Arial, Helvetica, sans-serif; width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; table-layout: fixed; word-wrap: break-word; }
       .highlight { color: #06CFD6; font-weight: bold; }
     </style>
   </head>
@@ -52,16 +55,33 @@ export function masterLayout(contentHTML: string): string {
 }
 
 export function buildAdminNotification(subject: string, payload: Record<string, unknown>): string {
-  const rows = Object.entries(payload)
-    .map(([key, value]) => `<tr><td style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);"><strong style="color: #06CFD6;">${escapeHtml(capitalize(key))}</strong></td><td style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);">${escapeHtml(value)}</td></tr>`)
-    .join('');
+  const longFields = ['Mensaje', 'Detalle del Incidente', 'Pedido del Cliente'];
+  const extractedLongFields: { title: string; content: string }[] = [];
+  const tableRows: string[] = [];
+
+  Object.entries(payload).forEach(([key, value]) => {
+    if (longFields.includes(key) && value) {
+      extractedLongFields.push({ title: key, content: String(value) });
+    } else {
+      tableRows.push(`<tr><td style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);"><strong style="color: #06CFD6;">${escapeHtml(capitalize(key))}</strong></td><td style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);">${escapeHtml(value)}</td></tr>`);
+    }
+  });
 
   const content = `
-    <h2 style="color: #ffffff; margin-top: 0;">${escapeHtml(subject)}</h2>
+    <h2 style="color: #ffffff; margin-top: 0; text-align: center;">${escapeHtml(subject)}</h2>
     <div class="card">
-      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
-        ${rows}
+      <table>
+        ${tableRows.join('')}
       </table>
+      
+      ${extractedLongFields.map(field => `
+      <div style="margin-top: 20px;">
+        <p style="font-size: 14px; margin-bottom: 16px;"><strong style="color: #06CFD6;">${escapeHtml(field.title)}:</strong></p>
+        <blockquote style="margin: 0; padding-left: 15px; border-left: 4px solid #06CFD6; font-style: italic; color: #cbd5e1; font-size: 14px;">
+          "${escapeHtml(field.content)}"
+        </blockquote>
+      </div>
+      `).join('')}
     </div>
     <div style="text-align: center;">
       <a href="https://www.bytecode.com.pe/admin" class="button">Ir al Panel Admin</a>
@@ -72,7 +92,7 @@ export function buildAdminNotification(subject: string, payload: Record<string, 
 
 export function buildContactReceipt(name: string, lastName: string, caseCode: string, service: string, message: string): string {
   const content = `
-    <h2 style="color: #ffffff; margin-top: 0;">¡Hola <span class="highlight">${escapeHtml(name)} ${escapeHtml(lastName)}</span>!</h2>
+    <h2 style="color: #ffffff; margin-top: 0; text-align: center;">¡Hola <span class="highlight">${escapeHtml(name)} ${escapeHtml(lastName)}</span>!</h2>
     <p>Hemos recibido tu mensaje correctamente. Nuestro equipo lo está revisando y nos pondremos en contacto contigo a la brevedad.</p>
     
     <div style="text-align: center; margin: 30px 0;">
@@ -103,7 +123,7 @@ export function buildComplaintReceipt(complaintCode: string, payload: Record<str
     .join('');
 
   const content = `
-    <h2 style="color: #ffffff; margin-top: 0;">Constancia de Reclamo</h2>
+    <h2 style="color: #ffffff; margin-top: 0; text-align: center;">Constancia de Reclamo</h2>
     <p>Estimado/a <span class="highlight">${escapeHtml(clientName)}</span>,</p>
     <p>Por medio de la presente, confirmamos la recepción formal de su reclamo o queja en nuestro Libro de Reclamaciones Virtual.</p>
     
@@ -116,21 +136,25 @@ export function buildComplaintReceipt(complaintCode: string, payload: Record<str
 
     <div class="card">
       <h3 style="color: #ffffff; margin-top: 0; font-size: 16px;">Detalle de su Hoja de Reclamación</h3>
-      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; margin-bottom: 20px;">
+      <table>
         ${rows}
       </table>
       
       ${payload['Detalle del Incidente'] ? `
-      <p style="font-size: 14px; margin-bottom: 5px;"><strong style="color: #06CFD6;">Detalle del Incidente:</strong></p>
-      <blockquote style="margin: 0 0 20px 0; padding-left: 15px; border-left: 4px solid #06CFD6; font-style: italic; color: #cbd5e1; font-size: 14px;">
-        "${escapeHtml(payload['Detalle del Incidente'])}"
-      </blockquote>` : ''}
+      <div style="margin-top: 20px;">
+        <p style="font-size: 14px; margin-bottom: 16px;"><strong style="color: #06CFD6;">Detalle del Incidente:</strong></p>
+        <blockquote style="margin: 0 0 20px 0; padding-left: 15px; border-left: 4px solid #06CFD6; font-style: italic; color: #cbd5e1; font-size: 14px;">
+          "${escapeHtml(payload['Detalle del Incidente'])}"
+        </blockquote>
+      </div>` : ''}
 
       ${payload['Pedido del Cliente'] ? `
-      <p style="font-size: 14px; margin-bottom: 5px;"><strong style="color: #06CFD6;">Pedido del Cliente:</strong></p>
-      <blockquote style="margin: 0; padding-left: 15px; border-left: 4px solid #06CFD6; font-style: italic; color: #cbd5e1; font-size: 14px;">
-        "${escapeHtml(payload['Pedido del Cliente'])}"
-      </blockquote>` : ''}
+      <div style="margin-top: 20px;">
+        <p style="font-size: 14px; margin-bottom: 16px;"><strong style="color: #06CFD6;">Pedido del Cliente:</strong></p>
+        <blockquote style="margin: 0; padding-left: 15px; border-left: 4px solid #06CFD6; font-style: italic; color: #cbd5e1; font-size: 14px;">
+          "${escapeHtml(payload['Pedido del Cliente'])}"
+        </blockquote>
+      </div>` : ''}
     </div>
 
     <div class="card">
