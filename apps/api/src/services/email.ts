@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import { env } from '../config/env.js';
 import { pool } from '../db/pool.js';
+import { buildAdminNotification } from './emailTemplates.js';
 
 // 1. DEFINICIÓN DE MÓDULOS Y REMITENTES DINÁMICOS
 export type EmailModuleType = 'complaint' | 'quote' | 'contact' | 'system';
@@ -32,19 +33,6 @@ const transporter = isEmailEnabled
       },
     })
   : null;
-
-const escapeHtml = (value: unknown) =>
-  String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-
-const rowsToHtml = (payload: Record<string, unknown>) =>
-  Object.entries(payload)
-    .map(([key, value]) => `<tr><td><strong>${escapeHtml(key)}</strong></td><td>${escapeHtml(value)}</td></tr>`)
-    .join('');
 
 const wait = (ms: number) => new Promise((resolve) => {
   setTimeout(resolve, ms);
@@ -104,15 +92,7 @@ export async function notifyAdmins(
     from: getSenderConfig(moduleType),
     to,
     subject,
-    html: `
-      <div style="font-family: Arial, sans-serif; color: #0f172a;">
-        <h2>${escapeHtml(subject)}</h2>
-        <table cellpadding="8" cellspacing="0" style="border-collapse: collapse;">
-          ${rowsToHtml(payload)}
-        </table>
-        <p style="margin-top: 24px;">Panel admin: ${escapeHtml(env.publicApiUrl)}</p>
-      </div>
-    `,
+    html: buildAdminNotification(subject, payload),
   };
 
   let lastError: unknown;

@@ -10,6 +10,7 @@ import { deleteCloudinaryAsset, uploadComplaintEvidenceToCloudinary, type Cloudi
 import { allowedUploadMimeTypeList, validateUpload, type ValidatedUpload } from '../lib/validateUpload.js';
 import { publicFormLimiter } from '../middleware/rateLimiters.js';
 import { notifyAdmins, sendCustomerAcknowledgement } from '../services/email.js';
+import { buildContactReceipt, buildComplaintReceipt } from '../services/emailTemplates.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { HttpError } from '../utils/httpError.js';
 
@@ -242,6 +243,8 @@ router.post(
       if (statusRes.rowCount === 0) throw new Error('Status catalog not initialized');
       const statusId = statusRes.rows[0].id;
 
+      const caseCode = `CAS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+
       if (normalizedContactSchema === null) {
         const schemaRes = await client.query(`
           SELECT
@@ -318,7 +321,7 @@ router.post(
           RETURNING id, created_at
           `,
           [
-            `CAS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`,
+            caseCode,
             customerId,
             organizationId,
             serviceId,
@@ -336,7 +339,7 @@ router.post(
           RETURNING id, created_at
           `,
           [
-            `CAS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`,
+            caseCode,
             customerId,
             statusId,
             body.servicio,
@@ -364,7 +367,7 @@ router.post(
       sendCustomerAcknowledgement(
         body.email,
         'Hemos recibido tu mensaje - Bytecode',
-        '<p>Hola, gracias por contactarnos. Nuestro equipo lo revisará pronto.</p>',
+        buildContactReceipt(body.nombre, body.apellido, caseCode, body.servicio, body.mensaje),
         'contact',
       ).catch(console.error);
 
@@ -505,7 +508,7 @@ router.post(
       sendCustomerAcknowledgement(
         body.email,
         `Constancia de Reclamo ${code} - Bytecode`,
-        `<p>Estimado(a), su reclamo ha sido registrado con el código ${code}. Adjuntamos los detalles para su seguimiento.</p>`,
+        buildComplaintReceipt(`${body.nombres} ${body.apellidos}`, code),
         'complaint',
       ).catch(console.error);
 
