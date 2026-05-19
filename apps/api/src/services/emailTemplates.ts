@@ -6,6 +6,12 @@ export const escapeHtml = (value: unknown) =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 
+// Función auxiliar para capitalizar la primera letra para el renderizado visual
+const capitalize = (str: string) => {
+  if (!str) return '';
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+};
+
 export function masterLayout(contentHTML: string): string {
   return `
   <!DOCTYPE html>
@@ -27,7 +33,7 @@ export function masterLayout(contentHTML: string): string {
   <body>
     <div class="container">
       <div class="header">
-        <img src="https://www.bytecode.com.pe/vectors/designs/elemento_logo.svg" alt="Bytecode Logo" width="180" style="display: block; margin: 0 auto; max-width: 100%;">
+        <img src="https://www.bytecode.com.pe/vectors/designs/logo_en_blanco.svg" alt="Bytecode Logo" width="130" style="display: block; margin: 0 auto; max-width: 100%;">
       </div>
       <div class="content">
         ${contentHTML}
@@ -47,7 +53,7 @@ export function masterLayout(contentHTML: string): string {
 
 export function buildAdminNotification(subject: string, payload: Record<string, unknown>): string {
   const rows = Object.entries(payload)
-    .map(([key, value]) => `<tr><td style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);"><strong style="color: #06CFD6;">${escapeHtml(key)}</strong></td><td style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);">${escapeHtml(value)}</td></tr>`)
+    .map(([key, value]) => `<tr><td style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);"><strong style="color: #06CFD6;">${escapeHtml(capitalize(key))}</strong></td><td style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);">${escapeHtml(value)}</td></tr>`)
     .join('');
 
   const content = `
@@ -78,7 +84,7 @@ export function buildContactReceipt(name: string, lastName: string, caseCode: st
 
     <div class="card">
       <h3 style="color: #ffffff; margin-top: 0; font-size: 16px;">Resumen de tu solicitud</h3>
-      <p><strong style="color: #06CFD6;">Servicio de interés:</strong> ${escapeHtml(service)}</p>
+      <p><strong style="color: #06CFD6;">Servicio de interés:</strong> ${escapeHtml(capitalize(service))}</p>
       <blockquote style="margin: 0; padding-left: 15px; border-left: 4px solid #06CFD6; font-style: italic; color: #cbd5e1;">
         "${escapeHtml(message)}"
       </blockquote>
