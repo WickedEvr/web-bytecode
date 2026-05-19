@@ -564,34 +564,56 @@ const Contacto: React.FC = () => {
     setFormData({ ...formData, [e.target.name]: stripSymbols(e.target.value) });
   };
 
-  const handleTaxIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value.trim().toUpperCase();
-    
-    // Si es individual, usamos la regex del documento seleccionado; si no, la del país
-    const pattern = (personType === 'individual' 
-      ? selectedDocData?.validationRegex 
-      : selectedCountryData.tax_id_regex) || '^[\\w-]{4,40}$';
-      
-    const taxRegex = new RegExp(pattern, 'i');
-    
-    if (inputValue && !taxRegex.test(inputValue)) {
-      const formalName = personType === 'individual' 
-        ? (selectedDocData?.name || 'documento') 
-        : (selectedCountryData.tax_id_label || 'identificación');
-        
-      const errorMsg = `Formato de ${formalName} inválido`;
-      e.target.setCustomValidity(errorMsg);
-      setTaxIdError(errorMsg);
-    } else {
-      e.target.setCustomValidity('');
+  const handleSmartValidation = (value: string, trigger: 'change' | 'blur', targetElement: HTMLInputElement) => {
+    if (!value) {
       setTaxIdError('');
+      targetElement.setCustomValidity('');
+      return;
     }
+
+    const isCompany = personType === 'company';
+    const pattern = isCompany 
+      ? (selectedCountryData?.tax_id_regex || '^[\\w-]{4,40}$') 
+      : (selectedDocData?.validationRegex || '^[\\w-]{4,40}$');
     
+    // Detect the hard limit from the HTML element or fallback
+    const limit = targetElement.maxLength > 0 ? targetElement.maxLength : 40;
+    const regex = new RegExp(pattern, 'i');
+    const isValid = regex.test(value);
+
+    if (isValid) {
+      setTaxIdError('');
+      targetElement.setCustomValidity('');
+    } else {
+      // Core UX Logic: Only yell if they leave the input OR if they hit the character limit
+      if (trigger === 'blur' || value.length >= limit) {
+        const errorMsg = isCompany ? 'Formato de identificación corporativa inválido' : `Formato de ${selectedDocData?.name || 'documento'} inválido`;
+        setTaxIdError(errorMsg);
+        targetElement.setCustomValidity(errorMsg);
+      } else {
+        // Silent typing phase
+        setTaxIdError('');
+        targetElement.setCustomValidity('');
+      }
+    }
+  };
+
+  const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value.trim().toUpperCase();
+
+    // Update state first
     if (personType === 'individual') {
       setFormData({ ...formData, documentNumber: inputValue });
     } else {
       setFormData({ ...formData, ruc: inputValue, documentNumber: inputValue });
     }
+
+    // Call smart validation
+    handleSmartValidation(inputValue, 'change', e.target);
+  };
+
+  const handleDocumentBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    handleSmartValidation(e.target.value, 'blur', e.target);
   };
 
   const handleCountrySelect = (country: CountryData) => {
@@ -782,13 +804,13 @@ const Contacto: React.FC = () => {
                 <input
                   type="text"
                   name="ruc"
-                  placeholder={selectedCountryData?.tax_id_placeholder ? `Ej: ${selectedCountryData.tax_id_placeholder}` : 'Ingrese su documento'}
+                  placeholder={selectedCountryData?.tax_id_placeholder ? `${selectedCountryData.tax_id_placeholder}` : 'Ingrese su documento'}
                   className={`${solidInput} ${taxIdError ? 'ring-2 ring-red-400 focus:ring-red-400' : ''}`}
                   required={personType === 'company'}
-                  minLength={4}
-                  maxLength={40}
+                  maxLength={selectedCountryData?.maxLength || 40}
                   value={formData.ruc}
-                  onChange={handleTaxIdChange}
+                  onChange={handleDocumentChange}
+                  onBlur={handleDocumentBlur}
                 />
                 {taxIdError && (
                   <span className="absolute -bottom-5 left-4 text-xs font-bold text-red-400">
@@ -820,10 +842,10 @@ const Contacto: React.FC = () => {
                   placeholder={selectedDocData?.placeholder || 'Ingrese su documento'}
                   className={`${solidInput} ${taxIdError ? 'ring-2 ring-red-400 focus:ring-red-400' : ''}`}
                   required={personType === 'individual'}
-                  minLength={selectedDocData?.minLength || 4}
                   maxLength={selectedDocData?.maxLength || 40}
                   value={formData.documentNumber}
-                  onChange={handleTaxIdChange}
+                  onChange={handleDocumentChange}
+                  onBlur={handleDocumentBlur}
                 />
                 {taxIdError && (
                   <span className="absolute -bottom-5 left-4 text-xs font-bold text-red-400">
