@@ -13,7 +13,6 @@ const solidTextarea =
   'w-full min-h-[150px] resize-y bg-white rounded-3xl px-6 py-4 text-[#333] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06CFD6] transition-all text-[20px] shadow-sm';
 
 const stripDigits = (value: string) => value.replace(/\d/g, '');
-const stripNonDigits = (value: string) => value.replace(/\D/g, '');
 const stripSymbols = (value: string) => value.replace(/[^\p{L}\p{N}\s]/gu, '');
 
 const Label: React.FC<{ text: string; required?: boolean }> = ({ text, required }) => (
@@ -402,6 +401,7 @@ const Contacto: React.FC = () => {
   });
   
   const [selectedCountryData, setSelectedCountryData] = useState<CountryData>(defaultPeru);
+  const [taxIdError, setTaxIdError] = useState('');
 
   // Agregamos el estado de éxito a nuestra lógica
   const [isLoading, setIsLoading] = useState(false);
@@ -427,12 +427,17 @@ const Contacto: React.FC = () => {
   };
 
   const handleTaxIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = stripNonDigits(e.target.value);
-    const taxRegex = new RegExp(selectedCountryData.tax_id_regex || '^\\d{4,20}$');
+    const inputValue = e.target.value.trim().toUpperCase();
+    const regexPattern = selectedCountryData.tax_id_regex || '^[\\w-]{4,40}$';
+    const taxRegex = new RegExp(regexPattern, 'i');
+    
     if (inputValue && !taxRegex.test(inputValue)) {
-      e.target.setCustomValidity(`Formato de ${selectedCountryData.tax_id_label || 'identificación'} inválido`);
+      const errorMsg = `Formato de ${selectedCountryData.tax_id_label || 'identificación'} inválido`;
+      e.target.setCustomValidity(errorMsg);
+      setTaxIdError(errorMsg);
     } else {
       e.target.setCustomValidity('');
+      setTaxIdError('');
     }
     setFormData({ ...formData, ruc: inputValue });
   };
@@ -445,6 +450,7 @@ const Contacto: React.FC = () => {
       celular: '',
       ruc: '',
     }));
+    setTaxIdError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -595,21 +601,24 @@ const Contacto: React.FC = () => {
             />
           </div>
 
-          <div>
-            <Label text={selectedCountryData.tax_id_label || 'RUC'} />
+          <div className="relative mb-2">
+            <Label text={selectedCountryData.tax_id_label || 'Identificación'} />
             <input
               type="text"
               name="ruc"
-              placeholder={selectedCountryData.tax_id_placeholder || 'RUC'}
-              className={solidInput}
+              placeholder={selectedCountryData.tax_id_placeholder || 'Documento'}
+              className={`${solidInput} ${taxIdError ? 'ring-2 ring-red-400 focus:ring-red-400' : ''}`}
               required
-              inputMode="numeric"
-              pattern="\d*"
-              minLength={2}
-              maxLength={160}
+              minLength={4}
+              maxLength={40}
               value={formData.ruc}
               onChange={handleTaxIdChange}
             />
+            {taxIdError && (
+              <span className="absolute -bottom-5 left-4 text-xs font-bold text-red-400">
+                {taxIdError}
+              </span>
+            )}
           </div>
 
           <div className="mb-2">
