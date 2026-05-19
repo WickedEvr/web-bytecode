@@ -496,7 +496,11 @@ router.post(
 
       const complaintNotificationPayload = {
         codigo: code,
-        cliente: `${body.nombres} ${body.apellidos}`,
+        nombres: body.nombres,
+        apellidos: body.apellidos,
+        tipoDocumento: body.tipoDoc,
+        numeroDocumento: body.numeroDoc,
+        domicilio: body.domicilio,
         email: body.email,
         telefono: `${body.prefijoTelefono} ${body.telefono}`,
         tipo: body.claimType,
@@ -506,8 +510,13 @@ router.post(
 
       const customerReceiptPayload = {
         Cliente: `${body.nombres} ${body.apellidos}`,
-        Email: body.email,
-        Teléfono: `${body.prefijoTelefono} ${body.telefono}`,
+        Nombres: body.nombres,
+        Apellidos: body.apellidos,
+        'Tipo de Documento': body.tipoDoc,
+        'Número de Documento': body.numeroDoc,
+        Domicilio: body.domicilio,
+        'Número de Celular': `${body.prefijoTelefono} ${body.telefono}`,
+        'Correo Electrónico': body.email,
         'Tipo de Trámite': body.claimType,
         'Bien Contratado': body.goodType,
         'Monto Reclamado': body.montoCuantificable ? `S/ ${body.montoCuantificable}` : 'No especificado',
