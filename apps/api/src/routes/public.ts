@@ -504,11 +504,22 @@ router.post(
         adjunto: validatedFile?.originalName ?? 'Sin adjunto',
       };
 
+      const customerReceiptPayload = {
+        Cliente: `${body.nombres} ${body.apellidos}`,
+        Email: body.email,
+        Teléfono: `${body.prefijoTelefono} ${body.telefono}`,
+        'Tipo de Trámite': body.claimType,
+        'Bien Contratado': body.goodType,
+        'Monto Reclamado': body.montoCuantificable ? `S/ ${body.montoCuantificable}` : 'No especificado',
+        'Detalle del Incidente': body.detalle,
+        'Pedido del Cliente': body.pedido,
+      };
+
       notifyAdmins(`Alerta: Nuevo Reclamo ${code}`, complaintNotificationPayload, ['legal_reviewer', 'admin', 'super_admin'], 'complaint').catch(console.error);
       sendCustomerAcknowledgement(
         body.email,
         `Constancia de Reclamo ${code} - Bytecode`,
-        buildComplaintReceipt(`${body.nombres} ${body.apellidos}`, code),
+        buildComplaintReceipt(code, customerReceiptPayload),
         'complaint',
       ).catch(console.error);
 

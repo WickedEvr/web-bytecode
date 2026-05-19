@@ -94,10 +94,17 @@ export function buildContactReceipt(name: string, lastName: string, caseCode: st
   return masterLayout(content);
 }
 
-export function buildComplaintReceipt(names: string, complaintCode: string): string {
+export function buildComplaintReceipt(complaintCode: string, payload: Record<string, string>): string {
+  const clientName = payload['Cliente'] || payload['cliente'] || 'Cliente';
+  
+  const rows = Object.entries(payload)
+    .filter(([key]) => key.toLowerCase() !== 'cliente' && key.toLowerCase() !== 'detalle del incidente' && key.toLowerCase() !== 'pedido del cliente')
+    .map(([key, value]) => `<tr><td style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);"><strong style="color: #06CFD6;">${escapeHtml(capitalize(key))}</strong></td><td style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);">${escapeHtml(value)}</td></tr>`)
+    .join('');
+
   const content = `
     <h2 style="color: #ffffff; margin-top: 0;">Constancia de Reclamo</h2>
-    <p>Estimado/a <span class="highlight">${escapeHtml(names)}</span>,</p>
+    <p>Estimado/a <span class="highlight">${escapeHtml(clientName)}</span>,</p>
     <p>Por medio de la presente, confirmamos la recepción formal de su reclamo o queja en nuestro Libro de Reclamaciones Virtual.</p>
     
     <div style="text-align: center; margin: 30px 0;">
@@ -105,6 +112,25 @@ export function buildComplaintReceipt(names: string, complaintCode: string): str
       <div style="display: inline-block; background-color: rgba(6, 207, 214, 0.1); border: 1px solid #06CFD6; padding: 10px 20px; border-radius: 4px; font-size: 20px; font-weight: bold; color: #06CFD6; letter-spacing: 1px; margin-top: 8px;">
         ${escapeHtml(complaintCode)}
       </div>
+    </div>
+
+    <div class="card">
+      <h3 style="color: #ffffff; margin-top: 0; font-size: 16px;">Detalle de su Hoja de Reclamación</h3>
+      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; margin-bottom: 20px;">
+        ${rows}
+      </table>
+      
+      ${payload['Detalle del Incidente'] ? `
+      <p style="font-size: 14px; margin-bottom: 5px;"><strong style="color: #06CFD6;">Detalle del Incidente:</strong></p>
+      <blockquote style="margin: 0 0 20px 0; padding-left: 15px; border-left: 4px solid #06CFD6; font-style: italic; color: #cbd5e1; font-size: 14px;">
+        "${escapeHtml(payload['Detalle del Incidente'])}"
+      </blockquote>` : ''}
+
+      ${payload['Pedido del Cliente'] ? `
+      <p style="font-size: 14px; margin-bottom: 5px;"><strong style="color: #06CFD6;">Pedido del Cliente:</strong></p>
+      <blockquote style="margin: 0; padding-left: 15px; border-left: 4px solid #06CFD6; font-style: italic; color: #cbd5e1; font-size: 14px;">
+        "${escapeHtml(payload['Pedido del Cliente'])}"
+      </blockquote>` : ''}
     </div>
 
     <div class="card">
