@@ -396,16 +396,6 @@ const DocumentTypeDropdown: React.FC<DocumentTypeDropdownProps> = ({ value, sele
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Forensic Inspection Telemetry
-  if (documentsRegistry && documentsRegistry.length > 0) {
-    console.log("🔍 [FORENSIC INSPECTION] Comparemos los IDs reales de la Base de Datos:");
-    console.log(`👉 Componente espera Country UUID: "${selectedCountryId}" (Tipo: ${typeof selectedCountryId})`);
-    documentsRegistry.slice(0, 4).forEach((dt: any, idx) => {
-      const dbCountryId = dt.countryId !== undefined ? dt.countryId : dt.country_id;
-      console.log(`📄 Doc [${idx}] (${dt.code}) -> countryId detectado: "${dbCountryId}" (Originales: camel=${dt.countryId}, snake=${dt.country_id})`);
-    });
-  }
-
   // Filtrar dinámicamente con soporte dual camelCase/snake_case:
   const filteredOptions = documentsRegistry.filter((dt: any) => {
     if (dt.isCompanyDocument) return false;
@@ -427,9 +417,7 @@ const DocumentTypeDropdown: React.FC<DocumentTypeDropdownProps> = ({ value, sele
   });
 
   useEffect(() => {
-    if (filteredOptions.length === 0 && selectedCountryId && selectedCountryId !== 'default') {
-      console.warn("Race Condition / Empty Guard - No documents found for country UUID:", selectedCountryId, "Current Registry Size:", documentsRegistry.length);
-    }
+    // No-op cleanup or side effect if needed
   }, [selectedCountryId, filteredOptions.length, documentsRegistry.length]);
 
   const selectedDoc = filteredOptions.find((opt: any) => (opt.code || opt.value) === value) as any;
@@ -790,11 +778,11 @@ const Contacto: React.FC = () => {
               </div>
 
               <div className="relative mb-2">
-                <Label text="RUC" />
+                <Label text={selectedCountryData?.tax_id_label || 'Identificación Fiscal'} />
                 <input
                   type="text"
                   name="ruc"
-                  placeholder="Ej: 20123456789"
+                  placeholder={selectedCountryData?.tax_id_placeholder ? `Ej: ${selectedCountryData.tax_id_placeholder}` : 'Ingrese su documento'}
                   className={`${solidInput} ${taxIdError ? 'ring-2 ring-red-400 focus:ring-red-400' : ''}`}
                   required={personType === 'company'}
                   minLength={4}

@@ -138,7 +138,6 @@ export const fetchDocumentTypes = async () => {
   const response = await apiRequest<any>('/api/catalog/document-types', {
     method: 'GET',
   });
-  console.log("📡 [FRONTEND NETWORK RECEIVE] Lo que llega crudo de la red:", JSON.stringify(response.items || response));
   const responseData = response.items || response; // Handle wrapper safely
   return responseData.map((item: any) => ({
     id: item.id,
