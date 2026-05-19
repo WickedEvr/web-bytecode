@@ -121,7 +121,8 @@ router.get('/catalog/services', asyncHandler(async (_req: Request, res: Response
 }));
 
 router.get('/catalog/document-types', asyncHandler(async (_req: Request, res: Response) => {
-  const result = await pool.query('SELECT id, code, name FROM document_types WHERE is_active = true ORDER BY name ASC');
+  const result = await pool.query('SELECT id, code, name, country_id, validation_regex, min_length, max_length, is_company_document, placeholder FROM document_types WHERE is_active = true ORDER BY name ASC');
+  console.log("🔥 [BACKEND DATA DUMP] Primer registro de document-types:", result.rows[0]);
   res.json({ items: result.rows });
 }));
 

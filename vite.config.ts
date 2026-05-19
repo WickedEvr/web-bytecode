@@ -33,6 +33,7 @@ export default defineConfig({
     },
   },
   build: {
+    chunkSizeWarningLimit: 800,
     rollupOptions: {
       output: {
         manualChunks(id: string) {
@@ -41,6 +42,10 @@ export default defineConfig({
           }
 
           const normalizedId = id.replace(/\\/g, '/');
+
+          if (normalizedId.includes('/node_modules/framer-motion/')) {
+            return 'framer';
+          }
 
           if (
             normalizedId.includes('/node_modules/react/') ||

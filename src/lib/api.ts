@@ -135,10 +135,22 @@ export const fetchServices = async () => {
 };
 
 export const fetchDocumentTypes = async () => {
-  const response = await apiRequest<{ items: DocumentTypeData[] }>('/api/catalog/document-types', {
+  const response = await apiRequest<any>('/api/catalog/document-types', {
     method: 'GET',
   });
-  return response.items;
+  console.log("📡 [FRONTEND NETWORK RECEIVE] Lo que llega crudo de la red:", JSON.stringify(response.items || response));
+  const responseData = response.items || response; // Handle wrapper safely
+  return responseData.map((item: any) => ({
+    id: item.id,
+    code: item.code,
+    name: item.name,
+    countryId: item.country_id,
+    validationRegex: item.validation_regex,
+    minLength: item.min_length,
+    maxLength: item.max_length,
+    isCompanyDocument: item.is_company_document,
+    placeholder: item.placeholder,
+  })) as DocumentTypeData[];
 };
 
 export interface PortfolioProjectData {

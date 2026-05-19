@@ -6,9 +6,9 @@ import AltFooter from '../components/layout/AltFooter';
 import SpotlightText from '../components/typography/SpotlightText';
 import SEO from '../components/shared/SEO';
 import { fetchPortfolio } from '../lib/api';
+import Carousel3D from '../components/sections/Carousel3D';
 
 const AuroraBackground = lazy(() => import('../components/effects/AuroraBackground'));
-const Carousel3D = lazy(() => import('../components/sections/Carousel3D'));
 
 const Portafolio: React.FC = () => {
   const [isDesktop, setIsDesktop] = useState(false);

@@ -388,34 +388,52 @@ const ServiceDropdown: React.FC<ServiceDropdownProps> = ({ value, onChange }) =>
 interface DocumentTypeDropdownProps {
   value: string;
   selectedCountryId: string;
+  documentsRegistry: DocumentTypeData[];
   onChange: (docType: DocumentTypeData) => void;
 }
 
-const DocumentTypeDropdown: React.FC<DocumentTypeDropdownProps> = ({ value, selectedCountryId, onChange }) => {
+const DocumentTypeDropdown: React.FC<DocumentTypeDropdownProps> = ({ value, selectedCountryId, documentsRegistry, onChange }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [options, setOptions] = useState<DocumentTypeData[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const loadDocumentTypes = async () => {
-      try {
-        const data = await fetchDocumentTypes();
-        // Filtrar: dt.countryId === selectedCountryId o dt.countryId === null (documentos universales)
-        const filtered = data.filter(dt => 
-          !dt.isCompanyDocument && (dt.countryId === selectedCountryId || dt.countryId === null)
-        );
-        setOptions(filtered);
-      } catch (error) {
-        console.error('Error fetching document types:', error);
-      }
-    };
-    if (selectedCountryId) {
-      loadDocumentTypes();
-    }
-  }, [selectedCountryId]);
+  // Forensic Inspection Telemetry
+  if (documentsRegistry && documentsRegistry.length > 0) {
+    console.log("🔍 [FORENSIC INSPECTION] Comparemos los IDs reales de la Base de Datos:");
+    console.log(`👉 Componente espera Country UUID: "${selectedCountryId}" (Tipo: ${typeof selectedCountryId})`);
+    documentsRegistry.slice(0, 4).forEach((dt: any, idx) => {
+      const dbCountryId = dt.countryId !== undefined ? dt.countryId : dt.country_id;
+      console.log(`📄 Doc [${idx}] (${dt.code}) -> countryId detectado: "${dbCountryId}" (Originales: camel=${dt.countryId}, snake=${dt.country_id})`);
+    });
+  }
 
-  const selectedDoc = options.find((opt) => opt.code === value);
-  const selectedLabel = selectedDoc?.name || 'Seleccione tipo...';
+  // Filtrar dinámicamente con soporte dual camelCase/snake_case:
+  const filteredOptions = documentsRegistry.filter((dt: any) => {
+    if (dt.isCompanyDocument) return false;
+
+    // 1. Extraer el ID del país soportando ambas nomenclaturas de respuesta
+    const dbCountryId = dt.countryId !== undefined ? dt.countryId : dt.country_id;
+
+    // 2. Si es un documento universal (ej. Pasaporte) donde country_id es null, se muestra siempre
+    if (dbCountryId === null || dbCountryId === undefined) {
+      // Permitimos PASAPORTE u otros documentos marcados como nulos en BD
+      return true; 
+    }
+
+    // 3. Normalizar strings de comparación para evitar fallos de mayúsculas o espacios
+    const normalizedDocCountryId = String(dbCountryId).trim().toLowerCase();
+    const normalizedSelectedCountryId = String(selectedCountryId).trim().toLowerCase();
+
+    return normalizedDocCountryId === normalizedSelectedCountryId;
+  });
+
+  useEffect(() => {
+    if (filteredOptions.length === 0 && selectedCountryId && selectedCountryId !== 'default') {
+      console.warn("Race Condition / Empty Guard - No documents found for country UUID:", selectedCountryId, "Current Registry Size:", documentsRegistry.length);
+    }
+  }, [selectedCountryId, filteredOptions.length, documentsRegistry.length]);
+
+  const selectedDoc = filteredOptions.find((opt: any) => (opt.code || opt.value) === value) as any;
+  const selectedLabel = (selectedDoc?.name || selectedDoc?.label) || 'Seleccione tipo...';
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -427,7 +445,7 @@ const DocumentTypeDropdown: React.FC<DocumentTypeDropdownProps> = ({ value, sele
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleSelect = (doc: DocumentTypeData) => {
+  const handleSelect = (doc: any) => {
     onChange(doc);
     setIsOpen(false);
   };
@@ -472,19 +490,25 @@ const DocumentTypeDropdown: React.FC<DocumentTypeDropdownProps> = ({ value, sele
             className="absolute top-full left-0 mt-2 w-full bg-white border border-gray-100 shadow-xl rounded-xl overflow-hidden z-[100]"
           >
             <div className="py-2">
-              {options.map((doc) => (
-                <div
-                  key={doc.id}
-                  onClick={() => handleSelect(doc)}
-                  className={`px-6 py-3 cursor-pointer transition-colors ${
-                    value === doc.code 
-                      ? 'bg-[#06CFD6]/15 text-[#06CFD6] font-bold' 
-                      : 'text-gray-600 lg:hover:bg-gray-200 lg:hover:text-gray-900'
-                  }`}
-                >
-                  <span className="text-[20px]">{doc.name}</span>
+              {filteredOptions.length > 0 ? (
+                filteredOptions.map((doc: any) => (
+                  <div
+                    key={doc.id}
+                    onClick={() => handleSelect(doc)}
+                    className={`px-6 py-3 cursor-pointer transition-colors ${
+                      value === (doc.code || doc.value) 
+                        ? 'bg-[#06CFD6]/15 text-[#06CFD6] font-bold' 
+                        : 'text-gray-600 lg:hover:bg-gray-200 lg:hover:text-gray-900'
+                    }`}
+                  >
+                    <span className="text-[20px]">{doc.name || doc.label}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="px-6 py-3 text-gray-400 text-[18px] italic">
+                  Cargando documentos...
                 </div>
-              ))}
+              )}
             </div>
           </motion.div>
         )}
@@ -512,8 +536,22 @@ const Contacto: React.FC = () => {
   });
   
   const [selectedCountryData, setSelectedCountryData] = useState<CountryData>(defaultPeru);
+  const [allDocumentTypes, setAllDocumentTypes] = useState<DocumentTypeData[]>([]);
   const [selectedDocData, setSelectedDocData] = useState<DocumentTypeData | null>(null);
   const [taxIdError, setTaxIdError] = useState('');
+
+  // 1. Fetch de Catálogos al montar el componente
+  useEffect(() => {
+    const loadCatalogs = async () => {
+      try {
+        const docTypes = await fetchDocumentTypes();
+        setAllDocumentTypes(docTypes);
+      } catch (error) {
+        console.error('Error fetching document types:', error);
+      }
+    };
+    loadCatalogs();
+  }, []);
 
   // Agregamos el estado de éxito a nuestra lógica
   const [isLoading, setIsLoading] = useState(false);
@@ -778,6 +816,7 @@ const Contacto: React.FC = () => {
                 <DocumentTypeDropdown
                   value={formData.documentType}
                   selectedCountryId={selectedCountryData.id}
+                  documentsRegistry={allDocumentTypes}
                   onChange={(doc) => {
                     setFormData({ ...formData, documentType: doc.code, documentNumber: '' });
                     setSelectedDocData(doc);
