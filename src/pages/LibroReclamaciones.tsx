@@ -222,9 +222,10 @@ interface DocumentTypeDropdownProps {
   selectedCountryId: string;
   documentsRegistry: DocumentTypeData[];
   onChange: (docType: DocumentTypeData) => void;
+  isLoading?: boolean;
 }
 
-const DocumentTypeDropdown: React.FC<DocumentTypeDropdownProps> = ({ value, selectedCountryId, documentsRegistry, onChange }) => {
+const DocumentTypeDropdown: React.FC<DocumentTypeDropdownProps> = ({ value, selectedCountryId, documentsRegistry, onChange, isLoading }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -249,7 +250,7 @@ const DocumentTypeDropdown: React.FC<DocumentTypeDropdownProps> = ({ value, sele
   });
 
   const selectedDoc = filteredOptions.find((opt: any) => (opt.code || opt.value) === value) as any;
-  const selectedLabel = (selectedDoc?.name || selectedDoc?.label) || 'Seleccione tipo...';
+  const selectedLabel = (selectedDoc?.name || selectedDoc?.label) || (isLoading ? '⏳ Cargando documentos...' : 'Seleccione tipo...');
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -334,34 +335,25 @@ const DocumentTypeDropdown: React.FC<DocumentTypeDropdownProps> = ({ value, sele
 };
 
 // 2. Phone Input (Idéntico al de Contacto)
-interface PhoneInputProps { value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; onCountrySelect?: (country: CountryData) => void; }
+interface PhoneInputProps { value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; onCountrySelect?: (country: CountryData) => void; countriesRegistry?: CountryData[]; isLoading?: boolean; }
 
 const defaultPeru: CountryData = { id: 'default', iso: 'PE', name: 'Perú', dialCode: '+51', maxLength: 9, tax_id_label: 'RUC', tax_id_regex: '^(10|20)\\d{9}$', tax_id_placeholder: 'Ej. 20123456789' };
 
-const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountrySelect }) => {
-  const [countries, setCountries] = useState<CountryData[]>([defaultPeru]);
+const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountrySelect, countriesRegistry = [], isLoading }) => {
+  const countries = countriesRegistry.length > 0 ? countriesRegistry : [defaultPeru];
   const [selectedCountry, setSelectedCountry] = useState<CountryData>(defaultPeru);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [error, setError] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const loadCountries = async () => {
-      try {
-        const data = await fetchCountries();
-        setCountries(data);
-        if (data.length > 0) {
-          const peru = data.find(c => c.iso === 'PE') || data[0];
-          setSelectedCountry(peru); 
-          if (onCountrySelect) onCountrySelect(peru);
-        }
-      } catch (error) {
-        console.error('Error fetching countries:', error);
-      }
-    };
-    loadCountries();
+    if (countriesRegistry.length > 0) {
+      const peru = countriesRegistry.find(c => c.iso === 'PE') || countriesRegistry[0];
+      setSelectedCountry(peru); 
+      if (onCountrySelect) onCountrySelect(peru);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [countriesRegistry]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -391,17 +383,21 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
       <div className={`flex items-center w-full bg-white rounded-full overflow-visible transition-all shadow-sm ${error ? 'ring-2 ring-red-400' : 'focus-within:ring-2 focus-within:ring-[#06CFD6]'}`}>
         
         <div 
-          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="shrink-0 flex items-center gap-1.5 md:gap-2 pl-4 md:pl-6 pr-2 md:pr-3 py-[0.6rem] border-r border-gray-200 bg-white cursor-pointer rounded-l-full select-none lg:hover:bg-gray-50"
+          onClick={() => { if (!isLoading) setIsDropdownOpen(!isDropdownOpen); }}
+          className={`shrink-0 flex items-center gap-1.5 md:gap-2 pl-4 md:pl-6 pr-2 md:pr-3 py-[0.6rem] border-r border-gray-200 bg-white rounded-l-full select-none ${isLoading ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer lg:hover:bg-gray-50'}`}
         >
-          <img
-            src={`https://flagcdn.com/w20/${selectedCountry.iso.toLowerCase()}.png`}
-            srcSet={`https://flagcdn.com/w40/${selectedCountry.iso.toLowerCase()}.png 2x`}
-            alt={selectedCountry.name}
-            className="w-6 h-auto object-contain rounded-sm"
-            title={selectedCountry.name}
-          />
-          <span className="text-[18px] md:text-[20px] font-semibold text-gray-600">{selectedCountry.dialCode}</span>
+          {isLoading ? (
+            <span className="text-[18px] md:text-[20px] font-semibold text-gray-400">⏳</span>
+          ) : (
+            <img
+              src={`https://flagcdn.com/w20/${selectedCountry.iso.toLowerCase()}.png`}
+              srcSet={`https://flagcdn.com/w40/${selectedCountry.iso.toLowerCase()}.png 2x`}
+              alt={selectedCountry.name}
+              className="w-6 h-auto object-contain rounded-sm"
+              title={selectedCountry.name}
+            />
+          )}
+          <span className="text-[18px] md:text-[20px] font-semibold text-gray-600">{isLoading ? '...' : selectedCountry.dialCode}</span>
           <svg className={`w-3 h-3 text-gray-400 transition-transform duration-200 shrink-0 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
@@ -410,12 +406,13 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
         <input
           type="tel"
           name="telefono"
-          placeholder={`Ej: ${'9'.repeat(selectedCountry.maxLength)}`}
+          placeholder={isLoading ? 'Despertando servidor...' : `Ej: ${'9'.repeat(selectedCountry.maxLength)}`}
           className="flex-1 bg-transparent px-4 py-[0.6rem] text-[#333] placeholder-gray-400 focus:outline-none text-[18px] md:text-[20px] rounded-r-full"
           required
           maxLength={selectedCountry.maxLength}
           value={value}
           onChange={handleInputChange}
+          disabled={isLoading}
         />
       </div>
 
@@ -499,45 +496,41 @@ const LibroReclamaciones: React.FC = () => {
   const [submitError, setSubmitError] = useState('');
   const [complaintTypes, setComplaintTypes] = useState<{ id: string, code: string, name: string }[]>([]);
   const [serviceOptions, setServiceOptions] = useState<DropdownOption[]>([]);
+  const [isLoadingCatalogs, setIsLoadingCatalogs] = useState(true);
+  const [allCountries, setAllCountries] = useState<CountryData[]>([]);
 
   useEffect(() => {
-    apiRequest<{ items: { id: string, code: string, name: string }[] }>('/api/catalog/complaint-types')
-      .then((res: { items: { id: string, code: string, name: string }[] }) => {
-        setComplaintTypes(res.items);
-        if (res.items.length > 0) {
+    const loadAllCatalogs = async () => {
+      setIsLoadingCatalogs(true);
+      try {
+        const [complaintsRes, servicesData, docTypesData, countriesData] = await Promise.all([
+          apiRequest<{ items: { id: string, code: string, name: string }[] }>('/api/catalog/complaint-types'),
+          fetchServices(),
+          fetchDocumentTypes(),
+          fetchCountries(),
+        ]);
+        
+        setComplaintTypes(complaintsRes.items);
+        if (complaintsRes.items.length > 0) {
           setFormData(prev => (
-            !prev.claimType || !res.items.find((ct) => ct.code === prev.claimType)
-              ? { ...prev, claimType: res.items[0].code }
+            !prev.claimType || !complaintsRes.items.find((ct) => ct.code === prev.claimType)
+              ? { ...prev, claimType: complaintsRes.items[0].code }
               : prev
           ));
         }
-      })
-      .catch(console.error);
-  }, []);
 
-  useEffect(() => {
-    const loadServices = async () => {
-      try {
-        const data = await fetchServices();
-        const filteredData = data.filter(s => s.code !== 'custom_software');
-        setServiceOptions(filteredData.map(s => ({ value: s.code, label: s.name })));
+        const filteredServices = servicesData.filter(s => s.code !== 'custom_software');
+        setServiceOptions(filteredServices.map(s => ({ value: s.code, label: s.name })));
+
+        setAllDocumentTypes(docTypesData);
+        setAllCountries(countriesData);
       } catch (error) {
-        console.error('Error fetching services:', error);
+        console.error('Error fetching catalogs:', error);
+      } finally {
+        setIsLoadingCatalogs(false);
       }
     };
-    loadServices();
-  }, []);
-
-  useEffect(() => {
-    const loadDocumentTypes = async () => {
-      try {
-        const data = await fetchDocumentTypes();
-        setAllDocumentTypes(data);
-      } catch (error) {
-        console.error('Error fetching document types:', error);
-      }
-    };
-    loadDocumentTypes();
+    loadAllCatalogs();
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -751,6 +744,7 @@ const LibroReclamaciones: React.FC = () => {
                       setSelectedDocData(doc);
                       setTaxIdError('');
                     }}
+                    isLoading={isLoadingCatalogs}
                   />
                 )}
               </div>
@@ -778,7 +772,7 @@ const LibroReclamaciones: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="mb-2 md:mb-0">
                 <Label text="Número de celular" required />
-                <PhoneInputGroup value={formData.telefono} onChange={handleChange} onCountrySelect={handleCountrySelect} />
+                <PhoneInputGroup value={formData.telefono} onChange={handleChange} onCountrySelect={handleCountrySelect} countriesRegistry={allCountries} isLoading={isLoadingCatalogs} />
               </div>
               <div><Label text="Correo Electrónico" required /><input name="email" type="email" placeholder="ejemplo@correo.com" value={formData.email} onChange={handleChange} className={solidInput} required maxLength={180} /></div>
             </div>
@@ -802,7 +796,7 @@ const LibroReclamaciones: React.FC = () => {
               <div><Label text="Nombre del proyecto/unidad" /><input name="nombreUnidad" type="text" placeholder="Ej: Landing Page Corporativa" value={formData.nombreUnidad} onChange={handleChange} className={solidInput} maxLength={160} /></div>
               <div>
                 <Label text="Categoría" />
-                <CustomDropdown value={formData.opcionBien} placeholder="Seleccione una opción" onChange={(val) => handleCustomDropdown('opcionBien', val)} options={serviceOptions} />
+                <CustomDropdown value={formData.opcionBien} placeholder={isLoadingCatalogs ? "⏳ Cargando opciones..." : "Seleccione una opción"} onChange={(val) => handleCustomDropdown('opcionBien', val)} options={serviceOptions} required={false} />
               </div>
             </div>
           </div>
@@ -899,10 +893,10 @@ const LibroReclamaciones: React.FC = () => {
               type="submit"
               isLoading={isLoading}
               isSuccess={isSuccess}
-              text="Enviar Reclamo"
+              text={isLoadingCatalogs ? "Conectando..." : "Enviar Reclamo"}
               loadingText="Enviando reclamo..."
               successText="¡Reclamo Enviado!"
-              disabled={!formData.aceptaTerminos}
+              disabled={!formData.aceptaTerminos || isLoadingCatalogs}
               className={`w-full text-white py-4 rounded-full text-[24px] md:text-[30px] font-bold shadow-[0_0_20px_rgba(6,207,214,0.3)] disabled:opacity-50 transition-all duration-300 ${isSuccess ? 'bg-[#0CA3C6] shadow-[0_0_30px_rgba(12,163,198,0.6)]' : 'bg-[#06CFD6] lg:hover:shadow-[0_0_30px_rgba(6,207,214,0.6)] lg:disabled:hover:shadow-none lg:disabled:hover:scale-100'}`}
             />
           </div>

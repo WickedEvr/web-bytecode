@@ -16,6 +16,17 @@ import { HttpError } from '../utils/httpError.js';
 
 const router = Router();
 
+router.get('/health', async (req: Request, res: Response) => {
+  try {
+    // Execute a lightweight query to force Neon out of zero-compute sleep mode
+    await pool.query('SELECT 1 AS status'); 
+    res.status(200).json({ status: 'awake', timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error("Health check failed:", error);
+    res.status(500).json({ status: 'error', message: 'Database wake failure' });
+  }
+});
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {

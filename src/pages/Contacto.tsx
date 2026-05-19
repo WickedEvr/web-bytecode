@@ -134,12 +134,14 @@ interface PhoneInputProps {
   // Opcional: callback para enviar el código de país al formulario padre si lo necesitas
   onCountryChange?: (dialCode: string) => void;
   onCountrySelect?: (country: CountryData) => void;
+  countriesRegistry?: CountryData[];
+  isLoading?: boolean;
 }
 
 const defaultPeru: CountryData = { id: 'default', iso: 'PE', name: 'Perú', dialCode: '+51', maxLength: 9, tax_id_label: 'RUC', tax_id_regex: '^[0-9]{11}$', tax_id_placeholder: '10468060100' };
 
-const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountryChange, onCountrySelect }) => {
-  const [countries, setCountries] = useState<CountryData[]>([defaultPeru]);
+const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountryChange, onCountrySelect, countriesRegistry = [], isLoading }) => {
+  const countries = countriesRegistry.length > 0 ? countriesRegistry : [defaultPeru];
   const [selectedCountry, setSelectedCountry] = useState<CountryData>(defaultPeru);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [error, setError] = useState('');
@@ -147,23 +149,14 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
 
   // 2. Fetch a BD (Integración SQL)
   useEffect(() => {
-    const loadCountries = async () => {
-      try {
-        const data = await fetchCountries();
-        setCountries(data);
-        if (data.length > 0) {
-          const peru = data.find(c => c.iso === 'PE') || data[0];
-          setSelectedCountry(peru); 
-          if (onCountryChange) onCountryChange(peru.dialCode);
-          if (onCountrySelect) onCountrySelect(peru);
-        }
-      } catch (error) {
-        console.error('Error fetching countries:', error);
-      }
-    };
-    loadCountries();
+    if (countriesRegistry.length > 0) {
+      const peru = countriesRegistry.find(c => c.iso === 'PE') || countriesRegistry[0];
+      setSelectedCountry(peru); 
+      if (onCountryChange) onCountryChange(peru.dialCode);
+      if (onCountrySelect) onCountrySelect(peru);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [countriesRegistry]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -201,17 +194,21 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
       <div className={`flex items-center w-full bg-white rounded-full overflow-visible transition-all shadow-sm ${error ? 'ring-2 ring-red-400' : 'focus-within:ring-2 focus-within:ring-[#06CFD6]'}`}>
         
         <div 
-          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="shrink-0 flex items-center gap-1.5 md:gap-2 pl-4 md:pl-6 pr-2 md:pr-3 py-[0.6rem] border-r border-gray-200 bg-white cursor-pointer rounded-l-full select-none lg:hover:bg-gray-50"
+          onClick={() => { if (!isLoading) setIsDropdownOpen(!isDropdownOpen); }}
+          className={`shrink-0 flex items-center gap-1.5 md:gap-2 pl-4 md:pl-6 pr-2 md:pr-3 py-[0.6rem] border-r border-gray-200 bg-white rounded-l-full select-none ${isLoading ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer lg:hover:bg-gray-50'}`}
         >
-          <img
-            src={`https://flagcdn.com/w20/${selectedCountry.iso.toLowerCase()}.png`}
-            srcSet={`https://flagcdn.com/w40/${selectedCountry.iso.toLowerCase()}.png 2x`}
-            alt={selectedCountry.name}
-            className="w-6 h-auto object-contain rounded-sm"
-            title={selectedCountry.name}
-          />
-          <span className="text-[18px] md:text-[20px] font-semibold text-gray-600">{selectedCountry.dialCode}</span>
+          {isLoading ? (
+            <span className="text-[18px] md:text-[20px] font-semibold text-gray-400">⏳</span>
+          ) : (
+            <img
+              src={`https://flagcdn.com/w20/${selectedCountry.iso.toLowerCase()}.png`}
+              srcSet={`https://flagcdn.com/w40/${selectedCountry.iso.toLowerCase()}.png 2x`}
+              alt={selectedCountry.name}
+              className="w-6 h-auto object-contain rounded-sm"
+              title={selectedCountry.name}
+            />
+          )}
+          <span className="text-[18px] md:text-[20px] font-semibold text-gray-600">{isLoading ? '...' : selectedCountry.dialCode}</span>
           <svg className={`w-3 h-3 text-gray-400 transition-transform duration-200 shrink-0 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
@@ -220,7 +217,7 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
         <input
           type="tel"
           name="celular"
-          placeholder={`Ej: ${'9'.repeat(selectedCountry.maxLength)}`}
+          placeholder={isLoading ? 'Despertando servidor...' : `Ej: ${'9'.repeat(selectedCountry.maxLength)}`}
           className="flex-1 bg-transparent px-4 py-[0.6rem] text-[#333] placeholder-gray-400 focus:outline-none text-[20px] rounded-r-full"
           required
           inputMode="numeric"
@@ -228,6 +225,7 @@ const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountry
           maxLength={selectedCountry.maxLength}
           value={value}
           onChange={handleInputChange}
+          disabled={isLoading}
         />
       </div>
 
@@ -286,27 +284,15 @@ interface ServiceOption {
 interface ServiceDropdownProps {
   value: string;
   onChange: (value: string) => void;
+  options: ServiceOption[];
+  isLoading?: boolean;
 }
 
-const ServiceDropdown: React.FC<ServiceDropdownProps> = ({ value, onChange }) => {
+const ServiceDropdown: React.FC<ServiceDropdownProps> = ({ value, onChange, options, isLoading }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [options, setOptions] = useState<ServiceOption[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const loadServices = async () => {
-      try {
-        const data = await fetchServices();
-        const filteredData = data.filter(s => s.code !== 'custom_software');
-        setOptions(filteredData.map(s => ({ value: s.code, label: s.name })));
-      } catch (error) {
-        console.error('Error fetching services:', error);
-      }
-    };
-    loadServices();
-  }, []);
-
-  const selectedLabel = options.find((opt) => opt.value === value)?.label || 'Seleccione su servicio';
+  const selectedLabel = options.find((opt) => opt.value === value)?.label || (isLoading ? '⏳ Cargando opciones...' : 'Seleccione su servicio');
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -336,8 +322,8 @@ const ServiceDropdown: React.FC<ServiceDropdownProps> = ({ value, onChange }) =>
         aria-hidden="true" 
       />
       <div 
-        onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center justify-between w-full bg-white rounded-full px-6 py-[0.6rem] cursor-pointer shadow-sm transition-all ${isOpen ? 'ring-2 ring-[#06CFD6]' : ''}`}
+        onClick={() => { if (!isLoading) setIsOpen(!isOpen); }}
+        className={`flex items-center justify-between w-full bg-white rounded-full px-6 py-[0.6rem] shadow-sm transition-all ${isOpen ? 'ring-2 ring-[#06CFD6]' : ''} ${isLoading ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
       >
         <span className={`text-[20px] ${value ? 'text-[#333]' : 'text-gray-400'}`}>
           {selectedLabel}
@@ -390,9 +376,10 @@ interface DocumentTypeDropdownProps {
   selectedCountryId: string;
   documentsRegistry: DocumentTypeData[];
   onChange: (docType: DocumentTypeData) => void;
+  isLoading?: boolean;
 }
 
-const DocumentTypeDropdown: React.FC<DocumentTypeDropdownProps> = ({ value, selectedCountryId, documentsRegistry, onChange }) => {
+const DocumentTypeDropdown: React.FC<DocumentTypeDropdownProps> = ({ value, selectedCountryId, documentsRegistry, onChange, isLoading }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -421,7 +408,7 @@ const DocumentTypeDropdown: React.FC<DocumentTypeDropdownProps> = ({ value, sele
   }, [selectedCountryId, filteredOptions.length, documentsRegistry.length]);
 
   const selectedDoc = filteredOptions.find((opt: any) => (opt.code || opt.value) === value) as any;
-  const selectedLabel = (selectedDoc?.name || selectedDoc?.label) || 'Seleccione tipo...';
+  const selectedLabel = (selectedDoc?.name || selectedDoc?.label) || (isLoading ? '⏳ Cargando documentos...' : 'Seleccione tipo...');
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -451,8 +438,8 @@ const DocumentTypeDropdown: React.FC<DocumentTypeDropdownProps> = ({ value, sele
         aria-hidden="true" 
       />
       <div 
-        onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center justify-between w-full bg-white rounded-full px-6 py-[0.6rem] cursor-pointer shadow-sm transition-all ${isOpen ? 'ring-2 ring-[#06CFD6]' : ''}`}
+        onClick={() => { if (!isLoading) setIsOpen(!isOpen); }}
+        className={`flex items-center justify-between w-full bg-white rounded-full px-6 py-[0.6rem] shadow-sm transition-all ${isOpen ? 'ring-2 ring-[#06CFD6]' : ''} ${isLoading ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
       >
         <span className={`text-[20px] ${value ? 'text-[#333]' : 'text-gray-400'}`}>
           {selectedLabel}
@@ -524,18 +511,33 @@ const Contacto: React.FC = () => {
   });
   
   const [selectedCountryData, setSelectedCountryData] = useState<CountryData>(defaultPeru);
+  const [allCountries, setAllCountries] = useState<CountryData[]>([]);
   const [allDocumentTypes, setAllDocumentTypes] = useState<DocumentTypeData[]>([]);
+  const [allServices, setAllServices] = useState<ServiceOption[]>([]);
   const [selectedDocData, setSelectedDocData] = useState<DocumentTypeData | null>(null);
   const [taxIdError, setTaxIdError] = useState('');
+
+  const [isLoadingCatalogs, setIsLoadingCatalogs] = useState(true);
 
   // 1. Fetch de Catálogos al montar el componente
   useEffect(() => {
     const loadCatalogs = async () => {
+      setIsLoadingCatalogs(true);
       try {
-        const docTypes = await fetchDocumentTypes();
-        setAllDocumentTypes(docTypes);
+        const [countriesData, docTypesData, servicesData] = await Promise.all([
+          fetchCountries(),
+          fetchDocumentTypes(),
+          fetchServices(),
+        ]);
+        setAllCountries(countriesData);
+        setAllDocumentTypes(docTypesData);
+        
+        const filteredServices = servicesData.filter(s => s.code !== 'custom_software');
+        setAllServices(filteredServices.map(s => ({ value: s.code, label: s.name })));
       } catch (error) {
-        console.error('Error fetching document types:', error);
+        console.error('Error fetching catalogs:', error);
+      } finally {
+        setIsLoadingCatalogs(false);
       }
     };
     loadCatalogs();
@@ -779,6 +781,8 @@ const Contacto: React.FC = () => {
               value={formData.celular} 
               onChange={handleChange}
               onCountrySelect={handleCountrySelect}
+              countriesRegistry={allCountries}
+              isLoading={isLoadingCatalogs}
             />
           </div>
 
@@ -832,6 +836,7 @@ const Contacto: React.FC = () => {
                     setSelectedDocData(doc);
                     setTaxIdError('');
                   }}
+                  isLoading={isLoadingCatalogs}
                 />
               </div>
               <div className="relative">
@@ -861,6 +866,8 @@ const Contacto: React.FC = () => {
             <ServiceDropdown 
               value={formData.servicio}
               onChange={(newValue) => setFormData({ ...formData, servicio: newValue })}
+              options={allServices}
+              isLoading={isLoadingCatalogs}
             />
           </div>
 
@@ -888,9 +895,10 @@ const Contacto: React.FC = () => {
               type="submit"
               isLoading={isLoading}
               isSuccess={isSuccess}
-              text="Conectar"
+              text={isLoadingCatalogs ? "Conectando..." : "Conectar"}
               loadingText="Enviando..."
               successText="¡Conectado!"
+              disabled={isLoadingCatalogs}
               className={`w-full text-white py-2 rounded-3xl text-[30px] font-bold shadow-[0_0_20px_rgba(6,207,214,0.3)] disabled:opacity-90 ${isSuccess ? 'bg-[#0CA3C6] shadow-[0_0_30px_rgba(12,163,198,0.6)]' : 'bg-[#06CFD6] lg:hover:shadow-[0_0_30px_rgba(6,207,214,0.6)] lg:disabled:hover:shadow-[0_0_20px_rgba(6,207,214,0.3)]'}`}
             />
           </div>
