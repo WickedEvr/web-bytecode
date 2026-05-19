@@ -4,7 +4,7 @@ import { motion, AnimatePresence, type HTMLMotionProps } from 'framer-motion';
 import SEO from '../components/shared/SEO';
 import LazyGalaxyBackground from '../components/effects/LazyGalaxyBackground';
 import ContactFooter from '../components/layout/ContactFooter';
-import { createContactSubmission, fetchCountries, fetchServices, type CountryData } from '../lib/api';
+import { createContactSubmission, fetchCountries, fetchServices, fetchDocumentTypes, type CountryData, type DocumentTypeData } from '../lib/api';
 
 const solidInput =
   'w-full bg-white rounded-full px-6 py-[0.6rem] text-[#333] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06CFD6] transition-all text-[20px] shadow-sm';
@@ -385,8 +385,117 @@ const ServiceDropdown: React.FC<ServiceDropdownProps> = ({ value, onChange }) =>
   );
 };
 
+interface DocumentTypeDropdownProps {
+  value: string;
+  selectedCountryId: string;
+  onChange: (docType: DocumentTypeData) => void;
+}
+
+const DocumentTypeDropdown: React.FC<DocumentTypeDropdownProps> = ({ value, selectedCountryId, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [options, setOptions] = useState<DocumentTypeData[]>([]);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const loadDocumentTypes = async () => {
+      try {
+        const data = await fetchDocumentTypes();
+        // Filtrar: dt.countryId === selectedCountryId o dt.countryId === null (documentos universales)
+        const filtered = data.filter(dt => 
+          !dt.isCompanyDocument && (dt.countryId === selectedCountryId || dt.countryId === null)
+        );
+        setOptions(filtered);
+      } catch (error) {
+        console.error('Error fetching document types:', error);
+      }
+    };
+    if (selectedCountryId) {
+      loadDocumentTypes();
+    }
+  }, [selectedCountryId]);
+
+  const selectedDoc = options.find((opt) => opt.code === value);
+  const selectedLabel = selectedDoc?.name || 'Seleccione tipo...';
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelect = (doc: DocumentTypeData) => {
+    onChange(doc);
+    setIsOpen(false);
+  };
+
+  return (
+    <div className="relative w-full" ref={dropdownRef}>
+      {/* Hidden input for native HTML5 validation */}
+      <input 
+        type="text" 
+        value={value} 
+        onChange={() => {}} 
+        required 
+        className="absolute opacity-0 w-full h-full -z-10 pointer-events-none" 
+        tabIndex={-1} 
+        aria-hidden="true" 
+      />
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center justify-between w-full bg-white rounded-full px-6 py-[0.6rem] cursor-pointer shadow-sm transition-all ${isOpen ? 'ring-2 ring-[#06CFD6]' : ''}`}
+      >
+        <span className={`text-[20px] ${value ? 'text-[#333]' : 'text-gray-400'}`}>
+          {selectedLabel}
+        </span>
+        <svg 
+          className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} 
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            style={{ transformOrigin: "top" }}
+            className="absolute top-full left-0 mt-2 w-full bg-white border border-gray-100 shadow-xl rounded-xl overflow-hidden z-[100]"
+          >
+            <div className="py-2">
+              {options.map((doc) => (
+                <div
+                  key={doc.id}
+                  onClick={() => handleSelect(doc)}
+                  className={`px-6 py-3 cursor-pointer transition-colors ${
+                    value === doc.code 
+                      ? 'bg-[#06CFD6]/15 text-[#06CFD6] font-bold' 
+                      : 'text-gray-600 lg:hover:bg-gray-200 lg:hover:text-gray-900'
+                  }`}
+                >
+                  <span className="text-[20px]">{doc.name}</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 const Contacto: React.FC = () => {
   const navigate = useNavigate();
+  const [personType, setPersonType] = useState<'individual' | 'company'>('company');
   const [formData, setFormData] = useState({
     countryId: '',
     nombre: '',
@@ -396,11 +505,14 @@ const Contacto: React.FC = () => {
     celular: '',
     empresa: '',
     ruc: '',
+    documentType: '',
+    documentNumber: '',
     servicio: '',
     mensaje: '',
   });
   
   const [selectedCountryData, setSelectedCountryData] = useState<CountryData>(defaultPeru);
+  const [selectedDocData, setSelectedDocData] = useState<DocumentTypeData | null>(null);
   const [taxIdError, setTaxIdError] = useState('');
 
   // Agregamos el estado de éxito a nuestra lógica
@@ -428,27 +540,44 @@ const Contacto: React.FC = () => {
 
   const handleTaxIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = e.target.value.trim().toUpperCase();
-    const regexPattern = selectedCountryData.tax_id_regex || '^[\\w-]{4,40}$';
-    const taxRegex = new RegExp(regexPattern, 'i');
+    
+    // Si es individual, usamos la regex del documento seleccionado; si no, la del país
+    const pattern = (personType === 'individual' 
+      ? selectedDocData?.validationRegex 
+      : selectedCountryData.tax_id_regex) || '^[\\w-]{4,40}$';
+      
+    const taxRegex = new RegExp(pattern, 'i');
     
     if (inputValue && !taxRegex.test(inputValue)) {
-      const errorMsg = `Formato de ${selectedCountryData.tax_id_label || 'identificación'} inválido`;
+      const formalName = personType === 'individual' 
+        ? (selectedDocData?.name || 'documento') 
+        : (selectedCountryData.tax_id_label || 'identificación');
+        
+      const errorMsg = `Formato de ${formalName} inválido`;
       e.target.setCustomValidity(errorMsg);
       setTaxIdError(errorMsg);
     } else {
       e.target.setCustomValidity('');
       setTaxIdError('');
     }
-    setFormData({ ...formData, ruc: inputValue });
+    
+    if (personType === 'individual') {
+      setFormData({ ...formData, documentNumber: inputValue });
+    } else {
+      setFormData({ ...formData, ruc: inputValue, documentNumber: inputValue });
+    }
   };
 
   const handleCountrySelect = (country: CountryData) => {
     setSelectedCountryData(country);
+    setSelectedDocData(null); // Purge legacy validation state
     setFormData((current) => ({
       ...current,
       countryId: country.id === 'default' ? '' : country.id,
       celular: '',
       ruc: '',
+      documentType: '',
+      documentNumber: '',
     }));
     setTaxIdError('');
   };
@@ -460,7 +589,7 @@ const Contacto: React.FC = () => {
     setSubmitError('');
 
     try {
-      await createContactSubmission(formData);
+      await createContactSubmission({ ...formData, personType });
       setIsLoading(false);
       setIsSuccess(true);
       
@@ -515,6 +644,23 @@ const Contacto: React.FC = () => {
           onSubmit={handleSubmit}
           className="w-full flex flex-col gap-4"
         >
+          <div className="flex justify-center gap-4 mb-4">
+            <button
+              type="button"
+              onClick={() => setPersonType('company')}
+              className={`px-6 py-2 rounded-full font-bold transition-all border ${personType === 'company' ? 'bg-[#06CFD6] text-[#040e1f] border-[#06CFD6]' : 'bg-transparent text-white border-white/30 hover:border-[#06CFD6]'}`}
+            >
+              Empresa
+            </button>
+            <button
+              type="button"
+              onClick={() => setPersonType('individual')}
+              className={`px-6 py-2 rounded-full font-bold transition-all border ${personType === 'individual' ? 'bg-[#06CFD6] text-[#040e1f] border-[#06CFD6]' : 'bg-transparent text-white border-white/30 hover:border-[#06CFD6]'}`}
+            >
+              Independiente
+            </button>
+          </div>
+
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <Label text="Nombre" />
@@ -547,20 +693,22 @@ const Contacto: React.FC = () => {
             </div>
           </div>
 
-          <div>
-            <Label text="Cargo" />
-            <input
-              type="text"
-              name="cargo"
-              placeholder="Cargo"
-              className={solidInput}
-              required
-              minLength={2}
-              maxLength={160}
-              value={formData.cargo}
-              onChange={handleTextOnlyChange}
-            />
-          </div>
+          {personType === 'company' && (
+            <div>
+              <Label text="Cargo" />
+              <input
+                type="text"
+                name="cargo"
+                placeholder="Cargo"
+                className={solidInput}
+                required={personType === 'company'}
+                minLength={2}
+                maxLength={160}
+                value={formData.cargo}
+                onChange={handleTextOnlyChange}
+              />
+            </div>
+          )}
 
           <div>
             <Label text="Email" />
@@ -586,40 +734,78 @@ const Contacto: React.FC = () => {
             />
           </div>
 
-          <div>
-            <Label text="Empresa" />
-            <input
-              type="text"
-              name="empresa"
-              placeholder="Empresa"
-              className={solidInput}
-              required
-              minLength={2}
-              maxLength={160}
-              value={formData.empresa}
-              onChange={handleAlphanumericChange}
-            />
-          </div>
+          {personType === 'company' ? (
+            <>
+              <div>
+                <Label text="Empresa" />
+                <input
+                  type="text"
+                  name="empresa"
+                  placeholder="Empresa"
+                  className={solidInput}
+                  required={personType === 'company'}
+                  minLength={2}
+                  maxLength={160}
+                  value={formData.empresa}
+                  onChange={handleAlphanumericChange}
+                />
+              </div>
 
-          <div className="relative mb-2">
-            <Label text={selectedCountryData.tax_id_label || 'Identificación'} />
-            <input
-              type="text"
-              name="ruc"
-              placeholder={selectedCountryData.tax_id_placeholder || 'Documento'}
-              className={`${solidInput} ${taxIdError ? 'ring-2 ring-red-400 focus:ring-red-400' : ''}`}
-              required
-              minLength={4}
-              maxLength={40}
-              value={formData.ruc}
-              onChange={handleTaxIdChange}
-            />
-            {taxIdError && (
-              <span className="absolute -bottom-5 left-4 text-xs font-bold text-red-400">
-                {taxIdError}
-              </span>
-            )}
-          </div>
+              <div className="relative mb-2">
+                <Label text="RUC" />
+                <input
+                  type="text"
+                  name="ruc"
+                  placeholder="Ej: 20123456789"
+                  className={`${solidInput} ${taxIdError ? 'ring-2 ring-red-400 focus:ring-red-400' : ''}`}
+                  required={personType === 'company'}
+                  minLength={4}
+                  maxLength={40}
+                  value={formData.ruc}
+                  onChange={handleTaxIdChange}
+                />
+                {taxIdError && (
+                  <span className="absolute -bottom-5 left-4 text-xs font-bold text-red-400">
+                    {taxIdError}
+                  </span>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <Label text="Tipo de Doc." />
+                <DocumentTypeDropdown
+                  value={formData.documentType}
+                  selectedCountryId={selectedCountryData.id}
+                  onChange={(doc) => {
+                    setFormData({ ...formData, documentType: doc.code, documentNumber: '' });
+                    setSelectedDocData(doc);
+                    setTaxIdError('');
+                  }}
+                />
+              </div>
+              <div className="relative">
+                <Label text="Nro de documento" />
+                <input
+                  type="text"
+                  name="documentNumber"
+                  placeholder={selectedDocData?.placeholder || 'Ingrese su documento'}
+                  className={`${solidInput} ${taxIdError ? 'ring-2 ring-red-400 focus:ring-red-400' : ''}`}
+                  required={personType === 'individual'}
+                  minLength={selectedDocData?.minLength || 4}
+                  maxLength={selectedDocData?.maxLength || 40}
+                  value={formData.documentNumber}
+                  onChange={handleTaxIdChange}
+                />
+                {taxIdError && (
+                  <span className="absolute -bottom-5 left-4 text-xs font-bold text-red-400">
+                    {taxIdError}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="mb-2">
             <Label text="Servicio que requiere" />

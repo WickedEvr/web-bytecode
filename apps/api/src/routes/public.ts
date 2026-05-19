@@ -36,19 +36,29 @@ const digitsOnly = z.string().trim().regex(/^[\d\s+-]+$/, 'Solo se permiten núm
 const alphanumericId = z.string().trim().regex(/^[\w-]{4,40}$/, 'Formato de identificación inválido (alfanumérico, guiones o guiones bajos).');
 const lettersNumbersSpaces = z.string().trim().regex(/^[\p{L}\p{N}\s.\-&]+$/u, 'Solo se permiten letras, números, espacios y caracteres básicos de empresa.');
 
-const contactSchema = z.object({
+const contactSchemaBase = z.object({
   countryId: z.preprocess((value) => value === '' ? undefined : value, z.string().uuid().optional()),
   nombre: noDigitsText.min(2).max(120),
   apellido: noDigitsText.min(2).max(120),
-  cargo: noDigitsText.min(2).max(160),
   email: z.string().trim().email().max(180),
   celular: digitsOnly.min(4).max(20),
-  empresa: lettersNumbersSpaces.min(2).max(180).optional(),
-  ruc: alphanumericId.optional(),
-  tipoDoc: z.string().trim().min(1).max(50).optional(),
   servicio: z.string().trim().min(2).max(120),
   mensaje: z.string().trim().min(10).max(1200),
 });
+
+const contactSchema = z.discriminatedUnion('personType', [
+  contactSchemaBase.extend({
+    personType: z.literal('company'),
+    cargo: noDigitsText.min(2).max(160),
+    empresa: lettersNumbersSpaces.min(2).max(180),
+    ruc: alphanumericId,
+  }),
+  contactSchemaBase.extend({
+    personType: z.literal('individual'),
+    documentType: z.string().trim().min(1).max(50),
+    documentNumber: alphanumericId,
+  }),
+]);
 
 const complaintSchema = z.object({
   nombres: z.string().trim().min(2).max(160),
@@ -223,21 +233,37 @@ router.post(
 
         if (country.tax_id_regex) {
           const taxRegex = new RegExp(country.tax_id_regex);
-          if (body.ruc && !taxRegex.test(body.ruc)) {
+          const taxIdToCheck = body.personType === 'company' ? body.ruc : body.documentNumber;
+          if (taxIdToCheck && !taxRegex.test(taxIdToCheck)) {
             throw new HttpError(400, `Formato inválido para ${country.tax_id_label ?? 'identificación fiscal'}.`);
           }
         }
       }
 
+      const personTypeVal = body.personType === 'company' ? 'company_contact' : 'natural';
       const customerRes = await client.query(
         `
         INSERT INTO customers (customer_code, first_name, last_name, person_type, primary_email, primary_phone)
-        VALUES ($1, $2, $3, 'company_contact', $4, $5)
+        VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING id
         `,
-        [`CUS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, body.nombre, body.apellido, body.email.toLowerCase(), body.celular]
+        [`CUS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, body.nombre, body.apellido, personTypeVal, body.email.toLowerCase(), body.celular]
       );
       const customerId = customerRes.rows[0].id;
+
+      if (body.personType === 'individual') {
+        const docTypeRes = await client.query(
+          "SELECT id FROM document_types WHERE code = $1 LIMIT 1",
+          [body.documentType]
+        );
+        if ((docTypeRes.rowCount ?? 0) > 0) {
+          await client.query(
+            `INSERT INTO customer_documents (customer_id, document_type_id, document_number, is_primary)
+             VALUES ($1, $2, $3, true)`,
+            [customerId, docTypeRes.rows[0].id, body.documentNumber]
+          );
+        }
+      }
 
       const statusRes = await client.query("SELECT id FROM status_catalog WHERE domain = 'case' AND code = 'new' LIMIT 1");
       if (statusRes.rowCount === 0) throw new Error('Status catalog not initialized');
@@ -245,34 +271,16 @@ router.post(
 
       const caseCode = `CAS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
-      if (normalizedContactSchema === null) {
-        const schemaRes = await client.query(`
-          SELECT
-            to_regclass('public.organizations') IS NOT NULL AS has_organizations,
-            to_regclass('public.customer_organizations') IS NOT NULL AS has_customer_organizations,
-            to_regclass('public.service_catalog') IS NOT NULL AS has_service_catalog,
-            EXISTS (
-              SELECT 1 FROM information_schema.columns
-              WHERE table_schema = 'public' AND table_name = 'contact_cases' AND column_name = 'organization_id'
-            ) AS has_organization_id,
-            EXISTS (
-              SELECT 1 FROM information_schema.columns
-              WHERE table_schema = 'public' AND table_name = 'contact_cases' AND column_name = 'service_id'
-            ) AS has_service_id
-        `);
-        const row = schemaRes.rows[0];
-        normalizedContactSchema = Boolean(
-          row?.has_organizations &&
-          row?.has_customer_organizations &&
-          row?.has_service_catalog &&
-          row?.has_organization_id &&
-          row?.has_service_id,
-        );
-      }
+      const serviceRes = await client.query(
+        'SELECT id, name FROM service_catalog WHERE code = $1 AND is_active = true LIMIT 1',
+        [body.servicio],
+      );
+      const serviceId = serviceRes.rows[0]?.id ?? null;
+      const serviceName = serviceRes.rows[0]?.name ?? body.servicio;
 
       let result;
 
-      if (normalizedContactSchema) {
+      if (body.personType === 'company') {
         const existingOrganization = await client.query(
           'SELECT id FROM organizations WHERE ruc = $1 AND deleted_at IS NULL LIMIT 1',
           [body.ruc],
@@ -305,13 +313,6 @@ router.post(
           [customerId, organizationId, body.cargo],
         );
 
-        const serviceRes = await client.query(
-          'SELECT id, name FROM service_catalog WHERE code = $1 AND is_active = true LIMIT 1',
-          [body.servicio],
-        );
-        const serviceId = serviceRes.rows[0]?.id ?? null;
-        const serviceName = serviceRes.rows[0]?.name ?? body.servicio;
-
         result = await client.query(
           `
           INSERT INTO contact_cases (
@@ -334,16 +335,19 @@ router.post(
       } else {
         result = await client.query(
           `
-          INSERT INTO contact_cases (case_code, customer_id, status_id, subject, message, internal_notes)
-          VALUES ($1, $2, $3, $4, $5, $6)
+          INSERT INTO contact_cases (
+            case_code, customer_id, service_id, status_id, subject, message, internal_notes
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
           RETURNING id, created_at
           `,
           [
             caseCode,
             customerId,
+            serviceId,
             statusId,
-            body.servicio,
-            `Empresa: ${body.empresa}\nCargo: ${body.cargo}\nRUC: ${body.ruc}\nMensaje: ${body.mensaje}`,
+            serviceName,
+            body.mensaje,
             '',
           ],
         );
@@ -351,17 +355,39 @@ router.post(
 
       await client.query('COMMIT');
 
-      const contactNotificationPayload = {
-        nombre: body.nombre,
-        apellido: body.apellido,
-        cargo: body.cargo,
-        email: body.email,
-        celular: body.celular,
-        empresa: body.empresa,
-        ruc: body.ruc,
-        servicio: body.servicio,
-        mensaje: body.mensaje,
+      let contactNotificationPayload: Record<string, unknown> = {
+        Código: caseCode,
       };
+
+      if (body.personType === 'company') {
+        contactNotificationPayload = {
+          ...contactNotificationPayload,
+          'Tipo de Cliente': 'Empresa',
+          Empresa: body.empresa,
+          RUC: body.ruc,
+        };
+      } else {
+        contactNotificationPayload = {
+          ...contactNotificationPayload,
+          'Tipo de Cliente': 'Individual',
+          'Tipo de Documento': body.documentType,
+          'Número de Documento': body.documentNumber,
+        };
+      }
+
+      contactNotificationPayload = {
+        ...contactNotificationPayload,
+        Nombre: body.nombre,
+        Apellido: body.apellido,
+        Email: body.email,
+        Celular: body.celular,
+        Servicio: capitalize(body.servicio),
+        Mensaje: body.mensaje,
+      };
+
+      if (body.personType === 'company') {
+        contactNotificationPayload.Cargo = body.cargo;
+      }
 
       notifyAdmins('Nueva solicitud de contacto web', contactNotificationPayload, ['support_agent', 'super_admin'], 'contact').catch(console.error);
       sendCustomerAcknowledgement(

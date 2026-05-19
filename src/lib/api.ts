@@ -111,6 +111,12 @@ export interface DocumentTypeData {
   id: string;
   code: string;
   name: string;
+  countryId: string | null;
+  validationRegex: string | null;
+  minLength: number | null;
+  maxLength: number | null;
+  isCompanyDocument: boolean;
+  placeholder: string | null;
 }
 
 // --- Nuevas peticiones GET usando tu wrapper apiRequest ---
