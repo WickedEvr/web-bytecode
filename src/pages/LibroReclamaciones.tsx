@@ -337,7 +337,7 @@ const DocumentTypeDropdown: React.FC<DocumentTypeDropdownProps> = ({ value, sele
 // 2. Phone Input (Idéntico al de Contacto)
 interface PhoneInputProps { value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; onCountrySelect?: (country: CountryData) => void; countriesRegistry?: CountryData[]; isLoading?: boolean; }
 
-const defaultPeru: CountryData = { id: 'default', iso: 'PE', name: 'Perú', dialCode: '+51', maxLength: 9, tax_id_label: 'RUC', tax_id_regex: '^(10|20)\\d{9}$', tax_id_placeholder: 'Ej. 20123456789' };
+const defaultPeru: CountryData = { id: 'default', iso: 'PE', name: 'Perú', dialCode: '+51', maxLength: 9 };
 
 const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountrySelect, countriesRegistry = [], isLoading }) => {
   const countries = countriesRegistry.length > 0 ? countriesRegistry : [defaultPeru];
@@ -542,6 +542,10 @@ const LibroReclamaciones: React.FC = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const activeCompanyDoc = allDocumentTypes.find(
+    (dt) => dt.countryId === selectedCountryData?.id && dt.isCompanyDocument === true
+  );
+
   const handleSmartValidation = (value: string, trigger: 'change' | 'blur', targetElement: HTMLInputElement, currentPersonType: 'natural' | 'empresa') => {
     if (!value) {
       setTaxIdError('');
@@ -550,11 +554,11 @@ const LibroReclamaciones: React.FC = () => {
     }
 
     const isCompany = currentPersonType === 'empresa';
-    const pattern = isCompany 
-      ? (selectedCountryData?.tax_id_regex || '^[\\w-]{4,40}$') 
-      : (selectedDocData?.validationRegex || '^[\\w-]{4,40}$');
+    const activeDocDefinition = isCompany ? activeCompanyDoc : selectedDocData;
+
+    const pattern = activeDocDefinition?.validationRegex || '^[\\w-]{4,40}$';
+    const limit = activeDocDefinition?.maxLength || 40;
     
-    const limit = targetElement.maxLength > 0 ? targetElement.maxLength : 40;
     const regex = new RegExp(pattern, 'i');
     const isValid = regex.test(value);
 
@@ -563,9 +567,7 @@ const LibroReclamaciones: React.FC = () => {
       targetElement.setCustomValidity('');
     } else {
       if (trigger === 'blur' || value.length >= limit) {
-        const errorMsg = isCompany 
-          ? 'Formato de identificación corporativa inválido' 
-          : `Formato de ${selectedDocData?.name || 'documento'} inválido`;
+        const errorMsg = `Formato de ${activeDocDefinition?.name || 'documento'} inválido`;
         setTaxIdError(errorMsg);
         targetElement.setCustomValidity(errorMsg);
       } else {
@@ -607,11 +609,14 @@ const LibroReclamaciones: React.FC = () => {
   const handleCountrySelect = (country: CountryData) => {
     setSelectedCountryData(country);
     setSelectedDocData(null);
+    const newActiveCompanyDoc = allDocumentTypes.find(
+      (dt) => dt.countryId === country.id && dt.isCompanyDocument === true
+    );
     setFormData((prev) => ({
       ...prev,
       prefijoTelefono: country.dialCode,
       numeroDoc: '',
-      tipoDoc: formData.personType === 'empresa' ? (country.tax_id_label || '') : '',
+      tipoDoc: prev.personType === 'empresa' ? (newActiveCompanyDoc?.name || '') : '',
     }));
     setTaxIdError('');
   };
@@ -622,7 +627,7 @@ const LibroReclamaciones: React.FC = () => {
       ...prev,
       personType: newType,
       numeroDoc: '',
-      tipoDoc: newType === 'empresa' ? (selectedCountryData.tax_id_label || '') : '',
+      tipoDoc: newType === 'empresa' ? (activeCompanyDoc?.name || '') : '',
     }));
     setSelectedDocData(null);
     setTaxIdError('');
@@ -732,7 +737,7 @@ const LibroReclamaciones: React.FC = () => {
                 <Label text="Tipo de Documento" required />
                 {formData.personType === 'empresa' ? (
                   <div className="w-full bg-white/60 rounded-full px-5 py-[0.6rem] text-[#333] border border-gray-200 shadow-sm opacity-80 cursor-not-allowed">
-                    <span className="text-[18px] md:text-[20px] font-semibold text-gray-700">{selectedCountryData.tax_id_label || 'Identificación Fiscal'}</span>
+                    <span className="text-[18px] md:text-[20px] font-semibold text-gray-700">{activeCompanyDoc?.name || 'Identificación Corporativa'}</span>
                   </div>
                 ) : (
                   <DocumentTypeDropdown
@@ -749,17 +754,17 @@ const LibroReclamaciones: React.FC = () => {
                 )}
               </div>
               <div className="relative">
-                <Label text={formData.personType === 'empresa' ? (selectedCountryData.tax_id_label || 'Identificación Fiscal') : 'Número de Documento'} required />
+                <Label text={formData.personType === 'empresa' ? (activeCompanyDoc?.name || 'Identificación Corporativa') : 'Número de Documento'} required />
                 <input 
                   name="numeroDoc" 
                   type="text" 
-                  placeholder={formData.personType === 'empresa' ? (selectedCountryData.tax_id_placeholder || 'Número') : (selectedDocData?.placeholder || 'Número')} 
+                  placeholder={formData.personType === 'empresa' ? (activeCompanyDoc?.placeholder || 'Ingrese su identificación fiscal') : (selectedDocData?.placeholder || 'Número')} 
                   value={formData.numeroDoc} 
                   onChange={handleDocumentChange}
                   onBlur={handleDocumentBlur}
                   className={`${solidInput} ${taxIdError ? 'ring-2 ring-red-400 focus:ring-red-400' : ''}`}
                   required 
-                  maxLength={formData.personType === 'empresa' ? (selectedCountryData?.maxLength || 40) : (selectedDocData?.maxLength || 40)} 
+                  maxLength={formData.personType === 'empresa' ? (activeCompanyDoc?.maxLength || 40) : (selectedDocData?.maxLength || 40)} 
                 />
                 {taxIdError && (
                   <span className="absolute -bottom-5 left-4 text-xs font-bold text-red-400">

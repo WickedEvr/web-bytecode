@@ -138,7 +138,7 @@ interface PhoneInputProps {
   isLoading?: boolean;
 }
 
-const defaultPeru: CountryData = { id: 'default', iso: 'PE', name: 'Perú', dialCode: '+51', maxLength: 9, tax_id_label: 'RUC', tax_id_regex: '^[0-9]{11}$', tax_id_placeholder: '10468060100' };
+const defaultPeru: CountryData = { id: 'default', iso: 'PE', name: 'Perú', dialCode: '+51', maxLength: 9 };
 
 const PhoneInputGroup: React.FC<PhoneInputProps> = ({ value, onChange, onCountryChange, onCountrySelect, countriesRegistry = [], isLoading }) => {
   const countries = countriesRegistry.length > 0 ? countriesRegistry : [defaultPeru];
@@ -566,20 +566,23 @@ const Contacto: React.FC = () => {
     setFormData({ ...formData, [e.target.name]: stripSymbols(e.target.value) });
   };
 
-  const handleSmartValidation = (value: string, trigger: 'change' | 'blur', targetElement: HTMLInputElement) => {
+  const activeCompanyDoc = allDocumentTypes.find(
+    (dt) => dt.countryId === selectedCountryData?.id && dt.isCompanyDocument === true
+  );
+
+  const handleSmartValidation = (value: string, trigger: 'change' | 'blur', targetElement: HTMLInputElement, currentPersonType: 'individual' | 'company' = personType) => {
     if (!value) {
       setTaxIdError('');
       targetElement.setCustomValidity('');
       return;
     }
 
-    const isCompany = personType === 'company';
-    const pattern = isCompany 
-      ? (selectedCountryData?.tax_id_regex || '^[\\w-]{4,40}$') 
-      : (selectedDocData?.validationRegex || '^[\\w-]{4,40}$');
-    
-    // Detect the hard limit from the HTML element or fallback
-    const limit = targetElement.maxLength > 0 ? targetElement.maxLength : 40;
+    const isCompany = currentPersonType === 'company';
+    const activeDocDefinition = isCompany ? activeCompanyDoc : selectedDocData;
+
+    const pattern = activeDocDefinition?.validationRegex || '^[\\w-]{4,40}$';
+    const limit = activeDocDefinition?.maxLength || 40;
+
     const regex = new RegExp(pattern, 'i');
     const isValid = regex.test(value);
 
@@ -587,13 +590,11 @@ const Contacto: React.FC = () => {
       setTaxIdError('');
       targetElement.setCustomValidity('');
     } else {
-      // Core UX Logic: Only yell if they leave the input OR if they hit the character limit
       if (trigger === 'blur' || value.length >= limit) {
-        const errorMsg = isCompany ? 'Formato de identificación corporativa inválido' : `Formato de ${selectedDocData?.name || 'documento'} inválido`;
+        const errorMsg = `Formato de ${activeDocDefinition?.name || 'documento'} inválido`;
         setTaxIdError(errorMsg);
         targetElement.setCustomValidity(errorMsg);
       } else {
-        // Silent typing phase
         setTaxIdError('');
         targetElement.setCustomValidity('');
       }
@@ -603,19 +604,17 @@ const Contacto: React.FC = () => {
   const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = e.target.value.trim().toUpperCase();
 
-    // Update state first
     if (personType === 'individual') {
       setFormData({ ...formData, documentNumber: inputValue });
     } else {
       setFormData({ ...formData, ruc: inputValue, documentNumber: inputValue });
     }
 
-    // Call smart validation
-    handleSmartValidation(inputValue, 'change', e.target);
+    handleSmartValidation(inputValue, 'change', e.target, personType);
   };
 
   const handleDocumentBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    handleSmartValidation(e.target.value, 'blur', e.target);
+    handleSmartValidation(e.target.value, 'blur', e.target, personType);
   };
 
   const handleCountrySelect = (country: CountryData) => {
@@ -804,14 +803,14 @@ const Contacto: React.FC = () => {
               </div>
 
               <div className="relative mb-2">
-                <Label text={selectedCountryData?.tax_id_label || 'Identificación Fiscal'} />
+                <Label text={activeCompanyDoc?.name || 'Identificación Corporativa'} />
                 <input
                   type="text"
                   name="ruc"
-                  placeholder={selectedCountryData?.tax_id_placeholder ? `${selectedCountryData.tax_id_placeholder}` : 'Ingrese su documento'}
+                  placeholder={activeCompanyDoc?.placeholder || 'Ingrese su identificación fiscal'}
                   className={`${solidInput} ${taxIdError ? 'ring-2 ring-red-400 focus:ring-red-400' : ''}`}
                   required={personType === 'company'}
-                  maxLength={selectedCountryData?.maxLength || 40}
+                  maxLength={activeCompanyDoc?.maxLength || 40}
                   value={formData.ruc}
                   onChange={handleDocumentChange}
                   onBlur={handleDocumentBlur}
