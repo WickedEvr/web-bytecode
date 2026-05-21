@@ -404,7 +404,7 @@ router.post(
       } else {
         contactNotificationPayload = {
           ...contactNotificationPayload,
-          'Tipo de Cliente': 'Individual',
+          'Tipo de Cliente': 'Independiente',
           'Tipo de Documento': body.documentType,
           'Número de Documento': body.documentNumber,
         };
@@ -555,8 +555,13 @@ router.post(
 
       await client.query('COMMIT');
 
+      const displayPersonType = (body.personType === 'company' || body.personType === 'company_contact') 
+        ? 'Empresa' 
+        : 'Persona natural';
+
       const complaintNotificationPayload = {
         Código: code,
+        'Tipo de cliente': displayPersonType,
         Nombres: body.nombres,
         'Representante Legal': body.apellidos,
         'Tipo de Documento': body.tipoDoc,
@@ -573,7 +578,7 @@ router.post(
       };
 
       const customerReceiptPayload = {
-        Cliente: `${body.nombres} ${body.apellidos}`,
+        Cliente: body.personType === 'company' ? body.nombres : `${body.nombres} ${body.apellidos}`,
         Nombres: body.nombres,
         'Representante Legal': body.apellidos,
         'Tipo de Documento': body.tipoDoc,
