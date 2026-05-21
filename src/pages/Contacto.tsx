@@ -811,7 +811,7 @@ const Contacto: React.FC = () => {
                   placeholder={selectedCountryData?.tax_id_placeholder ? `${selectedCountryData.tax_id_placeholder}` : 'Ingrese su documento'}
                   className={`${solidInput} ${taxIdError ? 'ring-2 ring-red-400 focus:ring-red-400' : ''}`}
                   required={personType === 'company'}
-                  maxLength={selectedCountryData?.tax_id_max_length || 40}
+                  maxLength={selectedCountryData?.maxLength || 40}
                   value={formData.ruc}
                   onChange={handleDocumentChange}
                   onBlur={handleDocumentBlur}
