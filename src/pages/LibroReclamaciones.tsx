@@ -759,7 +759,7 @@ const LibroReclamaciones: React.FC = () => {
                   onBlur={handleDocumentBlur}
                   className={`${solidInput} ${taxIdError ? 'ring-2 ring-red-400 focus:ring-red-400' : ''}`}
                   required 
-                  maxLength={formData.personType === 'empresa' ? (selectedCountryData?.maxLength || 40) : (selectedDocData?.maxLength || 40)} 
+                  maxLength={formData.personType === 'empresa' ? (selectedCountryData?.tax_id_max_length || 40) : (selectedDocData?.maxLength || 40)} 
                 />
                 {taxIdError && (
                   <span className="absolute -bottom-5 left-4 text-xs font-bold text-red-400">

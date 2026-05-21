@@ -122,7 +122,7 @@ const parseClaimedAmount = (value: string) => {
 let normalizedContactSchema: boolean | null = null;
 
 router.get('/catalog/countries', asyncHandler(async (_req: Request, res: Response) => {
-  const result = await pool.query('SELECT id, iso2 as iso, name, dial_code as "dialCode", phone_max_length as "maxLength", tax_id_label, tax_id_regex, tax_id_placeholder FROM countries WHERE is_active = true ORDER BY name ASC');
+  const result = await pool.query('SELECT id, iso2 as iso, name, dial_code as "dialCode", phone_max_length as "maxLength", tax_id_label, tax_id_regex, tax_id_placeholder, tax_id_max_length FROM countries WHERE is_active = true ORDER BY name ASC');
   res.json({ items: result.rows });
 }));
 
