@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 export type PricingModel = 'fixed' | 'range' | 'per_unit' | 'monthly_recurring' | 'yearly_recurring';
-export type PricingItemType = 'base_canvas' | 'category_trigger' | 'addon' | 'recurring';
+export type PricingItemType = 'base_canvas' | 'base_included' | 'category_trigger' | 'addon' | 'recurring';
 
 export type PricingCatalogItem = {
   id: string;
@@ -11,6 +11,8 @@ export type PricingCatalogItem = {
   pricing_model: PricingModel;
   base_price: number | string;
   max_price?: number | string | null;
+  free_included_quantity?: number | string | null;
+  included_features?: string[] | string | null;
   currency_code?: string;
   item_type?: PricingItemType | null;
   upgrades_to_category?: string | null;
@@ -34,6 +36,8 @@ export type QuotePreparedItem = {
   item_type: PricingItemType;
   pricing_model: PricingModel;
   quantity: number;
+  billable_quantity: number;
+  free_included_quantity: number;
   unit_price: number;
   subtotal: number;
   recurrence: 'none' | 'monthly' | 'yearly';
@@ -47,9 +51,18 @@ export type PreparedQuotePayload = {
   recurringMonthlyTotal: number;
   recurringYearlyTotal: number;
   grandTotalSnapshot: number;
+  infrastructure: InfrastructureState & {
+    savingsLabel: string;
+    netSavings: number;
+  };
   items: QuotePreparedItem[];
   cartItems: QuotePreparedItem[];
   legalNotes: string[];
+};
+
+export type InfrastructureState = {
+  ownDomain: boolean;
+  ownHosting: boolean;
 };
 
 type QuoteTotals = {
@@ -57,21 +70,35 @@ type QuoteTotals = {
   projectCategory: string;
   baseItem: NormalizedPricingCatalogItem | null;
   activeBaseSource: NormalizedPricingCatalogItem | null;
-  visibleLines: Array<QuoteCartLine & { item: NormalizedPricingCatalogItem; subtotal: number; isActiveBaseTrigger: boolean }>;
+  visibleLines: Array<QuoteCartLine & {
+    item: NormalizedPricingCatalogItem;
+    subtotal: number;
+    billableQuantity: number;
+    freeIncludedQuantity: number;
+    includedInBase: boolean;
+    isActiveBaseTrigger: boolean;
+  }>;
   persistedItems: QuotePreparedItem[];
   cartItems: QuotePreparedItem[];
   developmentTotal: number;
   recurringMonthlyTotal: number;
   recurringYearlyTotal: number;
+  infrastructureSavings: {
+    label: string;
+    netSavings: number;
+  };
 };
 
 type QuoterState = {
   catalog: NormalizedPricingCatalogItem[];
   cart: QuoteCartLine[];
+  infrastructure: InfrastructureState;
   setCatalog: (catalog: PricingCatalogItem[]) => void;
   addItem: (catalogItemId: string) => void;
   removeItem: (catalogItemId: string) => void;
   updateQuantity: (catalogItemId: string, quantity: number) => void;
+  toggleOwnDomain: (enabled: boolean) => void;
+  toggleOwnHosting: (enabled: boolean) => void;
   resetQuote: () => void;
   totals: () => QuoteTotals;
   buildPayload: () => PreparedQuotePayload;
@@ -79,11 +106,28 @@ type QuoterState = {
 
 const DEFAULT_PROJECT_CATEGORY = 'Landing Page';
 const LEGAL_NOTES = [
-  'El Hosting, Dominio y certificado SSL estan incluidos sin costo por el primer ano.',
-  'Nota Legal: Retrasos mayores a 60 dias por parte del cliente tendran un recargo del 20%. Cancelaciones en cualquier fase requieren un abono del 30% por tiempo invertido.',
+  'Nota Legal: Retrasos mayores a 60 dias tendran un recargo del 20%. Cancelaciones requieren un abono del 30% por tiempo invertido.',
 ];
+const DOMAIN_INFRA_CODES = ['discount_own_domain', 'fee_domain_setup'];
+const HOSTING_INFRA_CODES = ['discount_own_hosting', 'fee_hosting_setup'];
+const INFRA_CODES = new Set([...DOMAIN_INFRA_CODES, ...HOSTING_INFRA_CODES]);
 
 const moneyValue = (value: number | string | null | undefined) => Number(value ?? 0);
+const normalizeIncludedFeatures = (value: PricingCatalogItem['included_features']) => {
+  if (Array.isArray(value)) return value.filter((feature): feature is string => typeof feature === 'string' && feature.trim().length > 0);
+  if (typeof value !== 'string' || !value.trim()) return [];
+
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((feature): feature is string => typeof feature === 'string' && feature.trim().length > 0);
+    }
+  } catch {
+    return [];
+  }
+
+  return [];
+};
 
 const triggerCategoryByCode: Record<string, string> = {
   ecommerce: 'Tienda Online (E-commerce)',
@@ -106,7 +150,9 @@ export const normalizePricingCatalog = (catalog: PricingCatalogItem[]): Normaliz
       ...item,
       item_type: itemType,
       upgrades_to_category: item.upgrades_to_category ?? (item.item_code ? triggerCategoryByCode[item.item_code] : null),
-      is_draggable: item.is_draggable ?? itemType !== 'base_canvas',
+      is_draggable: item.is_draggable ?? !['base_canvas', 'base_included'].includes(itemType),
+      free_included_quantity: item.free_included_quantity ?? 0,
+      included_features: normalizeIncludedFeatures(item.included_features),
     };
   });
 
@@ -124,23 +170,111 @@ const recurrenceFor = (item: NormalizedPricingCatalogItem): 'none' | 'monthly' |
 const lineQuantity = (item: NormalizedPricingCatalogItem, quantity: number) =>
   item.pricing_model === 'per_unit' ? Math.max(1, quantity) : 1;
 
-const preparedItem = (item: NormalizedPricingCatalogItem, quantity: number, unitPrice = moneyValue(item.base_price)): QuotePreparedItem => {
+const freeQuantityFor = (item: NormalizedPricingCatalogItem) =>
+  item.pricing_model === 'per_unit' ? Math.max(0, Math.floor(moneyValue(item.free_included_quantity))) : 0;
+
+const billableQuantityFor = (item: NormalizedPricingCatalogItem, quantity: number) => {
   const normalizedQuantity = lineQuantity(item, quantity);
+  if (item.pricing_model !== 'per_unit') return normalizedQuantity;
+  return Math.max(0, normalizedQuantity - freeQuantityFor(item));
+};
+
+const preparedItem = (
+  item: NormalizedPricingCatalogItem,
+  quantity: number,
+  unitPrice = moneyValue(item.base_price),
+  subtotal?: number,
+): QuotePreparedItem => {
+  const normalizedQuantity = lineQuantity(item, quantity);
+  const billableQuantity = billableQuantityFor(item, normalizedQuantity);
+  const freeIncludedQuantity = freeQuantityFor(item);
   return {
     catalog_item_id: item.id,
     name: item.name,
     item_type: item.item_type,
     pricing_model: item.pricing_model,
     quantity: normalizedQuantity,
+    billable_quantity: billableQuantity,
+    free_included_quantity: freeIncludedQuantity,
     unit_price: unitPrice,
-    subtotal: unitPrice * normalizedQuantity,
+    subtotal: subtotal ?? unitPrice * billableQuantity,
     recurrence: recurrenceFor(item),
   };
 };
 
-export const computeQuoteTotals = (catalog: NormalizedPricingCatalogItem[], cart: QuoteCartLine[]): QuoteTotals => {
+const defaultCartFor = (catalog: NormalizedPricingCatalogItem[]): QuoteCartLine[] => {
+  const requiredCodes = new Set(['extra_form', 'extra_language']);
+  return catalog
+    .filter((item) =>
+      item.item_type === 'base_canvas' ||
+      item.item_type === 'base_included' ||
+      (item.item_code ? requiredCodes.has(item.item_code) : false),
+    )
+    .sort((a, b) => {
+      const orderFor = (item: NormalizedPricingCatalogItem) => {
+        if (item.item_type === 'base_canvas') return 0;
+        if (item.item_type === 'base_included') return 1;
+        if (item.item_code === 'extra_form') return 2;
+        if (item.item_code === 'extra_language') return 3;
+        return 4;
+      };
+      return orderFor(a) - orderFor(b) || a.name.localeCompare(b.name);
+    })
+    .map((item) => ({ catalogItemId: item.id, quantity: 1 }));
+};
+
+const baseCanvasLineFor = (catalog: NormalizedPricingCatalogItem[]): QuoteCartLine[] => {
+  const baseItem = catalog.find((item) => item.item_type === 'base_canvas');
+  return baseItem ? [{ catalogItemId: baseItem.id, quantity: 1 }] : [];
+};
+
+const withoutRootCategoryLines = (catalog: NormalizedPricingCatalogItem[], cart: QuoteCartLine[]) =>
+  cart.filter((line) => {
+    const item = catalog.find((entry) => entry.id === line.catalogItemId);
+    return item?.item_type !== 'base_canvas' && item?.item_type !== 'category_trigger';
+  });
+
+const withInfrastructureLines = (
+  catalog: NormalizedPricingCatalogItem[],
+  cart: QuoteCartLine[],
+  infrastructure: InfrastructureState,
+) => {
+  const requiredCodes = new Set<string>();
+  if (infrastructure.ownDomain) DOMAIN_INFRA_CODES.forEach((code) => requiredCodes.add(code));
+  if (infrastructure.ownHosting) HOSTING_INFRA_CODES.forEach((code) => requiredCodes.add(code));
+
+  const withoutInfrastructure = cart.filter((line) => {
+    const item = catalog.find((entry) => entry.id === line.catalogItemId);
+    return !item?.item_code || !INFRA_CODES.has(item.item_code);
+  });
+  const injectedLines = catalog
+    .filter((item) => item.item_code ? requiredCodes.has(item.item_code) : false)
+    .map((item) => ({ catalogItemId: item.id, quantity: 1 }));
+
+  return [...withoutInfrastructure, ...injectedLines];
+};
+
+const infrastructureSavingsFor = (infrastructure: InfrastructureState) => {
+  if (infrastructure.ownDomain && infrastructure.ownHosting) {
+    return { label: 'Ahorro neto por infraestructura propia: -S/ 150.00', netSavings: 150 };
+  }
+  if (infrastructure.ownDomain) {
+    return { label: 'Ahorro neto (Dominio): -S/ 50.00', netSavings: 50 };
+  }
+  if (infrastructure.ownHosting) {
+    return { label: 'Ahorro neto (Hosting): -S/ 100.00', netSavings: 100 };
+  }
+  return { label: '', netSavings: 0 };
+};
+
+export const computeQuoteTotals = (
+  catalog: NormalizedPricingCatalogItem[],
+  cart: QuoteCartLine[],
+  infrastructure: InfrastructureState = { ownDomain: false, ownHosting: false },
+): QuoteTotals => {
+  const effectiveCart = withInfrastructureLines(catalog, cart, infrastructure);
   const baseItem = catalog.find((item) => item.item_type === 'base_canvas') ?? null;
-  const cartWithItems = cart
+  const cartWithItems = effectiveCart
     .map((line) => ({ line, item: catalog.find((entry) => entry.id === line.catalogItemId) }))
     .filter((entry): entry is { line: QuoteCartLine; item: NormalizedPricingCatalogItem } => Boolean(entry.item));
 
@@ -151,23 +285,44 @@ export const computeQuoteTotals = (catalog: NormalizedPricingCatalogItem[], cart
   }, null);
 
   const activeBaseSource = activeTrigger ?? baseItem;
-  const baseAmount = activeBaseSource ? moneyValue(activeBaseSource.base_price) : 0;
-  const projectCategory = activeTrigger?.upgrades_to_category || activeTrigger?.name || baseItem?.upgrades_to_category || DEFAULT_PROJECT_CATEGORY;
+  const projectCategory = activeTrigger?.upgrades_to_category || activeTrigger?.name || DEFAULT_PROJECT_CATEGORY;
 
-  const visibleLines = cartWithItems.map(({ line, item }) => {
-    const quantity = lineQuantity(item, line.quantity);
-    const isActiveBaseTrigger = activeTrigger?.id === item.id;
-    const subtotal = item.item_type === 'category_trigger'
-      ? (isActiveBaseTrigger ? moneyValue(item.base_price) : 0)
-      : moneyValue(item.base_price) * quantity;
-
-    return { ...line, quantity, item, subtotal, isActiveBaseTrigger };
+  const visibleCartWithItems = cartWithItems.filter(({ item }) => {
+    if (item.item_type === 'base_canvas') return !activeTrigger;
+    if (item.item_type === 'category_trigger') return activeTrigger?.id === item.id;
+    return true;
   });
 
-  const additiveItems = visibleLines.filter(({ item }) => item.item_type === 'addon' && !isRecurring(item));
+  const visibleLines = visibleCartWithItems.map(({ line, item }) => {
+    const quantity = lineQuantity(item, line.quantity);
+    const isActiveBaseTrigger = activeTrigger?.id === item.id;
+    const freeIncludedQuantity = freeQuantityFor(item);
+    const billableQuantity = billableQuantityFor(item, quantity);
+    const includedInBase = (
+      item.item_type === 'base_included' ||
+      (item.pricing_model === 'per_unit' && freeIncludedQuantity > 0 && billableQuantity === 0)
+    );
+    let subtotal = 0;
+
+    if (item.item_type === 'base_canvas') {
+      subtotal = activeTrigger ? 0 : moneyValue(item.base_price);
+    } else if (item.item_type === 'category_trigger') {
+      subtotal = isActiveBaseTrigger ? moneyValue(item.base_price) : 0;
+    } else if (item.item_type === 'base_included') {
+      subtotal = 0;
+    } else if (item.pricing_model === 'per_unit') {
+      subtotal = billableQuantity * moneyValue(item.base_price);
+    } else {
+      subtotal = moneyValue(item.base_price) * quantity;
+    }
+
+    return { ...line, quantity, item, subtotal, billableQuantity, freeIncludedQuantity, includedInBase, isActiveBaseTrigger };
+  });
+
+  const additiveItems = visibleLines.filter(({ item }) => ['base_canvas', 'base_included', 'addon', 'category_trigger'].includes(item.item_type) && !isRecurring(item));
   const recurringItems = visibleLines.filter(({ item }) => isRecurring(item));
 
-  const developmentAddonsTotal = additiveItems.reduce((sum, line) => sum + line.subtotal, 0);
+  const developmentTotal = additiveItems.reduce((sum, line) => sum + line.subtotal, 0);
   const recurringMonthlyTotal = recurringItems
     .filter(({ item }) => recurrenceFor(item) === 'monthly')
     .reduce((sum, line) => sum + line.subtotal, 0);
@@ -175,34 +330,55 @@ export const computeQuoteTotals = (catalog: NormalizedPricingCatalogItem[], cart
     .filter(({ item }) => recurrenceFor(item) === 'yearly')
     .reduce((sum, line) => sum + line.subtotal, 0);
 
-  const basePrepared = activeBaseSource ? [preparedItem(activeBaseSource, 1, baseAmount)] : [];
-  const additivePrepared = [...additiveItems, ...recurringItems].map(({ item, quantity }) => preparedItem(item, quantity));
+  const persistedLines = [...additiveItems, ...recurringItems].filter((line) => {
+    if (line.item.item_type === 'category_trigger') return line.isActiveBaseTrigger;
+    if (line.item.item_type === 'base_canvas') return !activeTrigger;
+    return true;
+  });
+  const additivePrepared = persistedLines.map(({ item, quantity, subtotal }) => preparedItem(item, quantity, moneyValue(item.base_price), subtotal));
   const cartItems = visibleLines.map(({ item, quantity, subtotal }) => ({
-    ...preparedItem(item, quantity),
+    ...preparedItem(item, quantity, moneyValue(item.base_price), subtotal),
     subtotal,
   }));
 
   return {
-    title: `Cotizacion de Proyecto: ${projectCategory}`,
+    title: `Cotización de Proyecto: ${projectCategory}`,
     projectCategory,
     baseItem,
     activeBaseSource,
     visibleLines,
-    persistedItems: [...basePrepared, ...additivePrepared],
+    persistedItems: additivePrepared,
     cartItems,
-    developmentTotal: baseAmount + developmentAddonsTotal,
+    developmentTotal,
     recurringMonthlyTotal,
     recurringYearlyTotal,
+    infrastructureSavings: infrastructureSavingsFor(infrastructure),
   };
 };
 
 export const useQuoterState = create<QuoterState>((set, get) => ({
   catalog: [],
   cart: [],
-  setCatalog: (catalog) => set({ catalog: normalizePricingCatalog(catalog) }),
+  infrastructure: {
+    ownDomain: false,
+    ownHosting: false,
+  },
+  setCatalog: (catalog) => {
+    const normalizedCatalog = normalizePricingCatalog(catalog);
+    set({ catalog: normalizedCatalog, cart: defaultCartFor(normalizedCatalog), infrastructure: { ownDomain: false, ownHosting: false } });
+  },
   addItem: (catalogItemId) => set((state) => {
     const catalogItem = state.catalog.find((item) => item.id === catalogItemId);
-    if (!catalogItem || !catalogItem.is_draggable || catalogItem.item_type === 'base_canvas') return state;
+    if (!catalogItem || !catalogItem.is_draggable || ['base_canvas', 'base_included'].includes(catalogItem.item_type)) return state;
+
+    if (catalogItem.item_type === 'category_trigger') {
+      return {
+        cart: [
+          { catalogItemId: catalogItem.id, quantity: 1 },
+          ...withoutRootCategoryLines(state.catalog, state.cart),
+        ],
+      };
+    }
 
     const existing = state.cart.find((line) => line.catalogItemId === catalogItemId);
     if (existing) {
@@ -216,9 +392,21 @@ export const useQuoterState = create<QuoterState>((set, get) => ({
 
     return { cart: [...state.cart, { catalogItemId, quantity: 1 }] };
   }),
-  removeItem: (catalogItemId) => set((state) => ({
-    cart: state.cart.filter((line) => line.catalogItemId !== catalogItemId),
-  })),
+  removeItem: (catalogItemId) => set((state) => {
+    const removedItem = state.catalog.find((item) => item.id === catalogItemId);
+    const nextCart = state.cart.filter((line) => line.catalogItemId !== catalogItemId);
+
+    if (removedItem?.item_type === 'category_trigger') {
+      return {
+        cart: [
+          ...baseCanvasLineFor(state.catalog),
+          ...withoutRootCategoryLines(state.catalog, nextCart),
+        ],
+      };
+    }
+
+    return { cart: nextCart };
+  }),
   updateQuantity: (catalogItemId, quantity) => set((state) => {
     const catalogItem = state.catalog.find((item) => item.id === catalogItemId);
     if (!catalogItem) return state;
@@ -232,10 +420,22 @@ export const useQuoterState = create<QuoterState>((set, get) => ({
       ),
     };
   }),
-  resetQuote: () => set({ cart: [] }),
-  totals: () => computeQuoteTotals(get().catalog, get().cart),
+  toggleOwnDomain: (enabled) => set((state) => {
+    const infrastructure = { ...state.infrastructure, ownDomain: enabled };
+    return { infrastructure, cart: withInfrastructureLines(state.catalog, state.cart, infrastructure) };
+  }),
+  toggleOwnHosting: (enabled) => set((state) => {
+    const infrastructure = { ...state.infrastructure, ownHosting: enabled };
+    return { infrastructure, cart: withInfrastructureLines(state.catalog, state.cart, infrastructure) };
+  }),
+  resetQuote: () => set((state) => ({
+    cart: defaultCartFor(state.catalog),
+    infrastructure: { ownDomain: false, ownHosting: false },
+  })),
+  totals: () => computeQuoteTotals(get().catalog, get().cart, get().infrastructure),
   buildPayload: () => {
-    const totals = computeQuoteTotals(get().catalog, get().cart);
+    const infrastructure = get().infrastructure;
+    const totals = computeQuoteTotals(get().catalog, get().cart, infrastructure);
     return {
       title: totals.title,
       projectCategory: totals.projectCategory,
@@ -244,6 +444,11 @@ export const useQuoterState = create<QuoterState>((set, get) => ({
       recurringMonthlyTotal: totals.recurringMonthlyTotal,
       recurringYearlyTotal: totals.recurringYearlyTotal,
       grandTotalSnapshot: totals.developmentTotal + totals.recurringMonthlyTotal + totals.recurringYearlyTotal,
+      infrastructure: {
+        ...infrastructure,
+        savingsLabel: totals.infrastructureSavings.label,
+        netSavings: totals.infrastructureSavings.netSavings,
+      },
       items: totals.persistedItems,
       cartItems: totals.cartItems,
       legalNotes: LEGAL_NOTES,
