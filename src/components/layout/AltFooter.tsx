@@ -72,7 +72,7 @@ const AltFooter: React.FC = () => {
           </div>
 
           {/* Isotipo */}
-          <div className="absolute right-1.5 md:right-3 lg:right-[6%] xl:right-4 2xl:-right-31 lg:block shrink-0 transform translate-y-29 md:translate-y-37 lg:translate-y-21 transition-all duration-500">
+          <div className="absolute right-1.5 md:right-3 lg:right-[6%] xl:right-4 2xl:-right-31 lg:block [@media(max-height:720px)]:lg:hidden shrink-0 transform translate-y-29 md:translate-y-37 lg:translate-y-21 transition-all duration-500">
             <div className="animate-float-logo transition-all duration-300 lg:hover:drop-shadow-[0_0_20px_rgba(6,207,214,0.9)]">
               <img
                 src="/vectors/designs/elemento_logo.svg"

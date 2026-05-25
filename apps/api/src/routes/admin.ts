@@ -1228,17 +1228,54 @@ router.post(
 
 // --- Quotes Endpoints ---
 
+let pricingCatalogUiColumns: boolean | null = null;
+
+const hasPricingCatalogUiColumns = async () => {
+  if (pricingCatalogUiColumns !== null) return pricingCatalogUiColumns;
+
+  const result = await pool.query(`
+    SELECT count(*)::int AS total
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'pricing_catalog'
+      AND column_name IN ('item_type', 'upgrades_to_category', 'is_draggable', 'icon_name')
+  `);
+
+  pricingCatalogUiColumns = result.rows[0]?.total === 4;
+  return pricingCatalogUiColumns;
+};
+
 router.get(
   '/catalog/pricing',
   requireRole(['admin', 'partner_designer']),
   asyncHandler(async (_req: Request, res: Response) => {
+    const hasUiColumns = await hasPricingCatalogUiColumns();
+    const uiColumnsSql = hasUiColumns
+      ? 'item_type, upgrades_to_category, is_draggable, icon_name,'
+      : 'NULL::varchar AS item_type, NULL::varchar AS upgrades_to_category, NULL::boolean AS is_draggable, NULL::varchar AS icon_name,';
+    const orderSql = hasUiColumns
+      ? `CASE item_type
+          WHEN 'base_canvas' THEN 0
+          WHEN 'category_trigger' THEN 1
+          WHEN 'addon' THEN 2
+          WHEN 'recurring' THEN 3
+          ELSE 4
+        END`
+      : `CASE item_code
+          WHEN 'landing_page' THEN 0
+          WHEN 'web_corporate' THEN 1
+          WHEN 'ecommerce' THEN 1
+          WHEN 'chatbot_basic' THEN 2
+          ELSE 3
+        END`;
     const result = await pool.query(
       `
       SELECT id, item_code, name, description, pricing_model, base_price, max_price,
-             currency_code, base_price AS unit_price
+             currency_code, ${uiColumnsSql}
+             base_price AS unit_price
       FROM pricing_catalog
       WHERE is_active = true AND deleted_at IS NULL
-      ORDER BY name ASC
+      ORDER BY ${orderSql}, name ASC
       `,
     );
     res.json({ items: result.rows });
@@ -1266,9 +1303,17 @@ const createQuoteSchema = z.object({
   customerEmail: z.string().email(),
   items: z.array(z.object({
     catalog_item_id: z.string().uuid(),
-    quantity: z.number().int().min(1)
+    quantity: z.number().int().min(1),
+    unit_price: z.number().min(0).optional(),
+    recurrence: z.enum(['none', 'monthly', 'yearly']).optional(),
+    custom_name: z.string().trim().min(1).max(180).optional()
   })).min(1),
-  notes: z.string().max(2000).optional()
+  notes: z.string().max(2000).optional(),
+  totalAmount: z.number().min(0).optional(),
+  recurringMonthlyTotal: z.number().min(0).optional(),
+  recurringYearlyTotal: z.number().min(0).optional(),
+  projectCategory: z.string().trim().max(180).optional(),
+  legalNotes: z.array(z.string().max(1000)).optional()
 });
 
 router.post(
@@ -1294,31 +1339,46 @@ router.post(
         customerId = newCust.rows[0].id;
       }
 
-      let totalAmount = 0;
-      const quoteItemsData: Array<{ catalog_item_id: string; quantity: number; name: string; unitPrice: number }> = [];
+      const quoteItemsData: Array<{ catalog_item_id: string; quantity: number; name: string; unitPrice: number; recurrence: 'none' | 'monthly' | 'yearly' }> = [];
       for (const item of body.items) {
         const catRes = await client.query(
           'SELECT id, name, base_price FROM pricing_catalog WHERE id = $1 AND is_active = true AND deleted_at IS NULL',
           [item.catalog_item_id],
         );
         if (!catRes.rowCount || catRes.rowCount === 0) throw new HttpError(400, 'Item de catálogo inválido');
-        const unitPrice = parseFloat(catRes.rows[0].base_price);
-        totalAmount += unitPrice * item.quantity;
-        quoteItemsData.push({ ...item, name: catRes.rows[0].name, unitPrice });
+        const unitPrice = item.unit_price ?? parseFloat(catRes.rows[0].base_price);
+        quoteItemsData.push({
+          catalog_item_id: item.catalog_item_id,
+          quantity: item.quantity,
+          name: item.custom_name ?? catRes.rows[0].name,
+          unitPrice,
+          recurrence: item.recurrence ?? 'none',
+        });
       }
+
+      const totalAmount = body.totalAmount ?? quoteItemsData
+        .filter((item) => item.recurrence === 'none')
+        .reduce((acc, item) => acc + item.unitPrice * item.quantity, 0);
+      const paymentPolicyParts = [
+        body.notes,
+        body.projectCategory ? `Categoria de proyecto: ${body.projectCategory}` : undefined,
+        body.recurringMonthlyTotal ? `Recurrente mensual: ${body.recurringMonthlyTotal}` : undefined,
+        body.recurringYearlyTotal ? `Recurrente anual: ${body.recurringYearlyTotal}` : undefined,
+        body.legalNotes?.length ? body.legalNotes.join('\n') : undefined,
+      ].filter(Boolean);
 
       const quoteRes = await client.query(
         `INSERT INTO quotes (quote_code, customer_id, status, total_amount, valid_until, payment_policy, created_by)
          VALUES ($1, $2, 'draft', $3, current_date + interval '30 days', $4, $5) RETURNING id`,
-        [createBusinessCode('QT'), customerId, totalAmount, body.notes ?? null, req.admin?.id]
+        [createBusinessCode('QT'), customerId, totalAmount, paymentPolicyParts.join('\n\n') || null, req.admin?.id]
       );
       const quoteId = quoteRes.rows[0].id;
 
       for (const qi of quoteItemsData) {
         await client.query(
-          `INSERT INTO quote_items (quote_id, pricing_catalog_id, custom_name, quantity, unit_price)
-           VALUES ($1, $2, $3, $4, $5)`,
-          [quoteId, qi.catalog_item_id, qi.name, qi.quantity, qi.unitPrice]
+          `INSERT INTO quote_items (quote_id, pricing_catalog_id, custom_name, quantity, unit_price, recurrence)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [quoteId, qi.catalog_item_id, qi.name, qi.quantity, qi.unitPrice, qi.recurrence]
         );
       }
 

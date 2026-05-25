@@ -99,19 +99,19 @@ const Servicios: React.FC = () => {
           </div>
 
           {/* Flechas Laterales (Solo Escritorio) */}
-          <button onClick={prev} className="hidden lg:block absolute left-10 top-1/2 -translate-y-1/2 [@media(max-height:650px)]:top-[40%] z-20 text-white/70 transition-all duration-300 group outline-none lg:hover:text-[#06CFD6] lg:hover:scale-110 lg:hover:drop-shadow-[0_0_18px_rgba(6,207,214,0.8)]" aria-label="Anterior">
+          <button onClick={prev} className="hidden lg:block absolute left-10 top-1/2 -translate-y-1/2 [@media(max-height:720px)]:top-[40%] z-20 text-white/70 transition-all duration-300 group outline-none lg:hover:text-[#06CFD6] lg:hover:scale-110 lg:hover:drop-shadow-[0_0_18px_rgba(6,207,214,0.8)]" aria-label="Anterior">
             <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}>
               <svg viewBox="7 4 10 16" className="w-16 h-28" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
             </motion.div>
           </button>
-          <button onClick={next} className="hidden lg:block absolute right-10 top-1/2 -translate-y-1/2 [@media(max-height:650px)]:top-[40%] z-20 text-white/70 transition-all duration-300 group outline-none lg:hover:text-[#06CFD6] lg:hover:scale-110 lg:hover:drop-shadow-[0_0_18px_rgba(6,207,214,0.8)]" aria-label="Siguiente">
+          <button onClick={next} className="hidden lg:block absolute right-10 top-1/2 -translate-y-1/2 [@media(max-height:720px)]:top-[40%] z-20 text-white/70 transition-all duration-300 group outline-none lg:hover:text-[#06CFD6] lg:hover:scale-110 lg:hover:drop-shadow-[0_0_18px_rgba(6,207,214,0.8)]" aria-label="Siguiente">
             <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}>
               <svg viewBox="7 4 10 16" className="w-16 h-28" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
             </motion.div>
           </button>
 
           {/* CAPA 3: Contenido e Interacción */}
-          <div className="relative z-10 flex-1 flex flex-col lg:justify-end px-6 lg:px-8 xl:px-16 pt-[clamp(4rem,10vh,7rem)] lg:pt-0 pb-[clamp(2rem,6vh,4rem)] lg:pb-20 [@media(max-height:650px)]:lg:pb-10">
+          <div className="relative z-10 flex-1 flex flex-col lg:justify-end px-6 lg:px-8 xl:px-16 pt-[clamp(4rem,10vh,7rem)] lg:pt-0 pb-[clamp(2rem,6vh,4rem)] lg:pb-20 [@media(max-height:720px)]:lg:pb-10">
             <AnimatePresence mode="wait">
               <motion.div
                 key={`content-${current}`}
@@ -119,10 +119,10 @@ const Servicios: React.FC = () => {
                 animate={{ opacity: 1, y: 0, x: 0 }}
                 exit={{ opacity: 0, y: -12, x: 0 }}
                 transition={{ duration: 0.5, ease: 'easeInOut' }}
-                className="mt-auto lg:mt-0 flex flex-col lg:flex-row items-center lg:items-end justify-between w-full lg:max-w-7xl lg:mx-auto gap-6 lg:gap-16 [@media(max-height:650px)]:lg:gap-8"
+                className="mt-auto lg:mt-0 flex flex-col lg:flex-row items-center lg:items-end justify-between w-full lg:max-w-7xl lg:mx-auto gap-6 lg:gap-16 [@media(max-height:720px)]:lg:gap-8"
               >
                 {/* IZQUIERDA — Info del servicio */}
-                <div className="flex flex-col items-center lg:items-start text-center lg:text-left w-full lg:flex-1 lg:max-w-2xl -mt-50 [@media(max-height:650px)]:-mt-10">
+                <div className="flex flex-col items-center lg:items-start text-center lg:text-left w-full lg:flex-1 lg:max-w-2xl -mt-50 [@media(max-height:720px)]:-mt-10">
                   <p className="text-white/90 lg:text-white text-[1.5rem] md:text-[1.8rem] lg:text-2xl xl:text-3xl font-light tracking-wide mb-1 lg:mb-2">
                     {services[current].label}
                   </p>

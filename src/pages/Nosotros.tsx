@@ -57,12 +57,12 @@ const Nosotros: React.FC = () => {
       <section className="relative w-full lg:pb-[100px] 2xl:pb-[150px]">
         
         {/* === Fondos Base === */}
-        <div className="relative lg:absolute left-0 top-0 w-full overflow-hidden h-[18rem] sm:h-[17rem] md:h-[24rem] lg:h-[700px] xl:h-[850px] 2xl:h-[1000px] bg-black transition-all duration-500 z-0">
+        <div className="relative lg:absolute left-0 top-0 w-full overflow-hidden h-[18rem] sm:h-[17rem] md:h-[24rem] lg:h-[700px] xl:h-[850px] 2xl:h-[1000px] [@media(max-height:720px)]:lg:h-[560px] [@media(max-height:720px)]:xl:h-[620px] bg-black transition-all duration-500 z-0">
           <img
             src="/images/nosotros/imagenchicalaptoparriba.png"
             alt="Fondo Laptop"
             draggable={false}
-            className="h-full w-full object-cover object-center lg:object-top opacity-70 lg:opacity-100 lg:-translate-y-[18%]"
+            className="h-full w-full object-cover object-center lg:object-top opacity-70 lg:opacity-100 lg:-translate-y-[18%] [@media(max-height:720px)]:lg:-translate-y-[8%]"
           />
           {/* Overlays Móviles */}
           <div className="absolute inset-x-0 bottom-0 h-32 md:h-48 bg-gradient-to-t from-[#0CA3C6] via-black/15 to-transparent lg:hidden" />
@@ -72,13 +72,13 @@ const Nosotros: React.FC = () => {
         </div>
 
         {/* Fondo ondulado azul base (Escritorio) */}
-        <div className="hidden lg:block absolute left-0 w-full overflow-hidden rounded-tr-[90px] bg-[#0CA3C6] shadow-[15px_-15px_40px_rgba(0,0,0,0.25)] lg:top-[500px] xl:top-[600px] 2xl:top-[750px] lg:-bottom-[150px] xl:-bottom-[300px] 2xl:-bottom-[471px] transition-all duration-500 z-0">
+        <div className="hidden lg:block absolute left-0 w-full overflow-hidden rounded-tr-[90px] bg-[#0CA3C6] shadow-[15px_-15px_40px_rgba(0,0,0,0.25)] lg:top-[500px] xl:top-[600px] 2xl:top-[750px] lg:-bottom-[150px] xl:-bottom-[300px] 2xl:-bottom-[471px] [@media(max-height:720px)]:lg:top-[390px] [@media(max-height:720px)]:xl:top-[430px] [@media(max-height:720px)]:lg:-bottom-[90px] [@media(max-height:720px)]:xl:-bottom-[120px] transition-all duration-500 z-0">
           <div className="absolute inset-0 bg-gradient-to-b from-[#0CA3C6]/0 via-[#0CA3C6]/10 to-[#044553]" />
           <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-b from-transparent to-[#044553]" />
         </div>
 
         {/* === Contenedor Principal Unificado === */}
-        <div className="relative z-10 flex flex-col lg:block w-full lg:overflow-visible bg-[#0CA3C6] lg:bg-transparent px-4 sm:px-6 lg:px-[80px] xl:px-12 2xl:px-[100px] pb-16 sm:pb-20 lg:pb-0 pt-5 sm:pt-8 lg:pt-[140px] xl:pt-[200px] 2xl:pt-[250px] mx-auto max-w-none lg:max-w-[1600px] lg:min-h-[1050px] xl:min-h-[1350px] 2xl:min-h-[1600px] transition-all duration-500">
+        <div className="relative z-10 flex flex-col lg:block w-full lg:overflow-visible bg-[#0CA3C6] lg:bg-transparent px-4 sm:px-6 lg:px-[80px] xl:px-12 2xl:px-[100px] pb-16 sm:pb-20 lg:pb-0 pt-5 sm:pt-8 lg:pt-[140px] xl:pt-[200px] 2xl:pt-[250px] [@media(max-height:720px)]:lg:pt-[90px] [@media(max-height:720px)]:xl:pt-[110px] mx-auto max-w-none lg:max-w-[1600px] lg:min-h-[1050px] xl:min-h-[1350px] 2xl:min-h-[1600px] [@media(max-height:720px)]:lg:min-h-[760px] [@media(max-height:720px)]:xl:min-h-[860px] transition-all duration-500">
           
           {/* Decorativos Intermedios Móvil */}
           <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#0CA3C6] to-transparent lg:hidden" />
@@ -117,7 +117,7 @@ const Nosotros: React.FC = () => {
             </div>
 
             {/* Misión, Visión, Valores */}
-            <div className="relative z-10 flex flex-col items-center lg:items-start text-center lg:text-left gap-11 sm:gap-14 lg:gap-[50px] xl:gap-[80px] 2xl:gap-[120px] max-w-[20rem] sm:max-w-[24rem] lg:max-w-none mx-auto lg:mx-0 mt-[190px] mb-[190px] md:mt-[540px] md:mb-[190px] sm:mt-0 sm:mb-[250px] lg:mt-[100px] lg:mb-0 xl:mt-[220px] 2xl:mt-[250px] lg:pl-20 transition-all duration-500">
+            <div className="relative z-10 flex flex-col items-center lg:items-start text-center lg:text-left gap-11 sm:gap-14 lg:gap-[50px] xl:gap-[80px] 2xl:gap-[120px] max-w-[20rem] sm:max-w-[24rem] lg:max-w-none mx-auto lg:mx-0 mt-[190px] mb-[190px] md:mt-[540px] md:mb-[190px] sm:mt-0 sm:mb-[250px] lg:mt-[100px] lg:mb-0 xl:mt-[220px] 2xl:mt-[250px] [@media(max-height:720px)]:lg:mt-[30px] [@media(max-height:720px)]:xl:mt-[80px] lg:pl-20 transition-all duration-500">
               {infoBlocks.map((block, index) => (
                 <motion.div key={block.title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.1 }} className="flex flex-col items-center lg:items-start">
                   <h2 className="font-bold text-white [text-shadow:0px_4px_10.7px_rgba(255,255,255,0.49)] text-[clamp(2.2rem,9vw,3.3rem)] lg:text-[42px] xl:text-[54px] 2xl:text-[64px] leading-none lg:mb-4 2xl:mb-8 transition-all">
@@ -132,7 +132,7 @@ const Nosotros: React.FC = () => {
           </div>
 
           {/* Bloque Derecho (Gráficos Decorativos y El Hombre) */}
-          <div className="relative lg:absolute z-10 lg:z-20 w-full lg:w-[800px] max-w-[18rem] sm:max-w-[21rem] lg:max-w-none mx-auto lg:mx-0 mb-24 sm:mb-14 md:mb-40 lg:mb-0 aspect-[0.72] lg:aspect-auto lg:right-0 lg:top-[55px] lg:h-[1700px] md:origin-top lg:origin-[100%_15%] md:scale-[1.5] lg:scale-[0.62] xl:scale-[0.82] 2xl:scale-[1.21] 2xl:-right-34 pointer-events-none lg:transition-transform lg:duration-500 order-1 lg:order-none mt-[20px] lg:mt-0">
+          <div className="relative lg:absolute z-10 lg:z-20 w-full lg:w-[800px] max-w-[18rem] sm:max-w-[21rem] lg:max-w-none mx-auto lg:mx-0 mb-24 sm:mb-14 md:mb-40 lg:mb-0 aspect-[0.72] lg:aspect-auto lg:right-0 lg:top-[55px] lg:h-[1700px] [@media(max-height:720px)]:lg:h-[1280px] md:origin-top lg:origin-[100%_15%] md:scale-[1.5] lg:scale-[0.62] xl:scale-[0.82] 2xl:scale-[1.21] [@media(max-height:720px)]:lg:scale-[0.48] [@media(max-height:720px)]:xl:scale-[0.62] [@media(max-height:720px)]:2xl:scale-[0.82] 2xl:-right-34 pointer-events-none lg:transition-transform lg:duration-500 order-1 lg:order-none mt-[20px] lg:mt-0">
 
             {/* 1. Rectángulo azul oscuro */}
             <motion.div initial={{ opacity: 0, x: 80 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }} className="absolute -top-[20px] left-[calc(100%-140px)] md:left-[calc(100%-164px)] lg:top-[50px] lg:left-auto lg:right-0 h-[104px] w-[100vw] md:h-[114px] lg:h-[258px] lg:w-[355px] rounded-l-[20px] lg:rounded-l-[60px] rounded-r-none bg-[#024F79]" />
@@ -195,7 +195,7 @@ const Nosotros: React.FC = () => {
 
       {/* === Gráficos Finales de Cierre === */}
       {/* SVG Lateral (Solo Escritorio) */}
-      <div className="pointer-events-none absolute bottom-0 left-0 z-0 hidden lg:block max-w-[250px] lg:top-[500px] xl:top-[600px] 2xl:top-[750px] lg:w-[10vw] xl:w-[15vw] 2xl:w-[20vw] lg:opacity-40 xl:opacity-70 2xl:opacity-100 transition-all duration-500">
+      <div className="pointer-events-none absolute bottom-0 left-0 z-0 hidden lg:block max-w-[250px] lg:top-[500px] xl:top-[600px] 2xl:top-[750px] [@media(max-height:720px)]:lg:top-[390px] [@media(max-height:720px)]:xl:top-[430px] lg:w-[10vw] xl:w-[15vw] 2xl:w-[20vw] lg:opacity-40 xl:opacity-70 2xl:opacity-100 transition-all duration-500">
         <img src="/vectors/designs/elemento_lateral_fondo_nosotros.svg" alt="Patrón Lateral" draggable={false} className="h-full w-full object-contain object-left-top" />
       </div>
 
