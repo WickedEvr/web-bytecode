@@ -70,10 +70,12 @@ const AdminCotizador: React.FC = () => {
           legalNotes: payload.legalNotes,
           items: payload.items.map((item) => ({
             catalog_item_id: item.catalog_item_id,
-            quantity: item.quantity,
-            unit_price: item.unit_price,
+            quantity: item.pricing_model === 'per_unit' ? Math.max(1, item.billable_quantity) : item.quantity,
+            unit_price: item.pricing_model === 'per_unit' && item.billable_quantity === 0 ? 0 : item.unit_price,
             recurrence: item.recurrence,
-            custom_name: item.name,
+            custom_name: item.pricing_model === 'per_unit' && item.free_included_quantity > 0
+              ? `${item.name} (${item.quantity} solicitados, ${item.free_included_quantity} incluidos)`
+              : item.name,
           })),
         },
       });

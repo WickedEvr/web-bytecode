@@ -1228,38 +1228,49 @@ router.post(
 
 // --- Quotes Endpoints ---
 
-let pricingCatalogUiColumns: boolean | null = null;
+let pricingCatalogColumns: Record<string, boolean> | null = null;
 
-const hasPricingCatalogUiColumns = async () => {
-  if (pricingCatalogUiColumns !== null) return pricingCatalogUiColumns;
+const getPricingCatalogColumns = async () => {
+  if (pricingCatalogColumns !== null) return pricingCatalogColumns;
 
   const result = await pool.query(`
-    SELECT count(*)::int AS total
+    SELECT column_name
     FROM information_schema.columns
     WHERE table_schema = 'public'
       AND table_name = 'pricing_catalog'
-      AND column_name IN ('item_type', 'upgrades_to_category', 'is_draggable', 'icon_name')
+      AND column_name IN (
+        'item_type',
+        'upgrades_to_category',
+        'is_draggable',
+        'icon_name',
+        'free_included_quantity',
+        'included_features'
+      )
   `);
 
-  pricingCatalogUiColumns = result.rows[0]?.total === 4;
-  return pricingCatalogUiColumns;
+  pricingCatalogColumns = Object.fromEntries(result.rows.map((row: { column_name: string }) => [row.column_name, true]));
+  return pricingCatalogColumns;
 };
 
 router.get(
   '/catalog/pricing',
   requireRole(['admin', 'partner_designer']),
   asyncHandler(async (_req: Request, res: Response) => {
-    const hasUiColumns = await hasPricingCatalogUiColumns();
-    const uiColumnsSql = hasUiColumns
-      ? 'item_type, upgrades_to_category, is_draggable, icon_name,'
-      : 'NULL::varchar AS item_type, NULL::varchar AS upgrades_to_category, NULL::boolean AS is_draggable, NULL::varchar AS icon_name,';
-    const orderSql = hasUiColumns
+    const columns = await getPricingCatalogColumns();
+    const itemTypeSql = columns.item_type ? 'item_type' : 'NULL::varchar AS item_type';
+    const upgradesSql = columns.upgrades_to_category ? 'upgrades_to_category' : 'NULL::varchar AS upgrades_to_category';
+    const draggableSql = columns.is_draggable ? 'is_draggable' : 'NULL::boolean AS is_draggable';
+    const iconSql = columns.icon_name ? 'icon_name' : 'NULL::varchar AS icon_name';
+    const freeIncludedSql = columns.free_included_quantity ? 'free_included_quantity' : 'NULL::integer AS free_included_quantity';
+    const includedFeaturesSql = columns.included_features ? 'included_features' : "'[]'::jsonb AS included_features";
+    const orderSql = columns.item_type
       ? `CASE item_type
           WHEN 'base_canvas' THEN 0
-          WHEN 'category_trigger' THEN 1
+          WHEN 'base_included' THEN 1
           WHEN 'addon' THEN 2
-          WHEN 'recurring' THEN 3
-          ELSE 4
+          WHEN 'category_trigger' THEN 3
+          WHEN 'recurring' THEN 4
+          ELSE 5
         END`
       : `CASE item_code
           WHEN 'landing_page' THEN 0
@@ -1271,7 +1282,8 @@ router.get(
     const result = await pool.query(
       `
       SELECT id, item_code, name, description, pricing_model, base_price, max_price,
-             currency_code, ${uiColumnsSql}
+             ${freeIncludedSql}, ${includedFeaturesSql}, currency_code,
+             ${itemTypeSql}, ${upgradesSql}, ${draggableSql}, ${iconSql},
              base_price AS unit_price
       FROM pricing_catalog
       WHERE is_active = true AND deleted_at IS NULL
@@ -1304,7 +1316,7 @@ const createQuoteSchema = z.object({
   items: z.array(z.object({
     catalog_item_id: z.string().uuid(),
     quantity: z.number().int().min(1),
-    unit_price: z.number().min(0).optional(),
+    unit_price: z.number().optional(),
     recurrence: z.enum(['none', 'monthly', 'yearly']).optional(),
     custom_name: z.string().trim().min(1).max(180).optional()
   })).min(1),

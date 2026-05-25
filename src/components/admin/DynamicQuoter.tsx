@@ -37,11 +37,12 @@ type DynamicQuoterProps = {
   onGenerate: (payload: PreparedQuotePayload) => void | Promise<void>;
 };
 
-const itemTypeLabels: Record<string, string> = {
-  category_trigger: 'Triggers de Categoria',
-  addon: 'Add-ons',
-  recurring: 'Recurrentes',
-};
+const catalogSections = [
+  { type: 'addon', label: 'Add-ons' },
+  { type: 'category_trigger', label: 'Triggers de Categoria' },
+  { type: 'recurring', label: 'Recurrentes' },
+] as const;
+const infrastructureCodes = new Set(['discount_own_domain', 'fee_domain_setup', 'discount_own_hosting', 'fee_hosting_setup']);
 
 const iconMap: Record<string, LucideIcon> = {
   boxes: Boxes,
@@ -115,6 +116,21 @@ const Dropzone = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
+const ToggleSwitch = ({ checked, label, onChange }: { checked: boolean; label: string; onChange: (checked: boolean) => void }) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={checked}
+    onClick={() => onChange(!checked)}
+    className="flex w-full items-center justify-between gap-4 rounded-lg border border-white/10 bg-black/20 px-4 py-3 text-left transition-colors hover:bg-white/[0.04]"
+  >
+    <span className="text-sm font-medium text-white/80">{label}</span>
+    <span className={`relative h-6 w-11 rounded-full border transition-colors ${checked ? 'border-emerald-300/50 bg-emerald-400/30' : 'border-white/15 bg-white/10'}`}>
+      <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${checked ? 'translate-x-5' : 'translate-x-0.5'}`} />
+    </span>
+  </button>
+);
+
 const DynamicQuoter = ({
   initialCatalog,
   customerName,
@@ -136,16 +152,24 @@ const DynamicQuoter = ({
   const resetQuote = useQuoterState((state) => state.resetQuote);
   const storeCatalog = useQuoterState((state) => state.catalog);
   const cart = useQuoterState((state) => state.cart);
+  const infrastructure = useQuoterState((state) => state.infrastructure);
+  const toggleOwnDomain = useQuoterState((state) => state.toggleOwnDomain);
+  const toggleOwnHosting = useQuoterState((state) => state.toggleOwnHosting);
   const buildPayload = useQuoterState((state) => state.buildPayload);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
-  const totals = useMemo(() => computeQuoteTotals(storeCatalog, cart), [storeCatalog, cart]);
+  const totals = useMemo(() => computeQuoteTotals(storeCatalog, cart, infrastructure), [storeCatalog, cart, infrastructure]);
+  const activeIncludedFeatures = Array.isArray(totals.activeBaseSource?.included_features)
+    ? totals.activeBaseSource.included_features
+    : [];
 
   useEffect(() => {
     setCatalog(initialCatalog);
   }, [initialCatalog, setCatalog]);
 
   const groupedCatalog = useMemo(() => {
-    const draggableItems = storeCatalog.filter((item) => item.is_draggable && item.item_type !== 'base_canvas');
+    const draggableItems = storeCatalog.filter((item) =>
+      item.is_draggable && !['base_canvas', 'base_included'].includes(item.item_type),
+    );
     return draggableItems.reduce<Record<string, NormalizedPricingCatalogItem[]>>((groups, item) => {
       const key = item.item_type;
       groups[key] = [...(groups[key] ?? []), item];
@@ -224,7 +248,7 @@ const DynamicQuoter = ({
             </div>
 
             <div className="flex flex-col gap-6">
-              {Object.entries(itemTypeLabels).map(([type, label]) => {
+              {catalogSections.map(({ type, label }) => {
                 const items = groupedCatalog[type] ?? [];
                 if (items.length === 0) return null;
 
@@ -252,19 +276,20 @@ const DynamicQuoter = ({
               </span>
             </div>
 
-            <div className="flex flex-col gap-3">
-              {totals.baseItem && (
-                <div className="rounded-lg border border-white/10 bg-black/20 p-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-white/90">{totals.activeBaseSource?.name ?? totals.baseItem.name}</p>
-                      <p className="mt-1 text-xs text-white/40">Estructura base aplicada automaticamente.</p>
+            {activeIncludedFeatures.length > 0 && (
+              <div className="mb-5 rounded-xl border border-white/10 bg-black/20 p-4">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {activeIncludedFeatures.map((feature) => (
+                    <div key={feature} className="flex items-start gap-2 text-sm leading-5 text-white/75">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
+                      <span>{feature}</span>
                     </div>
-                    <p className="font-mono text-sm text-white/80">{formatPen(Number(totals.activeBaseSource?.base_price ?? totals.baseItem.base_price))}</p>
-                  </div>
+                  ))}
                 </div>
-              )}
+              </div>
+            )}
 
+            <div className="flex flex-col gap-3">
               {totals.visibleLines.length === 0 && (
                 <div className="flex min-h-[160px] flex-col items-center justify-center rounded-lg border border-dashed border-white/15 text-center">
                   <Plus className="mb-3 h-6 w-6 text-white/25" />
@@ -272,9 +297,11 @@ const DynamicQuoter = ({
                 </div>
               )}
 
-              {totals.visibleLines.map(({ item, quantity, subtotal, isActiveBaseTrigger }) => {
+              {totals.visibleLines.map(({ item, quantity, subtotal, billableQuantity, freeIncludedQuantity, includedInBase, isActiveBaseTrigger }) => {
                 const canEditQuantity = item.pricing_model === 'per_unit';
                 const inactiveTrigger = item.item_type === 'category_trigger' && !isActiveBaseTrigger;
+                const lockedLine = item.item_type === 'base_canvas' || item.item_type === 'base_included' || Boolean(item.item_code && infrastructureCodes.has(item.item_code));
+                const baseCanvasReplaced = item.item_type === 'base_canvas' && Boolean(totals.activeBaseSource && totals.activeBaseSource.id !== item.id);
 
                 return (
                   <div key={item.id} className={`rounded-lg border p-4 ${inactiveTrigger ? 'border-white/5 bg-white/[0.015] opacity-65' : 'border-white/10 bg-black/20'}`}>
@@ -282,9 +309,17 @@ const DynamicQuoter = ({
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-white/90">{item.name}</p>
                         <p className="mt-1 text-xs text-white/40">
-                          {item.item_type === 'category_trigger'
+                          {baseCanvasReplaced
+                            ? 'Anulado por trigger de categoria.'
+                            : item.item_code && infrastructureCodes.has(item.item_code)
+                              ? 'Ajuste por infraestructura propia.'
+                              : item.item_type === 'base_included'
+                              ? 'Incluido en la estructura base.'
+                              : item.item_type === 'category_trigger'
                             ? (isActiveBaseTrigger ? 'Sobreescribe el lienzo base.' : 'Trigger no sumado: existe uno de mayor precio.')
-                            : item.pricing_model}
+                            : item.pricing_model === 'per_unit'
+                              ? `${billableQuantity} cobrable(s) de ${quantity} solicitado(s)`
+                              : item.pricing_model}
                         </p>
                       </div>
                       <div>
@@ -303,15 +338,29 @@ const DynamicQuoter = ({
                       <div className="font-mono text-sm text-white/75">
                         <span className="block text-xs text-white/35">Unitario</span>
                         {formatPen(Number(item.base_price))}
+                        {includedInBase && (
+                          <span className="mt-1 inline-flex rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2 py-0.5 font-sansation text-[10px] font-medium text-emerald-200">
+                            Incluido en Base
+                          </span>
+                        )}
+                        {item.pricing_model === 'per_unit' && freeIncludedQuantity > 0 && !includedInBase && (
+                          <span className="mt-1 block font-sansation text-[10px] text-white/35">
+                            {freeIncludedQuantity} incluido(s)
+                          </span>
+                        )}
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => removeItem(item.id)}
-                        className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 text-white/45 transition-colors hover:border-red-400/40 hover:bg-red-500/10 hover:text-red-200"
-                        aria-label={`Eliminar ${item.name}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      {lockedLine ? (
+                        <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 text-white/25">-</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => removeItem(item.id)}
+                          className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 text-white/45 transition-colors hover:border-red-400/40 hover:bg-red-500/10 hover:text-red-200"
+                          aria-label={`Eliminar ${item.name}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
                     <div className="mt-3 flex justify-end border-t border-white/5 pt-3 font-mono text-sm text-white/80">
                       Subtotal: {formatPen(subtotal)}
@@ -321,17 +370,41 @@ const DynamicQuoter = ({
               })}
             </div>
 
+            <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.025] p-4">
+              <div className="mb-4">
+                <h4 className="text-sm font-semibold text-white/90">Infraestructura propia</h4>
+                <p className="mt-1 text-xs text-white/40">Ajusta dominio y hosting cuando el cliente ya cuenta con proveedores externos.</p>
+              </div>
+              <div className="grid gap-3 lg:grid-cols-2">
+                <ToggleSwitch
+                  checked={infrastructure.ownDomain}
+                  label="El cliente proveera su propio Dominio"
+                  onChange={toggleOwnDomain}
+                />
+                <ToggleSwitch
+                  checked={infrastructure.ownHosting}
+                  label="El cliente proveera su propio Hosting"
+                  onChange={toggleOwnHosting}
+                />
+              </div>
+              {totals.infrastructureSavings.label && (
+                <div className="mt-4 inline-flex rounded-full border border-emerald-300/25 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-200">
+                  {totals.infrastructureSavings.label}
+                </div>
+              )}
+            </div>
+
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
-                <p className="text-xs uppercase tracking-wider text-white/40">Costo de Desarrollo</p>
+                <p className="text-xs uppercase tracking-wider text-white/40">Costo Total de Desarrollo</p>
                 <p className="mt-2 font-mono text-lg text-white">{formatPen(totals.developmentTotal)}</p>
               </div>
               <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
-                <p className="text-xs uppercase tracking-wider text-white/40">Mensual Recurrente</p>
+                <p className="text-xs uppercase tracking-wider text-white/40">Recurrente Mensual</p>
                 <p className="mt-2 font-mono text-lg text-white">{formatPen(totals.recurringMonthlyTotal)}</p>
               </div>
               <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
-                <p className="text-xs uppercase tracking-wider text-white/40">Anual Recurrente</p>
+                <p className="text-xs uppercase tracking-wider text-white/40">Recurrente Anual</p>
                 <p className="mt-2 font-mono text-lg text-white">{formatPen(totals.recurringYearlyTotal)}</p>
               </div>
             </div>
@@ -367,7 +440,7 @@ const DynamicQuoter = ({
           className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black transition-colors hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Save className="h-4 w-4" />
-          {loading ? 'Generando...' : 'Generar Cotizacion'}
+          {loading ? 'Guardando...' : 'Guardar Cotizacion'}
         </button>
       </div>
     </form>
