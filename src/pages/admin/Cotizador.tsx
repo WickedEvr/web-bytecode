@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calculator, Plus, RefreshCw, X } from 'lucide-react';
+import { Calculator, Edit, MoreVertical, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import AdminPanel from '../../components/admin/AdminPanel';
 import DynamicQuoter from '../../components/admin/DynamicQuoter';
 import { apiRequest } from '../../lib/api';
@@ -28,6 +28,7 @@ const AdminCotizador: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [openActionsQuoteId, setOpenActionsQuoteId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     customerName: '',
     customerEmail: '',
@@ -59,6 +60,25 @@ const AdminCotizador: React.FC = () => {
     void loadData();
   }, []);
 
+  useEffect(() => {
+    if (!openActionsQuoteId) return;
+
+    const closeActionsMenu = (event: MouseEvent) => {
+      if (event.target instanceof Element && event.target.closest('[data-quote-actions]')) return;
+      setOpenActionsQuoteId(null);
+    };
+    const closeActionsMenuOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpenActionsQuoteId(null);
+    };
+
+    document.addEventListener('click', closeActionsMenu);
+    document.addEventListener('keydown', closeActionsMenuOnEscape);
+    return () => {
+      document.removeEventListener('click', closeActionsMenu);
+      document.removeEventListener('keydown', closeActionsMenuOnEscape);
+    };
+  }, [openActionsQuoteId]);
+
   const openNewQuote = () => {
     setCatalogInStore(catalog);
     resetQuoter();
@@ -68,6 +88,7 @@ const AdminCotizador: React.FC = () => {
   };
 
   const handleEditQuote = async (quoteId: string) => {
+    setOpenActionsQuoteId(null);
     setLoading(true);
     setError('');
     try {
@@ -82,6 +103,27 @@ const AdminCotizador: React.FC = () => {
       setIsModalOpen(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar cotizacion');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteQuote = async (quote: Quote) => {
+    setOpenActionsQuoteId(null);
+    const confirmed = window.confirm(`¿Eliminar la cotizacion ${quote.quote_code}? Esta accion no se mostrara en el historial.`);
+    if (!confirmed) return;
+
+    setLoading(true);
+    setError('');
+    try {
+      await apiRequest(`/api/admin/quotations/${quote.id}`, { method: 'DELETE' });
+      if (editingQuoteId === quote.id) {
+        resetQuoter();
+        setIsModalOpen(false);
+      }
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al eliminar cotizacion');
     } finally {
       setLoading(false);
     }
@@ -177,23 +219,12 @@ const AdminCotizador: React.FC = () => {
                 <th className="px-6 py-4 font-medium">Monto Total</th>
                 <th className="px-6 py-4 font-medium">Estado</th>
                 <th className="px-6 py-4 font-medium">Fecha</th>
+                <th className="px-6 py-4 text-right font-medium">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-white/80">
               {quotes.map((quote) => (
-                <tr
-                  key={quote.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => void handleEditQuote(quote.id)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
-                      void handleEditQuote(quote.id);
-                    }
-                  }}
-                  className="cursor-pointer transition-colors hover:bg-white/[0.04]"
-                >
+                <tr key={quote.id} className="transition-colors hover:bg-white/[0.02]">
                   <td className="px-6 py-4 font-medium">{quote.quote_code}</td>
                   <td className="px-6 py-4">
                     <p className="font-medium">{quote.first_name || 'Desconocido'}</p>
@@ -206,11 +237,49 @@ const AdminCotizador: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-xs text-white/40">{formatDate(quote.created_at)}</td>
+                  <td className="relative px-6 py-4 text-right" data-quote-actions>
+                    <button
+                      type="button"
+                      onClick={() => setOpenActionsQuoteId((current) => current === quote.id ? null : quote.id)}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-white/40 transition-colors hover:bg-white/5 hover:text-white/70 focus:outline-none focus:ring-2 focus:ring-white/20"
+                      aria-haspopup="menu"
+                      aria-expanded={openActionsQuoteId === quote.id}
+                      aria-label={`Acciones para ${quote.quote_code}`}
+                    >
+                      <MoreVertical className="h-5 w-5" />
+                    </button>
+
+                    {openActionsQuoteId === quote.id && (
+                      <div
+                        role="menu"
+                        className="absolute right-6 top-12 z-10 w-48 overflow-hidden rounded-md border border-white/10 bg-[#0a0a0a] py-1 text-left shadow-xl"
+                      >
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => void handleEditQuote(quote.id)}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-sm text-white/75 transition-colors hover:bg-white/5 hover:text-white"
+                        >
+                          <Edit className="h-4 w-4" />
+                          Editar Cotización
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => void handleDeleteQuote(quote)}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-400 transition-colors hover:bg-white/5 hover:text-red-300"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Eliminar
+                        </button>
+                      </div>
+                    )}
+                  </td>
                 </tr>
               ))}
               {quotes.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-10 text-center text-sm text-white/30">
+                  <td colSpan={6} className="px-6 py-10 text-center text-sm text-white/30">
                     No hay cotizaciones registradas.
                   </td>
                 </tr>
