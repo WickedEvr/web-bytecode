@@ -22,13 +22,19 @@ type QuoteDetailResponse = {
   items: EditableQuoteItemData[];
 };
 
+type ActionMenuState = {
+  quoteId: string;
+  top: number;
+  right: number;
+};
+
 const AdminCotizador: React.FC = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [catalog, setCatalog] = useState<PricingCatalogItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [openActionsQuoteId, setOpenActionsQuoteId] = useState<string | null>(null);
+  const [actionsMenu, setActionsMenu] = useState<ActionMenuState | null>(null);
   const [formData, setFormData] = useState({
     customerName: '',
     customerEmail: '',
@@ -61,23 +67,28 @@ const AdminCotizador: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!openActionsQuoteId) return;
+    if (!actionsMenu) return;
 
     const closeActionsMenu = (event: MouseEvent) => {
       if (event.target instanceof Element && event.target.closest('[data-quote-actions]')) return;
-      setOpenActionsQuoteId(null);
+      setActionsMenu(null);
     };
     const closeActionsMenuOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpenActionsQuoteId(null);
+      if (event.key === 'Escape') setActionsMenu(null);
     };
+    const closeActionsMenuOnLayoutChange = () => setActionsMenu(null);
 
     document.addEventListener('click', closeActionsMenu);
     document.addEventListener('keydown', closeActionsMenuOnEscape);
+    window.addEventListener('resize', closeActionsMenuOnLayoutChange);
+    window.addEventListener('scroll', closeActionsMenuOnLayoutChange, true);
     return () => {
       document.removeEventListener('click', closeActionsMenu);
       document.removeEventListener('keydown', closeActionsMenuOnEscape);
+      window.removeEventListener('resize', closeActionsMenuOnLayoutChange);
+      window.removeEventListener('scroll', closeActionsMenuOnLayoutChange, true);
     };
-  }, [openActionsQuoteId]);
+  }, [actionsMenu]);
 
   const openNewQuote = () => {
     setCatalogInStore(catalog);
@@ -88,7 +99,7 @@ const AdminCotizador: React.FC = () => {
   };
 
   const handleEditQuote = async (quoteId: string) => {
-    setOpenActionsQuoteId(null);
+    setActionsMenu(null);
     setLoading(true);
     setError('');
     try {
@@ -109,7 +120,7 @@ const AdminCotizador: React.FC = () => {
   };
 
   const handleDeleteQuote = async (quote: Quote) => {
-    setOpenActionsQuoteId(null);
+    setActionsMenu(null);
     const confirmed = window.confirm(`¿Eliminar la cotizacion ${quote.quote_code}? Esta accion no se mostrara en el historial.`);
     if (!confirmed) return;
 
@@ -174,6 +185,17 @@ const AdminCotizador: React.FC = () => {
 
   const formatDate = (val: string) =>
     new Intl.DateTimeFormat('es-PE', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(val));
+
+  const openActionsMenu = (quoteId: string, event: React.MouseEvent<HTMLButtonElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setActionsMenu((current) => current?.quoteId === quoteId
+      ? null
+      : {
+        quoteId,
+        top: rect.bottom + 6,
+        right: Math.max(12, window.innerWidth - rect.right),
+      });
+  };
 
   return (
     <div className="flex flex-col gap-6 font-sansation">
@@ -240,16 +262,16 @@ const AdminCotizador: React.FC = () => {
                   <td className="relative px-6 py-4 text-right" data-quote-actions>
                     <button
                       type="button"
-                      onClick={() => setOpenActionsQuoteId((current) => current === quote.id ? null : quote.id)}
+                      onClick={(event) => openActionsMenu(quote.id, event)}
                       className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-white/40 transition-colors hover:bg-white/5 hover:text-white/70 focus:outline-none focus:ring-2 focus:ring-white/20"
                       aria-haspopup="menu"
-                      aria-expanded={openActionsQuoteId === quote.id}
+                      aria-expanded={actionsMenu?.quoteId === quote.id}
                       aria-label={`Acciones para ${quote.quote_code}`}
                     >
                       <MoreVertical className="h-5 w-5" />
                     </button>
 
-                    {openActionsQuoteId === quote.id && (
+                    {false && null && (
                       <div
                         role="menu"
                         className="absolute right-6 top-12 z-10 w-48 overflow-hidden rounded-md border border-white/10 bg-[#0a0a0a] py-1 text-left shadow-xl"
@@ -288,6 +310,37 @@ const AdminCotizador: React.FC = () => {
           </table>
         </div>
       </AdminPanel>
+
+      {actionsMenu && (
+        <div
+          role="menu"
+          data-quote-actions
+          className="fixed z-[100] w-48 overflow-hidden rounded-md border border-white/10 bg-[#0a0a0a] py-1 text-left shadow-xl"
+          style={{ top: actionsMenu.top, right: actionsMenu.right }}
+        >
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => void handleEditQuote(actionsMenu.quoteId)}
+            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-white/75 transition-colors hover:bg-white/5 hover:text-white"
+          >
+            <Edit className="h-4 w-4" />
+            Editar Cotización
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              const quote = quotes.find((item) => item.id === actionsMenu.quoteId);
+              if (quote) void handleDeleteQuote(quote);
+            }}
+            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-400 transition-colors hover:bg-white/5 hover:text-red-300"
+          >
+            <Trash2 className="h-4 w-4" />
+            Eliminar
+          </button>
+        </div>
+      )}
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
