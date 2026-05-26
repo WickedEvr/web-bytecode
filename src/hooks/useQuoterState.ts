@@ -119,6 +119,11 @@ const MAINTENANCE_LEVELS: Record<string, { level: number; label: string }> = {
   maintenance_mid: { level: 2, label: 'Mantenimiento Intermedio' },
   maintenance_pro: { level: 3, label: 'Mantenimiento Avanzado' },
 };
+const REVISION_LEVELS: Record<string, { level: number }> = {
+  revision_basic: { level: 1 },
+  revision_mid: { level: 2 },
+  revision_custom: { level: 3 },
+};
 
 const moneyValue = (value: number | string | null | undefined) => Number(value ?? 0);
 const normalizeIncludedFeatures = (value: PricingCatalogItem['included_features']) => {
@@ -178,6 +183,9 @@ const recurrenceFor = (item: NormalizedPricingCatalogItem): 'none' | 'monthly' |
 const maintenanceLevelFor = (item: NormalizedPricingCatalogItem) =>
   item.item_code ? MAINTENANCE_LEVELS[item.item_code] ?? null : null;
 
+const revisionLevelFor = (item: NormalizedPricingCatalogItem) =>
+  item.item_code ? REVISION_LEVELS[item.item_code] ?? null : null;
+
 export const requiresCustomPrice = (item: NormalizedPricingCatalogItem) =>
   item.item_code === 'revision_custom' || (item.item_type === 'addon' && item.pricing_model === 'range');
 
@@ -187,8 +195,14 @@ const showMaintenanceDowngradeWarning = (includedBy: string) => {
   }
 };
 
+const showRevisionDowngradeWarning = () => {
+  if (typeof window !== 'undefined') {
+    window.alert('El nivel actual de revisión ya cubre los cambios básicos. No es necesario agregarlo.');
+  }
+};
+
 const lineQuantity = (item: NormalizedPricingCatalogItem, quantity: number) =>
-  item.pricing_model === 'per_unit' ? Math.max(1, quantity) : 1;
+  item.pricing_model === 'per_unit' || revisionLevelFor(item) ? Math.max(1, quantity) : 1;
 
 const freeQuantityFor = (item: NormalizedPricingCatalogItem) =>
   item.pricing_model === 'per_unit' ? Math.max(0, Math.floor(moneyValue(item.free_included_quantity))) : 0;
@@ -402,6 +416,42 @@ export const useQuoterState = create<QuoterState>((set, get) => ({
         cart: [
           { catalogItemId: catalogItem.id, quantity: 1 },
           ...withoutRootCategoryLines(state.catalog, state.cart),
+        ],
+      };
+    }
+
+    const incomingRevision = revisionLevelFor(catalogItem);
+    if (incomingRevision) {
+      const existing = state.cart.find((line) => line.catalogItemId === catalogItemId);
+
+      if (existing) {
+        return {
+          cart: state.cart.map((line) =>
+            line.catalogItemId === catalogItemId ? { ...line, quantity: line.quantity + 1 } : line,
+          ),
+        };
+      }
+
+      const activeRevisions = state.cart
+        .map((line) => state.catalog.find((item) => item.id === line.catalogItemId))
+        .filter((item): item is NormalizedPricingCatalogItem => Boolean(item))
+        .map((item) => ({ item, revision: revisionLevelFor(item) }))
+        .filter((entry): entry is { item: NormalizedPricingCatalogItem; revision: { level: number } } => Boolean(entry.revision));
+      const higherRevision = activeRevisions.find(({ revision }) => revision.level > incomingRevision.level);
+
+      if (higherRevision) {
+        showRevisionDowngradeWarning();
+        return state;
+      }
+
+      return {
+        cart: [
+          ...state.cart.filter((line) => {
+            const item = state.catalog.find((entry) => entry.id === line.catalogItemId);
+            const revision = item ? revisionLevelFor(item) : null;
+            return !revision || revision.level >= incomingRevision.level;
+          }),
+          cartLineFor(catalogItem),
         ],
       };
     }
