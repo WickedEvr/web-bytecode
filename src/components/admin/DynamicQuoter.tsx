@@ -21,7 +21,7 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react';
-import { computeQuoteTotals, formatPen, quoteLegalNotes, useQuoterState, type NormalizedPricingCatalogItem, type PreparedQuotePayload, type PricingCatalogItem } from '../../hooks/useQuoterState';
+import { computeQuoteTotals, formatPen, quoteLegalNotes, requiresCustomPrice, useQuoterState, type NormalizedPricingCatalogItem, type PreparedQuotePayload, type PricingCatalogItem } from '../../hooks/useQuoterState';
 
 type DynamicQuoterProps = {
   initialCatalog: PricingCatalogItem[];
@@ -149,6 +149,7 @@ const DynamicQuoter = ({
   const addItem = useQuoterState((state) => state.addItem);
   const removeItem = useQuoterState((state) => state.removeItem);
   const updateQuantity = useQuoterState((state) => state.updateQuantity);
+  const setCustomPrice = useQuoterState((state) => state.setCustomPrice);
   const resetQuote = useQuoterState((state) => state.resetQuote);
   const storeCatalog = useQuoterState((state) => state.catalog);
   const cart = useQuoterState((state) => state.cart);
@@ -304,8 +305,10 @@ const DynamicQuoter = ({
                 </div>
               )}
 
-              {billableVisibleLines.map(({ item, quantity, subtotal, billableQuantity, freeIncludedQuantity, includedInBase, isActiveBaseTrigger }) => {
+              {billableVisibleLines.map(({ item, quantity, customPrice, subtotal, billableQuantity, freeIncludedQuantity, includedInBase, isActiveBaseTrigger }) => {
                 const canEditQuantity = item.pricing_model === 'per_unit';
+                const itemCode = item.item_code;
+                const canEditCustomPrice = Boolean(itemCode) && requiresCustomPrice(item);
                 const inactiveTrigger = item.item_type === 'category_trigger' && !isActiveBaseTrigger;
                 const lockedLine = item.item_type === 'base_canvas' || item.item_type === 'base_included' || Boolean(item.item_code && infrastructureCodes.has(item.item_code));
                 const baseCanvasReplaced = item.item_type === 'base_canvas' && Boolean(totals.activeBaseSource && totals.activeBaseSource.id !== item.id);
@@ -324,7 +327,9 @@ const DynamicQuoter = ({
                               ? 'Incluido en la estructura base.'
                               : item.item_type === 'category_trigger'
                             ? (isActiveBaseTrigger ? 'Sobreescribe el lienzo base.' : 'Trigger no sumado: existe uno de mayor precio.')
-                            : item.pricing_model === 'per_unit'
+                              : canEditCustomPrice
+                              ? 'Precio manual para alcance personalizado.'
+                              : item.pricing_model === 'per_unit'
                               ? `${billableQuantity} cobrable(s) de ${quantity} solicitado(s)`
                               : item.pricing_model}
                         </p>
@@ -344,7 +349,27 @@ const DynamicQuoter = ({
                       </div>
                       <div className="font-mono text-sm text-white/75">
                         <span className="block text-xs text-white/35">Unitario</span>
-                        {formatPen(Number(item.base_price))}
+                        {canEditCustomPrice && itemCode ? (
+                          <label className="mt-1 flex h-10 w-32 items-center overflow-hidden rounded-lg border border-white/10 bg-white/5 focus-within:border-[#06CFD6]/70">
+                            <span className="flex h-full items-center border-r border-white/10 px-2 font-sansation text-xs text-white/45">S/</span>
+                            <input
+                              type="number"
+                              min={0}
+                              step={50}
+                              inputMode="decimal"
+                              value={customPrice ?? ''}
+                              onChange={(event) => setCustomPrice(
+                                itemCode,
+                                event.target.value === '' ? Number.NaN : Number(event.target.value),
+                              )}
+                              placeholder={String(Number(item.base_price) || '')}
+                              className="h-full min-w-0 flex-1 bg-transparent px-2 text-right text-sm text-white/90 outline-none placeholder:text-white/25"
+                              aria-label={`Precio personalizado para ${item.name}`}
+                            />
+                          </label>
+                        ) : (
+                          formatPen(Number(item.base_price))
+                        )}
                         {includedInBase && (
                           <span className="mt-1 inline-flex rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2 py-0.5 font-sansation text-[10px] font-medium text-emerald-200">
                             Incluido en Base
