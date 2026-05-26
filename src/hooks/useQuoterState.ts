@@ -111,6 +111,11 @@ const LEGAL_NOTES = [
 const DOMAIN_INFRA_CODES = ['discount_own_domain', 'fee_domain_setup'];
 const HOSTING_INFRA_CODES = ['discount_own_hosting', 'fee_hosting_setup'];
 const INFRA_CODES = new Set([...DOMAIN_INFRA_CODES, ...HOSTING_INFRA_CODES]);
+const MAINTENANCE_LEVELS: Record<string, { level: number; label: string }> = {
+  seo_maintenance_basic: { level: 1, label: 'Mantenimiento Basico' },
+  maintenance_mid: { level: 2, label: 'Mantenimiento Intermedio' },
+  maintenance_pro: { level: 3, label: 'Mantenimiento Avanzado' },
+};
 
 const moneyValue = (value: number | string | null | undefined) => Number(value ?? 0);
 const normalizeIncludedFeatures = (value: PricingCatalogItem['included_features']) => {
@@ -167,6 +172,15 @@ const recurrenceFor = (item: NormalizedPricingCatalogItem): 'none' | 'monthly' |
   return item.item_type === 'recurring' ? 'monthly' : 'none';
 };
 
+const maintenanceLevelFor = (item: NormalizedPricingCatalogItem) =>
+  item.item_code ? MAINTENANCE_LEVELS[item.item_code] ?? null : null;
+
+const showMaintenanceDowngradeWarning = (includedBy: string) => {
+  if (typeof window !== 'undefined') {
+    window.alert(`El ${includedBy} ya incluye las caracteristicas de este plan.`);
+  }
+};
+
 const lineQuantity = (item: NormalizedPricingCatalogItem, quantity: number) =>
   item.pricing_model === 'per_unit' ? Math.max(1, quantity) : 1;
 
@@ -203,20 +217,16 @@ const preparedItem = (
 };
 
 const defaultCartFor = (catalog: NormalizedPricingCatalogItem[]): QuoteCartLine[] => {
-  const requiredCodes = new Set(['extra_form', 'extra_language']);
   return catalog
     .filter((item) =>
       item.item_type === 'base_canvas' ||
-      item.item_type === 'base_included' ||
-      (item.item_code ? requiredCodes.has(item.item_code) : false),
+      item.item_type === 'base_included',
     )
     .sort((a, b) => {
       const orderFor = (item: NormalizedPricingCatalogItem) => {
         if (item.item_type === 'base_canvas') return 0;
         if (item.item_type === 'base_included') return 1;
-        if (item.item_code === 'extra_form') return 2;
-        if (item.item_code === 'extra_language') return 3;
-        return 4;
+        return 2;
       };
       return orderFor(a) - orderFor(b) || a.name.localeCompare(b.name);
     })
@@ -376,6 +386,32 @@ export const useQuoterState = create<QuoterState>((set, get) => ({
         cart: [
           { catalogItemId: catalogItem.id, quantity: 1 },
           ...withoutRootCategoryLines(state.catalog, state.cart),
+        ],
+      };
+    }
+
+    const incomingMaintenance = maintenanceLevelFor(catalogItem);
+    if (incomingMaintenance) {
+      const activeMaintenances = state.cart
+        .map((line) => state.catalog.find((item) => item.id === line.catalogItemId))
+        .filter((item): item is NormalizedPricingCatalogItem => Boolean(item))
+        .map((item) => ({ item, maintenance: maintenanceLevelFor(item) }))
+        .filter((entry): entry is { item: NormalizedPricingCatalogItem; maintenance: { level: number; label: string } } => Boolean(entry.maintenance));
+      const higherMaintenance = activeMaintenances.find(({ maintenance }) => maintenance.level > incomingMaintenance.level);
+
+      if (higherMaintenance) {
+        showMaintenanceDowngradeWarning(higherMaintenance.maintenance.label);
+        return state;
+      }
+
+      return {
+        cart: [
+          ...state.cart.filter((line) => {
+            const item = state.catalog.find((entry) => entry.id === line.catalogItemId);
+            const maintenance = item ? maintenanceLevelFor(item) : null;
+            return !maintenance || maintenance.level >= incomingMaintenance.level;
+          }),
+          ...(state.cart.some((line) => line.catalogItemId === catalogItemId) ? [] : [{ catalogItemId, quantity: 1 }]),
         ],
       };
     }

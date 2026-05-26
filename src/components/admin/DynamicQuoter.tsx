@@ -161,6 +161,13 @@ const DynamicQuoter = ({
   const activeIncludedFeatures = Array.isArray(totals.activeBaseSource?.included_features)
     ? totals.activeBaseSource.included_features
     : [];
+  const billableVisibleLines = useMemo(() =>
+    totals.visibleLines.filter(({ item, isActiveBaseTrigger }) => {
+      if (item.item_type === 'base_included') return false;
+      if (item.item_type === 'category_trigger') return isActiveBaseTrigger;
+      return Number(item.base_price) > 0;
+    }),
+  [totals.visibleLines]);
 
   useEffect(() => {
     setCatalog(initialCatalog);
@@ -290,14 +297,14 @@ const DynamicQuoter = ({
             )}
 
             <div className="flex flex-col gap-3">
-              {totals.visibleLines.length === 0 && (
+              {billableVisibleLines.length === 0 && (
                 <div className="flex min-h-[160px] flex-col items-center justify-center rounded-lg border border-dashed border-white/15 text-center">
                   <Plus className="mb-3 h-6 w-6 text-white/25" />
                   <p className="text-sm text-white/50">Suelta aqui triggers, add-ons o recurrentes.</p>
                 </div>
               )}
 
-              {totals.visibleLines.map(({ item, quantity, subtotal, billableQuantity, freeIncludedQuantity, includedInBase, isActiveBaseTrigger }) => {
+              {billableVisibleLines.map(({ item, quantity, subtotal, billableQuantity, freeIncludedQuantity, includedInBase, isActiveBaseTrigger }) => {
                 const canEditQuantity = item.pricing_model === 'per_unit';
                 const inactiveTrigger = item.item_type === 'category_trigger' && !isActiveBaseTrigger;
                 const lockedLine = item.item_type === 'base_canvas' || item.item_type === 'base_included' || Boolean(item.item_code && infrastructureCodes.has(item.item_code));
