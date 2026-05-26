@@ -233,33 +233,37 @@ const AdminCotizador: React.FC = () => {
 
       <AdminPanel className="flex flex-col overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full whitespace-nowrap text-left text-sm">
+          <table className="w-full min-w-[860px] table-fixed whitespace-nowrap text-left text-sm">
             <thead className="bg-white/[0.02] text-xs uppercase tracking-wider text-white/50">
               <tr>
-                <th className="px-6 py-4 font-medium">Codigo</th>
-                <th className="px-6 py-4 font-medium">Cliente</th>
-                <th className="px-6 py-4 font-medium">Monto Total</th>
-                <th className="px-6 py-4 font-medium">Estado</th>
-                <th className="px-6 py-4 font-medium">Fecha</th>
-                <th className="px-6 py-4 text-right font-medium">Acciones</th>
+                <th className="w-[15%] px-6 py-4 font-medium">Codigo</th>
+                <th className="w-[30%] px-6 py-4 font-medium">Cliente</th>
+                <th className="w-[16%] px-6 py-4 text-right font-medium">Monto Total</th>
+                <th className="w-[14%] px-6 py-4 text-center font-medium">Estado</th>
+                <th className="w-[17%] px-6 py-4 font-medium">Fecha</th>
+                <th className="w-[8%] px-6 py-4 text-center font-medium">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-white/80">
               {quotes.map((quote) => (
                 <tr key={quote.id} className="transition-colors hover:bg-white/[0.02]">
-                  <td className="px-6 py-4 font-medium">{quote.quote_code}</td>
-                  <td className="px-6 py-4">
-                    <p className="font-medium">{quote.first_name || 'Desconocido'}</p>
-                    <p className="text-xs text-white/40">{quote.primary_email}</p>
+                  <td className="px-6 py-4 font-medium">
+                    <span className="block truncate">{quote.quote_code}</span>
                   </td>
-                  <td className="px-6 py-4 font-mono">S/ {Number(quote.total_amount).toFixed(2)}</td>
                   <td className="px-6 py-4">
+                    <p className="truncate font-medium">{quote.first_name || 'Desconocido'}</p>
+                    <p className="truncate text-xs text-white/40">{quote.primary_email}</p>
+                  </td>
+                  <td className="px-6 py-4 text-right font-mono">S/ {Number(quote.total_amount).toFixed(2)}</td>
+                  <td className="px-6 py-4 text-center">
                     <span className="rounded border border-white/5 bg-white/5 px-2 py-0.5 text-[10px] font-medium uppercase tracking-widest text-white/60">
                       {quote.status || 'Draft'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-xs text-white/40">{formatDate(quote.created_at)}</td>
-                  <td className="relative px-6 py-4 text-right" data-quote-actions>
+                  <td className="px-6 py-4 text-xs text-white/40">
+                    <span className="block truncate">{formatDate(quote.created_at)}</span>
+                  </td>
+                  <td className="relative px-6 py-4 text-center" data-quote-actions>
                     <button
                       type="button"
                       onClick={(event) => openActionsMenu(quote.id, event)}
@@ -271,7 +275,7 @@ const AdminCotizador: React.FC = () => {
                       <MoreVertical className="h-5 w-5" />
                     </button>
 
-                    {false && null && (
+                    {false && (
                       <div
                         role="menu"
                         className="absolute right-6 top-12 z-10 w-48 overflow-hidden rounded-md border border-white/10 bg-[#0a0a0a] py-1 text-left shadow-xl"
