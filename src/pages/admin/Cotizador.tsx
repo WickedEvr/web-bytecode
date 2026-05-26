@@ -3,7 +3,7 @@ import { Calculator, Plus, RefreshCw, X } from 'lucide-react';
 import AdminPanel from '../../components/admin/AdminPanel';
 import DynamicQuoter from '../../components/admin/DynamicQuoter';
 import { apiRequest } from '../../lib/api';
-import type { PreparedQuotePayload, PricingCatalogItem } from '../../hooks/useQuoterState';
+import { useQuoterState, type EditableQuoteItemData, type PreparedQuotePayload, type PricingCatalogItem } from '../../hooks/useQuoterState';
 
 type Quote = {
   id: string;
@@ -13,6 +13,13 @@ type Quote = {
   created_at: string;
   first_name: string;
   primary_email: string;
+};
+
+type QuoteDetailResponse = {
+  quote: Quote & {
+    payment_policy?: string | null;
+  };
+  items: EditableQuoteItemData[];
 };
 
 const AdminCotizador: React.FC = () => {
@@ -26,6 +33,10 @@ const AdminCotizador: React.FC = () => {
     customerEmail: '',
     notes: '',
   });
+  const setCatalogInStore = useQuoterState((state) => state.setCatalog);
+  const loadQuoteForEditing = useQuoterState((state) => state.loadQuoteForEditing);
+  const resetQuoter = useQuoterState((state) => state.resetQuoter);
+  const editingQuoteId = useQuoterState((state) => state.editingQuoteId);
 
   const loadData = async () => {
     setLoading(true);
@@ -48,6 +59,34 @@ const AdminCotizador: React.FC = () => {
     void loadData();
   }, []);
 
+  const openNewQuote = () => {
+    setCatalogInStore(catalog);
+    resetQuoter();
+    setFormData({ customerName: '', customerEmail: '', notes: '' });
+    setError('');
+    setIsModalOpen(true);
+  };
+
+  const handleEditQuote = async (quoteId: string) => {
+    setLoading(true);
+    setError('');
+    try {
+      setCatalogInStore(catalog);
+      const detail = await apiRequest<QuoteDetailResponse>(`/api/admin/quotations/${quoteId}`);
+      loadQuoteForEditing({ id: detail.quote.id }, detail.items);
+      setFormData({
+        customerName: detail.quote.first_name || '',
+        customerEmail: detail.quote.primary_email || '',
+        notes: detail.quote.payment_policy || '',
+      });
+      setIsModalOpen(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar cotizacion');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCreate = async (payload: PreparedQuotePayload) => {
     if (!payload.baseCatalogItemId || payload.items.length === 0) {
       setError('No se encontro el lienzo base de la cotizacion.');
@@ -60,6 +99,7 @@ const AdminCotizador: React.FC = () => {
       await apiRequest('/api/admin/quotations', {
         method: 'POST',
         json: {
+          editingQuoteId: payload.editingQuoteId,
           customerName: formData.customerName,
           customerEmail: formData.customerEmail,
           notes: formData.notes,
@@ -81,6 +121,7 @@ const AdminCotizador: React.FC = () => {
       });
       setIsModalOpen(false);
       setFormData({ customerName: '', customerEmail: '', notes: '' });
+      resetQuoter();
       await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al generar cotizacion');
@@ -113,7 +154,7 @@ const AdminCotizador: React.FC = () => {
           </button>
           <button
             type="button"
-            onClick={() => setIsModalOpen(true)}
+            onClick={openNewQuote}
             className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-white/90"
           >
             <Plus className="h-4 w-4" />
@@ -140,7 +181,19 @@ const AdminCotizador: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-white/5 text-white/80">
               {quotes.map((quote) => (
-                <tr key={quote.id} className="transition-colors hover:bg-white/[0.02]">
+                <tr
+                  key={quote.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => void handleEditQuote(quote.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      void handleEditQuote(quote.id);
+                    }
+                  }}
+                  className="cursor-pointer transition-colors hover:bg-white/[0.04]"
+                >
                   <td className="px-6 py-4 font-medium">{quote.quote_code}</td>
                   <td className="px-6 py-4">
                     <p className="font-medium">{quote.first_name || 'Desconocido'}</p>
@@ -171,10 +224,13 @@ const AdminCotizador: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
           <div className="max-h-[90vh] w-full max-w-7xl overflow-y-auto rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 shadow-2xl custom-scrollbar md:p-8">
             <div className="mb-6 flex items-center justify-between border-b border-white/5 pb-4">
-              <h2 className="text-lg font-semibold text-white/90">Nueva Cotizacion</h2>
+              <h2 className="text-lg font-semibold text-white/90">{editingQuoteId ? 'Editar Cotizacion' : 'Nueva Cotizacion'}</h2>
               <button
                 type="button"
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => {
+                  resetQuoter();
+                  setIsModalOpen(false);
+                }}
                 className="rounded-lg p-2 text-white/40 transition-colors hover:bg-white/5 hover:text-white"
               >
                 <X className="h-5 w-5" />
@@ -191,7 +247,10 @@ const AdminCotizador: React.FC = () => {
               onCustomerNameChange={(customerName) => setFormData({ ...formData, customerName })}
               onCustomerEmailChange={(customerEmail) => setFormData({ ...formData, customerEmail })}
               onNotesChange={(nextNotes) => setFormData({ ...formData, notes: nextNotes })}
-              onCancel={() => setIsModalOpen(false)}
+              onCancel={() => {
+                resetQuoter();
+                setIsModalOpen(false);
+              }}
               onGenerate={handleCreate}
             />
           </div>

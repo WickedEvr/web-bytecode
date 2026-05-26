@@ -27,6 +27,7 @@ export type NormalizedPricingCatalogItem = PricingCatalogItem & {
 
 export type QuoteCartLine = {
   catalogItemId: string;
+  itemCode?: string;
   quantity: number;
   customPrice?: number;
 };
@@ -45,6 +46,7 @@ export type QuotePreparedItem = {
 };
 
 export type PreparedQuotePayload = {
+  editingQuoteId: string | null;
   title: string;
   projectCategory: string;
   baseCatalogItemId: string;
@@ -64,6 +66,18 @@ export type PreparedQuotePayload = {
 export type InfrastructureState = {
   ownDomain: boolean;
   ownHosting: boolean;
+};
+
+export type EditableQuoteData = {
+  id: string;
+};
+
+export type EditableQuoteItemData = {
+  catalog_item_id?: string;
+  pricing_catalog_id?: string;
+  item_code?: string;
+  quantity?: number | string | null;
+  unit_price?: number | string | null;
 };
 
 type QuoteTotals = {
@@ -95,7 +109,10 @@ type QuoterState = {
   catalog: NormalizedPricingCatalogItem[];
   cart: QuoteCartLine[];
   infrastructure: InfrastructureState;
+  editingQuoteId: string | null;
   setCatalog: (catalog: PricingCatalogItem[]) => void;
+  loadQuoteForEditing: (quoteData: EditableQuoteData, itemsData: EditableQuoteItemData[]) => void;
+  resetQuoter: () => void;
   addItem: (catalogItemId: string) => void;
   removeItem: (catalogItemId: string) => void;
   updateQuantity: (catalogItemId: string, quantity: number) => void;
@@ -191,6 +208,9 @@ const revisionLevelFor = (item: NormalizedPricingCatalogItem) =>
 export const requiresCustomPrice = (item: NormalizedPricingCatalogItem) =>
   item.item_code === 'revision_custom' || (item.item_type === 'addon' && item.pricing_model === 'range');
 
+export const allowsMultipleQuantity = (item: NormalizedPricingCatalogItem) =>
+  item.pricing_model === 'per_unit' || Boolean(revisionLevelFor(item));
+
 const showMaintenanceDowngradeWarning = (includedBy: string) => {
   if (typeof window !== 'undefined') {
     window.alert(`El ${includedBy} ya incluye las caracteristicas de este plan.`);
@@ -211,7 +231,7 @@ const showCustomPriceClampWarning = (basePrice: number, maxPrice: number | null)
 };
 
 const lineQuantity = (item: NormalizedPricingCatalogItem, quantity: number) =>
-  item.pricing_model === 'per_unit' || revisionLevelFor(item) ? Math.max(1, quantity) : 1;
+  allowsMultipleQuantity(item) ? Math.max(1, quantity) : 1;
 
 const clampCustomPriceFor = (item: NormalizedPricingCatalogItem, price: number | undefined) => {
   const basePrice = moneyValue(item.base_price);
@@ -274,18 +294,50 @@ const defaultCartFor = (catalog: NormalizedPricingCatalogItem[]): QuoteCartLine[
       };
       return orderFor(a) - orderFor(b) || a.name.localeCompare(b.name);
     })
-    .map((item) => ({ catalogItemId: item.id, quantity: 1 }));
+    .map((item) => ({ catalogItemId: item.id, itemCode: item.item_code, quantity: 1 }));
 };
+
+const defaultInfrastructure = (): InfrastructureState => ({
+  ownDomain: false,
+  ownHosting: false,
+});
 
 const cartLineFor = (item: NormalizedPricingCatalogItem): QuoteCartLine => ({
   catalogItemId: item.id,
+  itemCode: item.item_code,
   quantity: 1,
   ...(requiresCustomPrice(item) ? { customPrice: moneyValue(item.base_price) } : {}),
 });
 
+const cartLineFromEditableItem = (
+  catalog: NormalizedPricingCatalogItem[],
+  source: EditableQuoteItemData,
+): QuoteCartLine | null => {
+  const item = catalog.find((entry) =>
+    (source.item_code && entry.item_code === source.item_code) ||
+    entry.id === source.catalog_item_id ||
+    entry.id === source.pricing_catalog_id,
+  );
+  if (!item) return null;
+
+  const quantity = Math.max(1, Math.floor(moneyValue(source.quantity) || 1));
+  const unitPrice = source.unit_price === null || source.unit_price === undefined ? undefined : moneyValue(source.unit_price);
+  const basePrice = moneyValue(item.base_price);
+  const customPrice = unitPrice !== undefined && (requiresCustomPrice(item) || unitPrice !== basePrice)
+    ? unitPrice
+    : undefined;
+
+  return {
+    catalogItemId: item.id,
+    itemCode: item.item_code,
+    quantity,
+    ...(customPrice !== undefined ? { customPrice } : {}),
+  };
+};
+
 const baseCanvasLineFor = (catalog: NormalizedPricingCatalogItem[]): QuoteCartLine[] => {
   const baseItem = catalog.find((item) => item.item_type === 'base_canvas');
-  return baseItem ? [{ catalogItemId: baseItem.id, quantity: 1 }] : [];
+  return baseItem ? [{ catalogItemId: baseItem.id, itemCode: baseItem.item_code, quantity: 1 }] : [];
 };
 
 const withoutRootCategoryLines = (catalog: NormalizedPricingCatalogItem[], cart: QuoteCartLine[]) =>
@@ -309,7 +361,7 @@ const withInfrastructureLines = (
   });
   const injectedLines = catalog
     .filter((item) => item.item_code ? requiredCodes.has(item.item_code) : false)
-    .map((item) => ({ catalogItemId: item.id, quantity: 1 }));
+    .map((item) => ({ catalogItemId: item.id, itemCode: item.item_code, quantity: 1 }));
 
   return [...withoutInfrastructure, ...injectedLines];
 };
@@ -425,14 +477,41 @@ export const computeQuoteTotals = (
 export const useQuoterState = create<QuoterState>((set, get) => ({
   catalog: [],
   cart: [],
-  infrastructure: {
-    ownDomain: false,
-    ownHosting: false,
-  },
-  setCatalog: (catalog) => {
+  infrastructure: defaultInfrastructure(),
+  editingQuoteId: null,
+  setCatalog: (catalog) => set((state) => {
     const normalizedCatalog = normalizePricingCatalog(catalog);
-    set({ catalog: normalizedCatalog, cart: defaultCartFor(normalizedCatalog), infrastructure: { ownDomain: false, ownHosting: false } });
-  },
+    if (state.editingQuoteId) {
+      return { catalog: normalizedCatalog };
+    }
+    return {
+      catalog: normalizedCatalog,
+      cart: defaultCartFor(normalizedCatalog),
+      infrastructure: defaultInfrastructure(),
+      editingQuoteId: null,
+    };
+  }),
+  loadQuoteForEditing: (quoteData, itemsData) => set((state) => {
+    const cart = itemsData
+      .map((item) => cartLineFromEditableItem(state.catalog, item))
+      .filter((line): line is QuoteCartLine => Boolean(line));
+    const hasOwnDomain = itemsData.some((item) => item.item_code === 'discount_own_domain');
+    const hasOwnHosting = itemsData.some((item) => item.item_code === 'discount_own_hosting');
+
+    return {
+      editingQuoteId: quoteData.id,
+      cart: cart.length > 0 ? cart : defaultCartFor(state.catalog),
+      infrastructure: {
+        ownDomain: hasOwnDomain,
+        ownHosting: hasOwnHosting,
+      },
+    };
+  }),
+  resetQuoter: () => set((state) => ({
+    cart: defaultCartFor(state.catalog),
+    infrastructure: defaultInfrastructure(),
+    editingQuoteId: null,
+  })),
   addItem: (catalogItemId) => set((state) => {
     const catalogItem = state.catalog.find((item) => item.id === catalogItemId);
     if (!catalogItem || !catalogItem.is_draggable || ['base_canvas', 'base_included'].includes(catalogItem.item_type)) return state;
@@ -440,7 +519,7 @@ export const useQuoterState = create<QuoterState>((set, get) => ({
     if (catalogItem.item_type === 'category_trigger') {
       return {
         cart: [
-          { catalogItemId: catalogItem.id, quantity: 1 },
+          cartLineFor(catalogItem),
           ...withoutRootCategoryLines(state.catalog, state.cart),
         ],
       };
@@ -543,7 +622,7 @@ export const useQuoterState = create<QuoterState>((set, get) => ({
     return {
       cart: state.cart.map((line) =>
         line.catalogItemId === catalogItemId
-          ? { ...line, quantity: catalogItem.pricing_model === 'per_unit' ? normalizedQuantity : 1 }
+          ? { ...line, quantity: allowsMultipleQuantity(catalogItem) ? normalizedQuantity : 1 }
           : line,
       ),
     };
@@ -587,13 +666,14 @@ export const useQuoterState = create<QuoterState>((set, get) => ({
   }),
   resetQuote: () => set((state) => ({
     cart: defaultCartFor(state.catalog),
-    infrastructure: { ownDomain: false, ownHosting: false },
+    infrastructure: defaultInfrastructure(),
   })),
   totals: () => computeQuoteTotals(get().catalog, get().cart, get().infrastructure),
   buildPayload: () => {
     const infrastructure = get().infrastructure;
     const totals = computeQuoteTotals(get().catalog, get().cart, infrastructure);
     return {
+      editingQuoteId: get().editingQuoteId,
       title: totals.title,
       projectCategory: totals.projectCategory,
       baseCatalogItemId: totals.activeBaseSource?.id ?? '',
