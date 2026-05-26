@@ -1455,4 +1455,27 @@ router.post(
   })
 );
 
+router.delete(
+  '/quotations/:id',
+  requireCsrf,
+  requireRole(['admin', 'partner_designer']),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const result = await pool.query(
+      `UPDATE quotes
+       SET deleted_at = now()
+       WHERE id = $1 AND deleted_at IS NULL
+       RETURNING id`,
+      [id],
+    );
+
+    if (!result.rowCount || result.rowCount === 0) {
+      throw new HttpError(404, 'Cotizacion no encontrada');
+    }
+
+    await audit(req.admin?.id, 'delete', 'quote', id);
+    res.json({ ok: true });
+  }),
+);
+
 export default router;
