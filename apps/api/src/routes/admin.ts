@@ -1462,10 +1462,7 @@ router.delete(
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
     const result = await pool.query(
-      `UPDATE quotes
-       SET deleted_at = now()
-       WHERE id = $1 AND deleted_at IS NULL
-       RETURNING id`,
+      'DELETE FROM quotes WHERE id = $1 RETURNING id',
       [id],
     );
 
