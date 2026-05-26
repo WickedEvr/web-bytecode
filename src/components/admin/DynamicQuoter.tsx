@@ -158,7 +158,6 @@ const DynamicQuoter = ({
   const toggleOwnDomain = useQuoterState((state) => state.toggleOwnDomain);
   const toggleOwnHosting = useQuoterState((state) => state.toggleOwnHosting);
   const editingQuoteId = useQuoterState((state) => state.editingQuoteId);
-  const resetQuoter = useQuoterState((state) => state.resetQuoter);
   const buildPayload = useQuoterState((state) => state.buildPayload);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const totals = useMemo(() => computeQuoteTotals(storeCatalog, cart, infrastructure), [storeCatalog, cart, infrastructure]);
@@ -209,15 +208,8 @@ const DynamicQuoter = ({
     <form onSubmit={handleGenerate} className="flex flex-col gap-6">
       {error && <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</p>}
       {editingQuoteId && (
-        <div className="flex flex-col gap-3 rounded-lg border border-amber-300/40 bg-amber-50 px-4 py-3 text-amber-900 sm:flex-row sm:items-center sm:justify-between">
+        <div className="rounded-lg border border-amber-300/40 bg-amber-50 px-4 py-3 text-amber-900">
           <span className="text-sm font-semibold">Modo Edición: Cotización #{editingQuoteId}</span>
-          <button
-            type="button"
-            onClick={resetQuoter}
-            className="inline-flex w-fit items-center justify-center rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 transition-colors hover:bg-amber-100"
-          >
-            Cancelar
-          </button>
         </div>
       )}
 
