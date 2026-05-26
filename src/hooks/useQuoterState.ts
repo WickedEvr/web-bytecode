@@ -28,6 +28,7 @@ export type NormalizedPricingCatalogItem = PricingCatalogItem & {
 export type QuoteCartLine = {
   catalogItemId: string;
   quantity: number;
+  customPrice?: number;
 };
 
 export type QuotePreparedItem = {
@@ -75,6 +76,7 @@ type QuoteTotals = {
     subtotal: number;
     billableQuantity: number;
     freeIncludedQuantity: number;
+    unitPrice: number;
     includedInBase: boolean;
     isActiveBaseTrigger: boolean;
   }>;
@@ -97,6 +99,7 @@ type QuoterState = {
   addItem: (catalogItemId: string) => void;
   removeItem: (catalogItemId: string) => void;
   updateQuantity: (catalogItemId: string, quantity: number) => void;
+  setCustomPrice: (itemCode: string, price: number) => void;
   toggleOwnDomain: (enabled: boolean) => void;
   toggleOwnHosting: (enabled: boolean) => void;
   resetQuote: () => void;
@@ -175,6 +178,9 @@ const recurrenceFor = (item: NormalizedPricingCatalogItem): 'none' | 'monthly' |
 const maintenanceLevelFor = (item: NormalizedPricingCatalogItem) =>
   item.item_code ? MAINTENANCE_LEVELS[item.item_code] ?? null : null;
 
+export const requiresCustomPrice = (item: NormalizedPricingCatalogItem) =>
+  item.item_code === 'revision_custom' || (item.item_type === 'addon' && item.pricing_model === 'range');
+
 const showMaintenanceDowngradeWarning = (includedBy: string) => {
   if (typeof window !== 'undefined') {
     window.alert(`El ${includedBy} ya incluye las caracteristicas de este plan.`);
@@ -232,6 +238,12 @@ const defaultCartFor = (catalog: NormalizedPricingCatalogItem[]): QuoteCartLine[
     })
     .map((item) => ({ catalogItemId: item.id, quantity: 1 }));
 };
+
+const cartLineFor = (item: NormalizedPricingCatalogItem): QuoteCartLine => ({
+  catalogItemId: item.id,
+  quantity: 1,
+  ...(requiresCustomPrice(item) ? { customPrice: moneyValue(item.base_price) } : {}),
+});
 
 const baseCanvasLineFor = (catalog: NormalizedPricingCatalogItem[]): QuoteCartLine[] => {
   const baseItem = catalog.find((item) => item.item_type === 'base_canvas');
@@ -308,6 +320,8 @@ export const computeQuoteTotals = (
     const isActiveBaseTrigger = activeTrigger?.id === item.id;
     const freeIncludedQuantity = freeQuantityFor(item);
     const billableQuantity = billableQuantityFor(item, quantity);
+    const customPrice = line.customPrice;
+    const unitPrice = customPrice ?? moneyValue(item.base_price);
     const includedInBase = (
       item.item_type === 'base_included' ||
       (item.pricing_model === 'per_unit' && freeIncludedQuantity > 0 && billableQuantity === 0)
@@ -320,13 +334,15 @@ export const computeQuoteTotals = (
       subtotal = isActiveBaseTrigger ? moneyValue(item.base_price) : 0;
     } else if (item.item_type === 'base_included') {
       subtotal = 0;
+    } else if (customPrice !== undefined) {
+      subtotal = customPrice * quantity;
     } else if (item.pricing_model === 'per_unit') {
       subtotal = billableQuantity * moneyValue(item.base_price);
     } else {
       subtotal = moneyValue(item.base_price) * quantity;
     }
 
-    return { ...line, quantity, item, subtotal, billableQuantity, freeIncludedQuantity, includedInBase, isActiveBaseTrigger };
+    return { ...line, quantity, item, subtotal, billableQuantity, freeIncludedQuantity, unitPrice, includedInBase, isActiveBaseTrigger };
   });
 
   const additiveItems = visibleLines.filter(({ item }) => ['base_canvas', 'base_included', 'addon', 'category_trigger'].includes(item.item_type) && !isRecurring(item));
@@ -345,9 +361,9 @@ export const computeQuoteTotals = (
     if (line.item.item_type === 'base_canvas') return !activeTrigger;
     return true;
   });
-  const additivePrepared = persistedLines.map(({ item, quantity, subtotal }) => preparedItem(item, quantity, moneyValue(item.base_price), subtotal));
-  const cartItems = visibleLines.map(({ item, quantity, subtotal }) => ({
-    ...preparedItem(item, quantity, moneyValue(item.base_price), subtotal),
+  const additivePrepared = persistedLines.map(({ item, quantity, subtotal, unitPrice }) => preparedItem(item, quantity, unitPrice, subtotal));
+  const cartItems = visibleLines.map(({ item, quantity, subtotal, unitPrice }) => ({
+    ...preparedItem(item, quantity, unitPrice, subtotal),
     subtotal,
   }));
 
@@ -411,7 +427,7 @@ export const useQuoterState = create<QuoterState>((set, get) => ({
             const maintenance = item ? maintenanceLevelFor(item) : null;
             return !maintenance || maintenance.level >= incomingMaintenance.level;
           }),
-          ...(state.cart.some((line) => line.catalogItemId === catalogItemId) ? [] : [{ catalogItemId, quantity: 1 }]),
+          ...(state.cart.some((line) => line.catalogItemId === catalogItemId) ? [] : [cartLineFor(catalogItem)]),
         ],
       };
     }
@@ -426,7 +442,7 @@ export const useQuoterState = create<QuoterState>((set, get) => ({
       };
     }
 
-    return { cart: [...state.cart, { catalogItemId, quantity: 1 }] };
+    return { cart: [...state.cart, cartLineFor(catalogItem)] };
   }),
   removeItem: (catalogItemId) => set((state) => {
     const removedItem = state.catalog.find((item) => item.id === catalogItemId);
@@ -456,6 +472,14 @@ export const useQuoterState = create<QuoterState>((set, get) => ({
       ),
     };
   }),
+  setCustomPrice: (itemCode, price) => set((state) => ({
+    cart: state.cart.map((line) => {
+      const item = state.catalog.find((entry) => entry.id === line.catalogItemId);
+      if (item?.item_code !== itemCode) return line;
+      const customPrice = Number.isFinite(price) && price >= 0 ? price : undefined;
+      return customPrice === undefined ? { ...line, customPrice: undefined } : { ...line, customPrice };
+    }),
+  })),
   toggleOwnDomain: (enabled) => set((state) => {
     const infrastructure = { ...state.infrastructure, ownDomain: enabled };
     return { infrastructure, cart: withInfrastructureLines(state.catalog, state.cart, infrastructure) };
