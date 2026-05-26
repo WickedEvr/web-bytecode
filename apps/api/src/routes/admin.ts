@@ -1310,7 +1310,39 @@ router.get(
   })
 );
 
+router.get(
+  '/quotations/:id',
+  requireRole(['admin', 'partner_designer']),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const quoteResult = await pool.query(
+      `SELECT q.id, q.quote_code, q.total_amount, q.status, q.payment_policy, q.created_at,
+              cu.first_name, cu.primary_email
+       FROM quotes q
+       LEFT JOIN customers cu ON q.customer_id = cu.id
+       WHERE q.id = $1 AND q.deleted_at IS NULL`,
+      [id],
+    );
+    if (!quoteResult.rowCount || quoteResult.rowCount === 0) {
+      throw new HttpError(404, 'Cotizacion no encontrada');
+    }
+
+    const itemsResult = await pool.query(
+      `SELECT qi.id, qi.pricing_catalog_id AS catalog_item_id, pc.item_code, qi.custom_name,
+              qi.quantity, qi.unit_price, qi.recurrence, pc.base_price, pc.max_price
+       FROM quote_items qi
+       JOIN pricing_catalog pc ON pc.id = qi.pricing_catalog_id
+       WHERE qi.quote_id = $1
+       ORDER BY qi.created_at ASC`,
+      [id],
+    );
+
+    res.json({ quote: quoteResult.rows[0], items: itemsResult.rows });
+  })
+);
+
 const createQuoteSchema = z.object({
+  editingQuoteId: z.string().uuid().nullable().optional(),
   customerName: z.string().min(1),
   customerEmail: z.string().email(),
   items: z.array(z.object({
@@ -1379,12 +1411,29 @@ router.post(
         body.legalNotes?.length ? body.legalNotes.join('\n') : undefined,
       ].filter(Boolean);
 
-      const quoteRes = await client.query(
-        `INSERT INTO quotes (quote_code, customer_id, status, total_amount, valid_until, payment_policy, created_by)
-         VALUES ($1, $2, 'draft', $3, current_date + interval '30 days', $4, $5) RETURNING id`,
-        [createBusinessCode('QT'), customerId, totalAmount, paymentPolicyParts.join('\n\n') || null, req.admin?.id]
-      );
-      const quoteId = quoteRes.rows[0].id;
+      let quoteId: string;
+      if (body.editingQuoteId) {
+        const quoteRes = await client.query(
+          `UPDATE quotes
+           SET customer_id = $1,
+               total_amount = $2,
+               payment_policy = $3,
+               updated_at = now()
+           WHERE id = $4 AND deleted_at IS NULL
+           RETURNING id`,
+          [customerId, totalAmount, paymentPolicyParts.join('\n\n') || null, body.editingQuoteId],
+        );
+        if (!quoteRes.rowCount || quoteRes.rowCount === 0) throw new HttpError(404, 'Cotizacion no encontrada');
+        quoteId = quoteRes.rows[0].id;
+        await client.query('DELETE FROM quote_items WHERE quote_id = $1', [quoteId]);
+      } else {
+        const quoteRes = await client.query(
+          `INSERT INTO quotes (quote_code, customer_id, status, total_amount, valid_until, payment_policy, created_by)
+           VALUES ($1, $2, 'draft', $3, current_date + interval '30 days', $4, $5) RETURNING id`,
+          [createBusinessCode('QT'), customerId, totalAmount, paymentPolicyParts.join('\n\n') || null, req.admin?.id]
+        );
+        quoteId = quoteRes.rows[0].id;
+      }
 
       for (const qi of quoteItemsData) {
         await client.query(
@@ -1394,9 +1443,9 @@ router.post(
         );
       }
 
-      await audit(req.admin?.id, 'create', 'quote', quoteId);
+      await audit(req.admin?.id, body.editingQuoteId ? 'update' : 'create', 'quote', quoteId);
       await client.query('COMMIT');
-      res.status(201).json({ ok: true, quoteId });
+      res.status(body.editingQuoteId ? 200 : 201).json({ ok: true, quoteId });
     } catch (e: unknown) {
       await client.query('ROLLBACK');
       throw e;
