@@ -240,7 +240,7 @@ const AdminCotizador: React.FC = () => {
                 <th className="w-[16%] px-6 py-4 font-medium">Cliente</th>
                 <th className="w-[16%] px-6 py-4 text-right font-medium">Monto Total</th>
                 <th className="w-[16%] px-6 py-4 text-center font-medium">Estado</th>
-                <th className="w-[16%] px-6 py-4 font-medium">Fecha</th>
+                <th className="w-[16%] px-6 py-4 text-center font-medium">Fecha</th>
                 <th className="w-[20%] px-6 py-4 text-center font-medium">Acciones</th>
               </tr>
             </thead>
@@ -260,7 +260,7 @@ const AdminCotizador: React.FC = () => {
                       {quote.status || 'Draft'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-xs text-white/40">
+                  <td className="px-6 py-4 text-center text-xs text-white/40">
                     <span className="block truncate">{formatDate(quote.created_at)}</span>
                   </td>
                   <td className="relative px-6 py-4 text-center" data-quote-actions>
