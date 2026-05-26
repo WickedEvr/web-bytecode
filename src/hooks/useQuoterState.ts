@@ -100,6 +100,7 @@ type QuoterState = {
   removeItem: (catalogItemId: string) => void;
   updateQuantity: (catalogItemId: string, quantity: number) => void;
   setCustomPrice: (itemCode: string, price: number) => void;
+  validateAndClampCustomPrice: (itemCode: string) => void;
   toggleOwnDomain: (enabled: boolean) => void;
   toggleOwnHosting: (enabled: boolean) => void;
   resetQuote: () => void;
@@ -126,6 +127,7 @@ const REVISION_LEVELS: Record<string, { level: number }> = {
 };
 
 const moneyValue = (value: number | string | null | undefined) => Number(value ?? 0);
+const formatPenValue = (value: number) => `S/ ${value.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const normalizeIncludedFeatures = (value: PricingCatalogItem['included_features']) => {
   if (Array.isArray(value)) return value.filter((feature): feature is string => typeof feature === 'string' && feature.trim().length > 0);
   if (typeof value !== 'string' || !value.trim()) return [];
@@ -201,8 +203,30 @@ const showRevisionDowngradeWarning = () => {
   }
 };
 
+const showCustomPriceClampWarning = (basePrice: number, maxPrice: number | null) => {
+  if (typeof window !== 'undefined') {
+    const maxLabel = maxPrice === null ? 'sin limite superior' : formatPenValue(maxPrice);
+    window.alert(`El precio fue ajustado. El rango permitido para este elemento es entre ${formatPenValue(basePrice)} y ${maxLabel}.`);
+  }
+};
+
 const lineQuantity = (item: NormalizedPricingCatalogItem, quantity: number) =>
   item.pricing_model === 'per_unit' || revisionLevelFor(item) ? Math.max(1, quantity) : 1;
+
+const clampCustomPriceFor = (item: NormalizedPricingCatalogItem, price: number | undefined) => {
+  const basePrice = moneyValue(item.base_price);
+  const rawMaxPrice = item.max_price === null || item.max_price === undefined ? null : moneyValue(item.max_price);
+  const maxPrice = rawMaxPrice && rawMaxPrice > 0 ? rawMaxPrice : null;
+  const currentPrice = typeof price === 'number' && Number.isFinite(price) ? price : basePrice;
+  const clampedPrice = Math.min(Math.max(currentPrice, basePrice), maxPrice ?? Number.POSITIVE_INFINITY);
+
+  return {
+    basePrice,
+    maxPrice,
+    clampedPrice,
+    wasClamped: price !== clampedPrice,
+  };
+};
 
 const freeQuantityFor = (item: NormalizedPricingCatalogItem) =>
   item.pricing_model === 'per_unit' ? Math.max(0, Math.floor(moneyValue(item.free_included_quantity))) : 0;
@@ -335,7 +359,9 @@ export const computeQuoteTotals = (
     const freeIncludedQuantity = freeQuantityFor(item);
     const billableQuantity = billableQuantityFor(item, quantity);
     const customPrice = line.customPrice;
-    const unitPrice = customPrice ?? moneyValue(item.base_price);
+    const unitPrice = customPrice !== undefined && requiresCustomPrice(item)
+      ? clampCustomPriceFor(item, customPrice).clampedPrice
+      : moneyValue(item.base_price);
     const includedInBase = (
       item.item_type === 'base_included' ||
       (item.pricing_model === 'per_unit' && freeIncludedQuantity > 0 && billableQuantity === 0)
@@ -348,8 +374,8 @@ export const computeQuoteTotals = (
       subtotal = isActiveBaseTrigger ? moneyValue(item.base_price) : 0;
     } else if (item.item_type === 'base_included') {
       subtotal = 0;
-    } else if (customPrice !== undefined) {
-      subtotal = customPrice * quantity;
+    } else if (customPrice !== undefined && requiresCustomPrice(item)) {
+      subtotal = unitPrice * quantity;
     } else if (item.pricing_model === 'per_unit') {
       subtotal = billableQuantity * moneyValue(item.base_price);
     } else {
@@ -526,10 +552,31 @@ export const useQuoterState = create<QuoterState>((set, get) => ({
     cart: state.cart.map((line) => {
       const item = state.catalog.find((entry) => entry.id === line.catalogItemId);
       if (item?.item_code !== itemCode) return line;
-      const customPrice = Number.isFinite(price) && price >= 0 ? price : undefined;
+      const customPrice = Number.isFinite(price) ? price : undefined;
       return customPrice === undefined ? { ...line, customPrice: undefined } : { ...line, customPrice };
     }),
   })),
+  validateAndClampCustomPrice: (itemCode) => set((state) => {
+    const clampWarnings: Array<{ basePrice: number; maxPrice: number | null }> = [];
+    const cart = state.cart.map((line) => {
+      const item = state.catalog.find((entry) => entry.id === line.catalogItemId);
+      if (item?.item_code !== itemCode || !requiresCustomPrice(item)) return line;
+
+      const { basePrice, maxPrice, clampedPrice, wasClamped } = clampCustomPriceFor(item, line.customPrice);
+      if (wasClamped) {
+        clampWarnings.push({ basePrice, maxPrice });
+      }
+
+      return { ...line, customPrice: clampedPrice };
+    });
+
+    const clampWarning = clampWarnings[0];
+    if (clampWarning) {
+      showCustomPriceClampWarning(clampWarning.basePrice, clampWarning.maxPrice);
+    }
+
+    return { cart };
+  }),
   toggleOwnDomain: (enabled) => set((state) => {
     const infrastructure = { ...state.infrastructure, ownDomain: enabled };
     return { infrastructure, cart: withInfrastructureLines(state.catalog, state.cart, infrastructure) };

@@ -150,6 +150,7 @@ const DynamicQuoter = ({
   const removeItem = useQuoterState((state) => state.removeItem);
   const updateQuantity = useQuoterState((state) => state.updateQuantity);
   const setCustomPrice = useQuoterState((state) => state.setCustomPrice);
+  const validateAndClampCustomPrice = useQuoterState((state) => state.validateAndClampCustomPrice);
   const resetQuote = useQuoterState((state) => state.resetQuote);
   const storeCatalog = useQuoterState((state) => state.catalog);
   const cart = useQuoterState((state) => state.cart);
@@ -309,6 +310,8 @@ const DynamicQuoter = ({
                 const canEditQuantity = item.pricing_model === 'per_unit';
                 const itemCode = item.item_code;
                 const canEditCustomPrice = Boolean(itemCode) && requiresCustomPrice(item);
+                const minCustomPrice = Number(item.base_price);
+                const maxCustomPrice = item.max_price ? Number(item.max_price) : undefined;
                 const inactiveTrigger = item.item_type === 'category_trigger' && !isActiveBaseTrigger;
                 const lockedLine = item.item_type === 'base_canvas' || item.item_type === 'base_included' || Boolean(item.item_code && infrastructureCodes.has(item.item_code));
                 const baseCanvasReplaced = item.item_type === 'base_canvas' && Boolean(totals.activeBaseSource && totals.activeBaseSource.id !== item.id);
@@ -354,7 +357,8 @@ const DynamicQuoter = ({
                             <span className="flex h-full items-center border-r border-white/10 px-2 font-sansation text-xs text-white/45">S/</span>
                             <input
                               type="number"
-                              min={0}
+                              min={minCustomPrice}
+                              max={maxCustomPrice}
                               step={50}
                               inputMode="decimal"
                               value={customPrice ?? ''}
@@ -362,6 +366,12 @@ const DynamicQuoter = ({
                                 itemCode,
                                 event.target.value === '' ? Number.NaN : Number(event.target.value),
                               )}
+                              onBlur={() => validateAndClampCustomPrice(itemCode)}
+                              onKeyDown={(event) => {
+                                if (event.key !== 'Enter') return;
+                                event.preventDefault();
+                                validateAndClampCustomPrice(itemCode);
+                              }}
                               placeholder={String(Number(item.base_price) || '')}
                               className="h-full min-w-0 flex-1 bg-transparent px-2 text-right text-sm text-white/90 outline-none placeholder:text-white/25"
                               aria-label={`Precio personalizado para ${item.name}`}
