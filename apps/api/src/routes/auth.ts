@@ -27,7 +27,7 @@ router.post(
     const body = loginSchema.parse(req.body);
     const result = await pool.query(
       `
-      SELECT u.id, u.email, u.name, u.password_hash,
+      SELECT u.id, u.email, u.name, u.password_hash, u.is_verified, u.force_password_change,
       COALESCE(array_agg(DISTINCT r.code) FILTER (WHERE r.code IS NOT NULL), ARRAY[]::varchar[]) as roles,
       COALESCE((
         SELECT array_agg(DISTINCT p.code)
@@ -52,6 +52,40 @@ router.post(
     const validPassword = await bcrypt.compare(body.password, admin.password_hash);
     if (!validPassword) {
       throw new HttpError(401, 'Credenciales inválidas.');
+    }
+
+    // Task 1.2: Check if verified
+    if (admin.is_verified === false) {
+      const verificationToken = crypto.randomBytes(32).toString('hex');
+      await pool.query(
+        'UPDATE admin_users SET verification_token = $1, updated_at = now() WHERE id = $2',
+        [verificationToken, admin.id]
+      );
+
+      const frontendUrl = process.env.FRONTEND_URL || 'https://www.bytecode.com.pe';
+      const verifyUrl = `\${frontendUrl}/admin/verify-account?token=\${verificationToken}`;
+      
+      const { buildAdminVerification } = await import('../services/emailTemplates.js');
+      const emailHtml = buildAdminVerification(admin.name, verifyUrl);
+
+      const { notifyCustomer } = await import('../services/email.js');
+      await notifyCustomer(admin.email, 'Verificación de Cuenta Administrativa - Bytecode', emailHtml, 'system');
+
+      return res.status(403).json({
+        status: 'error',
+        code: 'EMAIL_NOT_VERIFIED',
+        message: 'Se ha enviado un correo de verificación.'
+      });
+    }
+
+    // Task 1.3: Check if forced password change
+    if (admin.is_verified === true && admin.force_password_change === true) {
+      return res.status(403).json({
+        status: 'error',
+        code: 'FORCE_PASSWORD_CHANGE',
+        message: 'Debe cambiar su contraseña.',
+        userId: admin.id
+      });
     }
 
     await pool.query('UPDATE admin_users SET last_login_at = now(), updated_at = now() WHERE id = $1', [admin.id]);
@@ -226,4 +260,65 @@ router.post('/sessions/:sessionId/revoke', requireAdmin, asyncHandler(async (req
   res.json({ ok: true, message: 'Sesión revocada exitosamente.' });
 }));
 
+const firstPasswordChangeSchema = z.object({
+  userId: z.string().uuid(),
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8),
+});
+
+router.post('/first-password-change', asyncHandler(async (req: Request, res: Response) => {
+  const body = firstPasswordChangeSchema.parse(req.body);
+
+  const result = await pool.query(
+    'SELECT password_hash, force_password_change FROM admin_users WHERE id = $1',
+    [body.userId]
+  );
+
+  if (result.rowCount === 0) {
+    throw new HttpError(404, 'Usuario no encontrado.');
+  }
+
+  const user = result.rows[0];
+
+  if (!user.force_password_change) {
+    throw new HttpError(400, 'Este usuario no requiere cambio de contraseña obligatorio.');
+  }
+
+  const validPassword = await bcrypt.compare(body.currentPassword, user.password_hash);
+  if (!validPassword) {
+    throw new HttpError(401, 'La contraseña actual es incorrecta.');
+  }
+
+  const newHash = await bcrypt.hash(body.newPassword, 12);
+  await pool.query(
+    'UPDATE admin_users SET password_hash = $1, force_password_change = false, updated_at = now() WHERE id = $2',
+    [newHash, body.userId]
+  );
+
+  await audit(body.userId, 'update_password', 'admin_user', body.userId);
+
+  res.json({ ok: true, message: 'Contraseña actualizada correctamente.' });
+}));
+
+router.get('/verify-email', asyncHandler(async (req: Request, res: Response) => {
+  const token = req.query.token;
+  if (!token || typeof token !== 'string') {
+    throw new HttpError(400, 'Token inválido.');
+  }
+
+  const result = await pool.query(
+    'UPDATE admin_users SET is_verified = true, verification_token = NULL, updated_at = now() WHERE verification_token = $1 RETURNING id',
+    [token]
+  );
+
+  if (result.rowCount === 0) {
+    throw new HttpError(400, 'Token inválido o expirado.');
+  }
+
+  await audit(result.rows[0].id, 'verify_email', 'admin_user', result.rows[0].id);
+
+  res.json({ ok: true, message: 'Cuenta verificada exitosamente.' });
+}));
+
 export default router;
+
