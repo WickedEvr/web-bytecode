@@ -23,6 +23,17 @@ export const initCsrf = async (): Promise<string | null> => {
   return null;
 };
 
+export class ApiError extends Error {
+  code?: string;
+  payload?: any;
+  constructor(message: string, code?: string, payload?: any) {
+    super(message);
+    this.name = 'ApiError';
+    this.code = code;
+    this.payload = payload;
+  }
+}
+
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers = new Headers(options.headers);
   let body = options.body;
@@ -52,7 +63,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   if (!response.ok) {
     const payload = await response.json().catch(() => null);
-    throw new Error(payload?.message ?? 'No se pudo completar la solicitud.');
+    throw new ApiError(payload?.message ?? 'No se pudo completar la solicitud.', payload?.code, payload);
   }
 
   return response.json() as Promise<T>;
