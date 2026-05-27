@@ -502,11 +502,14 @@ router.get(
           u.name, 
           u.email, 
           u.is_active,
-          array_remove(array_agg(r.code), NULL) as roles
+          (array_remove(array_agg(r.code), NULL))[1] as role,
+          array_remove(array_agg(r.code), NULL) as roles,
+          u.created_at,
+          u.last_login_at
         FROM admin_users u
         LEFT JOIN admin_user_roles aur ON u.id = aur.admin_user_id
         LEFT JOIN roles r ON aur.role_id = r.id
-        WHERE u.deleted_at IS NULL AND u.is_active = true
+        WHERE u.deleted_at IS NULL
         GROUP BY u.id
         ORDER BY u.name ASC
       `);
@@ -526,19 +529,38 @@ router.post(
     const body = userCreateSchema.parse(req.body);
     const passwordHash = await bcrypt.hash(body.password, 12);
 
+    const client = await pool.connect();
     try {
-      const result = await pool.query(
-        `INSERT INTO admin_users (email, name, password_hash, role, created_by)
-         VALUES ($1, $2, $3, $4, $5) RETURNING id, email, name, role, is_active, created_at`,
-        [body.email.toLowerCase(), body.name, passwordHash, body.role, req.admin?.id]
+      await client.query('BEGIN');
+
+      const roleResult = await client.query('SELECT id FROM roles WHERE code = $1', [body.role]);
+      if (roleResult.rowCount === 0) throw new HttpError(400, 'Rol inválido.');
+      const roleId = roleResult.rows[0].id;
+
+      const result = await client.query(
+        `INSERT INTO admin_users (email, name, password_hash, created_by)
+         VALUES ($1, $2, $3, $4) RETURNING id, email, name, is_active, created_at`,
+        [body.email.toLowerCase(), body.name, passwordHash, req.admin?.id]
       );
-      await audit(req.admin?.id, 'create', 'admin_user', result.rows[0].id);
-      res.status(201).json({ item: result.rows[0] });
+      const newUserId = result.rows[0].id;
+
+      await client.query(
+        `INSERT INTO admin_user_roles (admin_user_id, role_id, assigned_by)
+         VALUES ($1, $2, $3)`,
+        [newUserId, roleId, req.admin?.id]
+      );
+
+      await client.query('COMMIT');
+      await audit(req.admin?.id, 'create', 'admin_user', newUserId);
+      res.status(201).json({ item: { ...result.rows[0], role: body.role } });
     } catch (err: unknown) {
+      await client.query('ROLLBACK');
       if (typeof err === 'object' && err !== null && 'code' in err && err.code === '23505') {
         throw new HttpError(409, 'El correo ya está en uso.');
       }
       throw err;
+    } finally {
+      client.release();
     }
   }),
 );
@@ -551,28 +573,61 @@ router.patch(
     const id = String(req.params.id);
     const body = userUpdateSchema.parse(req.body);
 
-    const currentUser = await pool.query('SELECT role FROM admin_users WHERE id = $1', [id]);
-    if (currentUser.rowCount === 0) throw new HttpError(404, 'Usuario no encontrado.');
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
 
-    if (currentUser.rows[0].role === 'super_admin' && !req.admin?.roles.includes('super_admin')) {
-      throw new HttpError(403, 'No puedes modificar a un super administrador.');
+      const currentUser = await client.query(`
+        SELECT u.id, u.is_active, (array_remove(array_agg(r.code), NULL))[1] as role
+        FROM admin_users u
+        LEFT JOIN admin_user_roles aur ON u.id = aur.admin_user_id
+        LEFT JOIN roles r ON aur.role_id = r.id
+        WHERE u.id = $1
+        GROUP BY u.id
+      `, [id]);
+      
+      if (currentUser.rowCount === 0) throw new HttpError(404, 'Usuario no encontrado.');
+      const currentRole = currentUser.rows[0].role;
+
+      if (currentRole === 'super_admin' && !req.admin?.roles.includes('super_admin')) {
+        throw new HttpError(403, 'No puedes modificar a un super administrador.');
+      }
+
+      let updatedRole = currentRole;
+
+      if (body.role && body.role !== currentRole) {
+        const roleResult = await client.query('SELECT id FROM roles WHERE code = $1', [body.role]);
+        if (roleResult.rowCount === 0) throw new HttpError(400, 'Rol inválido.');
+        const roleId = roleResult.rows[0].id;
+
+        await client.query('DELETE FROM admin_user_roles WHERE admin_user_id = $1', [id]);
+        await client.query(
+          `INSERT INTO admin_user_roles (admin_user_id, role_id, assigned_by) VALUES ($1, $2, $3)`,
+          [id, roleId, req.admin?.id]
+        );
+        updatedRole = body.role;
+      }
+
+      const result = await client.query(
+        `UPDATE admin_users 
+          SET name = COALESCE($2, name), 
+              is_active = COALESCE($3, is_active),
+              updated_at = now(),
+              updated_by = $4
+          WHERE id = $1 
+          RETURNING id, email, name, is_active, updated_at`,
+        [id, body.name ?? null, body.isActive ?? null, req.admin?.id]
+      );
+
+      await client.query('COMMIT');
+      await audit(req.admin?.id, 'update', 'admin_user', id);
+      res.json({ item: { ...result.rows[0], role: updatedRole } });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
     }
-
-    const result = await pool.query(
-      `UPDATE admin_users 
-        SET name = COALESCE($2, name), 
-            role = COALESCE($3, role), 
-            is_active = COALESCE($4, is_active),
-            updated_at = now(),
-            updated_by = $5
-        WHERE id = $1 
-        RETURNING id, email, name, role, is_active, updated_at`,
-      [id, body.name ?? null, body.role ?? null, body.isActive ?? null, req.admin?.id]
-    );
-
-    if (result.rowCount === 0) throw new HttpError(404, 'Usuario no encontrado.');
-    await audit(req.admin?.id, 'update', 'admin_user', id);
-    res.json({ item: result.rows[0] });
   }),
 );
 
@@ -584,19 +639,45 @@ router.patch(
     const id = String(req.params.id);
     const { role } = z.object({ role: z.string() }).parse(req.body);
 
-    const currentUser = await pool.query('SELECT role FROM admin_users WHERE id = $1', [id]);
-    if (currentUser.rowCount === 0) throw new HttpError(404, 'Usuario no encontrado.');
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
 
-    if (currentUser.rows[0].role === 'super_admin' && !req.admin?.roles.includes('super_admin')) {
-      throw new HttpError(403, 'No puedes modificar a un super administrador.');
+      const currentUser = await client.query(`
+        SELECT u.id, (array_remove(array_agg(r.code), NULL))[1] as role
+        FROM admin_users u
+        LEFT JOIN admin_user_roles aur ON u.id = aur.admin_user_id
+        LEFT JOIN roles r ON aur.role_id = r.id
+        WHERE u.id = $1
+        GROUP BY u.id
+      `, [id]);
+      
+      if (currentUser.rowCount === 0) throw new HttpError(404, 'Usuario no encontrado.');
+      const currentRole = currentUser.rows[0].role;
+
+      if (currentRole === 'super_admin' && !req.admin?.roles.includes('super_admin')) {
+        throw new HttpError(403, 'No puedes modificar a un super administrador.');
+      }
+
+      const roleResult = await client.query('SELECT id FROM roles WHERE code = $1', [role]);
+      if (roleResult.rowCount === 0) throw new HttpError(400, 'Rol inválido.');
+      const roleId = roleResult.rows[0].id;
+
+      await client.query('DELETE FROM admin_user_roles WHERE admin_user_id = $1', [id]);
+      await client.query(
+        `INSERT INTO admin_user_roles (admin_user_id, role_id, assigned_by) VALUES ($1, $2, $3)`,
+        [id, roleId, req.admin?.id]
+      );
+
+      await client.query('COMMIT');
+      await audit(req.admin?.id, 'update_role', 'admin_user', id);
+      res.json({ item: { id, role } });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
     }
-
-    const result = await pool.query(
-      'UPDATE admin_users SET role = $2, updated_at = now(), updated_by = $3 WHERE id = $1 RETURNING id, role',
-      [id, role, req.admin?.id]
-    );
-    await audit(req.admin?.id, 'update_role', 'admin_user', id);
-    res.json({ item: result.rows[0] });
   }),
 );
 
