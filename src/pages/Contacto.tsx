@@ -7,23 +7,13 @@ import ContactFooter from '../components/layout/ContactFooter';
 import CustomDropdown, { type DropdownOption } from '../components/ui/CustomDropdown';
 import AnimatedSubmitButton from '../components/ui/AnimatedSubmitButton';
 import PhoneInputGroup from '../components/ui/PhoneInputGroup';
+import { Label } from '../components/ui/Label';
+import { Input } from '../components/ui/Input';
+import { Textarea } from '../components/ui/Textarea';
 import { createContactSubmission, fetchCountries, fetchServices, fetchDocumentTypes, type CountryData, type DocumentTypeData } from '../lib/api';
-
-const solidInput =
-  'w-full bg-white rounded-full px-6 py-[0.6rem] text-[#333] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06CFD6] transition-all text-[20px] shadow-sm';
-
-const solidTextarea =
-  'w-full min-h-[150px] resize-y bg-white rounded-3xl px-6 py-4 text-[#333] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06CFD6] transition-all text-[20px] shadow-sm';
 
 const stripDigits = (value: string) => value.replace(/\d/g, '');
 const stripSymbols = (value: string) => value.replace(/[^\p{L}\p{N}\s]/gu, '');
-
-const Label: React.FC<{ text: string; required?: boolean }> = ({ text, required }) => (
-  <label className="block text-white/70 text-[24px] font-bold mb-1.5 pl-5 tracking-wide">
-    {text}
-    {required && <span className="text-[#06CFD6] ml-1">*</span>}
-  </label>
-);
 
 const Contacto: React.FC = () => {
   const navigate = useNavigate();
@@ -262,11 +252,10 @@ const Contacto: React.FC = () => {
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <Label text="Nombre" />
-              <input
+              <Input
                 type="text"
                 name="nombre"
                 placeholder="Nombre"
-                className={solidInput}
                 required
                 minLength={2}
                 maxLength={120}
@@ -277,11 +266,10 @@ const Contacto: React.FC = () => {
 
             <div>
               <Label text="Apellido" />
-              <input
+              <Input
                 type="text"
                 name="apellido"
                 placeholder="Apellido"
-                className={solidInput}
                 required
                 minLength={2}
                 maxLength={120}
@@ -294,11 +282,10 @@ const Contacto: React.FC = () => {
           {personType === 'company' && (
             <div>
               <Label text="Cargo" />
-              <input
+              <Input
                 type="text"
                 name="cargo"
                 placeholder="Cargo"
-                className={solidInput}
                 required={personType === 'company'}
                 minLength={2}
                 maxLength={160}
@@ -310,11 +297,10 @@ const Contacto: React.FC = () => {
 
           <div>
             <Label text="Email" />
-            <input
+            <Input
               type="email"
               name="email"
               placeholder="Correo"
-              className={solidInput}
               required
               minLength={2}
               maxLength={160}
@@ -323,7 +309,7 @@ const Contacto: React.FC = () => {
             />
           </div>
 
-          <div className="mb-2">
+          <div>
             <Label text="Número de celular" />
             <PhoneInputGroup 
               value={formData.celular} 
@@ -338,11 +324,10 @@ const Contacto: React.FC = () => {
             <>
               <div>
                 <Label text="Empresa" />
-                <input
+                <Input
                   type="text"
                   name="empresa"
                   placeholder="Empresa"
-                  className={solidInput}
                   required={personType === 'company'}
                   minLength={2}
                   maxLength={160}
@@ -354,15 +339,19 @@ const Contacto: React.FC = () => {
               <div className="relative mb-2">
                 <Label text={activeCompanyDoc?.name || 'Identificación Corporativa'} />
                 <input
-                  type="text"
                   name="ruc"
+                  type="text"
                   placeholder={activeCompanyDoc?.placeholder || 'Ingrese su identificación fiscal'}
-                  className={`${solidInput} ${taxIdError ? 'ring-2 ring-red-400 focus:ring-red-400' : ''}`}
-                  required={personType === 'company'}
-                  maxLength={activeCompanyDoc?.maxLength || 40}
                   value={formData.ruc}
                   onChange={handleDocumentChange}
                   onBlur={handleDocumentBlur}
+                  className={`w-full bg-white rounded-full px-5 lg:px-6 py-[0.6rem] text-[#333] placeholder-gray-400 focus:outline-none transition-all text-[18px] md:text-[20px] shadow-sm ${
+                    taxIdError 
+                      ? 'ring-2 ring-red-400 focus:ring-red-400' 
+                      : 'focus:ring-2 focus:ring-[#06CFD6]'
+                  }`}
+                  required={personType === 'company'}
+                  maxLength={activeCompanyDoc?.maxLength || 40}
                 />
                 {taxIdError && (
                   <span className="absolute -bottom-5 left-4 text-xs font-bold text-red-400">
@@ -383,12 +372,16 @@ const Contacto: React.FC = () => {
                   type="text"
                   name="documentNumber"
                   placeholder={selectedDocData?.placeholder || 'Ingrese su documento'}
-                  className={`${solidInput} ${taxIdError ? 'ring-2 ring-red-400 focus:ring-red-400' : ''}`}
-                  required={personType === 'individual'}
-                  maxLength={selectedDocData?.maxLength || 40}
                   value={formData.documentNumber}
                   onChange={handleDocumentChange}
                   onBlur={handleDocumentBlur}
+                  className={`w-full bg-white rounded-full px-5 lg:px-6 py-[0.6rem] text-[#333] placeholder-gray-400 focus:outline-none transition-all text-[18px] md:text-[20px] shadow-sm ${
+                    taxIdError 
+                      ? 'ring-2 ring-red-400 focus:ring-red-400' 
+                      : 'focus:ring-2 focus:ring-[#06CFD6]'
+                  }`}
+                  required={personType === 'individual'}
+                  maxLength={selectedDocData?.maxLength || 40}
                 />
                 {taxIdError && (
                   <span className="absolute -bottom-5 left-4 text-xs font-bold text-red-400">
@@ -406,10 +399,9 @@ const Contacto: React.FC = () => {
 
           <div>
             <Label text="Mensaje" />
-            <textarea
+            <Textarea
               name="mensaje"
               placeholder="Cuéntanos brevemente qué necesitas"
-              className={solidTextarea}
               required
               minLength={10}
               maxLength={1200}

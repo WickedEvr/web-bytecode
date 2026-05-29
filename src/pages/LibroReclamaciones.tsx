@@ -6,48 +6,11 @@ import LazyGalaxyBackground from '../components/effects/LazyGalaxyBackground';
 import CustomDropdown, { type DropdownOption } from '../components/ui/CustomDropdown';
 import AnimatedSubmitButton from '../components/ui/AnimatedSubmitButton';
 import PhoneInputGroup from '../components/ui/PhoneInputGroup';
+import { Label } from '../components/ui/Label';
+import { Input } from '../components/ui/Input';
+import { Textarea } from '../components/ui/Textarea';
+import Radio from '../components/ui/Radio';
 import { createComplaint, apiRequest, fetchCountries, fetchServices, fetchDocumentTypes, type CountryData, type DocumentTypeData } from '../lib/api';
-
-const solidInput =
-  'w-full bg-white rounded-full px-5 py-[0.6rem] text-[#333] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06CFD6] transition-all text-[18px] md:text-[20px] shadow-sm';
-
-const solidArea =
-  'w-full bg-white rounded-2xl px-5 py-4 text-[#333] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06CFD6] transition-all text-[18px] md:text-[20px] shadow-sm resize-none';
-
-const Label: React.FC<{ text: string; required?: boolean }> = ({ text, required }) => (
-  <label className="block text-white text-[18px] md:text-[20px] font-bold mb-1.5 pl-4 tracking-wide">
-    {text}
-    {required && <span className="text-[#06CFD6] ml-1">*</span>}
-  </label>
-);
-
-const Radio: React.FC<{
-  name: string;
-  value: string;
-  label: string;
-  checked: boolean;
-  onChange: React.ChangeEventHandler<HTMLInputElement>;
-}> = ({ name, value, label, checked, onChange }) => (
-  <label className="flex items-center gap-2.5 cursor-pointer group relative">
-    <span className={`relative w-5 h-5 rounded-full border-[2.5px] flex items-center justify-center shrink-0 transition-colors duration-300 ${checked ? 'border-[#06CFD6]' : 'border-white/40 lg:group-hover:border-white/70'}`}>
-      <AnimatePresence>
-        {checked && (
-          <motion.span
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            className="absolute w-2.5 h-2.5 rounded-full bg-[#06CFD6]"
-          />
-        )}
-      </AnimatePresence>
-    </span>
-    <input type="radio" name={name} value={value} checked={checked} onChange={onChange} className="sr-only" />
-    <span className={`text-[16px] md:text-[18px] select-none transition-colors duration-300 ${checked ? 'text-white font-medium' : 'text-white/80 lg:group-hover:text-white'}`}>
-      {label}
-    </span>
-  </label>
-);
 
 // --- COMPONENTE PRINCIPAL ---
 const LibroReclamaciones: React.FC = () => {
@@ -332,12 +295,11 @@ const LibroReclamaciones: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div><Label text={formData.personType === 'empresa' ? 'Razón Social' : 'Nombres'} required /><input name="nombres" type="text" placeholder={formData.personType === 'empresa' ? 'Nombre legal de la empresa' : 'Nombres Completos'} value={formData.nombres} onChange={handleChange} className={solidInput} required minLength={2} maxLength={160} /></div>
-              <div><Label text={formData.personType === 'empresa' ? 'Representante Legal' : 'Apellidos'} required /><input name="apellidos" type="text" placeholder={formData.personType === 'empresa' ? 'Nombres y apellidos' : 'Apellidos Completos'} value={formData.apellidos} onChange={handleChange} className={solidInput} required minLength={2} maxLength={160} /></div>
+              <div><Label text={formData.personType === 'empresa' ? 'Razón Social' : 'Nombres'} required /><Input name="nombres" type="text" placeholder={formData.personType === 'empresa' ? 'Nombre legal de la empresa' : 'Nombres Completos'} value={formData.nombres} onChange={handleChange} required minLength={2} maxLength={160} /></div>
+              <div><Label text={formData.personType === 'empresa' ? 'Representante Legal' : 'Apellidos'} required /><Input name="apellidos" type="text" placeholder={formData.personType === 'empresa' ? 'Nombres y apellidos' : 'Apellidos Completos'} value={formData.apellidos} onChange={handleChange} required minLength={2} maxLength={160} /></div>
             </div>
 
-            <div><Label text="Domicilio" required /><input name="domicilio" type="text" placeholder="Dirección completa" value={formData.domicilio} onChange={handleChange} className={solidInput} required minLength={4} maxLength={240} /></div>
-            
+            <div><Label text="Domicilio" required /><Input name="domicilio" type="text" placeholder="Dirección completa" value={formData.domicilio} onChange={handleChange} required minLength={4} maxLength={240} /></div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
                 <Label text="Tipo de Documento" required />
@@ -351,16 +313,20 @@ const LibroReclamaciones: React.FC = () => {
               </div>
               <div className="relative">
                 <Label text={formData.personType === 'empresa' ? (activeCompanyDoc?.name || 'Identificación Corporativa') : 'Número de Documento'} required />
-                <input 
-                  name="numeroDoc" 
-                  type="text" 
-                  placeholder={formData.personType === 'empresa' ? (activeCompanyDoc?.placeholder || 'Ingrese su identificación fiscal') : (selectedDocData?.placeholder || 'Número')} 
-                  value={formData.numeroDoc} 
+                <input
+                  name="numeroDoc" // Usa "documentNumber" en Contacto.tsx
+                  type="text"
+                  placeholder={formData.personType === 'empresa' ? (activeCompanyDoc?.placeholder || 'Ingrese su identificación fiscal') : (selectedDocData?.placeholder || 'Número')}
+                  value={formData.numeroDoc} // Usa formData.documentNumber en Contacto.tsx
                   onChange={handleDocumentChange}
                   onBlur={handleDocumentBlur}
-                  className={`${solidInput} ${taxIdError ? 'ring-2 ring-red-400 focus:ring-red-400' : ''}`}
-                  required 
-                  maxLength={formData.personType === 'empresa' ? (activeCompanyDoc?.maxLength || 40) : (selectedDocData?.maxLength || 40)} 
+                  className={`w-full bg-white rounded-full px-5 lg:px-6 py-[0.6rem] text-[#333] placeholder-gray-400 focus:outline-none transition-all text-[18px] md:text-[20px] shadow-sm ${
+                    taxIdError 
+                      ? 'ring-2 ring-red-400 focus:ring-red-400' 
+                      : 'focus:ring-2 focus:ring-[#06CFD6]'
+                  }`}
+                  required
+                  maxLength={formData.personType === 'empresa' ? (activeCompanyDoc?.maxLength || 40) : (selectedDocData?.maxLength || 40)}
                 />
                 {taxIdError && (
                   <span className="absolute -bottom-5 left-4 text-xs font-bold text-red-400">
@@ -375,7 +341,7 @@ const LibroReclamaciones: React.FC = () => {
                 <Label text="Número de celular" required />
                 <PhoneInputGroup value={formData.telefono} onChange={handleChange} onCountrySelect={handleCountrySelect} countriesRegistry={allCountries} isLoading={isLoadingCatalogs} />
               </div>
-              <div><Label text="Correo Electrónico" required /><input name="email" type="email" placeholder="ejemplo@correo.com" value={formData.email} onChange={handleChange} className={solidInput} required maxLength={180} /></div>
+              <div><Label text="Correo Electrónico" required /><Input name="email" type="email" placeholder="ejemplo@correo.com" value={formData.email} onChange={handleChange} required maxLength={180}/></div>
             </div>
           </div>
 
@@ -390,11 +356,11 @@ const LibroReclamaciones: React.FC = () => {
               <Radio name="goodType" value="servicio" label="Servicio" checked={formData.goodType === 'servicio'} onChange={handleChange} />
             </div>
 
-            <div><Label text="Monto Reclamado (Opcional)" /><input name="montoCuantificable" type="text" placeholder="Ej: S/ 1500.00" value={formData.montoCuantificable} onChange={handleChange} className={solidInput} maxLength={80} /></div>
-            <div><Label text="Descripción" required /><input name="descripcion" type="text" placeholder="Descripción del producto o servicio" value={formData.descripcion} onChange={handleChange} className={solidInput} required minLength={2} maxLength={240} /></div>
+            <div><Label text="Monto Reclamado (Opcional)" /><Input name="montoCuantificable" type="text" placeholder="Ej: S/ 1500.00" value={formData.montoCuantificable} onChange={handleChange} maxLength={80} /></div>
+            <div><Label text="Descripción" required /><Input name="descripcion" type="text" placeholder="Descripción del producto o servicio" value={formData.descripcion} onChange={handleChange} required minLength={2} maxLength={240} /></div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div><Label text="Nombre del proyecto/unidad" /><input name="nombreUnidad" type="text" placeholder="Ej: Landing Page Corporativa" value={formData.nombreUnidad} onChange={handleChange} className={solidInput} maxLength={160} /></div>
+              <div><Label text="Nombre del proyecto/unidad" /><Input name="nombreUnidad" type="text" placeholder="Ej: Landing Page Corporativa" value={formData.nombreUnidad} onChange={handleChange} maxLength={160} /></div>
               <div>
                 <Label text="Categoría" />
                 <CustomDropdown variant="public" value={formData.opcionBien} placeholder={isLoadingCatalogs ? "⏳ Cargando opciones..." : "Seleccione una opción"} onChange={(val) => handleCustomDropdown('opcionBien', val)} options={serviceOptions} required={false} />
@@ -419,9 +385,9 @@ const LibroReclamaciones: React.FC = () => {
               )}
             </div>
 
-            <div><Label text="Motivo" required /><input name="tipoReclamo" type="text" placeholder="Ej: Incumplimiento de plazos" value={formData.tipoReclamo} onChange={handleChange} className={solidInput} required minLength={2} maxLength={160} /></div>
-            <div><Label text="Detalle de la queja/reclamo" required /><textarea name="detalle" placeholder="Explique detalladamente lo sucedido..." rows={4} value={formData.detalle} onChange={handleChange} className={solidArea} required minLength={10} maxLength={3000} /></div>
-            <div><Label text="Pedido (Solución esperada)" required /><textarea name="pedido" placeholder="¿Qué solución espera de nuestra parte?" rows={3} value={formData.pedido} onChange={handleChange} className={solidArea} required minLength={5} maxLength={2000} /></div>
+            <div><Label text="Motivo" required /><Input name="tipoReclamo" type="text" placeholder="Ej: Incumplimiento de plazos" value={formData.tipoReclamo} onChange={handleChange} required minLength={2} maxLength={160} /></div>
+            <div><Label text="Detalle de la queja/reclamo" required /><Textarea name="detalle" placeholder="Explique detalladamente lo sucedido..." rows={4} value={formData.detalle} onChange={handleChange} required minLength={10} maxLength={3000} /></div>
+            <div><Label text="Pedido (Solución esperada)" required /><Textarea name="pedido" placeholder="¿Qué solución espera de nuestra parte?" rows={3} value={formData.pedido} onChange={handleChange}required minLength={5} maxLength={2000} /></div>
 
             {/* ── Adjuntar Archivo ── */}
             <div className="pt-4">
