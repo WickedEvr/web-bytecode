@@ -63,7 +63,7 @@ router.post(
       );
 
       const frontendUrl = process.env.FRONTEND_URL || 'https://www.bytecode.com.pe';
-      const verifyUrl = `\${frontendUrl}/admin/verify-account?token=\${verificationToken}`;
+      const verifyUrl = `${frontendUrl}/admin/verify-account?token=${verificationToken}`;
       
       const { buildAdminVerification } = await import('../services/emailTemplates.js');
       const emailHtml = buildAdminVerification(admin.name, verifyUrl);

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { apiRequest } from '../../lib/api';
 
 const VerifyAccount: React.FC = () => {
@@ -18,62 +19,70 @@ const VerifyAccount: React.FC = () => {
       return;
     }
 
+    let isMounted = true;
+
     const verifyToken = async () => {
       try {
         await apiRequest(`/api/auth/verify-email?token=${token}`);
-        setSuccess(true);
+        if (isMounted) {
+          setSuccess(true);
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error al verificar la cuenta.');
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : 'Error al verificar la cuenta.');
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     verifyToken();
+
+    return () => {
+      isMounted = false;
+    };
   }, [token]);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-black px-6 font-sansation text-white/90">
       <div className="w-full max-w-md rounded-2xl border border-white/5 bg-[#0a0a0a] p-8 shadow-2xl text-center">
-        <div className="flex justify-center mb-6">
+        <div className="mb-6 flex justify-center">
           <img src="/vectors/designs/logo_en_blanco.svg" alt="Bytecode" className="h-10 opacity-90" />
         </div>
         
         {loading ? (
-          <div className="py-8">
-            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-cyan-500"></div>
-            <p className="mt-4 text-sm text-white/60">Verificando cuenta...</p>
+          <div className="flex flex-col items-center justify-center py-8">
+            <Loader2 className="h-10 w-10 animate-spin text-cyan-500" />
+            <p className="mt-6 text-sm text-white/60">Verificando tu cuenta de administrador...</p>
           </div>
         ) : success ? (
-          <div>
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10 text-green-400">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
+          <div className="animate-in fade-in zoom-in duration-500">
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10 text-green-400">
+              <CheckCircle className="h-8 w-8" />
             </div>
-            <h2 className="text-xl font-bold text-white mb-2">¡Cuenta Verificada Exitosamente!</h2>
-            <p className="text-sm text-white/60 mb-8">
-              Tu cuenta ha sido activada correctamente. Ya puedes iniciar sesión en el panel administrativo.
+            <h2 className="mb-3 text-xl font-bold tracking-wide text-white">¡Cuenta Verificada Exitosamente!</h2>
+            <p className="mb-8 text-sm leading-relaxed text-white/60">
+              Tu dirección de correo ha sido confirmada. Ya puedes acceder al panel de administración de Bytecode.
             </p>
             <button
               onClick={() => navigate('/admin/login')}
-              className="w-full rounded-lg bg-cyan-500 py-3 text-sm font-bold text-black transition-colors hover:bg-cyan-400"
+              className="w-full rounded-lg bg-cyan-500 py-3 text-sm font-bold tracking-wide text-black transition-all hover:bg-cyan-400 hover:shadow-[0_0_15px_rgba(6,207,214,0.4)]"
             >
-              Ir a Iniciar Sesión
+              Ir al Inicio de Sesión
             </button>
           </div>
         ) : (
-          <div>
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 text-red-400">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+          <div className="animate-in fade-in zoom-in duration-500">
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 text-red-400">
+              <XCircle className="h-8 w-8" />
             </div>
-            <h2 className="text-xl font-bold text-white mb-2">Error de Verificación</h2>
-            <p className="text-sm text-white/60 mb-8">{error}</p>
+            <h2 className="mb-3 text-xl font-bold tracking-wide text-white">Error de Verificación</h2>
+            <p className="mb-8 text-sm leading-relaxed text-white/60">{error}</p>
             <button
               onClick={() => navigate('/admin/login')}
-              className="w-full rounded-lg bg-white/10 py-3 text-sm font-medium text-white transition-colors hover:bg-white/20"
+              className="w-full rounded-lg bg-white/10 py-3 text-sm font-medium tracking-wide text-white transition-colors hover:bg-white/20"
             >
               Volver al inicio
             </button>
