@@ -147,10 +147,10 @@ const Reclamos: React.FC = () => {
               <select
                 value={status}
                 onChange={(event) => setStatus(event.target.value)}
-                className="w-full rounded-lg bg-white/5 border border-white/5 px-3 py-2.5 text-sm text-white/80 outline-none focus:border-white/20 transition-colors appearance-none"
+                className="w-full bg-white rounded-full px-6 py-[0.6rem] shadow-sm transition-all focus:ring-2 focus:ring-[#06CFD6] text-[15px] text-[#333] border border-gray-100 appearance-none"
               >
                 {statuses.map((item) => (
-                  <option key={item.value} value={item.value} className="bg-[#121212]">{item.label}</option>
+                  <option key={item.value} value={item.value} className="bg-white text-gray-900">{item.label}</option>
                 ))}
               </select>
             </div>

@@ -238,10 +238,10 @@ const Usuarios: React.FC = () => {
                 <select
                   value={formData.role}
                   onChange={e => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors appearance-none"
+                  className="w-full bg-white rounded-full px-6 py-[0.6rem] shadow-sm transition-all focus:ring-2 focus:ring-[#06CFD6] text-[20px] text-[#333] border border-gray-100 appearance-none"
                 >
                   {ROLES.map(role => (
-                    <option key={role.value} value={role.value} className="bg-[#121212]">{role.label}</option>
+                    <option key={role.value} value={role.value} className="bg-white text-gray-900">{role.label}</option>
                   ))}
                 </select>
               </div>

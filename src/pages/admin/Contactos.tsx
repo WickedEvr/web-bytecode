@@ -97,12 +97,12 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChang
       />
       <div 
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center justify-between w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 cursor-pointer shadow-sm transition-all backdrop-blur-sm ${isOpen ? 'border-[#06CFD6] ring-1 ring-[#06CFD6]' : 'hover:bg-white/10'}`}
+        className={`flex items-center justify-between w-full bg-white rounded-full px-6 py-[0.6rem] shadow-sm transition-all cursor-pointer ${isOpen ? 'ring-2 ring-[#06CFD6]' : ''}`}
       >
-        <span className={`text-[14px] ${value ? 'text-white' : 'text-white/40'}`}>
+        <span className={`text-[15px] ${value ? 'text-[#333]' : 'text-gray-400'}`}>
           {selectedLabel}
         </span>
-        <svg className={`w-4 h-4 text-white/50 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </div>
@@ -110,14 +110,14 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChang
         {isOpen && (
           <motion.div
             initial={{ opacity: 0, y: -10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.95 }} transition={{ duration: 0.2 }}
-            className="absolute top-full left-0 mt-2 w-full bg-[#060c1d] border border-white/10 shadow-2xl rounded-xl overflow-hidden z-[100] backdrop-blur-xl"
+            className="absolute top-full left-0 mt-2 w-full bg-white border border-gray-100 shadow-xl rounded-xl overflow-hidden z-[100]"
           >
             <div className="py-2 max-h-[200px] overflow-y-auto custom-scrollbar">
               {options.map((option) => (
                 <div
                   key={option.value}
                   onClick={() => { onChange(option.value); setIsOpen(false); }}
-                  className={`px-4 py-2 cursor-pointer transition-colors ${value === option.value ? 'bg-[#06CFD6]/20 text-[#06CFD6] font-bold' : 'text-white/70 hover:bg-white/10 hover:text-white'}`}
+                  className={`px-6 py-1.5 cursor-pointer transition-colors ${value === option.value ? 'bg-[#06CFD6]/15 text-[#06CFD6] font-bold' : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'}`}
                 >
                   <span className="text-[14px]">{option.label}</span>
                 </div>
@@ -306,15 +306,12 @@ const Contactos: React.FC = () => {
               </div>
               <div>
                 <label className="mb-1.5 block text-[10px] uppercase tracking-wider text-white/40">Estado</label>
-                <select
+                <CustomDropdown
                   value={status}
-                  onChange={(event) => setStatus(event.target.value)}
-                  className="w-full rounded-lg bg-white/5 border border-white/5 px-3 py-2.5 text-sm text-white/80 outline-none focus:border-white/20 transition-colors appearance-none"
-                >
-                  {statuses.map((item) => (
-                    <option key={item.value} value={item.value} className="bg-[#121212]">{item.label}</option>
-                  ))}
-                </select>
+                  placeholder="Seleccionar estado..."
+                  onChange={(val) => setStatus(val)}
+                  options={statuses}
+                />
               </div>
             </div>
             <div>
