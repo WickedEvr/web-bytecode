@@ -21,6 +21,7 @@ const ROLES = [
 ];
 
 import AdminPanel from '../../components/admin/AdminPanel';
+import CustomDropdown from '../../components/ui/CustomDropdown';
 
 // ... (skip to component)
 
@@ -235,15 +236,7 @@ const Usuarios: React.FC = () => {
 
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-white/60 uppercase tracking-wider">Rol de Acceso</label>
-                <select
-                  value={formData.role}
-                  onChange={e => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full bg-white rounded-full px-6 py-[0.6rem] shadow-sm transition-all focus:ring-2 focus:ring-[#06CFD6] text-[20px] text-[#333] border border-gray-100 appearance-none"
-                >
-                  {ROLES.map(role => (
-                    <option key={role.value} value={role.value} className="bg-white text-gray-900">{role.label}</option>
-                  ))}
-                </select>
+                <CustomDropdown value={formData.role} placeholder="Seleccionar rol..." onChange={val => setFormData({ ...formData, role: val })} options={ROLES} />
               </div>
 
               {isEditing && (
