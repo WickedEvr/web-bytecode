@@ -23,7 +23,7 @@ import AdminPanel from '../../components/admin/AdminPanel';
 
 // ... (skip to component)
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 10;
 
 const Auditoria: React.FC = () => {
   const [logs, setLogs] = useState<AuditLog[]>([]);
