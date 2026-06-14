@@ -10,13 +10,13 @@ type SidebarProps = {
 
 const Sidebar: React.FC<SidebarProps> = ({ admin, onClose }) => {
   const navItems = [
-    { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['super_admin', 'admin', 'support_agent', 'legal_reviewer', 'partner_designer'] },
+    { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['super_admin', 'admin', 'support_agent', 'legal_reviewer'] },
     { to: '/admin/contactos', icon: Users, label: 'Contactos', roles: ['super_admin', 'admin', 'support_agent'] },
     { to: '/admin/reclamos', icon: MessageSquareText, label: 'Reclamos', roles: ['super_admin', 'admin', 'support_agent', 'legal_reviewer'] },
     { to: '/admin/cotizador', icon: Calculator, label: 'Cotizador', roles: ['super_admin', 'admin', 'partner_designer'] },
-    { to: '/admin/portafolio', icon: Images, label: 'Portafolio', roles: ['super_admin', 'admin', 'partner_designer'] },
+    { to: '/admin/portafolio', icon: Images, label: 'Portafolio', roles: ['super_admin', 'admin'] },
     { to: '/admin/usuarios', icon: ShieldCheck, label: 'Usuarios', roles: ['super_admin', 'admin'] },
-    { to: '/admin/cms', icon: Database, label: 'CMS', roles: ['super_admin', 'admin', 'partner_designer'] },
+    { to: '/admin/cms', icon: Database, label: 'CMS', roles: ['super_admin', 'admin'] },
     { to: '/admin/auditoria', icon: ClipboardList, label: 'Auditoría', roles: ['super_admin', 'admin'] },
     { to: '/admin/seguridad', icon: ShieldCheck, label: 'Seguridad', roles: ['super_admin', 'admin'] },
     { to: '/admin/configuracion', icon: Settings, label: 'Configuración', roles: ['super_admin', 'admin'] },
