@@ -61,6 +61,79 @@ const main = async () => {
       }
     }
 
+    await client.query(
+      `
+      UPDATE menu_items
+      SET is_active = false,
+          deleted_at = COALESCE(deleted_at, now()),
+          updated_at = now()
+      WHERE route_name = 'admin.portafolio'
+      `,
+    );
+
+    const cmsPageColumns = await client.query(
+      `
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'cms_pages'
+        AND column_name IN ('is_published', 'status_id')
+      `,
+    );
+    const cmsColumns = new Set(cmsPageColumns.rows.map((row: { column_name: string }) => row.column_name));
+
+    if (cmsColumns.has('is_published')) {
+      await client.query(
+        `
+        INSERT INTO cms_pages (slug, title, meta_title, meta_description, is_published)
+        VALUES ($1, $2, $3, $4, true)
+        ON CONFLICT (slug) DO UPDATE
+        SET title = EXCLUDED.title,
+            meta_title = COALESCE(cms_pages.meta_title, EXCLUDED.meta_title),
+            meta_description = COALESCE(cms_pages.meta_description, EXCLUDED.meta_description),
+            is_published = true,
+            deleted_at = NULL,
+            updated_at = now()
+        `,
+        [
+          'portafolio',
+          'Portafolio',
+          'Portafolio | Bytecode',
+          'Proyectos web, aplicaciones y soluciones digitales desarrolladas por Bytecode.',
+        ],
+      );
+    } else {
+      let publishedStatusId: string | null = null;
+      if (cmsColumns.has('status_id')) {
+        const statusResult = await client.query(
+          "SELECT id FROM status_catalog WHERE domain = 'cms' AND code = 'published' LIMIT 1",
+        );
+        publishedStatusId = statusResult.rows[0]?.id ?? null;
+      }
+
+      await client.query(
+        `
+        INSERT INTO cms_pages (slug, title, meta_title, meta_description, status_id, published_at)
+        VALUES ($1, $2, $3, $4, $5, now())
+        ON CONFLICT (slug) DO UPDATE
+        SET title = EXCLUDED.title,
+            meta_title = COALESCE(cms_pages.meta_title, EXCLUDED.meta_title),
+            meta_description = COALESCE(cms_pages.meta_description, EXCLUDED.meta_description),
+            status_id = COALESCE(EXCLUDED.status_id, cms_pages.status_id),
+            published_at = COALESCE(cms_pages.published_at, EXCLUDED.published_at),
+            deleted_at = NULL,
+            updated_at = now()
+        `,
+        [
+          'portafolio',
+          'Portafolio',
+          'Portafolio | Bytecode',
+          'Proyectos web, aplicaciones y soluciones digitales desarrolladas por Bytecode.',
+          publishedStatusId,
+        ],
+      );
+    }
+
     for (const [roleCode, permissionCodes] of Object.entries(initialRolePermissions)) {
       const roleResult = await client.query('SELECT id FROM roles WHERE code = $1', [roleCode]);
       const roleId = roleResult.rows[0]?.id;
