@@ -1,36 +1,57 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, MessageSquareText, ShieldCheck, Settings, Calculator, Database, ClipboardList, X, Images } from 'lucide-react';
+import {
+  Calculator,
+  ClipboardList,
+  Database,
+  Images,
+  LayoutDashboard,
+  MessageSquareText,
+  Settings,
+  ShieldCheck,
+  UserCog,
+  Users,
+  X,
+} from 'lucide-react';
 import type { AdminUser } from './AdminLayout';
+import { apiRequest } from '../../lib/api';
 
 type SidebarProps = {
   admin: AdminUser | null;
   onClose?: () => void;
 };
 
+type MenuItem = {
+  id: string;
+  label: string;
+  url: string;
+  icon_name: string | null;
+  permission_code: string | null;
+};
+
+const iconMap = {
+  Calculator,
+  ClipboardList,
+  Database,
+  Images,
+  LayoutDashboard,
+  MessageSquareText,
+  Settings,
+  ShieldCheck,
+  UserCog,
+  Users,
+};
+
 const Sidebar: React.FC<SidebarProps> = ({ admin, onClose }) => {
-  const navItems = [
-    { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['super_admin', 'admin', 'support_agent', 'legal_reviewer', 'partner_designer'] },
-    { to: '/admin/contactos', icon: Users, label: 'Contactos', roles: ['super_admin', 'admin', 'support_agent'] },
-    { to: '/admin/reclamos', icon: MessageSquareText, label: 'Reclamos', roles: ['super_admin', 'admin', 'support_agent', 'legal_reviewer'] },
-    { to: '/admin/cotizador', icon: Calculator, label: 'Cotizador', roles: ['super_admin', 'admin', 'partner_designer'] },
-    { to: '/admin/portafolio', icon: Images, label: 'Portafolio', roles: ['super_admin', 'admin', 'partner_designer'] },
-    { to: '/admin/usuarios', icon: ShieldCheck, label: 'Usuarios', roles: ['super_admin', 'admin'] },
-    { to: '/admin/cms', icon: Database, label: 'CMS', roles: ['super_admin', 'admin', 'partner_designer'] },
-    { to: '/admin/auditoria', icon: ClipboardList, label: 'Auditoría', roles: ['super_admin', 'admin'] },
-    { to: '/admin/seguridad', icon: ShieldCheck, label: 'Seguridad', roles: ['super_admin', 'admin'] },
-    { to: '/admin/configuracion', icon: Settings, label: 'Configuración', roles: ['super_admin', 'admin'] },
-  ];
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
 
-  const visibleNavItems = navItems.filter(item => {
-  if (!admin || !admin.roles) return true; 
+  useEffect(() => {
+    if (!admin) return;
 
-  const isSuperAdmin = admin.roles.includes('super_admin');
-
-  const hasAllowedRole = admin.roles.some(userRole => item.roles.includes(userRole));
-
-  return isSuperAdmin || hasAllowedRole;
-});
+    apiRequest<{ items: MenuItem[] }>('/api/admin/menu')
+      .then((result) => setMenuItems(result.items))
+      .catch(() => setMenuItems([]));
+  }, [admin]);
 
   return (
     <aside className="w-64 border-r border-white/5 bg-[#0a0a0a] flex flex-col h-full shadow-2xl lg:shadow-none">
@@ -45,21 +66,25 @@ const Sidebar: React.FC<SidebarProps> = ({ admin, onClose }) => {
         )}
       </div>
       <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto custom-scrollbar">
-        {visibleNavItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            onClick={onClose}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm ${
-                isActive ? 'bg-white/10 text-white font-medium' : 'text-white/50 hover:bg-white/5 hover:text-white/80'
-              }`
-            }
-          >
-            <item.icon className="h-4 w-4" />
-            {item.label}
-          </NavLink>
-        ))}
+        {menuItems.map((item) => {
+          const Icon = iconMap[item.icon_name as keyof typeof iconMap] ?? LayoutDashboard;
+
+          return (
+            <NavLink
+              key={item.id}
+              to={item.url}
+              onClick={onClose}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm ${
+                  isActive ? 'bg-white/10 text-white font-medium' : 'text-white/50 hover:bg-white/5 hover:text-white/80'
+                }`
+              }
+            >
+              <Icon className="h-4 w-4" />
+              {item.label}
+            </NavLink>
+          );
+        })}
       </nav>
     </aside>
   );

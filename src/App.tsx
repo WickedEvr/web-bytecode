@@ -29,6 +29,7 @@ const AdminReclamos = lazy(() => import('./pages/admin/Reclamos'));
 const AdminCotizador = lazy(() => import('./pages/admin/Cotizador'));
 const AdminPortafolio = lazy(() => import('./pages/admin/PortafolioAdmin'));
 const AdminUsuarios = lazy(() => import('./pages/admin/Usuarios'));
+const AdminRoles = lazy(() => import('./pages/admin/Roles'));
 const AdminConfiguracion = lazy(() => import('./pages/admin/Configuracion'));
 const AdminSeguridad = lazy(() => import('./pages/admin/Seguridad'));
 const AdminCMS = lazy(() => import('./pages/admin/CMS'));
@@ -85,16 +86,17 @@ const App: React.FC = () => {
             }
           >
             <Route index element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="dashboard" element={<AdminDashboard />} />
-            <Route path="contactos" element={<RoleGuard allowedRoles={['admin', 'support_agent']}><AdminContactos /></RoleGuard>} />
-            <Route path="reclamos" element={<RoleGuard allowedRoles={['admin', 'support_agent', 'legal_reviewer']}><AdminReclamos /></RoleGuard>} />
-            <Route path="cotizador" element={<RoleGuard allowedRoles={['admin', 'partner_designer']}><AdminCotizador /></RoleGuard>} />
-            <Route path="portafolio" element={<RoleGuard allowedRoles={['admin', 'partner_designer']}><AdminPortafolio /></RoleGuard>} />
-            <Route path="usuarios" element={<RoleGuard allowedRoles={['admin']}><AdminUsuarios /></RoleGuard>} />
-            <Route path="configuracion" element={<RoleGuard allowedRoles={['admin']}><AdminConfiguracion /></RoleGuard>} />
-            <Route path="seguridad" element={<RoleGuard allowedRoles={['admin']}><AdminSeguridad /></RoleGuard>} />
-            <Route path="cms" element={<RoleGuard allowedRoles={['admin']}><AdminCMS /></RoleGuard>} />
-            <Route path="auditoria" element={<RoleGuard allowedRoles={['admin']}><AdminAuditoria /></RoleGuard>} />
+            <Route path="dashboard" element={<RoleGuard requiredPermission="admin.dashboard.view"><AdminDashboard /></RoleGuard>} />
+            <Route path="contactos" element={<RoleGuard requiredPermission="admin.contactos.view"><AdminContactos /></RoleGuard>} />
+            <Route path="reclamos" element={<RoleGuard requiredPermission="admin.reclamos.view"><AdminReclamos /></RoleGuard>} />
+            <Route path="cotizador" element={<RoleGuard requiredPermission="admin.cotizador.view"><AdminCotizador /></RoleGuard>} />
+            <Route path="portafolio" element={<RoleGuard requiredPermission="admin.portafolio.view"><AdminPortafolio /></RoleGuard>} />
+            <Route path="usuarios" element={<RoleGuard requiredPermission="admin.usuarios.view"><AdminUsuarios /></RoleGuard>} />
+            <Route path="roles" element={<RoleGuard requiredPermission="admin.roles.view"><AdminRoles /></RoleGuard>} />
+            <Route path="configuracion" element={<RoleGuard requiredPermission="admin.configuracion.view"><AdminConfiguracion /></RoleGuard>} />
+            <Route path="seguridad" element={<RoleGuard requiredPermission="admin.seguridad.view"><AdminSeguridad /></RoleGuard>} />
+            <Route path="cms" element={<RoleGuard requiredPermission="admin.cms.view"><AdminCMS /></RoleGuard>} />
+            <Route path="auditoria" element={<RoleGuard requiredPermission="admin.auditoria.view"><AdminAuditoria /></RoleGuard>} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

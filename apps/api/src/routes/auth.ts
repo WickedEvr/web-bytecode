@@ -9,7 +9,7 @@ import { COOKIE_NAME } from '../config/constants.js';
 import { pool } from '../db/pool.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { HttpError } from '../utils/httpError.js';
-import { clearAdminCookie, requireAdmin } from '../middleware/auth.js';
+import { clearAdminCookie, requireAdmin, requirePermission } from '../middleware/auth.js';
 import { loginLimiter } from '../middleware/rateLimiters.js';
 import { audit } from '../services/audit.js';
 
@@ -139,7 +139,7 @@ router.get('/me', requireAdmin, (req: Request, res: Response) => {
   res.json({ admin: req.admin });
 });
 
-router.get('/sessions', requireAdmin, asyncHandler(async (req: Request, res: Response) => {
+router.get('/sessions', requireAdmin, requirePermission('admin.seguridad.view'), asyncHandler(async (req: Request, res: Response) => {
   const result = await pool.query(
     `
     SELECT s.*, u.email as user_email, u.name as user_name
@@ -204,7 +204,7 @@ const revokeSchema = z.object({
   sessionId: z.string().uuid(),
 });
 
-router.post('/sessions/:sessionId/revoke', requireAdmin, asyncHandler(async (req: Request, res: Response) => {
+router.post('/sessions/:sessionId/revoke', requireAdmin, requirePermission('admin.seguridad.manage'), asyncHandler(async (req: Request, res: Response) => {
   const params = revokeSchema.parse(req.params);
 
   const result = await pool.query(

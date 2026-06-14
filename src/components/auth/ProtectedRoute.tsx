@@ -16,10 +16,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   useEffect(() => {
     let mounted = true;
 
-    apiRequest<{ admin: { role: string } }>('/api/auth/me')
+    apiRequest<{ admin: { roles?: string[] } }>('/api/auth/me')
       .then((res) => {
         if (!mounted) return;
-        if (allowedRoles && res.admin.role !== 'super_admin' && !allowedRoles.includes(res.admin.role)) {
+        const roles = res.admin.roles ?? [];
+        if (allowedRoles && !roles.includes('super_admin') && !roles.some((role) => allowedRoles.includes(role))) {
           setAuthState('forbidden');
         } else {
           setAuthState('authenticated');
