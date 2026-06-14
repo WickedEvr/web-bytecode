@@ -122,7 +122,7 @@ const parseClaimedAmount = (value: string) => {
 let normalizedContactSchema: boolean | null = null;
 
 router.get('/catalog/countries', asyncHandler(async (_req: Request, res: Response) => {
-  const result = await pool.query('SELECT id, iso2 as iso, name, dial_code as "dialCode", phone_max_length as "maxLength", tax_id_label, tax_id_regex, tax_id_placeholder FROM countries WHERE is_active = true ORDER BY name ASC');
+  const result = await pool.query('SELECT id, iso2 as iso, name, dial_code as "dialCode", phone_max_length as "maxLength" FROM countries WHERE is_active = true ORDER BY name ASC');
   res.json({ items: result.rows });
 }));
 
@@ -148,8 +148,19 @@ router.get('/catalog/statuses', asyncHandler(async (req: Request, res: Response)
   res.json({ items: result.rows });
 }));
 
-router.get('/catalog/pricing', asyncHandler(async (_req: Request, res: Response) => {
-  const result = await pool.query('SELECT id, item_code, name, description, pricing_model, base_price, max_price FROM pricing_catalog WHERE is_active = true ORDER BY name ASC');
+router.get('/catalog/pricing', asyncHandler(async (req: Request, res: Response) => {
+  const userRole = (req as any).admin?.roles?.[0] || (req as any).user?.role || 'guest';
+  const result = await pool.query(
+    `SELECT pc.id, pc.item_code, pc.name, pc.description, pc.pricing_model, 
+            COALESCE(pro.base_price, pc.base_price) AS base_price, 
+            COALESCE(pro.max_price, pc.max_price) AS max_price 
+     FROM pricing_catalog pc
+     LEFT JOIN pricing_role_overrides pro 
+       ON pc.id = pro.pricing_catalog_id AND pro.role_name = $1
+     WHERE pc.is_active = true 
+     ORDER BY pc.name ASC`,
+    [userRole]
+  );
   res.json({ items: result.rows });
 }));
 
@@ -221,7 +232,7 @@ router.post(
       if (body.countryId) {
         const countryRes = await client.query(
           `
-          SELECT phone_max_length, tax_id_regex, tax_id_label
+          SELECT phone_max_length
           FROM countries
           WHERE id = $1 AND is_active = true
           LIMIT 1
@@ -235,19 +246,42 @@ router.post(
 
         const country = countryRes.rows[0] as {
           phone_max_length: number | null;
-          tax_id_regex: string | null;
-          tax_id_label: string | null;
         };
 
         if (country.phone_max_length && body.celular.length !== Number(country.phone_max_length)) {
           throw new HttpError(400, `El celular debe tener ${country.phone_max_length} dígitos.`);
         }
 
-        if (country.tax_id_regex) {
-          const taxRegex = new RegExp(country.tax_id_regex);
-          const taxIdToCheck = body.personType === 'company' ? body.ruc : body.documentNumber;
-          if (taxIdToCheck && !taxRegex.test(taxIdToCheck)) {
-            throw new HttpError(400, `Formato inválido para ${country.tax_id_label ?? 'identificación fiscal'}.`);
+        // Fetch validation regex from document_types based on personType
+        if (body.personType === 'company') {
+          const docTypeRes = await client.query(
+            `SELECT validation_regex, name FROM document_types WHERE country_id = $1 AND is_company_document = true LIMIT 1`,
+            [body.countryId]
+          );
+          
+          if ((docTypeRes.rowCount ?? 0) > 0) {
+             const docType = docTypeRes.rows[0];
+             if (docType.validation_regex && body.ruc) {
+                 const taxRegex = new RegExp(docType.validation_regex);
+                 if (!taxRegex.test(body.ruc)) {
+                     throw new HttpError(400, `Formato inválido para ${docType.name ?? 'identificación corporativa'}.`);
+                 }
+             }
+          }
+        } else if (body.personType === 'individual' && body.documentType) {
+          const docTypeRes = await client.query(
+            `SELECT validation_regex, name FROM document_types WHERE code = $1 LIMIT 1`,
+            [body.documentType]
+          );
+          
+          if ((docTypeRes.rowCount ?? 0) > 0) {
+             const docType = docTypeRes.rows[0];
+             if (docType.validation_regex && body.documentNumber) {
+                 const taxRegex = new RegExp(docType.validation_regex);
+                 if (!taxRegex.test(body.documentNumber)) {
+                     throw new HttpError(400, `Formato inválido para ${docType.name ?? 'documento'}.`);
+                 }
+             }
           }
         }
       }
@@ -381,7 +415,7 @@ router.post(
       } else {
         contactNotificationPayload = {
           ...contactNotificationPayload,
-          'Tipo de Cliente': 'Individual',
+          'Tipo de Cliente': 'Independiente',
           'Tipo de Documento': body.documentType,
           'Número de Documento': body.documentNumber,
         };
@@ -532,8 +566,13 @@ router.post(
 
       await client.query('COMMIT');
 
+      const displayPersonType = (body.personType === 'company' || body.personType === 'company_contact') 
+        ? 'Empresa' 
+        : 'Persona natural';
+
       const complaintNotificationPayload = {
         Código: code,
+        'Tipo de cliente': displayPersonType,
         Nombres: body.nombres,
         'Representante Legal': body.apellidos,
         'Tipo de Documento': body.tipoDoc,
@@ -550,7 +589,7 @@ router.post(
       };
 
       const customerReceiptPayload = {
-        Cliente: `${body.nombres} ${body.apellidos}`,
+        Cliente: body.personType === 'company' ? body.nombres : `${body.nombres} ${body.apellidos}`,
         Nombres: body.nombres,
         'Representante Legal': body.apellidos,
         'Tipo de Documento': body.tipoDoc,

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { apiRequest } from '../../lib/api';
+import { apiRequest, ApiError } from '../../lib/api';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -8,11 +8,14 @@ const Login: React.FC = () => {
   const [loginLoading, setLoginLoading] = useState(false);
   const [error, setError] = useState('');
   const [credentials, setCredentials] = useState({ email: '', password: '' });
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
 
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoginLoading(true);
     setError('');
+    setShowVerificationModal(false);
+    
     try {
       await apiRequest('/api/auth/login', {
         method: 'POST',
@@ -20,15 +23,25 @@ const Login: React.FC = () => {
       });
       navigate(searchParams.get('redirect') || '/admin/dashboard', { replace: true });
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudo iniciar sesión.');
+      if (requestError instanceof ApiError) {
+        if (requestError.code === 'EMAIL_NOT_VERIFIED') {
+          setShowVerificationModal(true);
+        } else if (requestError.code === 'FORCE_PASSWORD_CHANGE') {
+          navigate(`/admin/setup-password?userId=${requestError.payload?.userId || ''}`);
+        } else {
+          setError(requestError.message);
+        }
+      } else {
+        setError(requestError instanceof Error ? requestError.message : 'No se pudo iniciar sesión.');
+      }
     } finally {
       setLoginLoading(false);
     }
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-black px-6 font-sansation text-white/90">
-      <form onSubmit={handleLogin} className="w-full max-w-sm rounded-2xl border border-white/5 bg-[#0a0a0a] p-8 shadow-2xl">
+    <main className="flex min-h-screen items-center justify-center bg-black px-6 font-sansation text-white/90 relative">
+      <form onSubmit={handleLogin} className="w-full max-w-sm rounded-2xl border border-white/5 bg-[#0a0a0a] p-8 shadow-2xl z-10 relative">
         <div className="mb-10 text-center">
           <div className="flex justify-center mb-6">
              <img src="/vectors/designs/logo_en_blanco.svg" alt="Bytecode" className="h-10 opacity-90" />
@@ -63,6 +76,28 @@ const Login: React.FC = () => {
           {loginLoading ? 'Ingresando...' : 'Ingresar'}
         </button>
       </form>
+      
+      {showVerificationModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
+          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0a0a0a] p-8 shadow-2xl text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-cyan-500/10 text-cyan-400">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h2 className="mb-2 text-xl font-bold text-white">Verificación Requerida</h2>
+            <p className="mb-6 text-sm text-white/60">
+              Hemos enviado un enlace de confirmación a tu correo electrónico. Por favor revisa tu bandeja de entrada o la carpeta de spam para verificar tu cuenta y continuar.
+            </p>
+            <button
+              onClick={() => setShowVerificationModal(false)}
+              className="w-full rounded-lg bg-white/10 py-3 text-sm font-medium text-white transition-colors hover:bg-white/20"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Calculator, Edit, MoreVertical, Plus, RefreshCw, Trash2, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import AdminPanel from '../../components/admin/AdminPanel';
 import DynamicQuoter from '../../components/admin/DynamicQuoter';
 import { apiRequest } from '../../lib/api';
@@ -25,7 +26,8 @@ type QuoteDetailResponse = {
 type ActionMenuState = {
   quoteId: string;
   top: number;
-  right: number;
+  left: number;
+  placement: 'bottom' | 'top';
 };
 
 const AdminCotizador: React.FC = () => {
@@ -187,13 +189,22 @@ const AdminCotizador: React.FC = () => {
     new Intl.DateTimeFormat('es-PE', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(val));
 
   const openActionsMenu = (quoteId: string, event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+
     const rect = event.currentTarget.getBoundingClientRect();
+    const menuWidth = 144;
+    const menuHeight = 88;
+    const gap = 8;
+    const viewportPadding = 8;
+    const hasSpaceBelow = rect.bottom + gap + menuHeight <= window.innerHeight - viewportPadding;
+
     setActionsMenu((current) => current?.quoteId === quoteId
       ? null
       : {
         quoteId,
-        top: rect.bottom + 6,
-        right: Math.max(12, window.innerWidth - rect.right),
+        left: Math.max(viewportPadding, rect.right - menuWidth),
+        top: hasSpaceBelow ? rect.bottom + gap : rect.top - menuHeight - gap,
+        placement: hasSpaceBelow ? 'bottom' : 'top',
       });
   };
 
@@ -267,39 +278,14 @@ const AdminCotizador: React.FC = () => {
                     <button
                       type="button"
                       onClick={(event) => openActionsMenu(quote.id, event)}
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-white/40 transition-colors hover:bg-white/5 hover:text-white/70 focus:outline-none focus:ring-2 focus:ring-white/20"
+                      className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors focus:outline-none"
                       aria-haspopup="menu"
                       aria-expanded={actionsMenu?.quoteId === quote.id}
                       aria-label={`Acciones para ${quote.quote_code}`}
                     >
-                      <MoreVertical className="h-5 w-5" />
+                      <MoreVertical className="h-4 w-4" />
                     </button>
 
-                    {false && (
-                      <div
-                        role="menu"
-                        className="absolute right-6 top-12 z-10 w-48 overflow-hidden rounded-md border border-white/10 bg-[#0a0a0a] py-1 text-left shadow-xl"
-                      >
-                        <button
-                          type="button"
-                          role="menuitem"
-                          onClick={() => void handleEditQuote(quote.id)}
-                          className="flex w-full items-center gap-2 px-3 py-2 text-sm text-white/75 transition-colors hover:bg-white/5 hover:text-white"
-                        >
-                          <Edit className="h-4 w-4" />
-                          Editar Cotización
-                        </button>
-                        <button
-                          type="button"
-                          role="menuitem"
-                          onClick={() => void handleDeleteQuote(quote)}
-                          className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-400 transition-colors hover:bg-white/5 hover:text-red-300"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Eliminar
-                        </button>
-                      </div>
-                    )}
                   </td>
                 </tr>
               ))}
@@ -315,36 +301,46 @@ const AdminCotizador: React.FC = () => {
         </div>
       </AdminPanel>
 
-      {actionsMenu && (
-        <div
-          role="menu"
-          data-quote-actions
-          className="fixed z-[100] w-48 overflow-hidden rounded-md border border-white/10 bg-[#0a0a0a] py-1 text-left shadow-xl"
-          style={{ top: actionsMenu.top, right: actionsMenu.right }}
-        >
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => void handleEditQuote(actionsMenu.quoteId)}
-            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-white/75 transition-colors hover:bg-white/5 hover:text-white"
+      <AnimatePresence>
+        {actionsMenu && (
+          <motion.div
+            role="menu"
+            data-quote-actions
+            initial={{ opacity: 0, scale: 0.95, y: actionsMenu.placement === 'bottom' ? 6 : -6 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: actionsMenu.placement === 'bottom' ? 6 : -6 }}
+            transition={{ duration: 0.15 }}
+            className={`fixed z-[100] w-36 overflow-hidden rounded-xl border border-white/10 bg-[#121212] text-left shadow-xl ${
+              actionsMenu.placement === 'bottom' ? 'origin-top-right' : 'origin-bottom-right'
+            }`}
+            style={{ top: actionsMenu.top, left: actionsMenu.left }}
           >
-            <Edit className="h-4 w-4" />
-            Editar Cotización
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              const quote = quotes.find((item) => item.id === actionsMenu.quoteId);
-              if (quote) void handleDeleteQuote(quote);
-            }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-400 transition-colors hover:bg-white/5 hover:text-red-300"
-          >
-            <Trash2 className="h-4 w-4" />
-            Eliminar
-          </button>
-        </div>
-      )}
+            <div className="flex flex-col gap-1 px-1 py-1">
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => void handleEditQuote(actionsMenu.quoteId)}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <Edit className="h-4 w-4" />
+                Editar
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  const quote = quotes.find((item) => item.id === actionsMenu.quoteId);
+                  if (quote) void handleDeleteQuote(quote);
+                }}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-400 transition-colors hover:bg-red-500/10 hover:text-red-300"
+              >
+                <Trash2 className="h-4 w-4" />
+                Eliminar
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">

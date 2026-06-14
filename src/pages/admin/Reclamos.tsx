@@ -28,6 +28,7 @@ const formatDate = (value?: string) =>
     : '';
 
 import AdminPanel from '../../components/admin/AdminPanel';
+import CustomDropdown from '../../components/ui/CustomDropdown';
 
 // ... (skip to the component rendering)
 
@@ -144,15 +145,7 @@ const Reclamos: React.FC = () => {
           <div className="pt-6 border-t border-white/5 flex flex-col gap-5">
             <div>
               <label className="mb-1.5 block text-[10px] uppercase tracking-wider text-white/40">Estado</label>
-              <select
-                value={status}
-                onChange={(event) => setStatus(event.target.value)}
-                className="w-full rounded-lg bg-white/5 border border-white/5 px-3 py-2.5 text-sm text-white/80 outline-none focus:border-white/20 transition-colors appearance-none"
-              >
-                {statuses.map((item) => (
-                  <option key={item.value} value={item.value} className="bg-[#121212]">{item.label}</option>
-                ))}
-              </select>
+              <CustomDropdown value={status} placeholder="Seleccionar estado..." onChange={(val) => setStatus(val)} options={statuses} />
             </div>
             <div>
               <label className="mb-1.5 block text-[10px] uppercase tracking-wider text-white/40">Notas Internas</label>

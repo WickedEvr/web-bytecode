@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from 'react';
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 import { Plus, RefreshCw, Save, X } from 'lucide-react';
 =======
 import { Edit2, Plus, RefreshCw, Save, UserCheck, UserX, X } from 'lucide-react';
 >>>>>>> Stashed changes
+=======
+import { Edit2, MoreVertical, Plus, RefreshCw, Save, Trash2, UserCheck, UserX, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+>>>>>>> main
 import { apiRequest } from '../../lib/api';
 import AdminPanel from '../../components/admin/AdminPanel';
 import CustomDropdown from '../../components/ui/CustomDropdown';
@@ -28,7 +33,9 @@ const ROLES = [
 ];
 
 import AdminPanel from '../../components/admin/AdminPanel';
+import CustomDropdown from '../../components/ui/CustomDropdown';
 
+<<<<<<< HEAD
 // ... (skip to component)
 =======
 type RoleOption = {
@@ -47,13 +54,25 @@ const emptyForm = {
   isActive: true,
 };
 >>>>>>> Stashed changes
+=======
+type ActionMenuState = {
+  id: string;
+  top: number;
+  left: number;
+  placement: 'bottom' | 'top';
+};
+>>>>>>> main
 
 const Usuarios: React.FC = () => {
   const [users, setUsers] = useState<AdminUserRow[]>([]);
   const [roles, setRoles] = useState<RoleOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+<<<<<<< HEAD
 <<<<<<< Updated upstream
+=======
+  const [openMenu, setOpenMenu] = useState<ActionMenuState | null>(null);
+>>>>>>> main
   
   // Modal state
 =======
@@ -90,11 +109,53 @@ const Usuarios: React.FC = () => {
     void loadData();
   }, []);
 
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 =======
   const defaultRole = () => roles.find((role) => role.code !== 'super_admin')?.code ?? roles[0]?.code ?? '';
 
 >>>>>>> Stashed changes
+=======
+  useEffect(() => {
+    const handleClickOutside = () => setOpenMenu(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const handleViewportChange = () => setOpenMenu(null);
+    window.addEventListener('resize', handleViewportChange);
+    window.addEventListener('scroll', handleViewportChange, true);
+    return () => {
+      window.removeEventListener('resize', handleViewportChange);
+      window.removeEventListener('scroll', handleViewportChange, true);
+    };
+  }, []);
+
+  const handleToggleMenu = (event: React.MouseEvent<HTMLButtonElement>, userId: string) => {
+    event.stopPropagation();
+
+    if (openMenu?.id === userId) {
+      setOpenMenu(null);
+      return;
+    }
+
+    const menuWidth = 144;
+    const menuHeight = 88;
+    const gap = 8;
+    const viewportPadding = 8;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const hasSpaceBelow = rect.bottom + gap + menuHeight <= window.innerHeight - viewportPadding;
+
+    setOpenMenu({
+      id: userId,
+      left: Math.max(viewportPadding, rect.right - menuWidth),
+      top: hasSpaceBelow ? rect.bottom + gap : rect.top - menuHeight - gap,
+      placement: hasSpaceBelow ? 'bottom' : 'top',
+    });
+  };
+
+>>>>>>> main
   const handleOpenCreate = () => {
     setIsEditing(false);
     setFormData({ ...emptyForm, role: defaultRole() });
@@ -121,26 +182,32 @@ const Usuarios: React.FC = () => {
 
     try {
       if (isEditing) {
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 =======
+=======
+>>>>>>> main
         const updatePayload: Record<string, unknown> = {
           name: formData.name,
           role: formData.role,
           isActive: formData.isActive,
         };
 
+<<<<<<< HEAD
         if (formData.password.trim()) {
           updatePayload.password = formData.password;
         }
 
 >>>>>>> Stashed changes
+=======
+        if (formData.password && formData.password.trim() !== '') {
+          updatePayload.password = formData.password;
+        }
+
+>>>>>>> main
         await apiRequest(`/api/admin/users/${formData.id}`, {
           method: 'PATCH',
-          json: {
-            name: formData.name,
-            role: formData.role,
-            isActive: formData.isActive,
-          },
+          json: updatePayload,
         });
       } else {
         await apiRequest('/api/admin/users', {
@@ -189,6 +256,25 @@ const Usuarios: React.FC = () => {
     value ? new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : 'Nunca';
 >>>>>>> Stashed changes
 
+  const handleToggleStatus = async (user: AdminUserRow) => {
+    if (!window.confirm(`¿Estás seguro de que deseas ${user.is_active ? 'desactivar' : 'activar'} a ${user.name}?`)) return;
+
+    setLoading(true);
+    setError('');
+    try {
+      await apiRequest(`/api/admin/users/${user.id}`, {
+        method: 'PATCH',
+        json: { isActive: !user.is_active },
+      });
+      await loadUsers();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cambiar estado');
+    } finally {
+      setLoading(false);
+      setOpenMenu(null);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6 font-sansation">
       <div className="flex items-center justify-between gap-4 pb-4 border-b border-white/5">
@@ -216,6 +302,7 @@ const Usuarios: React.FC = () => {
               <tr>
                 <th className="px-6 py-4 font-medium">Nombre</th>
                 <th className="px-6 py-4 font-medium">Email</th>
+<<<<<<< HEAD
 <<<<<<< Updated upstream
                 <th className="px-6 py-4 font-medium">Rol</th>
                 <th className="px-6 py-4 font-medium">Estado</th>
@@ -227,12 +314,19 @@ const Usuarios: React.FC = () => {
                 <th className="px-6 py-4 text-center font-medium">Ultimo Login</th>
                 <th className="px-6 py-4 text-center font-medium">Acciones</th>
 >>>>>>> Stashed changes
+=======
+                <th className="px-6 py-4 text-center font-medium">Rol</th>
+                <th className="px-6 py-4 text-center font-medium">Estado</th>
+                <th className="px-6 py-4 text-center font-medium">Último Login</th>
+                <th className="px-6 py-4 font-medium text-center min-w-[140px]">Acciones</th>
+>>>>>>> main
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-white/80">
               {users.map((user) => (
                 <tr key={user.id} className="transition-colors hover:bg-white/[0.02]">
                   <td className="px-6 py-4 font-medium">{user.name}</td>
+<<<<<<< HEAD
 <<<<<<< Updated upstream
                   <td className="px-6 py-4 text-white/60">{user.email}</td>
                   <td className="px-6 py-4">
@@ -240,19 +334,28 @@ const Usuarios: React.FC = () => {
                   <td className="px-6 py-4 text-white/60 max-w-[220px] truncate" title={user.email}>{user.email}</td>
                   <td className="px-6 py-4 text-center">
 >>>>>>> Stashed changes
+=======
+                  <td className="px-6 py-4 text-white/60 max-w-[200px] truncate" title={user.email}>{user.email}</td>
+                  <td className="px-6 text-center py-4">
+>>>>>>> main
                     <span className="rounded bg-white/5 border border-white/5 px-2 py-0.5 text-[10px] text-white/70">
                       {roles.find((role) => role.code === user.role)?.name ?? user.role}
                     </span>
                   </td>
+<<<<<<< HEAD
 <<<<<<< Updated upstream
                   <td className="px-6 py-4">
 =======
                   <td className="px-6 py-4 text-center">
 >>>>>>> Stashed changes
+=======
+                  <td className="px-6 text-center py-4">
+>>>>>>> main
                     <span className={`rounded px-2 py-0.5 text-[10px] font-medium border ${user.is_active ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
                       {user.is_active ? 'Activo' : 'Inactivo'}
                     </span>
                   </td>
+<<<<<<< HEAD
 <<<<<<< Updated upstream
                   <td className="px-6 py-4 text-white/40 text-xs">{formatDate(user.last_login_at)}</td>
                   <td className="px-6 py-4 text-right">
@@ -285,6 +388,60 @@ const Usuarios: React.FC = () => {
                       </button>
                     </div>
 >>>>>>> Stashed changes
+=======
+                  <td className="px-6 text-center py-4 text-white/40 text-xs">{formatDate(user.last_login_at)}</td>
+                  <td className="px-6 py-4 text-center relative">
+                    <button
+                      type="button"
+                      onClick={(e) => handleToggleMenu(e, user.id)}
+                      className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+                      aria-label="Abrir acciones"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </button>
+                    <AnimatePresence>
+                      {openMenu?.id === user.id && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95, y: openMenu.placement === 'bottom' ? 6 : -6 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, y: openMenu.placement === 'bottom' ? 6 : -6 }}
+                          transition={{ duration: 0.15 }}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ left: openMenu.left, top: openMenu.top }}
+                          className={`fixed w-36 bg-[#121212] border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden ${
+                            openMenu.placement === 'bottom' ? 'origin-top-right' : 'origin-bottom-right'
+                          }`}
+                        >
+                          <div className="py-1 px-1 flex flex-col gap-1">
+                            <button
+                              onClick={() => { handleOpenEdit(user); setOpenMenu(null); }}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                            >
+                              <Edit2 className="h-4 w-4" /> Editar
+                            </button>
+                            <button
+                              onClick={() => handleToggleStatus(user)}
+                              className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${
+                                user.is_active
+                                  ? 'text-red-400 hover:text-red-300 hover:bg-red-400/10'
+                                  : 'text-green-400 hover:text-green-300 hover:bg-green-400/10'
+                              }`}
+                            >
+                              {user.is_active ? (
+                                <>
+                                  <UserX className="h-4 w-4" />
+                                  <Trash2 className="sr-only h-4 w-4" aria-hidden="true" />
+                                  Desactivar
+                                </>
+                              ) : (
+                                <><UserCheck className="h-4 w-4" /> Activar</>
+                              )}
+                            </button>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+>>>>>>> main
                   </td>
                 </tr>
               ))}
@@ -337,6 +494,7 @@ const Usuarios: React.FC = () => {
                 />
               </div>
 
+<<<<<<< HEAD
 <<<<<<< Updated upstream
               {!isEditing && (
                 <div>
@@ -351,20 +509,30 @@ const Usuarios: React.FC = () => {
                   />
                 </div>
               )}
+=======
+              <div>
+                <label className="mb-1.5 flex items-center justify-between text-xs font-medium text-white/60 uppercase tracking-wider">
+                  <span>{isEditing ? 'Nueva Contraseña' : 'Contraseña Temporal'}</span>
+                  {isEditing && <span className="text-[10px] text-white/40 normal-case">(Opcional)</span>}
+                </label>
+                <input
+                  type="password"
+                  required={!isEditing}
+                  minLength={8}
+                  placeholder={isEditing ? 'Dejar en blanco para mantener la actual' : ''}
+                  value={formData.password}
+                  onChange={e => setFormData({ ...formData, password: e.target.value })}
+                  className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors placeholder:text-white/20"
+                />
+              </div>
+>>>>>>> main
 
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-white/60 uppercase tracking-wider">Rol de Acceso</label>
-                <select
-                  value={formData.role}
-                  onChange={e => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors appearance-none"
-                >
-                  {ROLES.map(role => (
-                    <option key={role.value} value={role.value} className="bg-[#121212]">{role.label}</option>
-                  ))}
-                </select>
+                <CustomDropdown value={formData.role} placeholder="Seleccionar rol..." onChange={val => setFormData({ ...formData, role: val })} options={ROLES} />
               </div>
 
+<<<<<<< HEAD
               {isEditing && (
                 <label className="flex items-center gap-3 py-2 cursor-pointer mt-2">
                   <input
@@ -419,6 +587,9 @@ const Usuarios: React.FC = () => {
 
               <div className="flex gap-3 mt-1.5 pt-4 border-t border-white/5">
 >>>>>>> Stashed changes
+=======
+              <div className="flex gap-3 mt-1.5 pt-4 border-t border-white/5">
+>>>>>>> main
                 <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 rounded-lg border border-white/10 py-2.5 text-sm font-medium text-white/70 hover:bg-white/5 transition-colors">
                   Cancelar
                 </button>

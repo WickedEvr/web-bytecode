@@ -23,6 +23,8 @@ const Privacidad = lazy(() => import('./pages/Privacidad'));
 
 // Admin Pages
 const AdminLogin = lazy(() => import('./pages/admin/Login'));
+const AdminVerifyAccount = lazy(() => import('./pages/admin/VerifyAccount'));
+const AdminSetupPassword = lazy(() => import('./pages/admin/SetupPassword'));
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
 const AdminContactos = lazy(() => import('./pages/admin/Contactos'));
 const AdminReclamos = lazy(() => import('./pages/admin/Reclamos'));
@@ -76,6 +78,8 @@ const App: React.FC = () => {
 
           {/* 🔴 RUTAS ADMIN */}
           <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/verify-account" element={<AdminVerifyAccount />} />
+          <Route path="/admin/setup-password" element={<AdminSetupPassword />} />
           
           <Route
             path="/admin"

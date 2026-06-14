@@ -164,3 +164,25 @@ export function buildComplaintReceipt(complaintCode: string, payload: Record<str
   `;
   return masterLayout(content);
 }
+
+export function buildAdminVerification(name: string, verifyUrl: string): string {
+  const content = `
+    <h2 style="color: #ffffff; margin-top: 0; text-align: center;">Verificación de Cuenta Administrativa</h2>
+    <p>¡Hola <span class="highlight">${escapeHtml(name)}</span>!</p>
+    <p>Se ha creado una cuenta administrativa para ti en el panel de Bytecode. Para activar tu cuenta de forma segura y establecer tu contraseña, por favor haz clic en el siguiente botón:</p>
+
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="${escapeHtml(verifyUrl)}" class="button">Verificar mi cuenta</a>
+    </div>
+
+    <div class="card">
+      <h3 style="color: #ffffff; margin-top: 0; font-size: 14px;">¿Problemas con el botón?</h3>
+      <p style="font-size: 13px; color: #94a3b8; word-break: break-all;">Copia y pega este enlace en tu navegador:<br><br>
+        <span style="color: #06CFD6;">${escapeHtml(verifyUrl)}</span>
+      </p>
+    </div>
+
+    <p style="font-size: 12px; color: #64748b; text-align: center;">Si no has solicitado esta cuenta o crees que es un error, puedes ignorar este mensaje.</p>
+  `;
+  return masterLayout(content);
+}
