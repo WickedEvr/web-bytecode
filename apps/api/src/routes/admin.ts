@@ -12,7 +12,7 @@ import {
   type CloudinaryStoredAsset,
 } from '../lib/cloudinary.js';
 import { allowedUploadMimeTypeList, validateUpload } from '../lib/validateUpload.js';
-import { requireAdmin, requireRole } from '../middleware/auth.js';
+import { requireAdmin, requirePermission, requireSuperAdmin } from '../middleware/auth.js';
 import { requireCsrf } from '../middleware/csrf.js';
 import { audit } from '../services/audit.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -45,6 +45,230 @@ const optionalImageUpload = (req: Request, res: Response, next: NextFunction) =>
 
   next();
 };
+
+const roleCodeSchema = z.string().trim().min(2).max(80).regex(/^[a-z0-9_:.+-]+$/);
+
+const roleCreateSchema = z.object({
+  code: roleCodeSchema,
+  name: z.string().trim().min(2).max(120),
+  description: z.string().trim().max(1000).optional().nullable(),
+  permissionIds: z.array(z.string().uuid()).default([]),
+});
+
+const roleUpdateSchema = z.object({
+  name: z.string().trim().min(2).max(120).optional(),
+  description: z.string().trim().max(1000).optional().nullable(),
+  isActive: z.boolean().optional(),
+  permissionIds: z.array(z.string().uuid()).optional(),
+});
+
+const ensurePermissionsExist = async (client: PoolClient, permissionIds: string[]) => {
+  if (permissionIds.length === 0) return;
+  const result = await client.query('SELECT id FROM permissions WHERE id = ANY($1::uuid[]) AND deleted_at IS NULL', [permissionIds]);
+  if (result.rowCount !== new Set(permissionIds).size) {
+    throw new HttpError(400, 'Uno o mas permisos son invalidos.');
+  }
+};
+
+const replaceRolePermissions = async (client: PoolClient, roleId: string, permissionIds: string[], adminId?: string) => {
+  await ensurePermissionsExist(client, permissionIds);
+  await client.query('DELETE FROM role_permissions WHERE role_id = $1', [roleId]);
+
+  for (const permissionId of new Set(permissionIds)) {
+    await client.query(
+      `INSERT INTO role_permissions (role_id, permission_id, granted_by)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (role_id, permission_id) DO NOTHING`,
+      [roleId, permissionId, adminId ?? null],
+    );
+  }
+};
+
+router.get(
+  '/permissions',
+  requireSuperAdmin,
+  asyncHandler(async (_req: Request, res: Response) => {
+    const result = await pool.query(
+      `SELECT id, module_code, action_code, code, name, description
+       FROM permissions
+       WHERE deleted_at IS NULL
+       ORDER BY module_code ASC, action_code ASC, name ASC`,
+    );
+    res.json({ items: result.rows });
+  }),
+);
+
+router.get(
+  '/roles',
+  requireSuperAdmin,
+  asyncHandler(async (_req: Request, res: Response) => {
+    const result = await pool.query(
+      `
+      SELECT
+        r.id,
+        r.code,
+        r.name,
+        r.description,
+        r.is_system,
+        r.is_active,
+        r.created_at,
+        r.updated_at,
+        COALESCE(array_remove(array_agg(rp.permission_id), NULL), ARRAY[]::uuid[]) as permission_ids,
+        COALESCE(array_remove(array_agg(p.code), NULL), ARRAY[]::varchar[]) as permission_codes
+      FROM roles r
+      LEFT JOIN role_permissions rp ON rp.role_id = r.id
+      LEFT JOIN permissions p ON p.id = rp.permission_id AND p.deleted_at IS NULL
+      WHERE r.deleted_at IS NULL
+      GROUP BY r.id
+      ORDER BY r.is_system DESC, r.name ASC
+      `,
+    );
+    res.json({ items: result.rows });
+  }),
+);
+
+router.get(
+  '/roles/:id',
+  requireSuperAdmin,
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const result = await pool.query(
+      `
+      SELECT
+        r.id,
+        r.code,
+        r.name,
+        r.description,
+        r.is_system,
+        r.is_active,
+        r.created_at,
+        r.updated_at,
+        COALESCE(array_remove(array_agg(rp.permission_id), NULL), ARRAY[]::uuid[]) as permission_ids,
+        COALESCE(array_remove(array_agg(p.code), NULL), ARRAY[]::varchar[]) as permission_codes
+      FROM roles r
+      LEFT JOIN role_permissions rp ON rp.role_id = r.id
+      LEFT JOIN permissions p ON p.id = rp.permission_id AND p.deleted_at IS NULL
+      WHERE r.id = $1 AND r.deleted_at IS NULL
+      GROUP BY r.id
+      `,
+      [id],
+    );
+    if (result.rowCount === 0) throw new HttpError(404, 'Rol no encontrado.');
+    res.json({ item: result.rows[0] });
+  }),
+);
+
+router.post(
+  '/roles',
+  requireCsrf,
+  requireSuperAdmin,
+  asyncHandler(async (req: Request, res: Response) => {
+    const body = roleCreateSchema.parse(req.body);
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+      await ensurePermissionsExist(client, body.permissionIds);
+      const result = await client.query(
+        `INSERT INTO roles (code, name, description, is_system, created_by)
+         VALUES ($1, $2, $3, false, $4)
+         RETURNING id, code, name, description, is_system, is_active, created_at, updated_at`,
+        [body.code, body.name, body.description ?? null, req.admin?.id ?? null],
+      );
+
+      await replaceRolePermissions(client, result.rows[0].id, body.permissionIds, req.admin?.id);
+      await client.query('COMMIT');
+      await audit(req.admin?.id, 'create', 'role', result.rows[0].id);
+      res.status(201).json({ item: { ...result.rows[0], permission_ids: body.permissionIds } });
+    } catch (error: unknown) {
+      await client.query('ROLLBACK');
+      if (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505') {
+        throw new HttpError(409, 'El codigo del rol ya existe.');
+      }
+      throw error;
+    } finally {
+      client.release();
+    }
+  }),
+);
+
+router.put(
+  '/roles/:id',
+  requireCsrf,
+  requireSuperAdmin,
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const body = roleUpdateSchema.parse(req.body);
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+      const current = await client.query('SELECT id, code FROM roles WHERE id = $1 AND deleted_at IS NULL', [id]);
+      if (current.rowCount === 0) throw new HttpError(404, 'Rol no encontrado.');
+      if (current.rows[0].code === 'super_admin') {
+        throw new HttpError(403, 'No se puede modificar el rol super_admin.');
+      }
+
+      if (body.permissionIds) {
+        await replaceRolePermissions(client, id, body.permissionIds, req.admin?.id);
+      }
+
+      const descriptionValue = Object.prototype.hasOwnProperty.call(body, 'description') ? body.description ?? null : undefined;
+
+      const result = await client.query(
+        `UPDATE roles
+         SET name = COALESCE($2, name),
+             description = CASE WHEN $3::boolean THEN $4 ELSE description END,
+             is_active = COALESCE($5, is_active),
+             updated_by = $6,
+             updated_at = now()
+         WHERE id = $1
+         RETURNING id, code, name, description, is_system, is_active, created_at, updated_at`,
+        [
+          id,
+          body.name ?? null,
+          descriptionValue !== undefined,
+          descriptionValue ?? null,
+          body.isActive ?? null,
+          req.admin?.id ?? null,
+        ],
+      );
+
+      await client.query('COMMIT');
+      await audit(req.admin?.id, 'update', 'role', id);
+      res.json({ item: result.rows[0] });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }),
+);
+
+router.get(
+  '/menu',
+  asyncHandler(async (req: Request, res: Response) => {
+    const isSuperAdmin = req.admin?.roles.includes('super_admin') ?? false;
+    const result = await pool.query(
+      `
+      SELECT mi.id, mi.label, mi.url, mi.route_name, mi.icon_name, mi.sort_order, p.code as permission_code
+      FROM menu_items mi
+      LEFT JOIN permissions p ON p.id = mi.permission_id
+      WHERE mi.is_active = true
+        AND mi.deleted_at IS NULL
+        AND (
+          mi.permission_id IS NULL
+          OR $1::boolean = true
+          OR p.code = ANY($2::varchar[])
+        )
+      ORDER BY mi.sort_order ASC, mi.label ASC
+      `,
+      [isSuperAdmin, req.admin?.permissions ?? []],
+    );
+    res.json({ items: result.rows });
+  }),
+);
 
 const listQuerySchema = z.object({
   status: z.string().optional(),
@@ -174,7 +398,7 @@ const createBusinessCode = (prefix: string) => `${prefix}-${crypto.randomBytes(4
 
 router.get(
   '/stats',
-  requireRole(['admin', 'support_agent', 'legal_reviewer']),
+  requirePermission('admin.dashboard.view'),
   asyncHandler(async (_req: Request, res: Response) => {
     const [contactsStats, complaintsStats, recentContacts, recentComplaints, activeAdmins] = await Promise.all([
       pool.query('SELECT sc.code as status, count(*)::int AS total FROM contact_cases c JOIN status_catalog sc ON c.status_id = sc.id GROUP BY sc.code'),
@@ -196,7 +420,7 @@ router.get(
 
 router.get(
   '/contacts',
-  requireRole(['admin', 'support_agent']),
+  requirePermission('admin.contactos.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const query = listQuerySchema.parse(req.query);
     const normalized = await hasNormalizedContactSchema();
@@ -222,7 +446,7 @@ router.get(
 
 router.get(
   '/contacts/:id',
-  requireRole(['admin', 'support_agent']),
+  requirePermission('admin.contactos.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const normalized = await hasNormalizedContactSchema();
@@ -238,7 +462,7 @@ router.get(
 router.patch(
   '/contacts/:id',
   requireCsrf,
-  requireRole(['admin', 'support_agent']),
+  requirePermission('admin.contactos.manage'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const body = updateSchema.parse(req.body);
@@ -281,7 +505,7 @@ const assignSchema = z.object({
 router.post(
   '/contacts/:id/assign',
   requireCsrf,
-  requireRole(['admin', 'support_agent']),
+  requirePermission('admin.contactos.assign'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const body = assignSchema.parse(req.body);
@@ -329,7 +553,7 @@ router.post(
 
 router.get(
   '/contacts/:id/history',
-  requireRole(['admin', 'support_agent']),
+  requirePermission('admin.contactos.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const result = await pool.query(
@@ -347,7 +571,7 @@ router.get(
 
 router.get(
   '/complaints',
-  requireRole(['admin', 'support_agent', 'legal_reviewer']),
+  requirePermission('admin.reclamos.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const query = listQuerySchema.parse(req.query);
     const { whereSql, params } = buildWhere(query.status, query.search, [
@@ -380,7 +604,7 @@ router.get(
 
 router.get(
   '/complaints/:id',
-  requireRole(['admin', 'support_agent', 'legal_reviewer']),
+  requirePermission('admin.reclamos.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const result = await pool.query(
@@ -404,7 +628,7 @@ router.get(
 router.patch(
   '/complaints/:id',
   requireCsrf,
-  requireRole(['admin', 'support_agent', 'legal_reviewer']),
+  requirePermission('admin.reclamos.manage'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const body = updateSchema.parse(req.body);
@@ -449,7 +673,7 @@ router.patch(
 
 router.get(
   '/complaints/:id/attachment',
-  requireRole(['admin', 'support_agent', 'legal_reviewer']),
+  requirePermission('admin.reclamos.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const result = await pool.query(
@@ -487,13 +711,14 @@ const userCreateSchema = z.object({
 
 const userUpdateSchema = z.object({
   name: z.string().min(2).optional(),
+  password: z.string().min(8).optional(),
   role: z.string().optional(),
   isActive: z.boolean().optional(),
 });
 
 router.get(
   '/users',
-  requireRole(['admin']),
+  requireSuperAdmin,
   asyncHandler(async (req: Request, res: Response) => {
     try {
       const result = await pool.query(`
@@ -502,14 +727,14 @@ router.get(
           u.name, 
           u.email, 
           u.is_active,
-          (array_remove(array_agg(r.code), NULL))[1] as role,
+          COALESCE((array_remove(array_agg(r.code), NULL))[1], u.role) as role,
           array_remove(array_agg(r.code), NULL) as roles,
           u.created_at,
           u.last_login_at
         FROM admin_users u
         LEFT JOIN admin_user_roles aur ON u.id = aur.admin_user_id
         LEFT JOIN roles r ON aur.role_id = r.id
-        WHERE u.deleted_at IS NULL
+        WHERE u.deleted_at IS NULL AND u.is_active = true
         GROUP BY u.id
         ORDER BY u.name ASC
       `);
@@ -524,37 +749,27 @@ router.get(
 router.post(
   '/users',
   requireCsrf,
-  requireRole(['admin']),
+  requireSuperAdmin,
   asyncHandler(async (req: Request, res: Response) => {
     const body = userCreateSchema.parse(req.body);
     const passwordHash = await bcrypt.hash(body.password, 12);
-
     const client = await pool.connect();
+
     try {
       await client.query('BEGIN');
 
-      const roleResult = await client.query('SELECT id FROM roles WHERE code = $1', [body.role]);
+      const roleResult = await client.query('SELECT id FROM roles WHERE code = $1 AND is_active = true AND deleted_at IS NULL', [body.role]);
       if (roleResult.rowCount === 0) throw new HttpError(400, 'Rol inválido.');
       const roleId = roleResult.rows[0].id;
 
       const result = await client.query(
-        `INSERT INTO admin_users (email, name, password_hash, created_by)
-         VALUES ($1, $2, $3, $4) RETURNING id, email, name, is_active, created_at`,
-        [body.email.toLowerCase(), body.name, passwordHash, req.admin?.id]
+        `INSERT INTO admin_users (email, name, password_hash, role, created_by)
+         VALUES ($1, $2, $3, $4, $5) RETURNING id, email, name, is_active, created_at`,
+        [body.email.toLowerCase(), body.name, passwordHash, body.role, req.admin?.id]
       );
-      const newUserId = result.rows[0].id;
-
-      await client.query(
-        `INSERT INTO admin_user_roles (admin_user_id, role_id, assigned_by)
-         VALUES ($1, $2, $3)`,
-        [newUserId, roleId, req.admin?.id]
-      );
-
-      await client.query('COMMIT');
-      await audit(req.admin?.id, 'create', 'admin_user', newUserId);
-      res.status(201).json({ item: { ...result.rows[0], role: body.role } });
+      await audit(req.admin?.id, 'create', 'admin_user', result.rows[0].id);
+      res.status(201).json({ item: result.rows[0] });
     } catch (err: unknown) {
-      await client.query('ROLLBACK');
       if (typeof err === 'object' && err !== null && 'code' in err && err.code === '23505') {
         throw new HttpError(409, 'El correo ya está en uso.');
       }
@@ -568,17 +783,17 @@ router.post(
 router.patch(
   '/users/:id',
   requireCsrf,
-  requireRole(['admin']),
+  requireSuperAdmin,
   asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const body = userUpdateSchema.parse(req.body);
-
     const client = await pool.connect();
+
     try {
       await client.query('BEGIN');
 
       const currentUser = await client.query(`
-        SELECT u.id, u.is_active, (array_remove(array_agg(r.code), NULL))[1] as role
+        SELECT u.id, u.is_active, COALESCE((array_remove(array_agg(r.code), NULL))[1], u.role) as role
         FROM admin_users u
         LEFT JOIN admin_user_roles aur ON u.id = aur.admin_user_id
         LEFT JOIN roles r ON aur.role_id = r.id
@@ -596,7 +811,7 @@ router.patch(
       let updatedRole = currentRole;
 
       if (body.role && body.role !== currentRole) {
-        const roleResult = await client.query('SELECT id FROM roles WHERE code = $1', [body.role]);
+        const roleResult = await client.query('SELECT id FROM roles WHERE code = $1 AND is_active = true AND deleted_at IS NULL', [body.role]);
         if (roleResult.rowCount === 0) throw new HttpError(400, 'Rol inválido.');
         const roleId = roleResult.rows[0].id;
 
@@ -608,15 +823,19 @@ router.patch(
         updatedRole = body.role;
       }
 
+      const passwordHash = body.password ? await bcrypt.hash(body.password, 12) : null;
+
       const result = await client.query(
         `UPDATE admin_users 
           SET name = COALESCE($2, name), 
               is_active = COALESCE($3, is_active),
+              password_hash = COALESCE($5, password_hash),
+              role = COALESCE($6, role),
               updated_at = now(),
               updated_by = $4
           WHERE id = $1 
           RETURNING id, email, name, is_active, updated_at`,
-        [id, body.name ?? null, body.isActive ?? null, req.admin?.id]
+        [id, body.name ?? null, body.isActive ?? null, req.admin?.id, passwordHash, body.role ?? null]
       );
 
       await client.query('COMMIT');
@@ -634,17 +853,17 @@ router.patch(
 router.patch(
   '/users/:id/roles',
   requireCsrf,
-  requireRole(['admin']),
+  requireSuperAdmin,
   asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const { role } = z.object({ role: z.string() }).parse(req.body);
-
     const client = await pool.connect();
+    
     try {
       await client.query('BEGIN');
 
       const currentUser = await client.query(`
-        SELECT u.id, (array_remove(array_agg(r.code), NULL))[1] as role
+        SELECT u.id, COALESCE((array_remove(array_agg(r.code), NULL))[1], u.role) as role
         FROM admin_users u
         LEFT JOIN admin_user_roles aur ON u.id = aur.admin_user_id
         LEFT JOIN roles r ON aur.role_id = r.id
@@ -659,7 +878,7 @@ router.patch(
         throw new HttpError(403, 'No puedes modificar a un super administrador.');
       }
 
-      const roleResult = await client.query('SELECT id FROM roles WHERE code = $1', [role]);
+      const roleResult = await client.query('SELECT id FROM roles WHERE code = $1 AND is_active = true AND deleted_at IS NULL', [role]);
       if (roleResult.rowCount === 0) throw new HttpError(400, 'Rol inválido.');
       const roleId = roleResult.rows[0].id;
 
@@ -668,6 +887,7 @@ router.patch(
         `INSERT INTO admin_user_roles (admin_user_id, role_id, assigned_by) VALUES ($1, $2, $3)`,
         [id, roleId, req.admin?.id]
       );
+      await client.query('UPDATE admin_users SET role = $2, updated_at = now(), updated_by = $3 WHERE id = $1', [id, role, req.admin?.id]);
 
       await client.query('COMMIT');
       await audit(req.admin?.id, 'update_role', 'admin_user', id);
@@ -694,7 +914,7 @@ const settingsUpdateSchema = z.object({
 
 router.get(
   '/settings',
-  requireRole(['admin']),
+  requirePermission('admin.configuracion.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const result = await pool.query('SELECT setting_key, setting_value, description, is_sensitive FROM system_settings ORDER BY setting_key');
     const items = result.rows.map((row: any) => {
@@ -717,7 +937,7 @@ router.get(
 router.patch(
   '/settings',
   requireCsrf,
-  requireRole(['admin']),
+  requirePermission('admin.configuracion.manage'),
   asyncHandler(async (req: Request, res: Response) => {
     const { settings } = settingsUpdateSchema.parse(req.body);
 
@@ -762,7 +982,7 @@ router.patch(
 
 router.get(
   '/logs',
-  requireRole(['admin']),
+  requirePermission('admin.auditoria.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const query = listQuerySchema.parse(req.query);
     const result = await pool.query(
@@ -790,7 +1010,7 @@ const cmsPageUpdateSchema = z.object({
 
 router.get(
   '/cms/pages',
-  requireRole(['admin', 'partner_designer']),
+  requirePermission('admin.cms.view'),
   asyncHandler(async (_req: Request, res: Response) => {
     const result = await pool.query(
       'SELECT id, slug, title, meta_title, meta_description, is_published, created_at, updated_at FROM cms_pages ORDER BY slug'
@@ -802,7 +1022,7 @@ router.get(
 router.patch(
   '/cms/pages/:id',
   requireCsrf,
-  requireRole(['admin', 'partner_designer']),
+  requirePermission('admin.cms.manage'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const body = cmsPageUpdateSchema.parse(req.body);
@@ -979,7 +1199,7 @@ const replacePortfolioTechnologies = async (client: PoolClient, portfolioItemId:
 
 router.get(
   '/portfolio/technologies',
-  requireRole(['admin', 'partner_designer']),
+  requirePermission('admin.portafolio.view'),
   asyncHandler(async (_req: Request, res: Response) => {
     const result = await pool.query(
       `SELECT id, code, name, sort_order, is_active, created_at, updated_at
@@ -994,7 +1214,7 @@ router.get(
 router.post(
   '/portfolio/technologies',
   requireCsrf,
-  requireRole(['admin', 'partner_designer']),
+  requirePermission('admin.portafolio.manage'),
   asyncHandler(async (req: Request, res: Response) => {
     const body = technologyCreateSchema.parse(req.body);
     const code = normalizeTechnologyCode(body.name);
@@ -1022,7 +1242,7 @@ router.post(
 
 router.get(
   '/portfolio',
-  requireRole(['admin', 'partner_designer']),
+  requirePermission('admin.portafolio.view'),
   asyncHandler(async (_req: Request, res: Response) => {
     const result = await pool.query(`${selectPortfolioItemsSql} ${portfolioGroupOrderSql}`);
     res.json({ items: result.rows });
@@ -1032,7 +1252,7 @@ router.get(
 router.post(
   '/portfolio',
   requireCsrf,
-  requireRole(['admin', 'partner_designer']),
+  requirePermission('admin.portafolio.manage'),
   optionalImageUpload,
   asyncHandler(async (req: Request, res: Response) => {
     const body = portfolioItemSchema.parse(req.body);
@@ -1131,7 +1351,7 @@ router.post(
 router.patch(
   '/portfolio/:id',
   requireCsrf,
-  requireRole(['admin', 'partner_designer']),
+  requirePermission('admin.portafolio.manage'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const body = portfolioItemUpdateSchema.parse(req.body);
@@ -1193,7 +1413,7 @@ router.patch(
 router.delete(
   '/portfolio/:id',
   requireCsrf,
-  requireRole(['admin', 'partner_designer']),
+  requirePermission('admin.portafolio.manage'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const result = await pool.query(
@@ -1213,7 +1433,7 @@ router.delete(
 router.post(
   '/portfolio/:id/image',
   requireCsrf,
-  requireRole(['admin', 'partner_designer']),
+  requirePermission('admin.cotizador.view'),
   upload.single('image'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
@@ -1335,17 +1555,17 @@ const getPricingCatalogColumns = async () => {
 
 router.get(
   '/catalog/pricing',
-  requireRole(['admin', 'partner_designer']),
-  asyncHandler(async (req: Request, res: Response) => {
+  requirePermission('admin.cotizador.view'),
+  asyncHandler(async (_req: Request, res: Response) => {
     const columns = await getPricingCatalogColumns();
-    const itemTypeSql = columns.item_type ? 'pc.item_type' : 'NULL::varchar AS item_type';
-    const upgradesSql = columns.upgrades_to_category ? 'pc.upgrades_to_category' : 'NULL::varchar AS upgrades_to_category';
-    const draggableSql = columns.is_draggable ? 'pc.is_draggable' : 'NULL::boolean AS is_draggable';
-    const iconSql = columns.icon_name ? 'pc.icon_name' : 'NULL::varchar AS icon_name';
-    const freeIncludedSql = columns.free_included_quantity ? 'pc.free_included_quantity' : 'NULL::integer AS free_included_quantity';
-    const includedFeaturesSql = columns.included_features ? 'pc.included_features' : "'[]'::jsonb AS included_features";
+    const itemTypeSql = columns.item_type ? 'item_type' : 'NULL::varchar AS item_type';
+    const upgradesSql = columns.upgrades_to_category ? 'upgrades_to_category' : 'NULL::varchar AS upgrades_to_category';
+    const draggableSql = columns.is_draggable ? 'is_draggable' : 'NULL::boolean AS is_draggable';
+    const iconSql = columns.icon_name ? 'icon_name' : 'NULL::varchar AS icon_name';
+    const freeIncludedSql = columns.free_included_quantity ? 'free_included_quantity' : 'NULL::integer AS free_included_quantity';
+    const includedFeaturesSql = columns.included_features ? 'included_features' : "'[]'::jsonb AS included_features";
     const orderSql = columns.item_type
-      ? `CASE pc.item_type
+      ? `CASE item_type
           WHEN 'base_canvas' THEN 0
           WHEN 'base_included' THEN 1
           WHEN 'addon' THEN 2
@@ -1353,30 +1573,23 @@ router.get(
           WHEN 'recurring' THEN 4
           ELSE 5
         END`
-      : `CASE pc.item_code
+      : `CASE item_code
           WHEN 'landing_page' THEN 0
           WHEN 'web_corporate' THEN 1
           WHEN 'ecommerce' THEN 1
           WHEN 'chatbot_basic' THEN 2
           ELSE 3
         END`;
-        
-    const userRole = req.admin?.roles?.[0] || 'guest';
     const result = await pool.query(
       `
-      SELECT pc.id, pc.item_code, pc.name, pc.description, pc.pricing_model, 
-             COALESCE(pro.base_price, pc.base_price) AS base_price, 
-             COALESCE(pro.max_price, pc.max_price) AS max_price,
-             ${freeIncludedSql}, ${includedFeaturesSql}, pc.currency_code,
+      SELECT id, item_code, name, description, pricing_model, base_price, max_price,
+             ${freeIncludedSql}, ${includedFeaturesSql}, currency_code,
              ${itemTypeSql}, ${upgradesSql}, ${draggableSql}, ${iconSql},
-             COALESCE(pro.base_price, pc.base_price) AS unit_price
-      FROM pricing_catalog pc
-      LEFT JOIN pricing_role_overrides pro 
-        ON pc.id = pro.pricing_catalog_id AND pro.role_name = $1
-      WHERE pc.is_active = true AND pc.deleted_at IS NULL
-      ORDER BY ${orderSql}, pc.name ASC
+             base_price AS unit_price
+      FROM pricing_catalog
+      WHERE is_active = true AND deleted_at IS NULL
+      ORDER BY ${orderSql}, name ASC
       `,
-      [userRole]
     );
     res.json({ items: result.rows });
   })
@@ -1384,7 +1597,7 @@ router.get(
 
 router.get(
   '/quotations',
-  requireRole(['admin', 'partner_designer']),
+  requirePermission('admin.cotizador.view'),
   asyncHandler(async (_req: Request, res: Response) => {
     const result = await pool.query(
       `SELECT q.id, q.quote_code, q.total_amount, q.status, q.created_at, cu.first_name, cu.primary_email
@@ -1400,7 +1613,7 @@ router.get(
 
 router.get(
   '/quotations/:id',
-  requireRole(['admin', 'partner_designer']),
+  requirePermission('admin.cotizador.manage'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
     const quoteResult = await pool.query(
@@ -1451,7 +1664,7 @@ const createQuoteSchema = z.object({
 router.post(
   '/quotations',
   requireCsrf,
-  requireRole(['admin', 'partner_designer']),
+  requirePermission('admin.cotizador.manage'),
   asyncHandler(async (req: Request, res: Response) => {
     const body = createQuoteSchema.parse(req.body);
     
@@ -1496,7 +1709,7 @@ router.post(
         body.projectCategory ? `Categoria de proyecto: ${body.projectCategory}` : undefined,
         body.recurringMonthlyTotal ? `Recurrente mensual: ${body.recurringMonthlyTotal}` : undefined,
         body.recurringYearlyTotal ? `Recurrente anual: ${body.recurringYearlyTotal}` : undefined,
-        body.legalNotes?.length ? body.legalNotes.join('\n') : undefined,
+        body.legalNotes?.length ? body.legalNotes.join('') : undefined,
       ].filter(Boolean);
 
       let quoteId: string;
@@ -1509,7 +1722,7 @@ router.post(
                updated_at = now()
            WHERE id = $4 AND deleted_at IS NULL
            RETURNING id`,
-          [customerId, totalAmount, paymentPolicyParts.join('\n\n') || null, body.editingQuoteId],
+          [customerId, totalAmount, paymentPolicyParts.join('') || null, body.editingQuoteId],
         );
         if (!quoteRes.rowCount || quoteRes.rowCount === 0) throw new HttpError(404, 'Cotizacion no encontrada');
         quoteId = quoteRes.rows[0].id;
@@ -1518,7 +1731,7 @@ router.post(
         const quoteRes = await client.query(
           `INSERT INTO quotes (quote_code, customer_id, status, total_amount, valid_until, payment_policy, created_by)
            VALUES ($1, $2, 'draft', $3, current_date + interval '30 days', $4, $5) RETURNING id`,
-          [createBusinessCode('QT'), customerId, totalAmount, paymentPolicyParts.join('\n\n') || null, req.admin?.id]
+          [createBusinessCode('QT'), customerId, totalAmount, paymentPolicyParts.join('') || null, req.admin?.id]
         );
         quoteId = quoteRes.rows[0].id;
       }
@@ -1546,7 +1759,7 @@ router.post(
 router.delete(
   '/quotations/:id',
   requireCsrf,
-  requireRole(['admin', 'partner_designer']),
+  requirePermission('admin.cotizador.manage'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
     const result = await pool.query(

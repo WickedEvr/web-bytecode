@@ -10,6 +10,7 @@
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "db:migrate": "tsx src/db/migrate.ts",
     "admin:create": "tsx src/scripts/createAdmin.ts",
+    "permissions:seed": "tsx src/scripts/seedInitialPermissions.ts",
     "cloudinary:cleanup-orphans": "tsx src/scripts/cleanupCloudinaryOrphans.ts",
     "audit:smtp": "tsx scripts/audit-smtp.ts",
     "test:smtp": "tsx scripts/test-brevo.ts"

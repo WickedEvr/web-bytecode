@@ -1,30 +1,24 @@
 import React from 'react';
-import { Navigate, useOutletContext } from 'react-router-dom';
+import { useOutletContext } from 'react-router-dom';
 import type { AdminUser } from './AdminLayout';
 
 type RoleGuardProps = {
   children: React.ReactNode;
-  allowedRoles: string[];
+  requiredPermission: string;
 };
 
-const RoleGuard: React.FC<RoleGuardProps> = ({ children, allowedRoles }) => {
+const RoleGuard: React.FC<RoleGuardProps> = ({ children, requiredPermission }) => {
   const { admin } = useOutletContext<{ admin: AdminUser }>();
 
-  if (!admin) {
-    return null; // Should not happen since AdminLayout waits for admin
-  }
+  if (!admin) return null;
+  if (admin.roles?.includes('super_admin')) return <>{children}</>;
+  if (admin.permissions?.includes(requiredPermission)) return <>{children}</>;
 
-  const userRoles = admin.roles || [];
-
-  const isSuperAdmin = userRoles.includes('super_admin');
-
-  const hasAllowedRole = userRoles.some(role => allowedRoles.includes(role));
-
-  if (!isSuperAdmin && !hasAllowedRole) {
-    return <Navigate to="/admin/dashboard" replace />;
-  }
-
-  return <>{children}</>;
+  return (
+    <div className="rounded-lg border border-white/10 bg-white/[0.02] px-5 py-4 text-sm text-white/60">
+      No tienes permiso para acceder a esta vista.
+    </div>
+  );
 };
 
 export default RoleGuard;
