@@ -1555,7 +1555,7 @@ const getPricingCatalogColumns = async () => {
 router.get(
   '/catalog/pricing',
   requirePermission('admin.cotizador.view'),
-  asyncHandler(async (_req: Request, res: Response) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const columns = await getPricingCatalogColumns();
     const itemTypeSql = columns.item_type ? 'item_type' : 'NULL::varchar AS item_type';
     const upgradesSql = columns.upgrades_to_category ? 'upgrades_to_category' : 'NULL::varchar AS upgrades_to_category';
@@ -1579,6 +1579,7 @@ router.get(
           WHEN 'chatbot_basic' THEN 2
           ELSE 3
         END`;
+    const userRole = req.admin?.roles?.[0] || 'guest';
     const result = await pool.query(
       `
       SELECT pc.id, pc.item_code, pc.name, pc.description, pc.pricing_model, 
@@ -1593,6 +1594,7 @@ router.get(
       WHERE pc.is_active = true AND pc.deleted_at IS NULL
       ORDER BY ${orderSql}, pc.name ASC
       `,
+      [userRole],
     );
     res.json({ items: result.rows });
   })
