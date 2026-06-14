@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ImageUp, Plus, RefreshCw, Save, Trash2 } from 'lucide-react';
+import { ImageUp, Plus, RefreshCw, Save, Trash2, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import AdminPanel from '../../components/admin/AdminPanel';
 import { apiRequest, type AdminPortfolioItemData, type PortfolioTechnologyData } from '../../lib/api';
 
@@ -53,6 +54,7 @@ const normalizeWebsiteUrl = (value: string) => {
 };
 
 const AdminPortafolio: React.FC = () => {
+  const navigate = useNavigate();
   const [items, setItems] = useState<AdminPortfolioItemData[]>([]);
   const [technologies, setTechnologies] = useState<PortfolioTechnologyData[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -246,8 +248,13 @@ const AdminPortafolio: React.FC = () => {
     <div className="flex flex-col gap-6 font-sansation">
       <div className="flex flex-col gap-4 border-b border-white/5 pb-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-wide text-white/90">Portafolio</h1>
-          <p className="mt-1 text-xs uppercase tracking-widest text-white/40">Proyectos, imagenes y tecnologias del carrusel publico</p>
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate('/admin/cms')} className="flex items-center justify-center rounded-lg bg-white/5 border border-white/10 p-2 text-white/50 transition-colors hover:bg-white/10 hover:text-white" aria-label="Volver al CMS">
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <h1 className="text-2xl font-semibold tracking-wide text-white/90">Portafolio</h1>
+          </div>
+          <p className="mt-2 text-xs uppercase tracking-widest text-white/40">Proyectos, imagenes y tecnologias del carrusel publico</p>
         </div>
         <div className="flex gap-3">
           <button onClick={handleNew} className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white/80 transition hover:bg-white/10">

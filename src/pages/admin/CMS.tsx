@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Database, Globe, MoreVertical, RefreshCw, Save } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Database, Globe, MoreVertical, RefreshCw, Save, Edit2, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '../../lib/api';
 import AdminPanel from '../../components/admin/AdminPanel';
@@ -14,6 +15,13 @@ type CMSPage = {
   updated_at: string;
 };
 
+type ActionMenuState = {
+  id: string;
+  top: number;
+  left: number;
+  placement: 'bottom' | 'top';
+};
+
 const AdminCMS: React.FC = () => {
   const navigate = useNavigate();
   const [pages, setPages] = useState<CMSPage[]>([]);
@@ -21,7 +29,8 @@ const AdminCMS: React.FC = () => {
   const [error, setError] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<CMSPage>>({});
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [actionsMenu, setActionsMenu] = useState<ActionMenuState | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const loadPages = async () => {
     setLoading(true);
@@ -41,24 +50,35 @@ const AdminCMS: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const handleClickOutside = () => setOpenMenuId(null);
+    const handleClickOutside = () => setActionsMenu(null);
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
+  const handleOpenActions = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const placement = spaceBelow < 150 ? 'top' : 'bottom';
+    setActionsMenu({
+      id,
+      top: placement === 'bottom' ? rect.bottom + window.scrollY : rect.top + window.scrollY - 100,
+      left: rect.left + window.scrollX - 120,
+      placement,
+    });
+  };
+
   const handleEdit = (page: CMSPage) => {
     setEditingId(page.id);
     setFormData(page);
-    setOpenMenuId(null);
+    setIsModalOpen(true);
   };
 
   const handleModify = (page: CMSPage) => {
-    setOpenMenuId(null);
     if (page.slug === 'portafolio') {
       navigate('/admin/portafolio');
       return;
     }
-
     handleEdit(page);
   };
 
@@ -76,6 +96,7 @@ const AdminCMS: React.FC = () => {
           is_published: formData.is_published,
         },
       });
+      setIsModalOpen(false);
       setEditingId(null);
       await loadPages();
     } catch (err) {
@@ -103,10 +124,10 @@ const AdminCMS: React.FC = () => {
         </button>
       </div>
 
-      {error && <p className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-red-300 text-sm">{error}</p>}
+      {error && !isModalOpen && <p className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-red-300 text-sm">{error}</p>}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
-        <AdminPanel className="flex flex-col overflow-visible">
+      <div className="flex flex-col gap-6">
+        <AdminPanel className="flex flex-col overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm whitespace-nowrap">
               <thead className="bg-white/[0.02] text-white/50 text-xs uppercase tracking-wider">
@@ -122,7 +143,7 @@ const AdminCMS: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-white/5 text-white/80">
                 {pages.map((page) => (
-                  <tr key={page.id} className={`transition-colors hover:bg-white/[0.02] ${editingId === page.id ? 'bg-white/5' : ''}`}>
+                  <tr key={page.id} className="transition-colors hover:bg-white/[0.02]">
                     <td className="px-6 py-4 font-medium">{page.title}</td>
                     <td className="px-6 py-4 font-mono text-xs text-white/50">/{page.slug}</td>
                     <td className="px-6 py-4 max-w-[220px] truncate text-white/60" title={page.meta_title ?? ''}>{page.meta_title || '-'}</td>
@@ -134,34 +155,9 @@ const AdminCMS: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 text-white/40 text-xs">{formatDate(page.updated_at)}</td>
                     <td className="px-6 py-4 text-right">
-                      <div className="relative inline-flex">
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setOpenMenuId((current) => (current === page.id ? null : page.id));
-                          }}
-                          className="rounded-lg p-2 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
-                          aria-label="Abrir acciones"
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </button>
-
-                        {openMenuId === page.id && (
-                          <div
-                            onClick={(event) => event.stopPropagation()}
-                            className="absolute right-0 top-full z-30 mt-2 w-36 rounded-xl border border-white/10 bg-[#121212] p-1 shadow-xl"
-                          >
-                            <button
-                              type="button"
-                              onClick={() => handleModify(page)}
-                              className="w-full rounded-lg px-3 py-2 text-left text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-                            >
-                              {page.slug === 'portafolio' ? 'Modificar' : 'Editar'}
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                      <button onClick={(e) => handleOpenActions(e, page.id)} className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors">
+                        <MoreVertical className="h-4 w-4" />
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -172,74 +168,83 @@ const AdminCMS: React.FC = () => {
             </table>
           </div>
         </AdminPanel>
+      </div>
 
-        <AdminPanel className="p-6 flex flex-col">
-          {!editingId ? (
-            <div className="flex h-full flex-col items-center justify-center text-center text-white/30">
-              <Database className="mb-4 h-8 w-8 opacity-50" />
-              <p className="text-sm">Selecciona una pagina para editar.</p>
+      <AnimatePresence>
+        {actionsMenu && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: actionsMenu.placement === 'top' ? 10 : -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: actionsMenu.placement === 'top' ? 10 : -10 }}
+            transition={{ duration: 0.15 }}
+            style={{ position: 'absolute', top: actionsMenu.top, left: actionsMenu.left }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-40 bg-[#121212] border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden"
+          >
+            <div className="py-1 px-1 flex flex-col gap-1">
+              <button
+                onClick={() => {
+                  const page = pages.find(p => p.id === actionsMenu.id);
+                  if (page) handleModify(page);
+                  setActionsMenu(null);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <Edit2 className="h-4 w-4" /> {pages.find(p => p.id === actionsMenu.id)?.slug === 'portafolio' ? 'Modificar' : 'Editar'}
+              </button>
             </div>
-          ) : (
-            <div className="flex flex-col gap-5">
-              <h2 className="text-lg font-semibold border-b border-white/5 pb-4 text-white/90">
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl bg-[#0a0a0a] border border-white/10 p-6 md:p-8 shadow-2xl">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/5">
+              <h2 className="text-lg font-semibold text-white/90">
                 Editar pagina: <span className="font-mono text-white/50 text-sm">/{formData.slug}</span>
               </h2>
+              <button onClick={() => setIsModalOpen(false)} className="rounded-lg p-2 text-white/40 hover:text-white hover:bg-white/5 transition-colors">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
 
+            {error && isModalOpen && (
+              <p className="mb-6 rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300">
+                {error}
+              </p>
+            )}
+
+            <div className="flex flex-col gap-5">
               <div>
                 <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">Titulo principal</label>
-                <input
-                  type="text"
-                  value={formData.title || ''}
-                  onChange={(event) => setFormData({ ...formData, title: event.target.value })}
-                  className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors"
-                />
+                <input type="text" value={formData.title || ''} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors" />
               </div>
-
               <div>
                 <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">SEO: Meta titulo</label>
-                <input
-                  type="text"
-                  value={formData.meta_title || ''}
-                  onChange={(event) => setFormData({ ...formData, meta_title: event.target.value })}
-                  className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors"
-                />
+                <input type="text" value={formData.meta_title || ''} onChange={(e) => setFormData({ ...formData, meta_title: e.target.value })} className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors" />
               </div>
-
               <div>
                 <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">SEO: Meta descripcion</label>
-                <textarea
-                  rows={3}
-                  value={formData.meta_description || ''}
-                  onChange={(event) => setFormData({ ...formData, meta_description: event.target.value })}
-                  className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors custom-scrollbar resize-none"
-                />
+                <textarea rows={3} value={formData.meta_description || ''} onChange={(e) => setFormData({ ...formData, meta_description: e.target.value })} className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors custom-scrollbar resize-none" />
               </div>
-
               <label className="flex items-center gap-3 py-2 cursor-pointer mt-2">
-                <input
-                  type="checkbox"
-                  checked={formData.is_published || false}
-                  onChange={(event) => setFormData({ ...formData, is_published: event.target.checked })}
-                  className="h-4 w-4 rounded border-white/20 bg-white/5 text-white focus:ring-white/20 focus:ring-offset-black"
-                />
+                <input type="checkbox" checked={formData.is_published || false} onChange={(e) => setFormData({ ...formData, is_published: e.target.checked })} className="h-4 w-4 rounded border-white/20 bg-white/5 text-white focus:ring-white/20 focus:ring-offset-black" />
                 <div>
                   <span className="block text-sm font-medium text-white/80">Pagina publicada</span>
                   <span className="text-[10px] text-white/40">Si se desactiva, devolvera error 404.</span>
                 </div>
               </label>
-
               <div className="mt-4 flex gap-3 pt-4 border-t border-white/5">
-                <button onClick={() => setEditingId(null)} className="flex-1 rounded-lg border border-white/10 py-2.5 text-sm font-medium text-white/70 hover:bg-white/5 transition-colors">
-                  Cancelar
-                </button>
+                <button onClick={() => setIsModalOpen(false)} className="flex-1 rounded-lg border border-white/10 py-2.5 text-sm font-medium text-white/70 hover:bg-white/5 transition-colors">Cancelar</button>
                 <button onClick={handleSave} disabled={loading} className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-white text-black py-2.5 text-sm font-medium transition-colors hover:bg-white/90 disabled:opacity-50">
-                  <Save className="h-4 w-4" /> Guardar
+                  <Save className="h-4 w-4" /> {loading ? 'Guardando...' : 'Guardar'}
                 </button>
               </div>
             </div>
-          )}
-        </AdminPanel>
-      </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
