@@ -8,8 +8,12 @@ const buildUrl = (path: string) => `${API_BASE_URL}${path}`;
 
 let cachedCsrfToken: string | null = null;
 
-export const initCsrf = async (): Promise<string | null> => {
-  if (cachedCsrfToken) return cachedCsrfToken;
+export const resetCsrfToken = () => {
+  cachedCsrfToken = null;
+};
+
+export const initCsrf = async (force = false): Promise<string | null> => {
+  if (cachedCsrfToken && !force) return cachedCsrfToken;
   try {
     const res = await fetch(`${API_BASE_URL}/api/auth/csrf`, { credentials: 'include' });
     if (res.ok) {
@@ -35,6 +39,10 @@ export class ApiError extends Error {
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  return apiRequestInternal<T>(path, options, true);
+}
+
+async function apiRequestInternal<T>(path: string, options: RequestOptions = {}, retryOnCsrf = true): Promise<T> {
   const headers = new Headers(options.headers);
   let body = options.body;
   const method = (options.method ?? 'GET').toUpperCase();
@@ -63,10 +71,34 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   if (!response.ok) {
     const payload = await response.json().catch(() => null);
+    const message = payload?.message ?? '';
+    const isCsrfError = response.status === 403 && typeof message === 'string' && message.toLowerCase().includes('csrf');
+
+    if (isMutation && retryOnCsrf && isCsrfError) {
+      resetCsrfToken();
+      const csrfToken = await initCsrf(true);
+      if (csrfToken) {
+        const retryHeaders = new Headers(options.headers);
+        retryHeaders.set('Accept', 'application/json');
+        retryHeaders.set('x-csrf-token', csrfToken);
+        if (options.json !== undefined) {
+          retryHeaders.set('Content-Type', 'application/json');
+        }
+
+        return apiRequestInternal<T>(path, { ...options, headers: retryHeaders }, false);
+      }
+    }
+
     throw new ApiError(payload?.message ?? 'No se pudo completar la solicitud.', payload?.code, payload);
   }
 
-  return response.json() as Promise<T>;
+  const result = await response.json() as T;
+
+  if (path === '/api/auth/login' || path === '/api/auth/logout') {
+    resetCsrfToken();
+  }
+
+  return result;
 }
 
 export const apiUrl = buildUrl;
