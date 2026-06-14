@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Edit2, Plus, RefreshCw, Save, UserCheck, UserX, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Edit2, Plus, RefreshCw, Save, UserCheck, UserX, X, MoreVertical } from 'lucide-react';
 import { apiRequest } from '../../lib/api';
 import AdminPanel from '../../components/admin/AdminPanel';
 import CustomDropdown from '../../components/ui/CustomDropdown';
@@ -21,6 +22,13 @@ type RoleOption = {
   is_active: boolean;
 };
 
+type ActionMenuState = {
+  id: string;
+  top: number;
+  left: number;
+  placement: 'bottom' | 'top';
+};
+
 const emptyForm = {
   id: '',
   email: '',
@@ -38,6 +46,7 @@ const Usuarios: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState(emptyForm);
+  const [actionsMenu, setActionsMenu] = useState<ActionMenuState | null>(null);
 
   const roleOptions = roles.map((role) => ({ value: role.code, label: role.name }));
 
@@ -65,6 +74,12 @@ const Usuarios: React.FC = () => {
 
   useEffect(() => {
     void loadData();
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = () => setActionsMenu(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
   const defaultRole = () => roles.find((role) => role.code !== 'super_admin')?.code ?? roles[0]?.code ?? '';
@@ -148,6 +163,19 @@ const Usuarios: React.FC = () => {
     }
   };
 
+  const handleOpenActions = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const placement = spaceBelow < 150 ? 'top' : 'bottom';
+    setActionsMenu({
+      id,
+      top: placement === 'bottom' ? rect.bottom + window.scrollY : rect.top + window.scrollY - 100,
+      left: rect.left + window.scrollX - 120,
+      placement,
+    });
+  };
+
   const formatDate = (value: string | null) =>
     value ? new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : 'Nunca';
 
@@ -200,29 +228,10 @@ const Usuarios: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-center text-white/40 text-xs">{formatDate(user.last_login_at)}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex justify-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEdit(user)}
-                        className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/60 transition-colors hover:bg-white/10 hover:text-white"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                        Editar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleToggleStatus(user)}
-                        className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
-                          user.is_active
-                            ? 'text-red-400 hover:bg-red-400/10 hover:text-red-300'
-                            : 'text-green-400 hover:bg-green-400/10 hover:text-green-300'
-                        }`}
-                      >
-                        {user.is_active ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
-                        {user.is_active ? 'Desactivar' : 'Activar'}
-                      </button>
-                    </div>
+                  <td className="px-6 py-4 text-center">
+                    <button onClick={(e) => handleOpenActions(e, user.id)} className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors">
+                      <MoreVertical className="h-4 w-4" />
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -233,6 +242,51 @@ const Usuarios: React.FC = () => {
           </table>
         </div>
       </AdminPanel>
+
+      <AnimatePresence>
+        {actionsMenu && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: actionsMenu.placement === 'top' ? 10 : -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: actionsMenu.placement === 'top' ? 10 : -10 }}
+            transition={{ duration: 0.15 }}
+            style={{ position: 'absolute', top: actionsMenu.top, left: actionsMenu.left }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-40 bg-[#121212] border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden"
+          >
+            <div className="py-1 px-1 flex flex-col gap-1">
+              <button
+                onClick={() => {
+                  const user = users.find(u => u.id === actionsMenu.id);
+                  if (user) handleOpenEdit(user);
+                  setActionsMenu(null);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <Edit2 className="h-4 w-4" /> Editar
+              </button>
+              <button
+                onClick={() => {
+                  const user = users.find(u => u.id === actionsMenu.id);
+                  if (user) handleToggleStatus(user);
+                  setActionsMenu(null);
+                }}
+                className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${
+                  users.find(u => u.id === actionsMenu.id)?.is_active 
+                    ? 'text-red-400 hover:text-red-300 hover:bg-red-400/10' 
+                    : 'text-green-400 hover:text-green-300 hover:bg-green-400/10'
+                }`}
+              >
+                {users.find(u => u.id === actionsMenu.id)?.is_active ? (
+                  <><UserX className="h-4 w-4" /> Desactivar</>
+                ) : (
+                  <><UserCheck className="h-4 w-4" /> Activar</>
+                )}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">

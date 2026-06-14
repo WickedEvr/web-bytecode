@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Edit2, Plus, RefreshCw, Save, ShieldCheck, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Edit2, Plus, RefreshCw, Save, ShieldCheck, X, MoreVertical } from 'lucide-react';
 import { apiRequest } from '../../lib/api';
 import AdminPanel from '../../components/admin/AdminPanel';
 
@@ -21,6 +22,13 @@ type Role = {
   is_active: boolean;
   permission_ids: string[];
   permission_codes: string[];
+};
+
+type ActionMenuState = {
+  id: string;
+  top: number;
+  left: number;
+  placement: 'bottom' | 'top';
 };
 
 const emptyForm = {
@@ -50,6 +58,7 @@ const Roles: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState(emptyForm);
+  const [actionsMenu, setActionsMenu] = useState<ActionMenuState | null>(null);
 
   const permissionsByModule = useMemo(() => {
     return permissions.reduce<Record<string, Permission[]>>((acc, permission) => {
@@ -78,6 +87,12 @@ const Roles: React.FC = () => {
 
   useEffect(() => {
     void loadData();
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = () => setActionsMenu(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
   const handleOpenCreate = () => {
@@ -145,6 +160,19 @@ const Roles: React.FC = () => {
     }
   };
 
+  const handleOpenActions = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const placement = spaceBelow < 150 ? 'top' : 'bottom';
+    setActionsMenu({
+      id,
+      top: placement === 'bottom' ? rect.bottom + window.scrollY : rect.top + window.scrollY - 100,
+      left: rect.left + window.scrollX - 120,
+      placement,
+    });
+  };
+
   return (
     <div className="flex flex-col gap-6 font-sansation">
       <div className="flex items-center justify-between gap-4 pb-4 border-b border-white/5">
@@ -198,14 +226,8 @@ const Roles: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <button
-                      type="button"
-                      disabled={role.code === 'super_admin'}
-                      onClick={() => handleOpenEdit(role)}
-                      className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/60 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                      Editar
+                    <button disabled={role.code === 'super_admin'} onClick={(e) => handleOpenActions(e, role.id)} className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent">
+                      <MoreVertical className="h-4 w-4" />
                     </button>
                   </td>
                 </tr>
@@ -217,6 +239,33 @@ const Roles: React.FC = () => {
           </table>
         </div>
       </AdminPanel>
+
+      <AnimatePresence>
+        {actionsMenu && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: actionsMenu.placement === 'top' ? 10 : -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: actionsMenu.placement === 'top' ? 10 : -10 }}
+            transition={{ duration: 0.15 }}
+            style={{ position: 'absolute', top: actionsMenu.top, left: actionsMenu.left }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-36 bg-[#121212] border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden"
+          >
+            <div className="py-1 px-1 flex flex-col gap-1">
+              <button
+                onClick={() => {
+                  const role = roles.find(r => r.id === actionsMenu.id);
+                  if (role) handleOpenEdit(role);
+                  setActionsMenu(null);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <Edit2 className="h-4 w-4" /> Editar
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
