@@ -23,7 +23,7 @@ import AdminPanel from '../../components/admin/AdminPanel';
 
 // ... (skip to component)
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 9;
 
 const Auditoria: React.FC = () => {
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -113,7 +113,7 @@ const Auditoria: React.FC = () => {
                 <th className="px-6 py-4 font-medium">ID Entidad</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5 text-white/80">
+            <tbody className={`divide-y divide-white/5 text-white/80 transition-opacity ${loading ? 'opacity-60' : 'opacity-100'}`}>
               {logs.map(log => (
                 <tr key={log.id} className="transition-colors hover:bg-white/[0.02]">
                   <td className="px-6 py-4 text-white/50 text-xs">{formatDate(log.created_at)}</td>
@@ -138,9 +138,6 @@ const Auditoria: React.FC = () => {
               ))}
               {logs.length === 0 && !loading && (
                 <tr><td colSpan={5} className="px-6 py-10 text-center text-white/30 text-sm">No hay registros de auditoría.</td></tr>
-              )}
-              {loading && (
-                <tr><td colSpan={5} className="px-6 py-10 text-center text-white/30 text-sm">Cargando registros...</td></tr>
               )}
             </tbody>
           </table>
