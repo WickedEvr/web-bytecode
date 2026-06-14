@@ -1581,13 +1581,17 @@ router.get(
         END`;
     const result = await pool.query(
       `
-      SELECT id, item_code, name, description, pricing_model, base_price, max_price,
-             ${freeIncludedSql}, ${includedFeaturesSql}, currency_code,
+      SELECT pc.id, pc.item_code, pc.name, pc.description, pc.pricing_model, 
+             CASE WHEN pro.id IS NOT NULL THEN pro.base_price ELSE pc.base_price END AS base_price, 
+             CASE WHEN pro.id IS NOT NULL THEN pro.max_price ELSE pc.max_price END AS max_price,
+             ${freeIncludedSql}, ${includedFeaturesSql}, pc.currency_code,
              ${itemTypeSql}, ${upgradesSql}, ${draggableSql}, ${iconSql},
-             base_price AS unit_price
-      FROM pricing_catalog
-      WHERE is_active = true AND deleted_at IS NULL
-      ORDER BY ${orderSql}, name ASC
+             CASE WHEN pro.id IS NOT NULL THEN pro.base_price ELSE pc.base_price END AS unit_price
+      FROM pricing_catalog pc
+      LEFT JOIN pricing_role_overrides pro 
+        ON pc.id = pro.pricing_catalog_id AND pro.role_name = $1
+      WHERE pc.is_active = true AND pc.deleted_at IS NULL
+      ORDER BY ${orderSql}, pc.name ASC
       `,
     );
     res.json({ items: result.rows });

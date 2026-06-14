@@ -152,8 +152,8 @@ router.get('/catalog/pricing', asyncHandler(async (req: Request, res: Response) 
   const userRole = (req as any).admin?.roles?.[0] || (req as any).user?.role || 'guest';
   const result = await pool.query(
     `SELECT pc.id, pc.item_code, pc.name, pc.description, pc.pricing_model, 
-            COALESCE(pro.base_price, pc.base_price) AS base_price, 
-            COALESCE(pro.max_price, pc.max_price) AS max_price 
+            CASE WHEN pro.id IS NOT NULL THEN pro.base_price ELSE pc.base_price END AS base_price, 
+            CASE WHEN pro.id IS NOT NULL THEN pro.max_price ELSE pc.max_price END AS max_price 
      FROM pricing_catalog pc
      LEFT JOIN pricing_role_overrides pro 
        ON pc.id = pro.pricing_catalog_id AND pro.role_name = $1

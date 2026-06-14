@@ -19,7 +19,7 @@ test('admin detail queries do not expose internal attachment paths through SELEC
 test('quote queries use the enterprise schema column names', async () => {
   const source = await readFile(adminRoutePath, 'utf8');
 
-  assert.match(source, /base_price AS unit_price/);
+  assert.match(source, /END AS unit_price/);
   assert.match(source, /pricing_catalog_id/);
   assert.doesNotMatch(source, /q\.status_id/);
   assert.doesNotMatch(source, /INSERT INTO quote_items \(quote_id, catalog_item_id/);
