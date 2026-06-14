@@ -1007,12 +1007,43 @@ const cmsPageUpdateSchema = z.object({
   is_published: z.boolean().optional(),
 });
 
+type Queryable = Pick<PoolClient, 'query'>;
+
+const getCmsStatusId = async (client: Queryable, code: 'draft' | 'published') => {
+  const result = await client.query(
+    "SELECT id FROM status_catalog WHERE domain = 'cms' AND code = $1 AND is_active = true LIMIT 1",
+    [code],
+  );
+
+  if (result.rowCount === 0) {
+    throw new HttpError(500, `Estado CMS ${code} no configurado.`);
+  }
+
+  return result.rows[0].id as string;
+};
+
+const cmsPageSelectSql = `
+  SELECT
+    cp.id,
+    cp.slug,
+    cp.title,
+    cp.meta_title,
+    cp.meta_description,
+    COALESCE(sc.code = 'published', cp.published_at IS NOT NULL) AS is_published,
+    cp.created_at,
+    cp.updated_at
+  FROM cms_pages cp
+  LEFT JOIN status_catalog sc ON sc.id = cp.status_id
+  WHERE cp.deleted_at IS NULL
+`;
+
 router.get(
   '/cms/pages',
   requirePermission('admin.cms.view'),
   asyncHandler(async (_req: Request, res: Response) => {
     const result = await pool.query(
-      'SELECT id, slug, title, meta_title, meta_description, is_published, created_at, updated_at FROM cms_pages ORDER BY slug'
+      `${cmsPageSelectSql}
+       ORDER BY cp.slug`
     );
     res.json({ items: result.rows });
   })
@@ -1025,17 +1056,36 @@ router.patch(
   asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const body = cmsPageUpdateSchema.parse(req.body);
+    const publishedStatusId =
+      body.is_published === undefined
+        ? null
+        : await getCmsStatusId(pool, body.is_published ? 'published' : 'draft');
 
     const result = await pool.query(
       `UPDATE cms_pages
        SET title = COALESCE($2, title),
            meta_title = COALESCE($3, meta_title),
            meta_description = COALESCE($4, meta_description),
-           is_published = COALESCE($5, is_published),
+           status_id = COALESCE($5, status_id),
+           published_at = CASE
+             WHEN $6::boolean = true THEN COALESCE(published_at, now())
+             WHEN $6::boolean = false THEN NULL
+             ELSE published_at
+           END,
            updated_at = now()
        WHERE id = $1
-       RETURNING id, slug, title, meta_title, meta_description, is_published, updated_at`,
-      [id, body.title ?? null, body.meta_title ?? null, body.meta_description ?? null, body.is_published ?? null]
+       RETURNING
+         id,
+         slug,
+         title,
+         meta_title,
+         meta_description,
+         COALESCE(
+           (SELECT sc.code = 'published' FROM status_catalog sc WHERE sc.id = cms_pages.status_id),
+           cms_pages.published_at IS NOT NULL
+         ) AS is_published,
+         updated_at`,
+      [id, body.title ?? null, body.meta_title ?? null, body.meta_description ?? null, publishedStatusId, body.is_published ?? null]
     );
 
     if (result.rowCount === 0) throw new HttpError(404, 'Página no encontrada.');
