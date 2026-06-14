@@ -1336,16 +1336,16 @@ const getPricingCatalogColumns = async () => {
 router.get(
   '/catalog/pricing',
   requireRole(['admin', 'partner_designer']),
-  asyncHandler(async (_req: Request, res: Response) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const columns = await getPricingCatalogColumns();
-    const itemTypeSql = columns.item_type ? 'item_type' : 'NULL::varchar AS item_type';
-    const upgradesSql = columns.upgrades_to_category ? 'upgrades_to_category' : 'NULL::varchar AS upgrades_to_category';
-    const draggableSql = columns.is_draggable ? 'is_draggable' : 'NULL::boolean AS is_draggable';
-    const iconSql = columns.icon_name ? 'icon_name' : 'NULL::varchar AS icon_name';
-    const freeIncludedSql = columns.free_included_quantity ? 'free_included_quantity' : 'NULL::integer AS free_included_quantity';
-    const includedFeaturesSql = columns.included_features ? 'included_features' : "'[]'::jsonb AS included_features";
+    const itemTypeSql = columns.item_type ? 'pc.item_type' : 'NULL::varchar AS item_type';
+    const upgradesSql = columns.upgrades_to_category ? 'pc.upgrades_to_category' : 'NULL::varchar AS upgrades_to_category';
+    const draggableSql = columns.is_draggable ? 'pc.is_draggable' : 'NULL::boolean AS is_draggable';
+    const iconSql = columns.icon_name ? 'pc.icon_name' : 'NULL::varchar AS icon_name';
+    const freeIncludedSql = columns.free_included_quantity ? 'pc.free_included_quantity' : 'NULL::integer AS free_included_quantity';
+    const includedFeaturesSql = columns.included_features ? 'pc.included_features' : "'[]'::jsonb AS included_features";
     const orderSql = columns.item_type
-      ? `CASE item_type
+      ? `CASE pc.item_type
           WHEN 'base_canvas' THEN 0
           WHEN 'base_included' THEN 1
           WHEN 'addon' THEN 2
@@ -1353,23 +1353,30 @@ router.get(
           WHEN 'recurring' THEN 4
           ELSE 5
         END`
-      : `CASE item_code
+      : `CASE pc.item_code
           WHEN 'landing_page' THEN 0
           WHEN 'web_corporate' THEN 1
           WHEN 'ecommerce' THEN 1
           WHEN 'chatbot_basic' THEN 2
           ELSE 3
         END`;
+        
+    const userRole = req.admin?.roles?.[0] || 'guest';
     const result = await pool.query(
       `
-      SELECT id, item_code, name, description, pricing_model, base_price, max_price,
-             ${freeIncludedSql}, ${includedFeaturesSql}, currency_code,
+      SELECT pc.id, pc.item_code, pc.name, pc.description, pc.pricing_model, 
+             COALESCE(pro.base_price, pc.base_price) AS base_price, 
+             COALESCE(pro.max_price, pc.max_price) AS max_price,
+             ${freeIncludedSql}, ${includedFeaturesSql}, pc.currency_code,
              ${itemTypeSql}, ${upgradesSql}, ${draggableSql}, ${iconSql},
-             base_price AS unit_price
-      FROM pricing_catalog
-      WHERE is_active = true AND deleted_at IS NULL
-      ORDER BY ${orderSql}, name ASC
+             COALESCE(pro.base_price, pc.base_price) AS unit_price
+      FROM pricing_catalog pc
+      LEFT JOIN pricing_role_overrides pro 
+        ON pc.id = pro.pricing_catalog_id AND pro.role_name = $1
+      WHERE pc.is_active = true AND pc.deleted_at IS NULL
+      ORDER BY ${orderSql}, pc.name ASC
       `,
+      [userRole]
     );
     res.json({ items: result.rows });
   })

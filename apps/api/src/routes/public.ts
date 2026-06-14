@@ -148,8 +148,19 @@ router.get('/catalog/statuses', asyncHandler(async (req: Request, res: Response)
   res.json({ items: result.rows });
 }));
 
-router.get('/catalog/pricing', asyncHandler(async (_req: Request, res: Response) => {
-  const result = await pool.query('SELECT id, item_code, name, description, pricing_model, base_price, max_price FROM pricing_catalog WHERE is_active = true ORDER BY name ASC');
+router.get('/catalog/pricing', asyncHandler(async (req: Request, res: Response) => {
+  const userRole = (req as any).admin?.roles?.[0] || (req as any).user?.role || 'guest';
+  const result = await pool.query(
+    `SELECT pc.id, pc.item_code, pc.name, pc.description, pc.pricing_model, 
+            COALESCE(pro.base_price, pc.base_price) AS base_price, 
+            COALESCE(pro.max_price, pc.max_price) AS max_price 
+     FROM pricing_catalog pc
+     LEFT JOIN pricing_role_overrides pro 
+       ON pc.id = pro.pricing_catalog_id AND pro.role_name = $1
+     WHERE pc.is_active = true 
+     ORDER BY pc.name ASC`,
+    [userRole]
+  );
   res.json({ items: result.rows });
 }));
 
