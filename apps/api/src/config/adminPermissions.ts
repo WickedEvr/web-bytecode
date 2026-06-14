@@ -44,7 +44,6 @@ export const adminMenuItems: AdminMenuSeed[] = [
   { label: 'Contactos', url: '/admin/contactos', routeName: 'admin.contactos', iconName: 'Users', permissionCode: 'admin.contactos.view', sortOrder: 20 },
   { label: 'Reclamos', url: '/admin/reclamos', routeName: 'admin.reclamos', iconName: 'MessageSquareText', permissionCode: 'admin.reclamos.view', sortOrder: 30 },
   { label: 'Cotizador', url: '/admin/cotizador', routeName: 'admin.cotizador', iconName: 'Calculator', permissionCode: 'admin.cotizador.view', sortOrder: 40 },
-  { label: 'Portafolio', url: '/admin/portafolio', routeName: 'admin.portafolio', iconName: 'Images', permissionCode: 'admin.portafolio.view', sortOrder: 50 },
   { label: 'Usuarios', url: '/admin/usuarios', routeName: 'admin.usuarios', iconName: 'UserCog', permissionCode: 'admin.usuarios.view', sortOrder: 60 },
   { label: 'Roles', url: '/admin/roles', routeName: 'admin.roles', iconName: 'ShieldCheck', permissionCode: 'admin.roles.view', sortOrder: 70 },
   { label: 'CMS', url: '/admin/cms', routeName: 'admin.cms', iconName: 'Database', permissionCode: 'admin.cms.view', sortOrder: 80 },
