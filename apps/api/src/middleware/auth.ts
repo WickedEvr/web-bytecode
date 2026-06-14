@@ -100,6 +100,14 @@ export const requireRole = (allowedRoles: string[]) => {
   };
 };
 
+export const requireSuperAdmin = (req: Request, _res: Response, next: NextFunction) => {
+  if (!req.admin) return next(new HttpError(401, 'No autenticado.'));
+  if (!req.admin.roles.includes('super_admin')) {
+    return next(new HttpError(403, 'Acceso denegado (Super administrador requerido).'));
+  }
+  next();
+};
+
 export const requirePermission = (permissionCode: string) => {
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.admin) return next(new HttpError(401, 'No autenticado.'));
