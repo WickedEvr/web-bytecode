@@ -727,7 +727,7 @@ router.get(
           u.name, 
           u.email, 
           u.is_active,
-          COALESCE((array_remove(array_agg(r.code), NULL))[1], u.role) as role,
+          (array_remove(array_agg(r.code), NULL))[1] as role,
           array_remove(array_agg(r.code), NULL) as roles,
           u.created_at,
           u.last_login_at
@@ -763,9 +763,9 @@ router.post(
       const roleId = roleResult.rows[0].id;
 
       const result = await client.query(
-        `INSERT INTO admin_users (email, name, password_hash, role, created_by)
-         VALUES ($1, $2, $3, $4, $5) RETURNING id, email, name, is_active, created_at`,
-        [body.email.toLowerCase(), body.name, passwordHash, body.role, req.admin?.id]
+        `INSERT INTO admin_users (email, name, password_hash, created_by)
+         VALUES ($1, $2, $3, $4) RETURNING id, email, name, is_active, created_at`,
+        [body.email.toLowerCase(), body.name, passwordHash, req.admin?.id]
       );
       await audit(req.admin?.id, 'create', 'admin_user', result.rows[0].id);
       res.status(201).json({ item: result.rows[0] });
@@ -793,7 +793,7 @@ router.patch(
       await client.query('BEGIN');
 
       const currentUser = await client.query(`
-        SELECT u.id, u.is_active, COALESCE((array_remove(array_agg(r.code), NULL))[1], u.role) as role
+        SELECT u.id, u.is_active, (array_remove(array_agg(r.code), NULL))[1] as role
         FROM admin_users u
         LEFT JOIN admin_user_roles aur ON u.id = aur.admin_user_id
         LEFT JOIN roles r ON aur.role_id = r.id
@@ -830,12 +830,11 @@ router.patch(
           SET name = COALESCE($2, name), 
               is_active = COALESCE($3, is_active),
               password_hash = COALESCE($5, password_hash),
-              role = COALESCE($6, role),
               updated_at = now(),
               updated_by = $4
           WHERE id = $1 
           RETURNING id, email, name, is_active, updated_at`,
-        [id, body.name ?? null, body.isActive ?? null, req.admin?.id, passwordHash, body.role ?? null]
+        [id, body.name ?? null, body.isActive ?? null, req.admin?.id, passwordHash]
       );
 
       await client.query('COMMIT');
@@ -863,7 +862,7 @@ router.patch(
       await client.query('BEGIN');
 
       const currentUser = await client.query(`
-        SELECT u.id, COALESCE((array_remove(array_agg(r.code), NULL))[1], u.role) as role
+        SELECT u.id, (array_remove(array_agg(r.code), NULL))[1] as role
         FROM admin_users u
         LEFT JOIN admin_user_roles aur ON u.id = aur.admin_user_id
         LEFT JOIN roles r ON aur.role_id = r.id
@@ -887,7 +886,7 @@ router.patch(
         `INSERT INTO admin_user_roles (admin_user_id, role_id, assigned_by) VALUES ($1, $2, $3)`,
         [id, roleId, req.admin?.id]
       );
-      await client.query('UPDATE admin_users SET role = $2, updated_at = now(), updated_by = $3 WHERE id = $1', [id, role, req.admin?.id]);
+      await client.query('UPDATE admin_users SET updated_at = now(), updated_by = $2 WHERE id = $1', [id, req.admin?.id]);
 
       await client.query('COMMIT');
       await audit(req.admin?.id, 'update_role', 'admin_user', id);

@@ -82,21 +82,33 @@ const main = async () => {
       }
     }
 
-    await client.query(
+    const legacyRoleColumn = await client.query(
       `
-      INSERT INTO admin_user_roles (admin_user_id, role_id)
-      SELECT u.id, r.id
-      FROM admin_users u
-      JOIN roles r ON r.code = u.role
-      WHERE u.deleted_at IS NULL
-        AND NOT EXISTS (
-          SELECT 1
-          FROM admin_user_roles aur
-          WHERE aur.admin_user_id = u.id
-        )
-      ON CONFLICT (admin_user_id, role_id) DO NOTHING
+      SELECT 1
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'admin_users'
+        AND column_name = 'role'
       `,
     );
+
+    if ((legacyRoleColumn.rowCount ?? 0) > 0) {
+      await client.query(
+        `
+        INSERT INTO admin_user_roles (admin_user_id, role_id)
+        SELECT u.id, r.id
+        FROM admin_users u
+        JOIN roles r ON r.code = u.role
+        WHERE u.deleted_at IS NULL
+          AND NOT EXISTS (
+            SELECT 1
+            FROM admin_user_roles aur
+            WHERE aur.admin_user_id = u.id
+          )
+        ON CONFLICT (admin_user_id, role_id) DO NOTHING
+        `,
+      );
+    }
 
     await client.query('COMMIT');
     console.log('Initial admin permissions, menu items, and role permissions seeded.');
