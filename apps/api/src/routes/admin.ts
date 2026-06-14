@@ -984,17 +984,26 @@ router.get(
   requirePermission('admin.auditoria.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const query = listQuerySchema.parse(req.query);
-    const result = await pool.query(
-      `
-      SELECT l.id, l.action, l.entity_type, l.entity_id, l.created_at, u.name as admin_name, u.email as admin_email
-      FROM admin_audit_logs l
-      LEFT JOIN admin_users u ON l.admin_id = u.id
-      ORDER BY l.created_at DESC
-      LIMIT $1 OFFSET $2
-      `,
-      [query.limit, query.offset]
-    );
-    res.json({ items: result.rows });
+    const [result, countResult] = await Promise.all([
+      pool.query(
+        `
+        SELECT l.id, l.action, l.entity_type, l.entity_id, l.created_at, u.name as admin_name, u.email as admin_email
+        FROM admin_audit_logs l
+        LEFT JOIN admin_users u ON l.admin_id = u.id
+        ORDER BY l.created_at DESC
+        LIMIT $1 OFFSET $2
+        `,
+        [query.limit, query.offset]
+      ),
+      pool.query('SELECT COUNT(*)::int AS total FROM admin_audit_logs'),
+    ]);
+
+    res.json({
+      items: result.rows,
+      total: countResult.rows[0]?.total ?? 0,
+      limit: query.limit,
+      offset: query.offset,
+    });
   })
 );
 
