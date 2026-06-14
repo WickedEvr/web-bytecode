@@ -66,6 +66,17 @@ const main = async () => {
       const roleId = roleResult.rows[0]?.id;
       if (!roleId) continue;
 
+      await client.query(
+        `
+        DELETE FROM role_permissions rp
+        USING permissions p
+        WHERE rp.permission_id = p.id
+          AND rp.role_id = $1
+          AND p.code <> ALL($2::varchar[])
+        `,
+        [roleId, permissionCodes],
+      );
+
       for (const permissionCode of permissionCodes) {
         const permissionResult = await client.query('SELECT id FROM permissions WHERE code = $1', [permissionCode]);
         const permissionId = permissionResult.rows[0]?.id;
