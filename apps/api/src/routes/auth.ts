@@ -27,7 +27,7 @@ router.post(
     const body = loginSchema.parse(req.body);
     const result = await pool.query(
       `
-      SELECT u.id, u.email, u.name, u.password_hash, u.is_verified, u.force_password_change,
+      SELECT u.id, u.email, u.name, u.password_hash, u.is_verified, u.force_password_change, u.verification_token,
       COALESCE(array_agg(DISTINCT r.code) FILTER (WHERE r.code IS NOT NULL), ARRAY[]::varchar[]) as roles,
       COALESCE((
         SELECT array_agg(DISTINCT p.code)
@@ -38,7 +38,7 @@ router.post(
       FROM admin_users u 
       LEFT JOIN admin_user_roles aur ON u.id = aur.admin_user_id
       LEFT JOIN roles r ON aur.role_id = r.id
-      WHERE u.email = $1 AND u.is_active = true
+      WHERE u.email = $1 AND u.is_active = true AND u.deleted_at IS NULL
       GROUP BY u.id
       `,
       [body.email.toLowerCase()],
@@ -56,11 +56,15 @@ router.post(
 
     // Task 1.2: Check if verified
     if (admin.is_verified === false) {
-      const verificationToken = crypto.randomBytes(32).toString('hex');
-      await pool.query(
-        'UPDATE admin_users SET verification_token = $1, updated_at = now() WHERE id = $2',
-        [verificationToken, admin.id]
-      );
+      let verificationToken = admin.verification_token;
+      
+      if (!verificationToken) {
+        verificationToken = crypto.randomBytes(32).toString('hex');
+        await pool.query(
+          'UPDATE admin_users SET verification_token = $1, updated_at = now() WHERE id = $2',
+          [verificationToken, admin.id]
+        );
+      }
 
       const frontendUrl = process.env.FRONTEND_URL || 'https://www.bytecode.com.pe';
       const verifyUrl = `${frontendUrl}/admin/verify-account?token=${verificationToken}`;
