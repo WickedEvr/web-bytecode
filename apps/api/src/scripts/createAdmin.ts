@@ -12,10 +12,10 @@ const passwordHash = await bcrypt.hash(password, 12);
 
 await pool.query(
   `
-  INSERT INTO admin_users (email, name, password_hash)
-  VALUES ($1, $2, $3)
+  INSERT INTO admin_users (email, name, password_hash, is_verified, force_password_change)
+  VALUES ($1, $2, $3, true, false)
   ON CONFLICT (email)
-  DO UPDATE SET password_hash = EXCLUDED.password_hash, name = EXCLUDED.name, is_active = true, updated_at = now()
+  DO UPDATE SET password_hash = EXCLUDED.password_hash, name = EXCLUDED.name, is_active = true, is_verified = true, force_password_change = false, updated_at = now()
   `,
   [email.toLowerCase(), name, passwordHash],
 );

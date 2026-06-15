@@ -763,13 +763,21 @@ router.post(
       const roleId = roleResult.rows[0].id;
 
       const result = await client.query(
-        `INSERT INTO admin_users (email, name, password_hash, created_by)
-         VALUES ($1, $2, $3, $4) RETURNING id, email, name, is_active, created_at`,
+        `INSERT INTO admin_users (email, name, password_hash, created_by, is_verified, force_password_change)
+         VALUES ($1, $2, $3, $4, false, true) RETURNING id, email, name, is_active, created_at`,
         [body.email.toLowerCase(), body.name, passwordHash, req.admin?.id]
       );
+
+      await client.query(
+        `INSERT INTO admin_user_roles (admin_user_id, role_id, assigned_by) VALUES ($1, $2, $3)`,
+        [result.rows[0].id, roleId, req.admin?.id]
+      );
+
+      await client.query('COMMIT');
       await audit(req.admin?.id, 'create', 'admin_user', result.rows[0].id);
       res.status(201).json({ item: result.rows[0] });
     } catch (err: unknown) {
+      await client.query('ROLLBACK');
       if (typeof err === 'object' && err !== null && 'code' in err && err.code === '23505') {
         throw new HttpError(409, 'El correo ya está en uso.');
       }
