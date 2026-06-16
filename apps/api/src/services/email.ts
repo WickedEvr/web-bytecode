@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer';
 import { env } from '../config/env.js';
 import { pool } from '../db/pool.js';
 import { buildAdminNotification } from './emailTemplates.js';
+import { getSmtpConfig } from './settings.js';
 
 // 1. DEFINICIÓN DE MÓDULOS Y REMITENTES DINÁMICOS
 export type EmailModuleType = 'complaint' | 'quote' | 'contact' | 'system';
@@ -20,25 +21,29 @@ export const getSenderConfig = (moduleType: EmailModuleType) => {
   }
 };
 
-const isEmailEnabled = Boolean(env.smtp.host && env.smtp.user && env.smtp.pass);
+async function getTransporter() {
+  const config = await getSmtpConfig();
+  const isEmailEnabled = Boolean(config.host && config.user && config.pass);
 
-const transporter = isEmailEnabled
-  ? nodemailer.createTransport({
-      host: env.smtp.host,
-      port: env.smtp.port,
-      secure: env.smtp.secure,
-      auth: {
-        user: env.smtp.user,
-        pass: env.smtp.pass,
-      },
-    })
-  : null;
+  if (!isEmailEnabled) return null;
+
+  return nodemailer.createTransport({
+    host: config.host,
+    port: config.port,
+    secure: config.secure,
+    auth: {
+      user: config.user,
+      pass: config.pass,
+    },
+  });
+}
 
 const wait = (ms: number) => new Promise((resolve) => {
   setTimeout(resolve, ms);
 });
 
 export async function verifyEmailTransport() {
+  const transporter = await getTransporter();
   if (!transporter) return { enabled: false, ok: true };
 
   try {
@@ -77,6 +82,7 @@ export async function notifyAdmins(
   roles: string[] = ['super_admin', 'support_agent'],
   moduleType: EmailModuleType = 'system',
 ) {
+  const transporter = await getTransporter();
   if (!transporter) {
     console.log(`Email skipped: ${subject}`);
     return;
@@ -96,7 +102,6 @@ export async function notifyAdmins(
   };
 
   let lastError: unknown;
-  // ... lógica de envío con retries intacta ...
   for (let attempt = 0; attempt <= (env.smtp.maxRetries || 3); attempt += 1) {
     try {
       await transporter.sendMail(message);
@@ -125,6 +130,7 @@ export async function sendCustomerAcknowledgement(
   htmlBody: string,
   moduleType: EmailModuleType,
 ) {
+  const transporter = await getTransporter();
   if (!transporter) {
     console.log(`Customer email skipped: ${subject} to ${toEmail}`);
     return;

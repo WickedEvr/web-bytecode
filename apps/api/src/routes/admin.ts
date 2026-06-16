@@ -5,6 +5,7 @@ import type { PoolClient } from 'pg';
 import multer from 'multer';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
+import { env } from '../config/env.js';
 import { pool } from '../db/pool.js';
 import {
   deleteCloudinaryAsset,
@@ -924,19 +925,37 @@ router.get(
   requirePermission('admin.configuracion.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const result = await pool.query('SELECT setting_key, setting_value, description, is_sensitive FROM system_settings ORDER BY setting_key');
+    
+    console.log('1. RAW DB RESULT:', JSON.stringify(result.rows.find((r: any) => r.setting_key === 'cloudinary_config'), null, 2));
+
     const items = result.rows.map((row: any) => {
-      if (row.is_sensitive) {
-        // Enmascarar contraseñas o tokens (ej: SMTP pass)
-        const maskedValue = { ...row.setting_value };
-        for (const key of Object.keys(maskedValue)) {
-          if (typeof maskedValue[key] === 'string' && (key.toLowerCase().includes('pass') || key.toLowerCase().includes('secret') || key.toLowerCase().includes('key'))) {
-            maskedValue[key] = '********';
-          }
-        }
-        return { ...row, setting_value: maskedValue };
+      let value = row.setting_value ? { ...row.setting_value } : {};
+
+      if (row.setting_key === 'smtp_config') {
+        value = {
+          ...value,
+          host: value.host || env.smtp?.host || process.env.SMTP_HOST || '',
+          port: String(value.port || env.smtp?.port || process.env.SMTP_PORT || ''),
+          secure: value.secure ?? (env.smtp?.secure || false),
+          user: value.user || env.smtp?.user || process.env.SMTP_USER || '',
+          pass: value.pass ? '********' : (env.smtp?.pass ? '********' : ''),
+        };
       }
-      return row;
+
+      if (row.setting_key === 'cloudinary_config') {
+        value = {
+          ...value,
+          cloud_name: value.cloud_name || env.cloudinary?.cloudName || process.env.CLOUDINARY_CLOUD_NAME || '',
+          api_key: value.api_key || env.cloudinary?.apiKey || process.env.CLOUDINARY_API_KEY || '',
+          api_secret: value.api_secret ? '********' : (env.cloudinary?.apiSecret ? '********' : ''),
+        };
+      }
+
+      return { ...row, setting_value: value };
     });
+
+    console.log('2. AFTER MAPPING:', JSON.stringify(items.find((r: any) => r.setting_key === 'cloudinary_config'), null, 2));
+
     res.json({ items });
   })
 );
@@ -953,16 +972,19 @@ router.patch(
       let valueToSave = setting.setting_value;
       
       if (setting.is_sensitive) {
-        // Recuperar el actual para mezclar
+        // Recuperar el actual para evitar sobreescribir secretos con asteriscos
         const current = await pool.query('SELECT setting_value FROM system_settings WHERE setting_key = $1', [setting.setting_key]);
         if (current.rowCount && current.rowCount > 0) {
           const currentVal = current.rows[0].setting_value;
-          const merged = { ...currentVal };
-          for (const key of Object.keys(valueToSave)) {
-            if (valueToSave[key] !== '********') {
-              merged[key] = valueToSave[key];
-            }
+          const merged = { ...valueToSave };
+          
+          if (setting.setting_key === 'smtp_config' && merged.pass === '********') {
+            merged.pass = currentVal.pass;
           }
+          if (setting.setting_key === 'cloudinary_config' && merged.api_secret === '********') {
+            merged.api_secret = currentVal.api_secret;
+          }
+          
           valueToSave = merged;
         }
       }

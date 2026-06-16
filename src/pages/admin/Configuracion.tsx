@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Settings, Save, RefreshCw } from 'lucide-react';
+import { Settings, Save, RefreshCw, Cloud } from 'lucide-react';
 import { apiRequest } from '../../lib/api';
 
 type SettingItem = {
@@ -12,6 +12,7 @@ type SettingItem = {
 const defaultSettings = {
   contact_info: { email: '', phone: '', address: '' },
   smtp_config: { host: '', port: '', user: '', pass: '' },
+  cloudinary_config: { cloud_name: '', api_key: '', api_secret: '' },
   features: { enable_chat: false, enable_quotes: true },
 };
 
@@ -19,7 +20,11 @@ const asRecord = (value: unknown) => (
   value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
 );
 
-const readString = (value: unknown, fallback: string) => (typeof value === 'string' ? value : fallback);
+const readString = (value: unknown, fallback: string) => {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number') return String(value);
+  return fallback;
+};
 const readBoolean = (value: unknown, fallback: boolean) => (typeof value === 'boolean' ? value : fallback);
 
 import AdminPanel from '../../components/admin/AdminPanel';
@@ -33,6 +38,7 @@ const AdminConfiguracion: React.FC = () => {
 
   const [contactInfo, setContactInfo] = useState(defaultSettings.contact_info);
   const [smtpConfig, setSmtpConfig] = useState(defaultSettings.smtp_config);
+  const [cloudinaryConfig, setCloudinaryConfig] = useState(defaultSettings.cloudinary_config);
   const [features, setFeatures] = useState(defaultSettings.features);
 
   const loadSettings = async () => {
@@ -60,6 +66,14 @@ const AdminConfiguracion: React.FC = () => {
             port: readString(value.port, defaultSettings.smtp_config.port),
             user: readString(value.user, defaultSettings.smtp_config.user),
             pass: readString(value.pass, defaultSettings.smtp_config.pass),
+          });
+        }
+
+        if (item.setting_key === 'cloudinary_config') {
+          setCloudinaryConfig({
+            cloud_name: readString(value.cloud_name, defaultSettings.cloudinary_config.cloud_name),
+            api_key: readString(value.api_key, defaultSettings.cloudinary_config.api_key),
+            api_secret: readString(value.api_secret, defaultSettings.cloudinary_config.api_secret),
           });
         }
 
@@ -93,6 +107,7 @@ const AdminConfiguracion: React.FC = () => {
           settings: [
             { setting_key: 'contact_info', setting_value: contactInfo, description: 'Información de contacto pública', is_sensitive: false },
             { setting_key: 'smtp_config', setting_value: smtpConfig, description: 'Configuración de servidor SMTP', is_sensitive: true },
+            { setting_key: 'cloudinary_config', setting_value: cloudinaryConfig, description: 'Almacenamiento Multimedia Cloudinary', is_sensitive: true },
             { setting_key: 'features', setting_value: features, description: 'Activación de módulos', is_sensitive: false },
           ]
         }
@@ -228,6 +243,45 @@ const AdminConfiguracion: React.FC = () => {
                 placeholder="********"
                 value={smtpConfig.pass}
                 onChange={e => setSmtpConfig({ ...smtpConfig, pass: e.target.value })}
+                className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors"
+              />
+              <p className="mt-1.5 text-[10px] text-white/30 uppercase tracking-widest">Dejar en blanco si no se cambia</p>
+            </div>
+          </div>
+        </AdminPanel>
+
+        {/* Cloudinary Config */}
+        <AdminPanel className="p-6 lg:p-8 lg:col-span-2">
+          <div className="flex items-center gap-3 mb-6">
+            <Cloud className="h-5 w-5 text-white/70" />
+            <h2 className="text-lg font-medium text-white/90">Almacenamiento Multimedia (Cloudinary)</h2>
+          </div>
+          <div className="grid gap-5 md:grid-cols-3">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">Cloud Name</label>
+              <input
+                type="text"
+                value={cloudinaryConfig.cloud_name}
+                onChange={e => setCloudinaryConfig({ ...cloudinaryConfig, cloud_name: e.target.value })}
+                className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">API Key</label>
+              <input
+                type="text"
+                value={cloudinaryConfig.api_key}
+                onChange={e => setCloudinaryConfig({ ...cloudinaryConfig, api_key: e.target.value })}
+                className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">API Secret</label>
+              <input
+                type="password"
+                placeholder="********"
+                value={cloudinaryConfig.api_secret}
+                onChange={e => setCloudinaryConfig({ ...cloudinaryConfig, api_secret: e.target.value })}
                 className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors"
               />
               <p className="mt-1.5 text-[10px] text-white/30 uppercase tracking-widest">Dejar en blanco si no se cambia</p>
