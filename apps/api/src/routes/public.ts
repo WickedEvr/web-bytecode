@@ -295,29 +295,68 @@ router.post(
         }
       }
 
+      let customerId: string;
       const personTypeVal = body.personType === 'company' ? 'company_contact' : 'natural';
-      const customerRes = await client.query(
-        `
-        INSERT INTO customers (customer_code, first_name, last_name, person_type, primary_email, primary_phone)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING id
-        `,
-        [`CUS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, body.nombre, body.apellido, personTypeVal, body.email.toLowerCase(), body.celular]
-      );
-      const customerId = customerRes.rows[0].id;
 
       if (body.personType === 'individual') {
         const docTypeRes = await client.query(
           "SELECT id FROM document_types WHERE code = $1 LIMIT 1",
           [body.documentType]
         );
-        if ((docTypeRes.rowCount ?? 0) > 0) {
-          await client.query(
-            `INSERT INTO customer_documents (customer_id, document_type_id, document_number, is_primary)
-             VALUES ($1, $2, $3, true)`,
-            [customerId, docTypeRes.rows[0].id, body.documentNumber]
+        const docTypeId = (docTypeRes.rowCount ?? 0) > 0 ? docTypeRes.rows[0].id : null;
+
+        if (docTypeId) {
+          const existingDoc = await client.query(
+            "SELECT customer_id FROM customer_documents WHERE document_type_id = $1 AND document_number = $2 AND deleted_at IS NULL LIMIT 1",
+            [docTypeId, body.documentNumber]
           );
+
+          if ((existingDoc.rowCount ?? 0) > 0) {
+            customerId = existingDoc.rows[0].customer_id;
+            await client.query(
+              "UPDATE customers SET primary_email = $1, primary_phone = $2, first_name = $3, last_name = $4, updated_at = NOW() WHERE id = $5",
+              [body.email.toLowerCase(), body.celular, body.nombre, body.apellido, customerId]
+            );
+          } else {
+            const customerRes = await client.query(
+              `
+              INSERT INTO customers (customer_code, first_name, last_name, person_type, primary_email, primary_phone)
+              VALUES ($1, $2, $3, $4, $5, $6)
+              RETURNING id
+              `,
+              [`CUS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, body.nombre, body.apellido, personTypeVal, body.email.toLowerCase(), body.celular]
+            );
+            customerId = customerRes.rows[0].id;
+            
+            await client.query(
+              `INSERT INTO customer_documents (customer_id, document_type_id, document_number, is_primary)
+               VALUES ($1, $2, $3, true)
+               ON CONFLICT (document_type_id, document_number) WHERE deleted_at IS NULL
+               DO NOTHING`,
+              [customerId, docTypeId, body.documentNumber]
+            );
+          }
+        } else {
+          const customerRes = await client.query(
+            `
+            INSERT INTO customers (customer_code, first_name, last_name, person_type, primary_email, primary_phone)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING id
+            `,
+            [`CUS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, body.nombre, body.apellido, personTypeVal, body.email.toLowerCase(), body.celular]
+          );
+          customerId = customerRes.rows[0].id;
         }
+      } else {
+        const customerRes = await client.query(
+          `
+          INSERT INTO customers (customer_code, first_name, last_name, person_type, primary_email, primary_phone)
+          VALUES ($1, $2, $3, $4, $5, $6)
+          RETURNING id
+          `,
+          [`CUS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, body.nombre, body.apellido, personTypeVal, body.email.toLowerCase(), body.celular]
+        );
+        customerId = customerRes.rows[0].id;
       }
 
       const statusRes = await client.query("SELECT id FROM status_catalog WHERE domain = 'case' AND code = 'new' LIMIT 1");
@@ -494,15 +533,56 @@ router.post(
     try {
       await client.query('BEGIN');
 
-      const customerRes = await client.query(
-        `
-        INSERT INTO customers (customer_code, first_name, last_name, primary_email, primary_phone)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING id
-        `,
-        [`CUS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, body.nombres, body.apellidos, body.email.toLowerCase(), `${body.prefijoTelefono} ${body.telefono}`]
+      let customerId: string;
+      
+      const docTypeRes = await client.query(
+        "SELECT id FROM document_types WHERE code = $1 LIMIT 1",
+        [body.tipoDoc]
       );
-      const customerId = customerRes.rows[0].id;
+      const docTypeId = (docTypeRes.rowCount ?? 0) > 0 ? docTypeRes.rows[0].id : null;
+
+      if (docTypeId) {
+        const existingDoc = await client.query(
+          "SELECT customer_id FROM customer_documents WHERE document_type_id = $1 AND document_number = $2 AND deleted_at IS NULL LIMIT 1",
+          [docTypeId, body.numeroDoc]
+        );
+
+        if ((existingDoc.rowCount ?? 0) > 0) {
+          customerId = existingDoc.rows[0].customer_id;
+          await client.query(
+            "UPDATE customers SET primary_email = $1, primary_phone = $2, first_name = $3, last_name = $4, updated_at = NOW() WHERE id = $5",
+            [body.email.toLowerCase(), `${body.prefijoTelefono} ${body.telefono}`, body.nombres, body.apellidos, customerId]
+          );
+        } else {
+          const customerRes = await client.query(
+            `
+            INSERT INTO customers (customer_code, first_name, last_name, primary_email, primary_phone)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING id
+            `,
+            [`CUS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, body.nombres, body.apellidos, body.email.toLowerCase(), `${body.prefijoTelefono} ${body.telefono}`]
+          );
+          customerId = customerRes.rows[0].id;
+          
+          await client.query(
+            `INSERT INTO customer_documents (customer_id, document_type_id, document_number, is_primary)
+             VALUES ($1, $2, $3, true)
+             ON CONFLICT (document_type_id, document_number) WHERE deleted_at IS NULL
+             DO NOTHING`,
+            [customerId, docTypeId, body.numeroDoc]
+          );
+        }
+      } else {
+        const customerRes = await client.query(
+          `
+          INSERT INTO customers (customer_code, first_name, last_name, primary_email, primary_phone)
+          VALUES ($1, $2, $3, $4, $5)
+          RETURNING id
+          `,
+          [`CUS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, body.nombres, body.apellidos, body.email.toLowerCase(), `${body.prefijoTelefono} ${body.telefono}`]
+        );
+        customerId = customerRes.rows[0].id;
+      }
 
       const statusRes = await client.query("SELECT id FROM status_catalog WHERE domain = 'case' AND code = 'new' LIMIT 1");
       if (statusRes.rowCount === 0) throw new Error('Status catalog not initialized');
