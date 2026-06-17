@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, X } from 'lucide-react';
+import { useSettings } from '../../contexts/SettingsContext';
 
 interface MobileMenuViewProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ const glowFilter = {
 
 const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
   const menuRef = useRef<HTMLDivElement>(null);
+  const { settings } = useSettings();
 
   useEffect(() => {
     if (isOpen) {
@@ -188,7 +190,7 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
                     initial={{ opacity: 0, y: 22 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.56, duration: 0.45 }}
-                    className="w-full flex justify-center mt-5"
+                    className="w-full flex justify-center mt-5 gap-4"
                   >
                     <Link
                       to="/contacto"
@@ -197,6 +199,15 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
                     >
                       Conectar
                     </Link>
+                    {settings?.features?.enable_quotes && (
+                      <Link
+                        to="/cotizador"
+                        onClick={onClose}
+                        className="inline-block rounded-full border-2 md:border-4 border-[#0CA3C6] bg-[#0CA3C6] font-extrabold tracking-[0.22em] text-white shadow-[0_0_20px_rgba(12,163,198,0.22)] transition-all duration-300 ease-in-out active:scale-95 outline-none text-[clamp(0.95rem,4.5vw,1.3rem)] md:text-[1.8rem] px-10 py-2.5 md:px-14 md:py-5 lg:hover:shadow-[0_0_36px_rgba(12,163,198,0.55)]"
+                      >
+                        Cotizar
+                      </Link>
+                    )}
                   </motion.div>
                 </div>
               </div>
@@ -315,7 +326,7 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
                   initial={{ opacity: 0, y: 36 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.66, duration: 0.45 }}
-                  className="pt-[clamp(0.25rem,1vh,1rem)]"
+                  className="pt-[clamp(0.25rem,1vh,1rem)] flex gap-4"
                 >
                   <Link
                     to="/contacto"
@@ -324,6 +335,15 @@ const MobileMenuView: React.FC<MobileMenuViewProps> = ({ isOpen, onClose }) => {
                   >
                     Conectar
                   </Link>
+                  {settings?.features?.enable_quotes && (
+                    <Link
+                      to="/cotizador"
+                      onClick={onClose}
+                      className="inline-block rounded-full border-[3px] border-[#0CA3C6] bg-[#0CA3C6] px-[clamp(2.75rem,6vw,5rem)] py-[clamp(0.95rem,1.8vw,1.45rem)] text-[clamp(1.15rem,2.1vw,2rem)] font-extrabold tracking-[0.18em] text-white shadow-[0_0_20px_rgba(12,163,198,0.2)] transition-all duration-300 ease-in-out active:scale-95 outline-none lg:hover:shadow-[0_0_40px_rgba(12,163,198,0.6)]"
+                    >
+                      Cotizar
+                    </Link>
+                  )}
                 </motion.div>
               </div>
             </motion.div>

@@ -3,8 +3,18 @@ import { Link } from 'react-router-dom';
 import { Mail } from "lucide-react";
 import SpotlightText from "../typography/SpotlightText";
 import { WhatsAppIcon } from '../icons/SocialIcons';
+import { useSettings } from '../../contexts/SettingsContext';
 
 const Footer: React.FC = () => {
+  const { settings } = useSettings();
+
+  const phone1 = settings?.contact_info?.phone_1 || '';
+  const phone2 = settings?.contact_info?.phone_2 || '';
+  const email = settings?.contact_info?.email || '';
+
+  const phone1Link = phone1.replace(/\D/g, '');
+  const phone2Link = phone2.replace(/\D/g, '');
+
   return (
     <div className="bg-transparent font-sansation select-none"> 
       {/* TODO(CSP): Move this embedded <style> block to a static stylesheet before enforcing CSP. */}
@@ -98,41 +108,47 @@ const Footer: React.FC = () => {
                 </span>
 
                 {/* WhatsApp 1 */}
-                <a 
-                  href="https://wa.me/51936281137?text=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 group outline-none"
-                >
-                  <WhatsAppIcon className="text-[#06CFD6] transition-transform duration-300 shrink-0 lg:group-hover:scale-110" size={22} />
-                  <span className="text-gray-300 transition-colors duration-300 whitespace-nowrap lg:group-hover:text-white" aria-label="WhatsApp">
-                    (+51) 936 281 137
-                  </span>
-                </a>
+                {phone1 && (
+                  <a 
+                    href={`https://wa.me/51${phone1Link}?text=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software.`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 group outline-none"
+                  >
+                    <WhatsAppIcon className="text-[#06CFD6] transition-transform duration-300 shrink-0 lg:group-hover:scale-110" size={22} />
+                    <span className="text-gray-300 transition-colors duration-300 whitespace-nowrap lg:group-hover:text-white" aria-label="WhatsApp">
+                      (+51) {phone1}
+                    </span>
+                  </a>
+                )}
 
                 {/* WhatsApp 2 */}
-                <a
-                  href="https://wa.me/51970199434?text=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 group outline-none"
-                >
-                  <WhatsAppIcon className="text-[#06CFD6] transition-transform duration-300 shrink-0 lg:group-hover:scale-110" size={22} />
-                  <span className="text-gray-300 transition-colors duration-300 whitespace-nowrap lg:group-hover:text-white" aria-label="WhatsApp">
-                    (+51) 970 199 434
-                  </span>
-                </a>
+                {phone2 && (
+                  <a
+                    href={`https://wa.me/51${phone2Link}?text=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software.`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 group outline-none"
+                  >
+                    <WhatsAppIcon className="text-[#06CFD6] transition-transform duration-300 shrink-0 lg:group-hover:scale-110" size={22} />
+                    <span className="text-gray-300 transition-colors duration-300 whitespace-nowrap lg:group-hover:text-white" aria-label="WhatsApp">
+                      (+51) {phone2}
+                    </span>
+                  </a>
+                )}
 
                 {/* Correo */}
-                <a
-                  href="mailto:contacto@bytecode.com.pe?subject=Cotizaci%C3%B3n%20de%20desarrollo%20de%20software&body=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
-                  className="flex items-center gap-3 group outline-none"
-                >
-                  <Mail className="text-[#06CFD6] transition-transform duration-300 shrink-0 lg:group-hover:scale-110" size={22} />
-                  <span className="text-gray-300 transition-colors duration-300 whitespace-nowrap lg:group-hover:text-white">
-                    contacto@bytecode.com.pe
-                  </span>
-                </a>
+                {email && (
+                  <a
+                    href={`mailto:${email}?subject=Cotizaci%C3%B3n%20de%20desarrollo%20de%20software&body=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software.`}
+                    className="flex items-center gap-3 group outline-none"
+                  >
+                    <Mail className="text-[#06CFD6] transition-transform duration-300 shrink-0 lg:group-hover:scale-110" size={22} />
+                    <span className="text-gray-300 transition-colors duration-300 whitespace-nowrap lg:group-hover:text-white">
+                      {email}
+                    </span>
+                  </a>
+                )}
               </div>
 
               {/* Copyright (Solo visible en Escritorio Gigante 2XL) */}

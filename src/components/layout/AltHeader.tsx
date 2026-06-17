@@ -2,20 +2,18 @@ import React, { Suspense, lazy, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { FacebookIcon, InstagramIcon, LinkedInIcon, TikTokIcon, WhatsAppIcon } from '../icons/SocialIcons';
+import { useSettings } from '../../contexts/SettingsContext';
 
 const MobileMenuView = lazy(() => import('./MobileMenuView'));
 
 const WHATSAPP_MESSAGE = "%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software.";
 
-const WHATSAPP_URLS = [
-    `https://wa.me/51936281137?text=${WHATSAPP_MESSAGE}`,
-    `https://wa.me/51970199434?text=${WHATSAPP_MESSAGE}`,
-];
-
 const AltHeader: React.FC = () => {
     // Estado para controlar si el menú está abierto o no
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [hasMenuLoaded, setHasMenuLoaded] = useState(false);
+    
+    const { settings } = useSettings();
 
     // Funciones para abrir y cerrar
     const openMenu = () => {
@@ -27,7 +25,22 @@ const AltHeader: React.FC = () => {
     const handleWhatsAppClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
         e.preventDefault();
 
-        const selectedUrl = WHATSAPP_URLS[Math.floor(Math.random() * WHATSAPP_URLS.length)];
+        const phone1 = settings?.contact_info?.phone_1?.replace(/\D/g, '');
+        const phone2 = settings?.contact_info?.phone_2?.replace(/\D/g, '');
+
+        const urls = [
+            phone1 ? `https://wa.me/51${phone1}?text=${WHATSAPP_MESSAGE}` : null,
+            phone2 ? `https://wa.me/51${phone2}?text=${WHATSAPP_MESSAGE}` : null,
+        ].filter(Boolean) as string[];
+        
+        // Fallback en caso de que no haya configuración cargada todavía
+        const fallbackUrls = [
+            `https://wa.me/51936281137?text=${WHATSAPP_MESSAGE}`,
+            `https://wa.me/51970199434?text=${WHATSAPP_MESSAGE}`,
+        ];
+
+        const activeUrls = urls.length > 0 ? urls : fallbackUrls;
+        const selectedUrl = activeUrls[Math.floor(Math.random() * activeUrls.length)];
 
         window.open(selectedUrl, '_blank', 'noopener,noreferrer');
     };
@@ -82,7 +95,7 @@ const AltHeader: React.FC = () => {
                             <LinkedInIcon className="w-5 h-5 md:w-8 md:h-8 lg:w-[23px] lg:h-[23px]" />
                         </a>
                         <a 
-                            href={WHATSAPP_URLS[0]}
+                            href="#"
                             onClick={handleWhatsAppClick}
                             className="text-[#0CA3C6] transition-all duration-300 outline-none lg:hover:text-[#0CA3C6] lg:hover:-translate-y-1"
                             aria-label="WhatsApp">
@@ -92,12 +105,22 @@ const AltHeader: React.FC = () => {
                 </div>
 
                 {/* Botón Conectar */}
-                <Link
-                    to="/contacto"
-                    className="hidden lg:inline-block bg-[#0CA3C6] text-white font-bold rounded-full transition-all duration-300 shadow-[0_4px_15px_rgba(6,207,214,0.4)] active:translate-y-0 outline-none shrink-0 text-sm py-2 px-5 md:text-lg md:py-3 md:px-10 lg:hover:bg-[#0CA3C6] lg:hover:-translate-y-1 lg:hover:shadow-[0_8px_25px_rgba(6,207,214,0.6)]"
-                >
-                    Conectar
-                </Link>
+                <div className="hidden lg:flex items-center gap-3">
+                    <Link
+                        to="/contacto"
+                        className="inline-block bg-[#0CA3C6] text-white font-bold rounded-full transition-all duration-300 shadow-[0_4px_15px_rgba(6,207,214,0.4)] active:translate-y-0 outline-none shrink-0 text-sm py-2 px-5 md:text-lg md:py-3 md:px-10 lg:hover:bg-[#0CA3C6] lg:hover:-translate-y-1 lg:hover:shadow-[0_8px_25px_rgba(6,207,214,0.6)]"
+                    >
+                        Conectar
+                    </Link>
+                    {settings?.features?.enable_quotes && (
+                        <Link
+                            to="/cotizador"
+                            className="inline-block border-2 border-[#0CA3C6] text-[#0CA3C6] font-bold rounded-full transition-all duration-300 active:translate-y-0 outline-none shrink-0 text-sm py-2 px-5 md:text-lg md:py-3 md:px-10 lg:hover:bg-[#0CA3C6] lg:hover:text-white lg:hover:-translate-y-1 lg:hover:shadow-[0_8px_25px_rgba(6,207,214,0.6)]"
+                        >
+                            Cotizar
+                        </Link>
+                    )}
+                </div>
             </div>
         </header>
         

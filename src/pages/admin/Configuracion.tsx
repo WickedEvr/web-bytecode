@@ -10,7 +10,7 @@ type SettingItem = {
 };
 
 const defaultSettings = {
-  contact_info: { email: '', phone: '', address: '' },
+  contact_info: { email: '', phone_1: '', phone_2: '', address: '' },
   smtp_config: { host: '', port: '', user: '', pass: '' },
   cloudinary_config: { cloud_name: '', api_key: '', api_secret: '' },
   features: { enable_chat: false, enable_quotes: true },
@@ -55,7 +55,8 @@ const AdminConfiguracion: React.FC = () => {
         if (item.setting_key === 'contact_info') {
           setContactInfo({
             email: readString(value.email, defaultSettings.contact_info.email),
-            phone: readString(value.phone, defaultSettings.contact_info.phone),
+            phone_1: readString(value.phone_1, defaultSettings.contact_info.phone_1),
+            phone_2: readString(value.phone_2, defaultSettings.contact_info.phone_2),
             address: readString(value.address, defaultSettings.contact_info.address),
           });
         }
@@ -153,14 +154,25 @@ const AdminConfiguracion: React.FC = () => {
                 className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors"
               />
             </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">Teléfono</label>
-              <input
-                type="text"
-                value={contactInfo.phone}
-                onChange={e => setContactInfo({ ...contactInfo, phone: e.target.value })}
-                className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">Teléfono 1 (WhatsApp Principal)</label>
+                <input
+                  type="text"
+                  value={contactInfo.phone_1}
+                  onChange={e => setContactInfo({ ...contactInfo, phone_1: e.target.value })}
+                  className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">Teléfono 2 (WhatsApp Secundario)</label>
+                <input
+                  type="text"
+                  value={contactInfo.phone_2}
+                  onChange={e => setContactInfo({ ...contactInfo, phone_2: e.target.value })}
+                  className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors"
+                />
+              </div>
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">Dirección Física</label>

@@ -7,14 +7,17 @@ import { SpeedInsights } from '@vercel/speed-insights/react'
 import './index.css'
 import App from './App.tsx'
 import ErrorBoundary from './components/shared/ErrorBoundary.tsx'
+import { SettingsProvider } from './contexts/SettingsContext.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <HelmetProvider>
       <ErrorBoundary>
-        <App />
-        <Analytics />
-        <SpeedInsights />
+        <SettingsProvider>
+          <App />
+          <Analytics />
+          <SpeedInsights />
+        </SettingsProvider>
       </ErrorBoundary>
     </HelmetProvider>
   </StrictMode>,
