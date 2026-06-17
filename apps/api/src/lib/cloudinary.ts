@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { v2 as cloudinary, type UploadApiResponse } from 'cloudinary';
 import { env } from '../config/env.js';
 import { CLOUDINARY_UPLOAD_FOLDER } from '../config/constants.js';
+import { getCloudinaryConfig } from '../services/settings.js';
 
 export type CloudinaryResourceType = 'image' | 'raw';
 
@@ -12,17 +13,19 @@ export type CloudinaryStoredAsset = {
   resourceType: CloudinaryResourceType;
 };
 
-cloudinary.config({
-  cloud_name: env.cloudinary.cloudName,
-  api_key: env.cloudinary.apiKey,
-  api_secret: env.cloudinary.apiSecret,
-  secure: true,
-});
+const configureCloudinary = async () => {
+  const config = await getCloudinaryConfig();
 
-const assertCloudinaryConfigured = () => {
-  if (!env.cloudinary.cloudName || !env.cloudinary.apiKey || !env.cloudinary.apiSecret) {
+  if (!config.cloudName || !config.apiKey || !config.apiSecret) {
     throw new Error('Cloudinary is not configured.');
   }
+
+  cloudinary.config({
+    cloud_name: config.cloudName,
+    api_key: config.apiKey,
+    api_secret: config.apiSecret,
+    secure: true,
+  });
 };
 
 const resourceTypeForMime = (mimeType: string): CloudinaryResourceType => (
@@ -40,7 +43,7 @@ export async function uploadComplaintEvidenceToCloudinary(input: {
   originalName: string;
   mimeType: string;
 }): Promise<CloudinaryStoredAsset> {
-  assertCloudinaryConfigured();
+  await configureCloudinary();
   const resourceType = resourceTypeForMime(input.mimeType);
 
   return new Promise((resolve, reject) => {
@@ -94,7 +97,7 @@ export async function uploadPortfolioImageToCloudinary(input: {
   originalName: string;
   mimeType: string;
 }): Promise<CloudinaryStoredAsset> {
-  assertCloudinaryConfigured();
+  await configureCloudinary();
 
   return new Promise((resolve, reject) => {
     let isSettled = false;
@@ -142,7 +145,7 @@ export async function uploadPortfolioImageToCloudinary(input: {
 }
 
 export async function deleteCloudinaryAsset(publicId: string, resourceType: CloudinaryResourceType) {
-  assertCloudinaryConfigured();
+  await configureCloudinary();
   await cloudinary.uploader.destroy(publicId, {
     resource_type: resourceType,
     invalidate: true,
