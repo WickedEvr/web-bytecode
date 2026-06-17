@@ -125,7 +125,7 @@ const AltFooter: React.FC = () => {
               >
                 <WhatsAppIcon className="text-[#06CFD6] transition-transform duration-300 shrink-0 lg:group-hover:scale-110" size={22} />
                 <span className="text-gray-300 transition-colors duration-300 whitespace-nowrap lg:group-hover:text-white" aria-label="WhatsApp">
-                  {contactInfo?.phone_1}
+                  (+51) {contactInfo?.phone_1}
                 </span>
               </a>
 
@@ -138,7 +138,7 @@ const AltFooter: React.FC = () => {
               >
                 <WhatsAppIcon className="text-[#06CFD6] transition-transform duration-300 shrink-0 lg:group-hover:scale-110" size={22} />
                 <span className="text-gray-300 transition-colors duration-300 whitespace-nowrap lg:group-hover:text-white" aria-label="WhatsApp">
-                  {contactInfo?.phone_2}
+                  (+51) {contactInfo?.phone_2}
                 </span>
               </a>
 
