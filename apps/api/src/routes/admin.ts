@@ -934,20 +934,20 @@ router.get(
       if (row.setting_key === 'smtp_config') {
         value = {
           ...value,
-          host: value.host || env.smtp?.host || process.env.SMTP_HOST || '',
-          port: String(value.port || env.smtp?.port || process.env.SMTP_PORT || ''),
-          secure: value.secure ?? (env.smtp?.secure || false),
-          user: value.user || env.smtp?.user || process.env.SMTP_USER || '',
-          pass: value.pass ? '********' : (env.smtp?.pass ? '********' : ''),
+          host: value.host || '',
+          port: String(value.port || ''),
+          secure: value.secure ?? false,
+          user: value.user || '',
+          pass: value.pass ? '********' : '',
         };
       }
 
       if (row.setting_key === 'cloudinary_config') {
         value = {
           ...value,
-          cloud_name: value.cloud_name || env.cloudinary?.cloudName || process.env.CLOUDINARY_CLOUD_NAME || '',
-          api_key: value.api_key || env.cloudinary?.apiKey || process.env.CLOUDINARY_API_KEY || '',
-          api_secret: value.api_secret ? '********' : (env.cloudinary?.apiSecret ? '********' : ''),
+          cloud_name: value.cloud_name || '',
+          api_key: value.api_key || '',
+          api_secret: value.api_secret ? '********' : '',
         };
       }
 
