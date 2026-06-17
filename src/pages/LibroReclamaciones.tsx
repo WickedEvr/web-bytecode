@@ -339,7 +339,7 @@ const LibroReclamaciones: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="mb-2 md:mb-0">
                 <Label text="Número de celular" required />
-                <PhoneInputGroup value={formData.telefono} onChange={handleChange} onCountrySelect={handleCountrySelect} countriesRegistry={allCountries} isLoading={isLoadingCatalogs} />
+                <PhoneInputGroup value={formData.telefono} onChange={(e: any) => { const value = e?.target ? e.target.value : e; const onlyNumbers = value.replace(/\D/g, ''); setFormData({ ...formData, telefono: onlyNumbers }); }} onCountrySelect={handleCountrySelect} countriesRegistry={allCountries} isLoading={isLoadingCatalogs} />
               </div>
               <div><Label text="Correo Electrónico" required /><Input name="email" type="email" placeholder="ejemplo@correo.com" value={formData.email} onChange={handleChange} required maxLength={180}/></div>
             </div>

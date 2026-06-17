@@ -313,7 +313,11 @@ const Contacto: React.FC = () => {
             <Label text="Número de celular" />
             <PhoneInputGroup 
               value={formData.celular} 
-              onChange={handleChange}
+              onChange={(e: any) => {
+                const value = e?.target ? e.target.value : e;
+                const onlyNumbers = value.replace(/\D/g, ''); 
+                setFormData({ ...formData, celular: onlyNumbers });
+              }}
               onCountrySelect={handleCountrySelect}
               countriesRegistry={allCountries}
               isLoading={isLoadingCatalogs}
