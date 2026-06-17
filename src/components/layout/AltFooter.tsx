@@ -3,8 +3,20 @@ import { Link } from "react-router-dom";
 import { Mail } from "lucide-react";
 import SpotlightText from "../typography/SpotlightText";
 import { WhatsAppIcon } from '../icons/SocialIcons';
+import { useSettings } from '../../contexts/SettingsContext';
 
 const AltFooter: React.FC = () => {
+  const { settings } = useSettings();
+  const contactInfo = settings?.contact_info;
+  const whatsappMessage = encodeURIComponent('¡Hola, equipo de Bytecode! Me gustaría cotizar el desarrollo de un software.');
+  const emailSubject = encodeURIComponent('Cotización de desarrollo de software');
+  const emailBody = whatsappMessage;
+  const whatsappHref = (phone?: string) => {
+    if (!phone) return undefined;
+
+    return `https://wa.me/51${phone.replace(/\D/g, '')}?text=${whatsappMessage}`;
+  };
+
   return (
     <div className="bg-transparent px-4 md:px-8 lg:px-12 font-sansation select-none">
 
@@ -106,38 +118,38 @@ const AltFooter: React.FC = () => {
 
               {/* WhatsApp 1 */}
               <a 
-                href="https://wa.me/51936281137?text=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
+                href={whatsappHref(contactInfo?.phone_1)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 group outline-none"
               >
                 <WhatsAppIcon className="text-[#06CFD6] transition-transform duration-300 shrink-0 lg:group-hover:scale-110" size={22} />
                 <span className="text-gray-300 transition-colors duration-300 whitespace-nowrap lg:group-hover:text-white" aria-label="WhatsApp">
-                  (+51) 936 281 137
+                  {contactInfo?.phone_1}
                 </span>
               </a>
 
               {/* WhatsApp 2 */}
               <a
-                href="https://wa.me/51970199434?text=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
+                href={whatsappHref(contactInfo?.phone_2)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 group outline-none"
               >
                 <WhatsAppIcon className="text-[#06CFD6] transition-transform duration-300 shrink-0 lg:group-hover:scale-110" size={22} />
                 <span className="text-gray-300 transition-colors duration-300 whitespace-nowrap lg:group-hover:text-white" aria-label="WhatsApp">
-                  (+51) 970 199 434
+                  {contactInfo?.phone_2}
                 </span>
               </a>
 
               {/* Correo */}
               <a
-                href="mailto:contacto@bytecode.com.pe?subject=Cotizaci%C3%B3n%20de%20desarrollo%20de%20software&body=%C2%A1Hola%2C%20equipo%20de%20Bytecode!%20Me%20gustar%C3%ADa%20cotizar%20el%20desarrollo%20de%20un%20software."
+                href={contactInfo?.email ? `mailto:${contactInfo.email}?subject=${emailSubject}&body=${emailBody}` : undefined}
                 className="flex items-center gap-3 group outline-none"
               >
                 <Mail className="text-[#06CFD6] transition-transform duration-300 shrink-0 lg:group-hover:scale-110" size={22} />
                 <span className="text-gray-300 transition-colors duration-300 whitespace-nowrap lg:group-hover:text-white">
-                  contacto@bytecode.com.pe
+                  {contactInfo?.email}
                 </span>
               </a>
             </div>

@@ -136,6 +136,7 @@ app.get('/health', async (_req: Request, res: Response) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/public', publicRoutes);
 app.use('/api', publicRoutes);
 app.use('/api/admin', adminLimiter, adminRoutes);
 
