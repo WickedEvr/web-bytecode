@@ -1044,7 +1044,7 @@ router.patch(
   requirePermission('admin.configuracion.manage'),
   asyncHandler(async (req: Request, res: Response) => {
     const { settings } = settingsUpdateSchema.parse(req.body);
-    const currentSettings = await pool.query('SELECT setting_key, setting_value, description, is_sensitive FROM system_settings');
+    const currentSettings = await pool.query('SELECT * FROM system_settings');
     const previousState = currentSettings.rows;
 
     for (const setting of settings) {
@@ -1069,7 +1069,7 @@ router.patch(
         }
       }
 
-      await pool.query(
+      const updateRes = await pool.query(
         `INSERT INTO system_settings (setting_key, setting_value, description, is_sensitive, updated_by)
          VALUES ($1, $2, $3, $4, $5)
          ON CONFLICT (setting_key) DO UPDATE
@@ -1077,19 +1077,24 @@ router.patch(
              description = COALESCE(EXCLUDED.description, system_settings.description),
              is_sensitive = COALESCE(EXCLUDED.is_sensitive, system_settings.is_sensitive),
              updated_at = now(), 
-             updated_by = EXCLUDED.updated_by`,
+             updated_by = EXCLUDED.updated_by
+         RETURNING *`,
         [setting.setting_key, JSON.stringify(valueToSave), setting.description ?? '', setting.is_sensitive ?? false, req.admin?.id]
       );
+
+      const rawUpdatedRow = updateRes.rows[0];
+      const rawOldRow = previousState.find((s: any) => s.setting_key === setting.setting_key);
+
+      await auditService.logAdminAction({
+        userId: req.admin?.id,
+        action: 'update',
+        entityType: 'system_settings',
+        entity: rawUpdatedRow,
+        previousState: rawOldRow,
+        req
+      });
     }
 
-    await auditService.logAdminAction({
-      userId: req.admin?.id,
-      action: 'update',
-      entityType: 'system_settings',
-      entity: settings,
-      previousState,
-      req
-    });
     res.json({ ok: true });
   })
 );
