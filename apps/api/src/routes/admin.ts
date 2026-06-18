@@ -1086,7 +1086,6 @@ router.patch(
       userId: req.admin?.id,
       action: 'update',
       entityType: 'system_settings',
-      entityId: 'batch_update',
       entity: settings,
       previousState,
       req

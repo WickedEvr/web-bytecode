@@ -30,16 +30,10 @@ export const auditService = {
     let entityId = explicitEntityId;
     
     if (entityId === undefined || entityId === null) {
-      if (entityType === 'system_settings') {
-        entityId = entity?.setting_key || null;
-      } else if (entityType === 'admin_sessions') {
-        entityId = entity?.id || null;
-      } else if (entity && typeof entity === 'object') {
-        entityId = entity.id || entity.setting_key || null;
-      }
-
-      if (!entityId && typeof entity === 'string') {
-        entityId = entity;
+      if (entity && typeof entity === 'object') {
+        entityId = entity.id || null;
+      } else {
+        entityId = null;
       }
     }
 
