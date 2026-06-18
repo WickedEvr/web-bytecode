@@ -133,9 +133,9 @@ const Auditoria: React.FC = () => {
               <tr>
                 <th className="px-6 py-4 font-medium">Fecha</th>
                 <th className="px-6 py-4 font-medium">Usuario</th>
-                <th className="px-6 py-4 font-medium">Acción</th>
-                <th className="px-6 py-4 font-medium">Entidad</th>
-                <th className="px-6 py-4 font-medium">ID Entidad</th>
+                <th className="px-6 py-4 font-medium text-center">Acción</th>
+                <th className="px-6 py-4 font-medium text-center">Entidad</th>
+                <th className="px-6 py-4 font-medium text-center">ID Entidad</th>
                 <th className="px-6 py-4 font-medium">Contexto</th>
                 <th className="px-6 py-4 font-medium text-right">Acciones</th>
               </tr>
@@ -154,14 +154,26 @@ const Auditoria: React.FC = () => {
                       <span className="text-white/30 italic">Sistema</span>
                     )}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 text-center">
                     <span className="rounded bg-white/5 border border-white/5 px-2 py-0.5 text-[10px] font-medium text-white/60 uppercase tracking-widest">
                       {log.action}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-white/80">{log.entity_type}</td>
+                  <td className="px-6 py-4 text-white/80 text-center">{log.entity_type}</td>
                   
-                  <td className="px-6 py-4 text-xs font-mono text-white/30">{log.entity_id || '-'}</td>
+                  <td className="px-6 py-4 text-xs font-mono text-white/30 text-center">
+                    {log.entity_id ? (
+                      <span title={log.entity_id}>
+                        {log.entity_id}
+                      </span>
+                    ) : log.action === 'batch_update' ? (
+                      <span className="text-[10px] font-medium text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 uppercase tracking-widest whitespace-nowrap">
+                        Múltiples (Ver Detalles)
+                      </span>
+                    ) : (
+                      'N/A'
+                    )}
+                  </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
                       <span className="text-white/70 text-[11px] font-mono">{log.ip_address || '-'}</span>
