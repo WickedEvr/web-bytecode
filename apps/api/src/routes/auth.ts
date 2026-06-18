@@ -46,7 +46,7 @@ router.post(
 
     if (result.rowCount === 0) {
       await auditService.logAdminAction({
-        action: 'LOGIN_FAILED',
+        action: 'login_failed',
         entityType: 'admin_sessions',
         entity: { email: body.email },
         req
@@ -59,7 +59,7 @@ router.post(
     if (!validPassword) {
       await auditService.logAdminAction({
         userId: admin.id,
-        action: 'LOGIN_FAILED',
+        action: 'login_failed',
         entityType: 'admin_sessions',
         entity: { email: body.email },
         req
@@ -159,7 +159,7 @@ router.post(
 
     await auditService.logAdminAction({
       userId: admin.id,
-      action: 'LOGIN',
+      action: 'login',
       entityType: 'admin_sessions',
       entity: publicAdmin,
       req
@@ -189,7 +189,7 @@ router.post('/logout', requireAdmin, asyncHandler(async (req: Request, res: Resp
   }
   await auditService.logAdminAction({
     userId: req.admin?.id,
-    action: 'LOGOUT',
+    action: 'logout',
     entityType: 'admin_sessions',
     entity: req.admin,
     req

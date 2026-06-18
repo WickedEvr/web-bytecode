@@ -1071,7 +1071,7 @@ router.get(
     const [result, countResult] = await Promise.all([
       pool.query(
         `
-        SELECT l.id, l.action, l.entity_type, l.entity_id, l.created_at, u.name as admin_name, u.email as admin_email
+        SELECT l.id, l.action, l.entity_type, l.entity_id, l.ip_address, l.user_agent, l.details, l.created_at, u.name as admin_name, u.email as admin_email
         FROM admin_audit_logs l
         LEFT JOIN admin_users u ON l.admin_id = u.id
         ORDER BY l.created_at DESC
@@ -1082,8 +1082,21 @@ router.get(
       pool.query('SELECT COUNT(*)::int AS total FROM admin_audit_logs'),
     ]);
 
+    const items = result.rows.map((row) => ({
+      id: row.id,
+      action: row.action,
+      entity_type: row.entity_type,
+      entity_id: row.entity_id,
+      ip_address: row.ip_address,
+      user_agent: row.user_agent,
+      details: typeof row.details === 'string' ? JSON.parse(row.details) : row.details,
+      created_at: row.created_at,
+      admin_name: row.admin_name,
+      admin_email: row.admin_email,
+    }));
+
     res.json({
-      items: result.rows,
+      items,
       total: countResult.rows[0]?.total ?? 0,
       limit: query.limit,
       offset: query.offset,
