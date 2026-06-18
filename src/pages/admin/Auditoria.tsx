@@ -81,12 +81,24 @@ const Auditoria: React.FC = () => {
   const canGoPrevious = page > 1 && !loading;
   const canGoNext = page < totalPages && !loading;
 
-  
-  const simplifyUserAgent = (ua: string | undefined) => {
+  const formatUserAgent = (ua: string | undefined) => {
     if (!ua) return '-';
-    // Muted display: just show up to first space or 20 chars
-    if (ua.length > 20) return ua.substring(0, 20) + '...';
-    return ua;
+    
+    let os = 'Unknown OS';
+    if (/windows/i.test(ua)) os = 'Windows';
+    else if (/mac os x/i.test(ua) || /macintosh/i.test(ua)) os = 'macOS';
+    else if (/android/i.test(ua)) os = 'Android';
+    else if (/iphone|ipad|ipod/i.test(ua)) os = 'iOS';
+    else if (/linux/i.test(ua)) os = 'Linux';
+    
+    let browser = 'Unknown Browser';
+    if (/edg/i.test(ua)) browser = 'Edge';
+    else if (/opr|opera/i.test(ua)) browser = 'Opera';
+    else if (/chrome|crios/i.test(ua)) browser = 'Chrome';
+    else if (/firefox|fxios/i.test(ua)) browser = 'Firefox';
+    else if (/safari/i.test(ua)) browser = 'Safari';
+    
+    return `${os} • ${browser}`;
   };
 
 
@@ -153,7 +165,7 @@ const Auditoria: React.FC = () => {
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
                       <span className="text-white/70 text-[11px] font-mono">{log.ip_address || '-'}</span>
-                      <span className="text-white/40 text-[10px] truncate max-w-[120px]" title={log.user_agent}>{simplifyUserAgent(log.user_agent)}</span>
+                      <span className="text-white/40 text-[10px] truncate max-w-[120px]" title={log.user_agent}>{formatUserAgent(log.user_agent)}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
