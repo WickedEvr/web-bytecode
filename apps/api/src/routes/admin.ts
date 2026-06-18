@@ -15,7 +15,7 @@ import {
 import { allowedUploadMimeTypeList, validateUpload } from '../lib/validateUpload.js';
 import { requireAdmin, requirePermission, requireSuperAdmin } from '../middleware/auth.js';
 import { requireCsrf } from '../middleware/csrf.js';
-import { audit } from '../services/audit.js';
+import { auditService } from '../services/audit.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { HttpError } from '../utils/httpError.js';
 
@@ -179,7 +179,12 @@ router.post(
 
       await replaceRolePermissions(client, result.rows[0].id, body.permissionIds, req.admin?.id);
       await client.query('COMMIT');
-      await audit(req.admin?.id, 'create', 'role', result.rows[0].id);
+      await auditService.logAdminAction({
+        userId: req.admin?.id,
+        action: 'create',
+        entityType: 'role',
+        entity: result.rows[0].id
+      });
       res.status(201).json({ item: { ...result.rows[0], permission_ids: body.permissionIds } });
     } catch (error: unknown) {
       await client.query('ROLLBACK');
@@ -236,7 +241,12 @@ router.put(
       );
 
       await client.query('COMMIT');
-      await audit(req.admin?.id, 'update', 'role', id);
+      await auditService.logAdminAction({
+        userId: req.admin?.id,
+        action: 'update',
+        entityType: 'role',
+        entity: id
+      });
       res.json({ item: result.rows[0] });
     } catch (error) {
       await client.query('ROLLBACK');
@@ -487,7 +497,12 @@ router.patch(
     );
 
     if (result.rowCount === 0) throw new HttpError(404, 'Mensaje no encontrado.');
-    await audit(req.admin?.id, 'update', 'contact_submission', id);
+    await auditService.logAdminAction({
+        userId: req.admin?.id,
+        action: 'update',
+        entityType: 'contact_submission',
+        entity: id
+      });
     
     const normalized = await hasNormalizedContactSchema();
     const updated = await pool.query(
@@ -535,7 +550,12 @@ router.post(
       }
       
       await client.query('COMMIT');
-      await audit(req.admin?.id, 'assign', 'contact_submission', id);
+      await auditService.logAdminAction({
+        userId: req.admin?.id,
+        action: 'assign',
+        entityType: 'contact_submission',
+        entity: id
+      });
       
       const normalized = await hasNormalizedContactSchema();
       const updated = await pool.query(
@@ -653,8 +673,13 @@ router.patch(
     );
 
     if (result.rowCount === 0) throw new HttpError(404, 'Reclamo no encontrado.');
-    await audit(req.admin?.id, 'update', 'complaint', id);
-    
+    await auditService.logAdminAction({
+      userId: req.admin?.id,
+      action: 'update',
+      entityType: 'complaint',
+      entity: id
+    });
+
     const updated = await pool.query(
       `SELECT ${complaintColumns} 
       FROM complaints c
@@ -696,7 +721,12 @@ router.get(
       throw new HttpError(404, 'Adjunto no disponible en almacenamiento persistente.');
     }
 
-    await audit(req.admin?.id, 'download_attachment', 'complaint', id);
+    await auditService.logAdminAction({
+      userId: req.admin?.id,
+      action: 'download_attachment',
+      entityType: 'complaint',
+      entity: id
+    });
     res.redirect(302, downloadUrl);
   }),
 );
@@ -775,7 +805,12 @@ router.post(
       );
 
       await client.query('COMMIT');
-      await audit(req.admin?.id, 'create', 'admin_user', result.rows[0].id);
+      await auditService.logAdminAction({
+        userId: req.admin?.id,
+        action: 'create',
+        entityType: 'admin_user',
+        entity: result.rows[0].id
+      });
       res.status(201).json({ item: result.rows[0] });
     } catch (err: unknown) {
       await client.query('ROLLBACK');
@@ -847,7 +882,12 @@ router.patch(
       );
 
       await client.query('COMMIT');
-      await audit(req.admin?.id, 'update', 'admin_user', id);
+      await auditService.logAdminAction({
+        userId: req.admin?.id,
+        action: 'update',
+        entityType: 'admin_user',
+        entity: id
+      });
       res.json({ item: { ...result.rows[0], role: updatedRole } });
     } catch (err) {
       await client.query('ROLLBACK');
@@ -898,7 +938,12 @@ router.patch(
       await client.query('UPDATE admin_users SET updated_at = now(), updated_by = $2 WHERE id = $1', [id, req.admin?.id]);
 
       await client.query('COMMIT');
-      await audit(req.admin?.id, 'update_role', 'admin_user', id);
+      await auditService.logAdminAction({
+        userId: req.admin?.id,
+        action: 'update_role',
+        entityType: 'admin_user',
+        entity: id
+      });
       res.json({ item: { id, role } });
     } catch (err) {
       await client.query('ROLLBACK');
@@ -966,6 +1011,8 @@ router.patch(
   requirePermission('admin.configuracion.manage'),
   asyncHandler(async (req: Request, res: Response) => {
     const { settings } = settingsUpdateSchema.parse(req.body);
+    const currentSettings = await pool.query('SELECT setting_key, setting_value, description, is_sensitive FROM system_settings');
+    const previousState = currentSettings.rows;
 
     for (const setting of settings) {
       // Evitar sobreescribir con valores enmascarados
@@ -1002,7 +1049,14 @@ router.patch(
       );
     }
 
-    await audit(req.admin?.id, 'update', 'system_settings', null);
+    await auditService.logAdminAction({
+      userId: req.admin?.id,
+      action: 'update',
+      entityType: 'system_settings',
+      entity: settings,
+      previousState,
+      req
+    });
     res.json({ ok: true });
   })
 );
@@ -1128,7 +1182,12 @@ router.patch(
     );
 
     if (result.rowCount === 0) throw new HttpError(404, 'Página no encontrada.');
-    await audit(req.admin?.id, 'update', 'cms_page', id);
+    await auditService.logAdminAction({
+      userId: req.admin?.id,
+      action: 'update',
+      entityType: 'cms_page',
+      entity: id
+    });
     res.json({ item: result.rows[0] });
   })
 );
@@ -1323,7 +1382,12 @@ router.post(
       [code, body.name, body.sortOrder, req.admin?.id ?? null],
     );
 
-    await audit(req.admin?.id, 'upsert', 'technology_catalog', result.rows[0].id);
+    await auditService.logAdminAction({
+        userId: req.admin?.id,
+        action: 'upsert',
+        entityType: 'technology_catalog',
+        entity: result.rows[0].id
+      });
     res.status(201).json({ item: result.rows[0] });
   }),
 );
@@ -1418,7 +1482,12 @@ router.post(
       }
 
       await client.query('COMMIT');
-      await audit(req.admin?.id, 'create', 'portfolio_item', id);
+      await auditService.logAdminAction({
+        userId: req.admin?.id,
+        action: 'create',
+        entityType: 'portfolio_item',
+        entity: id
+      });
 
       const created = await pool.query(`${selectPortfolioItemsSql} AND pi.id = $1 ${portfolioGroupOrderSql}`, [id]);
       res.status(201).json({ item: created.rows[0] });
@@ -1485,7 +1554,12 @@ router.patch(
       }
 
       await client.query('COMMIT');
-      await audit(req.admin?.id, 'update', 'portfolio_item', id);
+      await auditService.logAdminAction({
+        userId: req.admin?.id,
+        action: 'update',
+        entityType: 'portfolio_item',
+        entity: id
+      });
 
       const updated = await pool.query(`${selectPortfolioItemsSql} AND pi.id = $1 ${portfolioGroupOrderSql}`, [id]);
       res.json({ item: updated.rows[0] });
@@ -1513,7 +1587,12 @@ router.delete(
     );
 
     if (result.rowCount === 0) throw new HttpError(404, 'Proyecto de portafolio no encontrado.');
-    await audit(req.admin?.id, 'delete', 'portfolio_item', id);
+    await auditService.logAdminAction({
+      userId: req.admin?.id,
+      action: 'delete',
+      entityType: 'portfolio_item',
+      entity: id
+    });
     res.json({ ok: true });
   }),
 );
@@ -1597,7 +1676,12 @@ router.post(
       );
 
       await client.query('COMMIT');
-      await audit(req.admin?.id, 'upload_image', 'portfolio_item', id);
+      await auditService.logAdminAction({
+        userId: req.admin?.id,
+        action: 'upload_image',
+        entityType: 'portfolio_item',
+        entity: id
+      });
 
       const updated = await pool.query(`${selectPortfolioItemsSql} AND pi.id = $1 ${portfolioGroupOrderSql}`, [id]);
       res.status(201).json({ item: updated.rows[0] });
@@ -1838,7 +1922,12 @@ router.post(
         );
       }
 
-      await audit(req.admin?.id, body.editingQuoteId ? 'update' : 'create', 'quote', quoteId);
+      await auditService.logAdminAction({
+        userId: req.admin?.id,
+        action: body.editingQuoteId ? 'update' : 'create',
+        entityType: 'quote',
+        entity: quoteId
+      });
       await client.query('COMMIT');
       res.status(body.editingQuoteId ? 200 : 201).json({ ok: true, quoteId });
     } catch (e: unknown) {
@@ -1865,7 +1954,12 @@ router.delete(
       throw new HttpError(404, 'Cotizacion no encontrada');
     }
 
-    await audit(req.admin?.id, 'delete', 'quote', id);
+    await auditService.logAdminAction({
+      userId: req.admin?.id,
+      action: 'delete',
+      entityType: 'quote',
+      entity: id
+    });
     res.json({ ok: true });
   }),
 );

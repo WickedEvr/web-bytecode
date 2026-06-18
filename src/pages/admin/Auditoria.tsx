@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, ClipboardList, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ClipboardList, RefreshCw, Eye, X } from 'lucide-react';
 import { apiRequest } from '../../lib/api';
 
 type AuditLog = {
@@ -10,6 +10,9 @@ type AuditLog = {
   created_at: string;
   admin_name: string | null;
   admin_email: string | null;
+  ip_address?: string;
+  user_agent?: string;
+  details?: Record<string, any>;
 };
 
 type AuditLogsResponse = {
@@ -31,6 +34,7 @@ const Auditoria: React.FC = () => {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [selectedDetails, setSelectedDetails] = useState<Record<string, any> | null>(null);
 
   const loadLogs = useCallback(async (targetPage: number) => {
     setLoading(true);
@@ -77,6 +81,15 @@ const Auditoria: React.FC = () => {
   const canGoPrevious = page > 1 && !loading;
   const canGoNext = page < totalPages && !loading;
 
+  
+  const simplifyUserAgent = (ua: string | undefined) => {
+    if (!ua) return '-';
+    // Muted display: just show up to first space or 20 chars
+    if (ua.length > 20) return ua.substring(0, 20) + '...';
+    return ua;
+  };
+
+
   const formatDate = (val: string) => 
     new Intl.DateTimeFormat('es-PE', { dateStyle: 'short', timeStyle: 'medium' }).format(new Date(val));
 
@@ -111,6 +124,8 @@ const Auditoria: React.FC = () => {
                 <th className="px-6 py-4 font-medium">Acción</th>
                 <th className="px-6 py-4 font-medium">Entidad</th>
                 <th className="px-6 py-4 font-medium">ID Entidad</th>
+                <th className="px-6 py-4 font-medium">Contexto</th>
+                <th className="px-6 py-4 font-medium text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className={`divide-y divide-white/5 text-white/80 transition-opacity ${loading ? 'opacity-60' : 'opacity-100'}`}>
@@ -133,11 +148,33 @@ const Auditoria: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-white/80">{log.entity_type}</td>
+                  
                   <td className="px-6 py-4 text-xs font-mono text-white/30">{log.entity_id || '-'}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col">
+                      <span className="text-white/70 text-[11px] font-mono">{log.ip_address || '-'}</span>
+                      <span className="text-white/40 text-[10px] truncate max-w-[120px]" title={log.user_agent}>{simplifyUserAgent(log.user_agent)}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    {log.details && Object.keys(log.details).length > 0 ? (
+                      <button
+                        onClick={() => setSelectedDetails(log.details!)}
+                        className="inline-flex items-center gap-1.5 rounded bg-white/5 px-2 py-1 text-xs text-white/60 hover:bg-white/10 hover:text-white transition-colors border border-white/5"
+                        title="Ver Detalles"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        <span>Detalles</span>
+                      </button>
+                    ) : (
+                      <span className="text-[10px] text-white/20 italic">-</span>
+                    )}
+                  </td>
+
                 </tr>
               ))}
               {logs.length === 0 && !loading && (
-                <tr><td colSpan={5} className="px-6 py-10 text-center text-white/30 text-sm">No hay registros de auditoría.</td></tr>
+                <tr><td colSpan={7} className="px-6 py-10 text-center text-white/30 text-sm">No hay registros de auditoría.</td></tr>
               )}
             </tbody>
           </table>
@@ -170,7 +207,40 @@ const Auditoria: React.FC = () => {
             </button>
           </div>
         </div>
+      
       </AdminPanel>
+
+      {/* Details Modal */}
+      {selectedDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-zinc-900 border border-white/10 rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-white/[0.02]">
+              <h3 className="text-lg font-medium text-white/90 font-sansation tracking-wide">Detalles de Auditoría</h3>
+              <button 
+                onClick={() => setSelectedDetails(null)}
+                className="text-white/50 hover:text-white transition-colors p-1 hover:bg-white/10 rounded-lg"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-5 overflow-y-auto">
+              <pre className="bg-black/40 text-green-400 p-4 rounded-lg overflow-x-auto text-xs font-mono leading-relaxed border border-white/5 shadow-inner">
+                <code>
+                  {JSON.stringify(selectedDetails, null, 2)}
+                </code>
+              </pre>
+            </div>
+            <div className="px-5 py-4 border-t border-white/10 bg-white/[0.02] flex justify-end">
+              <button 
+                onClick={() => setSelectedDetails(null)}
+                className="px-4 py-2 rounded-lg bg-white/10 text-white/80 text-sm font-medium hover:bg-white/20 transition-colors"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

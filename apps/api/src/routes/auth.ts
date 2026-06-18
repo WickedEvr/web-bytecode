@@ -11,7 +11,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { HttpError } from '../utils/httpError.js';
 import { clearAdminCookie, requireAdmin, requirePermission } from '../middleware/auth.js';
 import { loginLimiter } from '../middleware/rateLimiters.js';
-import { audit } from '../services/audit.js';
+import { auditService } from '../services/audit.js';
 
 const router = Router();
 
@@ -144,7 +144,7 @@ router.post(
       permissions: admin.permissions,
     };
 
-    await audit(admin.id, 'login', 'admin_user', admin.id);
+    await auditService.logAdminAction({ userId: admin.id, action: 'login', entityType: 'admin_user', entity: admin.id, req });
     res.json({ admin: publicAdmin });
   }),
 );
@@ -168,7 +168,7 @@ router.post('/logout', requireAdmin, asyncHandler(async (req: Request, res: Resp
   if (req.sessionId) {
     await pool.query('UPDATE admin_sessions SET revoked_at = NOW() WHERE id = $1', [req.sessionId]);
   }
-  await audit(req.admin?.id, 'logout', 'admin_user', req.admin?.id);
+  await auditService.logAdminAction({ userId: req.admin?.id, action: 'logout', entityType: 'admin_user', entity: req.admin?.id, req });
   clearAdminCookie(res);
   res.json({ ok: true });
 }));
@@ -259,7 +259,7 @@ router.post('/sessions/:sessionId/revoke', requireAdmin, requirePermission('admi
     throw new HttpError(404, 'Sesión no encontrada.');
   }
 
-  await audit(req.admin?.id, 'revoke_session', 'admin_sessions', params.sessionId);
+  await auditService.logAdminAction({ userId: req.admin?.id, action: 'revoke_session', entityType: 'admin_sessions', entity: params.sessionId, req });
   
   res.json({ ok: true, message: 'Sesión revocada exitosamente.' });
 }));
@@ -299,7 +299,7 @@ router.post('/first-password-change', asyncHandler(async (req: Request, res: Res
     [newHash, body.userId]
   );
 
-  await audit(body.userId, 'update_password', 'admin_user', body.userId);
+  await auditService.logAdminAction({ userId: body.userId, action: 'update_password', entityType: 'admin_user', entity: body.userId, req });
 
   res.json({ ok: true, message: 'Contraseña actualizada correctamente.' });
 }));
@@ -319,7 +319,7 @@ router.get('/verify-email', asyncHandler(async (req: Request, res: Response) => 
     throw new HttpError(400, 'Token inválido o expirado.');
   }
 
-  await audit(result.rows[0].id, 'verify_email', 'admin_user', result.rows[0].id);
+  await auditService.logAdminAction({ userId: result.rows[0].id, action: 'verify_email', entityType: 'admin_user', entity: result.rows[0].id, req });
 
   res.json({ ok: true, message: 'Cuenta verificada exitosamente.' });
 }));
