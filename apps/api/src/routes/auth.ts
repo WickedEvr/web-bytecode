@@ -45,12 +45,25 @@ router.post(
     );
 
     if (result.rowCount === 0) {
+      await auditService.logAdminAction({
+        action: 'LOGIN_FAILED',
+        entityType: 'admin_sessions',
+        entity: { email: body.email },
+        req
+      });
       throw new HttpError(401, 'Credenciales inválidas.');
     }
 
     const admin = result.rows[0];
     const validPassword = await bcrypt.compare(body.password, admin.password_hash);
     if (!validPassword) {
+      await auditService.logAdminAction({
+        userId: admin.id,
+        action: 'LOGIN_FAILED',
+        entityType: 'admin_sessions',
+        entity: { email: body.email },
+        req
+      });
       throw new HttpError(401, 'Credenciales inválidas.');
     }
 
@@ -144,7 +157,13 @@ router.post(
       permissions: admin.permissions,
     };
 
-    await auditService.logAdminAction({ userId: admin.id, action: 'login', entityType: 'admin_user', entity: admin.id, req });
+    await auditService.logAdminAction({
+      userId: admin.id,
+      action: 'LOGIN',
+      entityType: 'admin_sessions',
+      entity: publicAdmin,
+      req
+    });
     res.json({ admin: publicAdmin });
   }),
 );
@@ -168,7 +187,13 @@ router.post('/logout', requireAdmin, asyncHandler(async (req: Request, res: Resp
   if (req.sessionId) {
     await pool.query('UPDATE admin_sessions SET revoked_at = NOW() WHERE id = $1', [req.sessionId]);
   }
-  await auditService.logAdminAction({ userId: req.admin?.id, action: 'logout', entityType: 'admin_user', entity: req.admin?.id, req });
+  await auditService.logAdminAction({
+    userId: req.admin?.id,
+    action: 'LOGOUT',
+    entityType: 'admin_sessions',
+    entity: req.admin,
+    req
+  });
   clearAdminCookie(res);
   res.json({ ok: true });
 }));
