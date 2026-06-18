@@ -1046,6 +1046,8 @@ router.patch(
     const { settings } = settingsUpdateSchema.parse(req.body);
     const currentSettings = await pool.query('SELECT * FROM system_settings');
     const previousState = currentSettings.rows;
+    const previousStates: any[] = [];
+    const newStates: any[] = [];
 
     for (const setting of settings) {
       // Evitar sobreescribir con valores enmascarados
@@ -1085,15 +1087,18 @@ router.patch(
       const rawUpdatedRow = updateRes.rows[0];
       const rawOldRow = previousState.find((s: any) => s.setting_key === setting.setting_key);
 
-      await auditService.logAdminAction({
-        userId: req.admin?.id,
-        action: 'update',
-        entityType: 'system_settings',
-        entity: rawUpdatedRow,
-        previousState: rawOldRow,
-        req
-      });
+      if (rawOldRow) previousStates.push(rawOldRow);
+      newStates.push(rawUpdatedRow);
     }
+
+    await auditService.logAdminAction({
+      userId: req.admin?.id,
+      action: 'batch_update',
+      entityType: 'system_settings',
+      entity: newStates,
+      previousState: previousStates,
+      req
+    });
 
     res.json({ ok: true });
   })
