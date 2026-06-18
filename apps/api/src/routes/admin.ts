@@ -183,7 +183,8 @@ router.post(
         userId: req.admin?.id,
         action: 'create',
         entityType: 'role',
-        entity: result.rows[0].id
+        entity: result.rows[0],
+        req
       });
       res.status(201).json({ item: { ...result.rows[0], permission_ids: body.permissionIds } });
     } catch (error: unknown) {
@@ -209,7 +210,7 @@ router.put(
 
     try {
       await client.query('BEGIN');
-      const current = await client.query('SELECT id, code FROM roles WHERE id = $1 AND deleted_at IS NULL', [id]);
+      const current = await client.query('SELECT * FROM roles WHERE id = $1 AND deleted_at IS NULL', [id]);
       if (current.rowCount === 0) throw new HttpError(404, 'Rol no encontrado.');
       if (current.rows[0].code === 'super_admin') {
         throw new HttpError(403, 'No se puede modificar el rol super_admin.');
@@ -245,7 +246,9 @@ router.put(
         userId: req.admin?.id,
         action: 'update',
         entityType: 'role',
-        entity: id
+        entity: result.rows[0],
+        previousState: current.rows[0],
+        req
       });
       res.json({ item: result.rows[0] });
     } catch (error) {
@@ -484,6 +487,9 @@ router.patch(
       if ((statusRes.rowCount ?? 0) > 0) statusId = statusRes.rows[0].id;
     }
 
+    const current = await pool.query('SELECT * FROM contact_cases WHERE id = $1', [id]);
+    if (current.rowCount === 0) throw new HttpError(404, 'Mensaje no encontrado.');
+
     const result = await pool.query(
       `
       UPDATE contact_cases
@@ -497,18 +503,23 @@ router.patch(
     );
 
     if (result.rowCount === 0) throw new HttpError(404, 'Mensaje no encontrado.');
-    await auditService.logAdminAction({
-        userId: req.admin?.id,
-        action: 'update',
-        entityType: 'contact_submission',
-        entity: id
-      });
+
     
     const normalized = await hasNormalizedContactSchema();
     const updated = await pool.query(
       `SELECT ${normalized ? contactColumns : legacyContactColumns} FROM contact_cases c ${normalized ? contactJoins : legacyContactJoins} WHERE c.id = $1`, 
       [id]
     );
+
+    await auditService.logAdminAction({
+        userId: req.admin?.id,
+        action: 'update',
+        entityType: 'contact_submission',
+        entity: updated.rows[0],
+        previousState: current.rows[0],
+        req
+    });
+
     res.json({ item: updated.rows[0] });
   }),
 );
@@ -530,6 +541,9 @@ router.post(
     try {
       await client.query('BEGIN');
       
+      const current = await client.query('SELECT * FROM contact_cases WHERE id = $1', [id]);
+      if (current.rowCount === 0) throw new HttpError(404, 'Mensaje no encontrado.');
+
       await client.query(
         'UPDATE contact_case_assignments SET unassigned_at = NOW() WHERE contact_case_id = $1 AND unassigned_at IS NULL',
         [id]
@@ -550,18 +564,23 @@ router.post(
       }
       
       await client.query('COMMIT');
+
+      
+      const normalized = await hasNormalizedContactSchema();
+      const updated = await client.query(
+        `SELECT ${normalized ? contactColumns : legacyContactColumns} FROM contact_cases c ${normalized ? contactJoins : legacyContactJoins} WHERE c.id = $1`, 
+        [id]
+      );
+
       await auditService.logAdminAction({
         userId: req.admin?.id,
         action: 'assign',
         entityType: 'contact_submission',
-        entity: id
+        entity: updated.rows[0],
+        previousState: current.rows[0],
+        req
       });
-      
-      const normalized = await hasNormalizedContactSchema();
-      const updated = await pool.query(
-        `SELECT ${normalized ? contactColumns : legacyContactColumns} FROM contact_cases c ${normalized ? contactJoins : legacyContactJoins} WHERE c.id = $1`, 
-        [id]
-      );
+
       res.json({ item: updated.rows[0] });
     } catch (error) {
       await client.query('ROLLBACK');
@@ -660,6 +679,9 @@ router.patch(
       if ((statusRes.rowCount ?? 0) > 0) statusId = statusRes.rows[0].id;
     }
 
+    const current = await pool.query('SELECT * FROM complaints WHERE id = $1', [id]);
+    if (current.rowCount === 0) throw new HttpError(404, 'Reclamo no encontrado.');
+
     const result = await pool.query(
       `
       UPDATE complaints
@@ -673,12 +695,7 @@ router.patch(
     );
 
     if (result.rowCount === 0) throw new HttpError(404, 'Reclamo no encontrado.');
-    await auditService.logAdminAction({
-      userId: req.admin?.id,
-      action: 'update',
-      entityType: 'complaint',
-      entity: id
-    });
+
 
     const updated = await pool.query(
       `SELECT ${complaintColumns} 
@@ -693,6 +710,16 @@ router.patch(
       WHERE c.id = $1`, 
       [id]
     );
+
+    await auditService.logAdminAction({
+      userId: req.admin?.id,
+      action: 'update',
+      entityType: 'complaint',
+      entity: updated.rows[0],
+      previousState: current.rows[0],
+      req
+    });
+
     res.json({ item: updated.rows[0] });
   }),
 );
@@ -725,7 +752,8 @@ router.get(
       userId: req.admin?.id,
       action: 'download_attachment',
       entityType: 'complaint',
-      entity: id
+      entity: id,
+      req
     });
     res.redirect(302, downloadUrl);
   }),
@@ -809,7 +837,8 @@ router.post(
         userId: req.admin?.id,
         action: 'create',
         entityType: 'admin_user',
-        entity: result.rows[0].id
+        entity: result.rows[0],
+        req
       });
       res.status(201).json({ item: result.rows[0] });
     } catch (err: unknown) {
@@ -886,7 +915,9 @@ router.patch(
         userId: req.admin?.id,
         action: 'update',
         entityType: 'admin_user',
-        entity: id
+        entity: { ...result.rows[0], role: updatedRole },
+        previousState: currentUser.rows[0],
+        req
       });
       res.json({ item: { ...result.rows[0], role: updatedRole } });
     } catch (err) {
@@ -942,7 +973,9 @@ router.patch(
         userId: req.admin?.id,
         action: 'update_role',
         entityType: 'admin_user',
-        entity: id
+        entity: { id, role },
+        previousState: currentUser.rows[0],
+        req
       });
       res.json({ item: { id, role } });
     } catch (err) {
@@ -1167,6 +1200,9 @@ router.patch(
         ? null
         : await getCmsStatusId(pool, body.is_published ? 'published' : 'draft');
 
+    const current = await pool.query('SELECT * FROM cms_pages WHERE id = $1', [id]);
+    if (current.rowCount === 0) throw new HttpError(404, 'Página no encontrada.');
+
     const result = await pool.query(
       `UPDATE cms_pages
        SET title = COALESCE($2, title),
@@ -1194,12 +1230,13 @@ router.patch(
       [id, body.title ?? null, body.meta_title ?? null, body.meta_description ?? null, publishedStatusId, body.is_published ?? null]
     );
 
-    if (result.rowCount === 0) throw new HttpError(404, 'Página no encontrada.');
     await auditService.logAdminAction({
       userId: req.admin?.id,
       action: 'update',
       entityType: 'cms_page',
-      entity: id
+      entity: result.rows[0],
+      previousState: current.rows[0],
+      req
     });
     res.json({ item: result.rows[0] });
   })
@@ -1399,7 +1436,8 @@ router.post(
         userId: req.admin?.id,
         action: 'upsert',
         entityType: 'technology_catalog',
-        entity: result.rows[0].id
+        entity: result.rows[0],
+        req
       });
     res.status(201).json({ item: result.rows[0] });
   }),
@@ -1495,14 +1533,16 @@ router.post(
       }
 
       await client.query('COMMIT');
+
+      const created = await pool.query(`${selectPortfolioItemsSql} AND pi.id = $1 ${portfolioGroupOrderSql}`, [id]);
       await auditService.logAdminAction({
         userId: req.admin?.id,
         action: 'create',
         entityType: 'portfolio_item',
-        entity: id
+        entity: created.rows[0],
+        req
       });
 
-      const created = await pool.query(`${selectPortfolioItemsSql} AND pi.id = $1 ${portfolioGroupOrderSql}`, [id]);
       res.status(201).json({ item: created.rows[0] });
     } catch (error) {
       await client.query('ROLLBACK').catch(() => undefined);
@@ -1529,6 +1569,9 @@ router.patch(
 
     try {
       await client.query('BEGIN');
+      const current = await client.query('SELECT * FROM portfolio_items WHERE id = $1 AND deleted_at IS NULL', [id]);
+      if (current.rowCount === 0) throw new HttpError(404, 'Proyecto de portafolio no encontrado.');
+
       const result = await client.query(
         `UPDATE portfolio_items
          SET name = COALESCE($2, name),
@@ -1567,14 +1610,18 @@ router.patch(
       }
 
       await client.query('COMMIT');
+      
+      const updated = await pool.query(`${selectPortfolioItemsSql} AND pi.id = $1 ${portfolioGroupOrderSql}`, [id]);
+      
       await auditService.logAdminAction({
         userId: req.admin?.id,
         action: 'update',
         entityType: 'portfolio_item',
-        entity: id
+        entity: updated.rows[0],
+        previousState: current.rows[0],
+        req
       });
 
-      const updated = await pool.query(`${selectPortfolioItemsSql} AND pi.id = $1 ${portfolioGroupOrderSql}`, [id]);
       res.json({ item: updated.rows[0] });
     } catch (error) {
       await client.query('ROLLBACK');
@@ -1591,6 +1638,9 @@ router.delete(
   requirePermission('admin.portafolio.manage'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
+    const current = await pool.query('SELECT * FROM portfolio_items WHERE id = $1 AND deleted_at IS NULL', [id]);
+    if (current.rowCount === 0) throw new HttpError(404, 'Proyecto de portafolio no encontrado.');
+
     const result = await pool.query(
       `UPDATE portfolio_items
        SET deleted_at = now(), updated_at = now(), updated_by = $2
@@ -1604,7 +1654,9 @@ router.delete(
       userId: req.admin?.id,
       action: 'delete',
       entityType: 'portfolio_item',
-      entity: id
+      entity: current.rows[0],
+      previousState: current.rows[0],
+      req
     });
     res.json({ ok: true });
   }),
@@ -1689,14 +1741,15 @@ router.post(
       );
 
       await client.query('COMMIT');
+      const updated = await pool.query(`${selectPortfolioItemsSql} AND pi.id = $1 ${portfolioGroupOrderSql}`, [id]);
+      
       await auditService.logAdminAction({
         userId: req.admin?.id,
         action: 'upload_image',
         entityType: 'portfolio_item',
-        entity: id
+        entity: updated.rows[0],
+        req
       });
-
-      const updated = await pool.query(`${selectPortfolioItemsSql} AND pi.id = $1 ${portfolioGroupOrderSql}`, [id]);
       res.status(201).json({ item: updated.rows[0] });
     } catch (error) {
       await client.query('ROLLBACK').catch(() => undefined);
@@ -1903,8 +1956,12 @@ router.post(
         body.legalNotes?.length ? body.legalNotes.join('') : undefined,
       ].filter(Boolean);
 
+      let previousQuoteState = null;
       let quoteId: string;
       if (body.editingQuoteId) {
+        const currentQuote = await client.query('SELECT * FROM quotes WHERE id = $1 AND deleted_at IS NULL', [body.editingQuoteId]);
+        if (currentQuote.rowCount && currentQuote.rowCount > 0) previousQuoteState = currentQuote.rows[0];
+
         const quoteRes = await client.query(
           `UPDATE quotes
            SET customer_id = $1,
@@ -1935,11 +1992,15 @@ router.post(
         );
       }
 
+      const fullQuote = await client.query('SELECT * FROM quotes WHERE id = $1', [quoteId]);
+      
       await auditService.logAdminAction({
         userId: req.admin?.id,
         action: body.editingQuoteId ? 'update' : 'create',
         entityType: 'quote',
-        entity: quoteId
+        entity: fullQuote.rows[0],
+        previousState: previousQuoteState,
+        req
       });
       await client.query('COMMIT');
       res.status(body.editingQuoteId ? 200 : 201).json({ ok: true, quoteId });
@@ -1958,20 +2019,21 @@ router.delete(
   requirePermission('admin.cotizador.manage'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
+    const current = await pool.query('SELECT * FROM quotes WHERE id = $1', [id]);
+    if (current.rowCount === 0) throw new HttpError(404, 'Cotizacion no encontrada');
+
     const result = await pool.query(
       'DELETE FROM quotes WHERE id = $1 RETURNING id',
       [id],
     );
 
-    if (!result.rowCount || result.rowCount === 0) {
-      throw new HttpError(404, 'Cotizacion no encontrada');
-    }
-
     await auditService.logAdminAction({
       userId: req.admin?.id,
       action: 'delete',
       entityType: 'quote',
-      entity: id
+      entity: current.rows[0],
+      previousState: current.rows[0],
+      req
     });
     res.json({ ok: true });
   }),
