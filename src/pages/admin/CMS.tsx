@@ -224,7 +224,7 @@ const AdminCMS: React.FC = () => {
           <div className="w-full max-w-md rounded-2xl bg-[#0a0a0a] border border-white/10 p-6 md:p-8 shadow-2xl">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/5">
               <h2 className="text-lg font-semibold text-white/90">
-                Editar pagina: <span className="font-mono text-white/50 text-sm">/{formData.slug}</span>
+                Editar sección / metadatos: <span className="font-mono text-white/50 text-sm">/{formData.slug}</span>
               </h2>
               <button onClick={() => setIsModalOpen(false)} className="rounded-lg p-2 text-white/40 hover:text-white hover:bg-white/5 transition-colors">
                 <X className="h-5 w-5" />
@@ -258,6 +258,7 @@ const AdminCMS: React.FC = () => {
                   onChange={(status) => setFormData({ ...formData, status })}
                   options={statuses.map((status) => ({ value: status.code, label: status.name }))}
                 />
+                <p className="mt-2 text-[11px] leading-5 text-white/40">El estado define si esta sección o bloque será visible en la web pública.</p>
               </div>
               <div className="mt-4 flex gap-3 pt-4 border-t border-white/5">
                 <button onClick={() => setIsModalOpen(false)} className="flex-1 rounded-lg border border-white/10 py-2.5 text-sm font-medium text-white/70 hover:bg-white/5 transition-colors">Cancelar</button>

@@ -5,14 +5,25 @@ import Carousel from '../components/ui/carousel';
 import AltFooter from '../components/layout/AltFooter';
 import SpotlightText from '../components/typography/SpotlightText';
 import SEO from '../components/shared/SEO';
-import { fetchPortfolio } from '../lib/api';
+import { apiRequest, fetchPortfolio } from '../lib/api';
 import Carousel3D from '../components/sections/Carousel3D';
 
 const AuroraBackground = lazy(() => import('../components/effects/AuroraBackground'));
 
+type PublishedCmsSection = {
+  id: string;
+  slug: string;
+  title: string;
+  meta_title: string | null;
+  meta_description: string | null;
+  status: string;
+  status_name?: string;
+};
+
 const Portafolio: React.FC = () => {
   const [isDesktop, setIsDesktop] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [cmsSection, setCmsSection] = useState<PublishedCmsSection | null>(null);
 
   useEffect(() => {
     const desktopQuery = window.matchMedia('(min-width: 1024px)');
@@ -26,7 +37,12 @@ const Portafolio: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
 
-    fetchPortfolio()
+    apiRequest<{ item: PublishedCmsSection }>('/api/public/cms/portafolio')
+      .then((response) => {
+        if (!isMounted) return [];
+        setCmsSection(response.item);
+        return fetchPortfolio();
+      })
       .then((items) => {
         if (!isMounted) return;
         const publishedProjects = items
@@ -41,7 +57,11 @@ const Portafolio: React.FC = () => {
 
         setProjects(publishedProjects);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (!isMounted) return;
+        setCmsSection(null);
+        setProjects([]);
+      });
 
     return () => {
       isMounted = false;
@@ -50,10 +70,12 @@ const Portafolio: React.FC = () => {
 
   return (
     <div className="w-full min-h-screen font-sansation overflow-x-hidden flex flex-col relative bg-[#020611] select-none">
-      <SEO 
-        title="Portafolio" 
-        description="Explora nuestros proyectos destacados y descubre cómo ayudamos a marcas y empresas a consolidar su presencia tecnológica."
-      />
+      {cmsSection && (
+        <SEO
+          title={cmsSection.meta_title || cmsSection.title}
+          description={cmsSection.meta_description || 'Explora nuestros proyectos destacados y descubre cómo ayudamos a marcas y empresas a consolidar su presencia tecnológica.'}
+        />
+      )}
 
       {/* FONDO 3D FIJO */}
       <div className="fixed inset-0 z-0">
@@ -98,7 +120,7 @@ const Portafolio: React.FC = () => {
         </section>
 
         {/* CARRUSEL ANIMADO (Móvil y Tablet) */}
-        {projects.length > 0 && (
+        {cmsSection && projects.length > 0 && (
           <section className="w-full relative z-10 pointer-events-auto mt-6 md:mt-10 lg:hidden">
             <div className="w-full flex justify-center pb-24 md:pb-28">
               <Carousel slides={projects} />
@@ -107,7 +129,7 @@ const Portafolio: React.FC = () => {
         )}
 
         {/* CARRUSEL 3D (Solo Escritorio) */}
-        {projects.length > 0 && (
+        {cmsSection && projects.length > 0 && (
           <section className="w-full relative z-10 pointer-events-auto flex-grow items-center justify-center xl:-mt-[11vh] 2xl:-mt-[10vh] [@media(max-height:720px)]:-mt-[2vh] hidden lg:flex">
             <div className="w-full flex justify-center origin-center scale-[0.70] md:scale-[0.80] lg:scale-[0.85] xl:scale-[0.8] 2xl:scale-[1] [@media(max-height:720px)]:scale-[0.60] transition-transform duration-500">
               {isDesktop && (
