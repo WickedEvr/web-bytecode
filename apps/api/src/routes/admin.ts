@@ -292,7 +292,7 @@ const listQuerySchema = z.object({
 });
 
 const updateSchema = z.object({
-  status: z.enum(['new', 'read', 'in_progress', 'responded', 'closed']).optional(),
+  status: z.string().trim().min(1).max(80).optional(),
   adminNotes: z.string().max(3000).optional(),
 });
 
@@ -309,6 +309,7 @@ const contactColumns = `
   COALESCE(s.name, c.subject) as servicio,
   c.message,
   sc.code as status,
+  sc.name as status_name,
   c.internal_notes as admin_notes, 
   c.assigned_to, c.created_at, c.updated_at
 `;
@@ -336,6 +337,7 @@ const legacyContactColumns = `
   c.subject as servicio,
   c.message,
   sc.code as status,
+  sc.name as status_name,
   c.internal_notes as admin_notes,
   c.assigned_to, c.created_at, c.updated_at
 `;
@@ -382,6 +384,7 @@ const complaintColumns = `
   cg.good_type, cg.claimed_amount as monto_cuantificable, cg.description as descripcion, 
   '' as nombre_unidad, '' as opcion_bien, ct.name as claim_type, cg.category as tipo_reclamo, 
   cd.incident_detail as detalle, cd.requested_solution as pedido, sc.code as status,
+  sc.name as status_name,
   c.internal_notes as admin_notes, fa.original_name as attachment_original_name, 
   fa.mime_type as attachment_mime_type, fa.byte_size as attachment_size,
   c.assigned_to, c.created_at, c.updated_at
@@ -592,7 +595,7 @@ router.post(
 );
 
 router.get(
-  '/contacts/:id/history',
+  '/contacts/:id/assignment-history',
   requirePermission('admin.contactos.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
@@ -604,6 +607,35 @@ router.get(
       WHERE a.contact_case_id = $1 
       ORDER BY a.assigned_at DESC`,
       [id]
+    );
+    res.json({ items: result.rows });
+  }),
+);
+
+const statusHistorySelect = (historyTable: string, entityColumn: string) => `
+  SELECT h.changed_at AS timestamp,
+         u.name AS user_name,
+         u.email AS user_email,
+         old_sc.code AS old_status,
+         old_sc.name AS old_status_name,
+         new_sc.code AS new_status,
+         new_sc.name AS new_status_name,
+         h.reason
+  FROM ${historyTable} h
+  LEFT JOIN status_catalog old_sc ON h.old_status_id = old_sc.id
+  LEFT JOIN status_catalog new_sc ON h.new_status_id = new_sc.id
+  LEFT JOIN admin_users u ON h.changed_by = u.id
+  WHERE h.${entityColumn} = $1
+  ORDER BY h.changed_at DESC
+`;
+
+router.get(
+  '/contacts/:id/history',
+  requirePermission('admin.contactos.view'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const result = await pool.query(
+      statusHistorySelect('contact_case_status_history', 'contact_case_id'),
+      [String(req.params.id)],
     );
     res.json({ items: result.rows });
   }),
@@ -623,7 +655,7 @@ router.get(
     ]);
     const result = await pool.query(
       `
-      SELECT c.id, c.complaint_code as code, cu.first_name as nombres, cu.last_name as apellidos, cu.primary_email as email, cu.primary_phone as telefono, ct.name as claim_type, cg.category as tipo_reclamo, sc.code as status, fa.original_name as attachment_original_name, c.created_at, c.updated_at
+      SELECT c.id, c.complaint_code as code, cu.first_name as nombres, cu.last_name as apellidos, cu.primary_email as email, cu.primary_phone as telefono, ct.name as claim_type, cg.category as tipo_reclamo, sc.code as status, sc.name as status_name, fa.original_name as attachment_original_name, c.created_at, c.updated_at
       FROM complaints c
       JOIN customers cu ON c.customer_id = cu.id
       JOIN status_catalog sc ON c.status_id = sc.id
@@ -638,6 +670,18 @@ router.get(
       [...params, query.limit, query.offset],
     );
 
+    res.json({ items: result.rows });
+  }),
+);
+
+router.get(
+  '/complaints/:id/history',
+  requirePermission('admin.reclamos.view'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const result = await pool.query(
+      statusHistorySelect('complaint_status_history', 'complaint_id'),
+      [String(req.params.id)],
+    );
     res.json({ items: result.rows });
   }),
 );
@@ -679,7 +723,10 @@ router.patch(
       if ((statusRes.rowCount ?? 0) > 0) statusId = statusRes.rows[0].id;
     }
 
-    const current = await pool.query('SELECT * FROM complaints WHERE id = $1', [id]);
+    const current = await pool.query(
+      'SELECT id, status_id, internal_notes, assigned_to, updated_at FROM complaints WHERE id = $1',
+      [id],
+    );
     if (current.rowCount === 0) throw new HttpError(404, 'Reclamo no encontrado.');
 
     const result = await pool.query(
@@ -1775,6 +1822,84 @@ router.post(
   }),
 );
 
+// --- Projects Endpoints ---
+
+const projectStatusSchema = z.object({ status: z.string().trim().min(1).max(80) });
+
+router.get(
+  '/projects',
+  requirePermission('admin.cotizador.view'),
+  asyncHandler(async (_req: Request, res: Response) => {
+    const result = await pool.query(`
+      SELECT p.id, p.project_code, p.name, p.description, p.start_date,
+             p.estimated_end_date, p.actual_end_date, p.total_budget,
+             p.currency_code, p.created_at, p.updated_at,
+             sc.code AS status, sc.name AS status_name,
+             cu.first_name, cu.last_name, cu.primary_email,
+             s.name AS service_name
+      FROM projects p
+      JOIN status_catalog sc ON p.status_id = sc.id
+      JOIN customers cu ON p.customer_id = cu.id
+      JOIN service_catalog s ON p.service_id = s.id
+      WHERE p.deleted_at IS NULL
+      ORDER BY p.created_at DESC
+    `);
+    res.json({ items: result.rows });
+  }),
+);
+
+router.get(
+  '/projects/:id',
+  requirePermission('admin.cotizador.view'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const result = await pool.query(`
+      SELECT p.*, sc.code AS status, sc.name AS status_name,
+             cu.first_name, cu.last_name, cu.primary_email,
+             s.name AS service_name
+      FROM projects p
+      JOIN status_catalog sc ON p.status_id = sc.id
+      JOIN customers cu ON p.customer_id = cu.id
+      JOIN service_catalog s ON p.service_id = s.id
+      WHERE p.id = $1 AND p.deleted_at IS NULL
+    `, [id]);
+    if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
+    res.json({ item: result.rows[0] });
+  }),
+);
+
+router.patch(
+  '/projects/:id/status',
+  requireCsrf,
+  requirePermission('admin.cotizador.manage'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const body = projectStatusSchema.parse(req.body);
+    const result = await pool.query(`
+      UPDATE projects p
+      SET status_id = sc.id, updated_at = now()
+      FROM status_catalog sc
+      WHERE p.id = $1 AND sc.domain = 'project' AND sc.code = $2
+        AND sc.is_active = true AND p.deleted_at IS NULL
+      RETURNING p.id
+    `, [id, body.status]);
+    if (!result.rowCount) throw new HttpError(400, 'Proyecto o estado invalido');
+    res.json({ ok: true });
+  }),
+);
+
+router.get(
+  '/projects/:id/history',
+  requirePermission('admin.cotizador.view'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const result = await pool.query(
+      statusHistorySelect('project_status_history', 'project_id'),
+      [z.string().uuid().parse(req.params.id)],
+    );
+    res.json({ items: result.rows });
+  }),
+);
+
 // --- Quotes Endpoints ---
 
 let pricingCatalogColumns: Record<string, boolean> | null = null;
@@ -1850,12 +1975,14 @@ router.get(
 );
 
 router.get(
-  '/quotations',
+  '/quotes',
   requirePermission('admin.cotizador.view'),
   asyncHandler(async (_req: Request, res: Response) => {
     const result = await pool.query(
-      `SELECT q.id, q.quote_code, q.total_amount, q.status, q.created_at, cu.first_name, cu.primary_email
+      `SELECT q.id, q.quote_code, q.total_amount, sc.code AS status, sc.name AS status_name,
+              q.created_at, cu.first_name, cu.primary_email
        FROM quotes q
+       JOIN status_catalog sc ON q.status_id = sc.id
        LEFT JOIN customers cu ON q.customer_id = cu.id
        WHERE q.deleted_at IS NULL
        ORDER BY q.created_at DESC
@@ -1866,14 +1993,16 @@ router.get(
 );
 
 router.get(
-  '/quotations/:id',
+  '/quotes/:id',
   requirePermission('admin.cotizador.manage'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
     const quoteResult = await pool.query(
-      `SELECT q.id, q.quote_code, q.total_amount, q.status, q.payment_policy, q.created_at,
+      `SELECT q.id, q.quote_code, q.total_amount, sc.code AS status, sc.name AS status_name,
+              q.payment_policy, q.created_at,
               cu.first_name, cu.primary_email
        FROM quotes q
+       JOIN status_catalog sc ON q.status_id = sc.id
        LEFT JOIN customers cu ON q.customer_id = cu.id
        WHERE q.id = $1 AND q.deleted_at IS NULL`,
       [id],
@@ -1912,11 +2041,12 @@ const createQuoteSchema = z.object({
   recurringMonthlyTotal: z.number().min(0).optional(),
   recurringYearlyTotal: z.number().min(0).optional(),
   projectCategory: z.string().trim().max(180).optional(),
-  legalNotes: z.array(z.string().max(1000)).optional()
+  legalNotes: z.array(z.string().max(1000)).optional(),
+  status: z.string().trim().min(1).max(80).optional(),
 });
 
 router.post(
-  '/quotations',
+  '/quotes',
   requireCsrf,
   requirePermission('admin.cotizador.manage'),
   asyncHandler(async (req: Request, res: Response) => {
@@ -1977,20 +2107,25 @@ router.post(
            SET customer_id = $1,
                total_amount = $2,
                payment_policy = $3,
+               status_id = COALESCE((SELECT id FROM status_catalog WHERE domain = 'quote' AND code = $5 AND is_active = true), status_id),
                updated_at = now()
            WHERE id = $4 AND deleted_at IS NULL
            RETURNING id`,
-          [customerId, totalAmount, paymentPolicyParts.join('') || null, body.editingQuoteId],
+          [customerId, totalAmount, paymentPolicyParts.join('') || null, body.editingQuoteId, body.status ?? null],
         );
         if (!quoteRes.rowCount || quoteRes.rowCount === 0) throw new HttpError(404, 'Cotizacion no encontrada');
         quoteId = quoteRes.rows[0].id;
         await client.query('DELETE FROM quote_items WHERE quote_id = $1', [quoteId]);
       } else {
         const quoteRes = await client.query(
-          `INSERT INTO quotes (quote_code, customer_id, status, total_amount, valid_until, payment_policy, created_by)
-           VALUES ($1, $2, 'draft', $3, current_date + interval '30 days', $4, $5) RETURNING id`,
-          [createBusinessCode('QT'), customerId, totalAmount, paymentPolicyParts.join('') || null, req.admin?.id]
+          `INSERT INTO quotes (quote_code, customer_id, status_id, total_amount, valid_until, payment_policy, created_by)
+           SELECT $1, $2, sc.id, $3, current_date + interval '30 days', $4, $5
+           FROM status_catalog sc
+           WHERE sc.domain = 'quote' AND sc.code = $6 AND sc.is_active = true
+           RETURNING id`,
+          [createBusinessCode('QT'), customerId, totalAmount, paymentPolicyParts.join('') || null, req.admin?.id, body.status ?? 'draft']
         );
+        if (!quoteRes.rowCount) throw new HttpError(400, 'Estado de cotizacion invalido');
         quoteId = quoteRes.rows[0].id;
       }
 
@@ -2023,8 +2158,20 @@ router.post(
   })
 );
 
+router.get(
+  '/quotes/:id/history',
+  requirePermission('admin.cotizador.view'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const result = await pool.query(
+      statusHistorySelect('quote_status_history', 'quote_id'),
+      [z.string().uuid().parse(req.params.id)],
+    );
+    res.json({ items: result.rows });
+  }),
+);
+
 router.delete(
-  '/quotations/:id',
+  '/quotes/:id',
   requireCsrf,
   requirePermission('admin.cotizador.manage'),
   asyncHandler(async (req: Request, res: Response) => {

@@ -21,7 +21,9 @@ test('quote queries use the enterprise schema column names', async () => {
 
   assert.match(source, /END AS unit_price/);
   assert.match(source, /pricing_catalog_id/);
-  assert.doesNotMatch(source, /q\.status_id/);
+  assert.match(source, /JOIN status_catalog sc ON q\.status_id = sc\.id/);
+  assert.match(source, /sc\.code AS status/);
+  assert.match(source, /sc\.name AS status_name/);
   assert.doesNotMatch(source, /INSERT INTO quote_items \(quote_id, catalog_item_id/);
   assert.doesNotMatch(source, /INSERT INTO quotes \(quote_code, customer_id, total_amount, status_id, notes/);
 });

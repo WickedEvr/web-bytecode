@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, MessageSquareText, RefreshCw, UserCheck, X } from 'lucide-react';
 import { apiRequest } from '../../lib/api';
+import StatusHistoryTimeline from '../../components/admin/StatusHistoryTimeline';
+import type { StatusHistoryRecord } from '../../types/status';
 
-type ContactItem = {
+export interface ContactCase {
   id: string;
   case_code?: string;
   nombre: string;
@@ -15,10 +17,13 @@ type ContactItem = {
   ruc: string;
   servicio: string;
   status: string;
+  status_name?: string;
   admin_notes: string;
   assigned_to?: string;
   created_at: string;
-};
+}
+
+type ContactItem = ContactCase;
 
 type AssignmentHistoryItem = {
   id: string;
@@ -87,6 +92,7 @@ const Contactos: React.FC = () => {
 
   const [adminsList, setAdminsList] = useState<{ value: string, label: string }[]>([]);
   const [history, setHistory] = useState<AssignmentHistoryItem[]>([]);
+  const [statusHistory, setStatusHistory] = useState<StatusHistoryRecord[]>([]);
   const [isAssigning, setIsAssigning] = useState(false);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
 
@@ -126,8 +132,12 @@ const Contactos: React.FC = () => {
       setStatus(String(result.item.status ?? 'new'));
       setNotes(String(result.item.admin_notes ?? ''));
       
-      const histResult = await apiRequest<{ items: AssignmentHistoryItem[] }>(`/api/admin/contacts/${id}/history`);
-      setHistory(histResult.items);
+      const [assignmentResult, statusResult] = await Promise.all([
+        apiRequest<{ items: AssignmentHistoryItem[] }>(`/api/admin/contacts/${id}/assignment-history`),
+        apiRequest<{ items: StatusHistoryRecord[] }>(`/api/admin/contacts/${id}/history`),
+      ]);
+      setHistory(assignmentResult.items);
+      setStatusHistory(statusResult.items);
       if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches) {
         setMobileDetailOpen(true);
       }
@@ -149,6 +159,8 @@ const Contactos: React.FC = () => {
         json: { status, adminNotes: notes },
       });
       setDetail(result.item);
+      const statusResult = await apiRequest<{ items: StatusHistoryRecord[] }>(`/api/admin/contacts/${selectedId}/history`);
+      setStatusHistory(statusResult.items);
       await loadList();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar');
@@ -266,6 +278,8 @@ const Contactos: React.FC = () => {
               />
             </div>
           </div>
+
+          <StatusHistoryTimeline records={statusHistory} />
         </div>
 
         <div className="p-6 border-t border-white/5 bg-[#0a0a0a]">
@@ -295,7 +309,7 @@ const Contactos: React.FC = () => {
         json: { assigned_to: adminId },
       });
       setDetail(result.item);
-      const histResult = await apiRequest<{ items: AssignmentHistoryItem[] }>(`/api/admin/contacts/${selectedId}/history`);
+      const histResult = await apiRequest<{ items: AssignmentHistoryItem[] }>(`/api/admin/contacts/${selectedId}/assignment-history`);
       setHistory(histResult.items);
       await loadList();
     } catch (err) {

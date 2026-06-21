@@ -29,6 +29,7 @@ const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
 const AdminContactos = lazy(() => import('./pages/admin/Contactos'));
 const AdminReclamos = lazy(() => import('./pages/admin/Reclamos'));
 const AdminCotizador = lazy(() => import('./pages/admin/Cotizador'));
+const AdminProyectos = lazy(() => import('./pages/admin/Proyectos'));
 const AdminPortafolio = lazy(() => import('./pages/admin/PortafolioAdmin'));
 const AdminUsuarios = lazy(() => import('./pages/admin/Usuarios'));
 const AdminRoles = lazy(() => import('./pages/admin/Roles'));
@@ -94,6 +95,7 @@ const App: React.FC = () => {
             <Route path="contactos" element={<RoleGuard requiredPermission="admin.contactos.view"><AdminContactos /></RoleGuard>} />
             <Route path="reclamos" element={<RoleGuard requiredPermission="admin.reclamos.view"><AdminReclamos /></RoleGuard>} />
             <Route path="cotizador" element={<RoleGuard requiredPermission="admin.cotizador.view"><AdminCotizador /></RoleGuard>} />
+            <Route path="proyectos" element={<RoleGuard requiredPermission="admin.cotizador.view"><AdminProyectos /></RoleGuard>} />
             <Route path="portafolio" element={<RoleGuard requiredPermission="admin.portafolio.view"><AdminPortafolio /></RoleGuard>} />
             <Route path="usuarios" element={<RoleGuard requiredPermission="admin.usuarios.view"><AdminUsuarios /></RoleGuard>} />
             <Route path="roles" element={<RoleGuard requiredPermission="admin.roles.view"><AdminRoles /></RoleGuard>} />

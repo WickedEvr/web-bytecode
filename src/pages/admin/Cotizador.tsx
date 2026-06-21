@@ -4,17 +4,21 @@ import { motion, AnimatePresence } from 'framer-motion';
 import AdminPanel from '../../components/admin/AdminPanel';
 import DynamicQuoter from '../../components/admin/DynamicQuoter';
 import { apiRequest } from '../../lib/api';
+import CustomDropdown from '../../components/ui/CustomDropdown';
+import StatusHistoryTimeline from '../../components/admin/StatusHistoryTimeline';
+import type { StatusCatalogItem, StatusHistoryRecord } from '../../types/status';
 import { useQuoterState, type EditableQuoteItemData, type PreparedQuotePayload, type PricingCatalogItem } from '../../hooks/useQuoterState';
 
-type Quote = {
+export interface Quote {
   id: string;
   quote_code: string;
   total_amount: string;
   status: string;
+  status_name?: string;
   created_at: string;
   first_name: string;
   primary_email: string;
-};
+}
 
 type QuoteDetailResponse = {
   quote: Quote & {
@@ -41,7 +45,10 @@ const AdminCotizador: React.FC = () => {
     customerName: '',
     customerEmail: '',
     notes: '',
+    status: 'draft',
   });
+  const [statuses, setStatuses] = useState<StatusCatalogItem[]>([]);
+  const [statusHistory, setStatusHistory] = useState<StatusHistoryRecord[]>([]);
   const setCatalogInStore = useQuoterState((state) => state.setCatalog);
   const loadQuoteForEditing = useQuoterState((state) => state.loadQuoteForEditing);
   const resetQuoter = useQuoterState((state) => state.resetQuoter);
@@ -51,12 +58,14 @@ const AdminCotizador: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const [quotesRes, catalogRes] = await Promise.all([
-        apiRequest<{ items: Quote[] }>('/api/admin/quotations'),
+      const [quotesRes, catalogRes, statusesRes] = await Promise.all([
+        apiRequest<{ items: Quote[] }>('/api/admin/quotes'),
         apiRequest<{ items: PricingCatalogItem[] }>('/api/admin/catalog/pricing'),
+        apiRequest<{ items: StatusCatalogItem[] }>('/api/catalog/statuses?domain=quote'),
       ]);
       setQuotes(quotesRes.items);
       setCatalog(catalogRes.items);
+      setStatuses(statusesRes.items);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar cotizaciones');
     } finally {
@@ -95,7 +104,8 @@ const AdminCotizador: React.FC = () => {
   const openNewQuote = () => {
     setCatalogInStore(catalog);
     resetQuoter();
-    setFormData({ customerName: '', customerEmail: '', notes: '' });
+    setFormData({ customerName: '', customerEmail: '', notes: '', status: statuses[0]?.code ?? 'draft' });
+    setStatusHistory([]);
     setError('');
     setIsModalOpen(true);
   };
@@ -106,13 +116,18 @@ const AdminCotizador: React.FC = () => {
     setError('');
     try {
       setCatalogInStore(catalog);
-      const detail = await apiRequest<QuoteDetailResponse>(`/api/admin/quotations/${quoteId}`);
+      const [detail, historyResult] = await Promise.all([
+        apiRequest<QuoteDetailResponse>(`/api/admin/quotes/${quoteId}`),
+        apiRequest<{ items: StatusHistoryRecord[] }>(`/api/admin/quotes/${quoteId}/history`),
+      ]);
       loadQuoteForEditing({ id: detail.quote.id }, detail.items);
       setFormData({
         customerName: detail.quote.first_name || '',
         customerEmail: detail.quote.primary_email || '',
         notes: detail.quote.payment_policy || '',
+        status: detail.quote.status,
       });
+      setStatusHistory(historyResult.items);
       setIsModalOpen(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar cotizacion');
@@ -129,7 +144,7 @@ const AdminCotizador: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      await apiRequest(`/api/admin/quotations/${quote.id}`, { method: 'DELETE' });
+      await apiRequest(`/api/admin/quotes/${quote.id}`, { method: 'DELETE' });
       if (editingQuoteId === quote.id) {
         resetQuoter();
         setIsModalOpen(false);
@@ -151,13 +166,14 @@ const AdminCotizador: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      await apiRequest('/api/admin/quotations', {
+      await apiRequest('/api/admin/quotes', {
         method: 'POST',
         json: {
           editingQuoteId: payload.editingQuoteId,
           customerName: formData.customerName,
           customerEmail: formData.customerEmail,
           notes: formData.notes,
+          status: formData.status,
           totalAmount: payload.developmentTotal,
           recurringMonthlyTotal: payload.recurringMonthlyTotal,
           recurringYearlyTotal: payload.recurringYearlyTotal,
@@ -175,7 +191,7 @@ const AdminCotizador: React.FC = () => {
         },
       });
       setIsModalOpen(false);
-      setFormData({ customerName: '', customerEmail: '', notes: '' });
+      setFormData({ customerName: '', customerEmail: '', notes: '', status: statuses[0]?.code ?? 'draft' });
       resetQuoter();
       await loadData();
     } catch (err) {
@@ -268,7 +284,7 @@ const AdminCotizador: React.FC = () => {
                   <td className="px-6 py-4 text-right font-mono">S/ {Number(quote.total_amount).toFixed(2)}</td>
                   <td className="px-6 py-4 text-center">
                     <span className="rounded border border-white/5 bg-white/5 px-2 py-0.5 text-[10px] font-medium uppercase tracking-widest text-white/60">
-                      {quote.status || 'Draft'}
+                      {quote.status_name || quote.status}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-center text-xs text-white/40">
@@ -375,6 +391,16 @@ const AdminCotizador: React.FC = () => {
               }}
               onGenerate={handleCreate}
             />
+            <div className="mt-6">
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-widest text-white/50">Estado</label>
+              <CustomDropdown
+                value={formData.status}
+                placeholder="Seleccionar estado..."
+                onChange={(status) => setFormData({ ...formData, status })}
+                options={statuses.map((item) => ({ value: item.code, label: item.name }))}
+              />
+            </div>
+            {editingQuoteId && <div className="mt-8"><StatusHistoryTimeline records={statusHistory} /></div>}
           </div>
         </div>
       )}

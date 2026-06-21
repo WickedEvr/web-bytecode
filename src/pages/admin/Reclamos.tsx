@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Download, Mail, MessageSquareText, RefreshCw, X } from 'lucide-react';
 import { apiRequest, apiUrl } from '../../lib/api';
+import StatusHistoryTimeline from '../../components/admin/StatusHistoryTimeline';
+import type { StatusHistoryRecord } from '../../types/status';
 
-type ComplaintItem = {
+export interface Complaint {
   id: string;
   code: string;
   nombres: string;
@@ -13,9 +15,12 @@ type ComplaintItem = {
   claim_type: string;
   tipo_reclamo: string;
   status: string;
+  status_name?: string;
   attachment_original_name?: string;
   created_at: string;
-};
+}
+
+type ComplaintItem = Complaint;
 
 type DetailItem = Record<string, string | number | null | undefined>;
 
@@ -42,6 +47,7 @@ const Reclamos: React.FC = () => {
   const [error, setError] = useState('');
   const [statuses, setStatuses] = useState<{ value: string, label: string }[]>([]);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
+  const [statusHistory, setStatusHistory] = useState<StatusHistoryRecord[]>([]);
 
   const statusLabel = (statusCode: string) => statuses.find((item) => item.value === statusCode)?.label ?? statusCode;
 
@@ -71,8 +77,12 @@ const Reclamos: React.FC = () => {
     setSelectedId(id);
     setError('');
     try {
-      const result = await apiRequest<{ item: DetailItem }>(`/api/admin/complaints/${id}`);
+      const [result, historyResult] = await Promise.all([
+        apiRequest<{ item: DetailItem }>(`/api/admin/complaints/${id}`),
+        apiRequest<{ items: StatusHistoryRecord[] }>(`/api/admin/complaints/${id}/history`),
+      ]);
       setDetail(result.item);
+      setStatusHistory(historyResult.items);
       setStatus(String(result.item.status ?? 'new'));
       setNotes(String(result.item.admin_notes ?? ''));
       if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches) {
@@ -96,6 +106,8 @@ const Reclamos: React.FC = () => {
         json: { status, adminNotes: notes },
       });
       setDetail(result.item);
+      const historyResult = await apiRequest<{ items: StatusHistoryRecord[] }>(`/api/admin/complaints/${selectedId}/history`);
+      setStatusHistory(historyResult.items);
       await loadList();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar');
@@ -158,6 +170,8 @@ const Reclamos: React.FC = () => {
               />
             </div>
           </div>
+
+          <StatusHistoryTimeline records={statusHistory} />
         </div>
 
         <div className="p-6 border-t border-white/5 bg-[#0a0a0a]">
