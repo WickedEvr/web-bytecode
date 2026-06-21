@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '../../lib/api';
 import AdminPanel from '../../components/admin/AdminPanel';
 import PaginationControl from '../../components/ui/PaginationControl';
+import CustomDropdown from '../../components/ui/CustomDropdown';
 
 const PAGE_SIZE = 9;
 
@@ -14,9 +15,12 @@ type CMSPage = {
   title: string;
   meta_title: string | null;
   meta_description: string | null;
-  is_published: boolean;
+  status: string;
+  status_name?: string;
   updated_at: string;
 };
+
+type CmsStatus = { id: string; code: string; name: string };
 
 type ActionMenuState = {
   id: string;
@@ -36,6 +40,7 @@ const AdminCMS: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [statuses, setStatuses] = useState<CmsStatus[]>([]);
 
   const loadPages = async () => {
     setLoading(true);
@@ -55,6 +60,12 @@ const AdminCMS: React.FC = () => {
   useEffect(() => {
     void loadPages();
   }, [page]);
+
+  useEffect(() => {
+    apiRequest<{ items: CmsStatus[] }>('/api/catalog/statuses?domain=cms')
+      .then((result) => setStatuses(result.items))
+      .catch((requestError: unknown) => setError(requestError instanceof Error ? requestError.message : 'Error al cargar estados CMS'));
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = () => setActionsMenu(null);
@@ -100,7 +111,7 @@ const AdminCMS: React.FC = () => {
           title: formData.title,
           meta_title: formData.meta_title,
           meta_description: formData.meta_description,
-          is_published: formData.is_published,
+          status: formData.status,
         },
       });
       setIsModalOpen(false);
@@ -156,8 +167,8 @@ const AdminCMS: React.FC = () => {
                     <td className="px-6 py-4 max-w-[220px] truncate text-white/60" title={page.meta_title ?? ''}>{page.meta_title || '-'}</td>
                     <td className="px-6 py-4 max-w-[280px] truncate text-white/50" title={page.meta_description ?? ''}>{page.meta_description || '-'}</td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[10px] font-medium ${page.is_published ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400'}`}>
-                        <Globe className="h-3 w-3" /> {page.is_published ? 'Publico' : 'Borrador'}
+                      <span className={`inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[10px] font-medium ${page.status === 'published' ? 'bg-green-500/10 border-green-500/20 text-green-400' : page.status === 'archived' ? 'bg-white/5 border-white/10 text-white/45' : 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400'}`}>
+                        <Globe className="h-3 w-3" /> {page.status_name || page.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-white/40 text-xs">{formatDate(page.updated_at)}</td>
@@ -236,13 +247,15 @@ const AdminCMS: React.FC = () => {
                 <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">SEO: Meta descripcion</label>
                 <textarea rows={3} value={formData.meta_description || ''} onChange={(e) => setFormData({ ...formData, meta_description: e.target.value })} className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/90 outline-none focus:border-white/30 transition-colors custom-scrollbar resize-none" />
               </div>
-              <label className="flex items-center gap-3 py-2 cursor-pointer mt-2">
-                <input type="checkbox" checked={formData.is_published || false} onChange={(e) => setFormData({ ...formData, is_published: e.target.checked })} className="h-4 w-4 rounded border-white/20 bg-white/5 text-white focus:ring-white/20 focus:ring-offset-black" />
-                <div>
-                  <span className="block text-sm font-medium text-white/80">Pagina publicada</span>
-                  <span className="text-[10px] text-white/40">Si se desactiva, devolvera error 404.</span>
-                </div>
-              </label>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">Estado</label>
+                <CustomDropdown
+                  value={formData.status || ''}
+                  placeholder="Seleccionar estado..."
+                  onChange={(status) => setFormData({ ...formData, status })}
+                  options={statuses.map((status) => ({ value: status.code, label: status.name }))}
+                />
+              </div>
               <div className="mt-4 flex gap-3 pt-4 border-t border-white/5">
                 <button onClick={() => setIsModalOpen(false)} className="flex-1 rounded-lg border border-white/10 py-2.5 text-sm font-medium text-white/70 hover:bg-white/5 transition-colors">Cancelar</button>
                 <button onClick={handleSave} disabled={loading} className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-white text-black py-2.5 text-sm font-medium transition-colors hover:bg-white/90 disabled:opacity-50">

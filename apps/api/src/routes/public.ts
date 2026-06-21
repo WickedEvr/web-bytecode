@@ -157,6 +157,21 @@ router.get('/catalog/statuses', asyncHandler(async (req: Request, res: Response)
   res.json({ items: result.rows });
 }));
 
+router.get('/cms/pages', asyncHandler(async (_req: Request, res: Response) => {
+  const result = await pool.query(`
+    SELECT cp.id, cp.slug, cp.title, cp.meta_title, cp.meta_description,
+           sc.code AS status, sc.name AS status_name,
+           cp.created_at, cp.updated_at
+    FROM cms_pages cp
+    JOIN status_catalog sc ON cp.status_id = sc.id
+    WHERE cp.deleted_at IS NULL
+      AND sc.domain = 'cms'
+      AND sc.code = 'published'
+    ORDER BY cp.created_at ASC
+  `);
+  res.json({ items: result.rows });
+}));
+
 router.get('/catalog/pricing', asyncHandler(async (req: Request, res: Response) => {
   const userRole = (req as any).admin?.roles?.[0] || (req as any).user?.role || 'guest';
   const result = await pool.query(

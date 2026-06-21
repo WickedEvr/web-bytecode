@@ -2,6 +2,7 @@ import React, { useRef, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Stars, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
+import { Timer } from "three";
 
 // --- 1. NIEBLA VOLUMÉTRICA MEJORADA (Efecto "Río" o Aurora extendida) ---
 const NebulaMist = ({
@@ -16,6 +17,12 @@ const NebulaMist = ({
   yOffset?: number;
 }) => {
   const pointsRef = useRef<THREE.Points>(null);
+  const timer = useMemo(() => new Timer(), []);
+
+  React.useEffect(() => {
+    timer.connect(document);
+    return () => timer.disconnect();
+  }, [timer]);
 
   const smokeTexture = useMemo(() => {
     const canvas = document.createElement("canvas");
@@ -58,9 +65,10 @@ const NebulaMist = ({
     setParticles(createParticles(count, yOffset));
   }, [count, yOffset]);
 
-  useFrame((state) => {
+  useFrame(() => {
     if (!pointsRef.current) return;
-    const time = state.clock.elapsedTime * speed;
+    timer.update();
+    const time = timer.getElapsed() * speed;
     const posArray = pointsRef.current.geometry.attributes.position
       .array as Float32Array;
 

@@ -1274,21 +1274,29 @@ router.get(
 
 const cmsPageUpdateSchema = z.object({
   title: z.string().optional(),
-  meta_title: z.string().optional(),
-  meta_description: z.string().optional(),
-  is_published: z.boolean().optional(),
+  meta_title: z.string().nullable().optional(),
+  meta_description: z.string().nullable().optional(),
+  status: z.string().trim().min(1).max(80).optional(),
+});
+
+const cmsPageCreateSchema = z.object({
+  slug: z.string().trim().min(1).max(160).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  title: z.string().trim().min(1).max(180),
+  meta_title: z.string().nullable().optional(),
+  meta_description: z.string().nullable().optional(),
+  status: z.string().trim().min(1).max(80),
 });
 
 type Queryable = Pick<PoolClient, 'query'>;
 
-const getCmsStatusId = async (client: Queryable, code: 'draft' | 'published') => {
+const getCmsStatusId = async (client: Queryable, code: string) => {
   const result = await client.query(
     "SELECT id FROM status_catalog WHERE domain = 'cms' AND code = $1 AND is_active = true LIMIT 1",
     [code],
   );
 
   if (result.rowCount === 0) {
-    throw new HttpError(500, `Estado CMS ${code} no configurado.`);
+    throw new HttpError(400, `Estado CMS invalido: ${code}.`);
   }
 
   return result.rows[0].id as string;
@@ -1301,12 +1309,13 @@ const cmsPageSelectSql = `
     cp.title,
     cp.meta_title,
     cp.meta_description,
-    COALESCE(sc.code = 'published', cp.published_at IS NOT NULL) AS is_published,
+    sc.code AS status,
+    sc.name AS status_name,
     cp.created_at,
     cp.updated_at
   FROM cms_pages cp
-  LEFT JOIN status_catalog sc ON sc.id = cp.status_id
-  WHERE cp.deleted_at IS NULL
+  JOIN status_catalog sc ON cp.status_id = sc.id
+  WHERE cp.deleted_at IS NULL AND sc.domain = 'cms'
 `;
 
 router.get(
@@ -1324,6 +1333,24 @@ router.get(
   })
 );
 
+router.post(
+  '/cms/pages',
+  requireCsrf,
+  requirePermission('admin.cms.manage'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const body = cmsPageCreateSchema.parse(req.body);
+    const statusId = await getCmsStatusId(pool, body.status);
+    const result = await pool.query(
+      `INSERT INTO cms_pages (slug, title, meta_title, meta_description, status_id, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id`,
+      [body.slug, body.title, body.meta_title ?? null, body.meta_description ?? null, statusId, req.admin?.id ?? null],
+    );
+    const created = await pool.query(`${cmsPageSelectSql} AND cp.id = $1`, [result.rows[0].id]);
+    res.status(201).json({ item: created.rows[0] });
+  }),
+);
+
 router.patch(
   '/cms/pages/:id',
   requireCsrf,
@@ -1331,10 +1358,7 @@ router.patch(
   asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const body = cmsPageUpdateSchema.parse(req.body);
-    const publishedStatusId =
-      body.is_published === undefined
-        ? null
-        : await getCmsStatusId(pool, body.is_published ? 'published' : 'draft');
+    const statusId = body.status ? await getCmsStatusId(pool, body.status) : null;
 
     const current = await pool.query('SELECT * FROM cms_pages WHERE id = $1', [id]);
     if (current.rowCount === 0) throw new HttpError(404, 'Página no encontrada.');
@@ -1345,36 +1369,22 @@ router.patch(
            meta_title = COALESCE($3, meta_title),
            meta_description = COALESCE($4, meta_description),
            status_id = COALESCE($5, status_id),
-           published_at = CASE
-             WHEN $6::boolean = true THEN COALESCE(published_at, now())
-             WHEN $6::boolean = false THEN NULL
-             ELSE published_at
-           END,
            updated_at = now()
        WHERE id = $1
-       RETURNING
-         id,
-         slug,
-         title,
-         meta_title,
-         meta_description,
-         COALESCE(
-           (SELECT sc.code = 'published' FROM status_catalog sc WHERE sc.id = cms_pages.status_id),
-           cms_pages.published_at IS NOT NULL
-         ) AS is_published,
-         updated_at`,
-      [id, body.title ?? null, body.meta_title ?? null, body.meta_description ?? null, publishedStatusId, body.is_published ?? null]
+       RETURNING id`,
+      [id, body.title ?? null, body.meta_title ?? null, body.meta_description ?? null, statusId],
     );
+    const updated = await pool.query(`${cmsPageSelectSql} AND cp.id = $1`, [result.rows[0].id]);
 
     await auditService.logAdminAction({
       userId: req.admin?.id,
       action: 'update',
       entityType: 'cms_page',
-      entity: result.rows[0],
+      entity: updated.rows[0],
       previousState: current.rows[0],
       req
     });
-    res.json({ item: result.rows[0] });
+    res.json({ item: updated.rows[0] });
   })
 );
 

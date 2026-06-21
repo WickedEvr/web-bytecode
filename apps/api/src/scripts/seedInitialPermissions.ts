@@ -71,47 +71,13 @@ const main = async () => {
       `,
     );
 
-    const cmsPageColumns = await client.query(
-      `
-      SELECT column_name
-      FROM information_schema.columns
-      WHERE table_schema = 'public'
-        AND table_name = 'cms_pages'
-        AND column_name IN ('is_published', 'status_id')
-      `,
+    const statusResult = await client.query(
+      "SELECT id FROM status_catalog WHERE domain = 'cms' AND code = 'published' AND is_active = true LIMIT 1",
     );
-    const cmsColumns = new Set(cmsPageColumns.rows.map((row: { column_name: string }) => row.column_name));
+    const publishedStatusId = statusResult.rows[0]?.id;
+    if (!publishedStatusId) throw new Error('Published CMS status is not configured.');
 
-    if (cmsColumns.has('is_published')) {
-      await client.query(
-        `
-        INSERT INTO cms_pages (slug, title, meta_title, meta_description, is_published)
-        VALUES ($1, $2, $3, $4, true)
-        ON CONFLICT (slug) DO UPDATE
-        SET title = EXCLUDED.title,
-            meta_title = COALESCE(cms_pages.meta_title, EXCLUDED.meta_title),
-            meta_description = COALESCE(cms_pages.meta_description, EXCLUDED.meta_description),
-            is_published = true,
-            deleted_at = NULL,
-            updated_at = now()
-        `,
-        [
-          'portafolio',
-          'Portafolio',
-          'Portafolio | Bytecode',
-          'Proyectos web, aplicaciones y soluciones digitales desarrolladas por Bytecode.',
-        ],
-      );
-    } else {
-      let publishedStatusId: string | null = null;
-      if (cmsColumns.has('status_id')) {
-        const statusResult = await client.query(
-          "SELECT id FROM status_catalog WHERE domain = 'cms' AND code = 'published' LIMIT 1",
-        );
-        publishedStatusId = statusResult.rows[0]?.id ?? null;
-      }
-
-      await client.query(
+    await client.query(
         `
         INSERT INTO cms_pages (slug, title, meta_title, meta_description, status_id, published_at)
         VALUES ($1, $2, $3, $4, $5, now())
@@ -132,7 +98,6 @@ const main = async () => {
           publishedStatusId,
         ],
       );
-    }
 
     for (const [roleCode, permissionCodes] of Object.entries(initialRolePermissions)) {
       const roleResult = await client.query('SELECT id FROM roles WHERE code = $1', [roleCode]);
