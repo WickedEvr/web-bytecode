@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, MessageSquareText, RefreshCw, UserCheck, X } from 'lucide-react';
+import { BriefcaseBusiness, CalendarDays, Mail, MessageSquareText, RefreshCw, UserCheck, X } from 'lucide-react';
 import { apiRequest } from '../../lib/api';
 import StatusHistoryTimeline from '../../components/admin/StatusHistoryTimeline';
 import Timeline from '../../components/ui/Timeline';
@@ -65,6 +65,12 @@ const formatDate = (value?: string) =>
 
 const formatFullName = (item: Pick<ContactItem, 'nombre' | 'apellido'>) =>
   [item.nombre, item.apellido].filter(Boolean).join(' ');
+
+const formatCardDate = (value: string) =>
+  new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium' }).format(new Date(value));
+
+const formatContactTitle = (item: ContactItem) =>
+  formatFullName(item) || item.empresa || 'Sin nombre';
 
 
 
@@ -329,9 +335,18 @@ const Contactos: React.FC = () => {
                   onClick={() => loadDetail(item.id)}
                   className={`w-full grid gap-2 px-5 py-4 text-left transition-colors duration-200 md:grid-cols-[1fr_auto] border-l-2 ${selectedId === item.id ? 'bg-white/5 border-white/40' : 'border-transparent hover:bg-white/[0.02]'}`}
                 >
-                  <div className="flex flex-col gap-0.5">
-                    <p className={`font-medium text-base transition-colors ${selectedId === item.id ? 'text-white' : 'text-white/80'}`}>{formatFullName(item)}</p>
-                    <p className="text-xs text-white/40">{item.empresa}</p>
+                  <div className="flex min-w-0 flex-col gap-1.5">
+                    <p className={`truncate text-sm font-medium transition-colors ${selectedId === item.id ? 'text-white' : 'text-white/80'}`}>
+                      {item.case_code || 'Sin código'} · {formatContactTitle(item)}
+                    </p>
+                    <span className="flex min-w-0 items-center gap-1.5 text-xs text-white/40">
+                      <BriefcaseBusiness className="h-3 w-3 shrink-0" />
+                      <span className="truncate">{item.servicio || 'Servicio no especificado'}</span>
+                    </span>
+                    <span className="flex items-center gap-1.5 text-[10px] text-white/30">
+                      <CalendarDays className="h-3 w-3 shrink-0" />
+                      {formatCardDate(item.created_at)}
+                    </span>
                   </div>
                   <div className="flex flex-col items-end gap-1.5 justify-start">
                     <span className="h-fit rounded-md bg-white/5 px-2 py-0.5 text-[10px] text-white/60 whitespace-nowrap">
