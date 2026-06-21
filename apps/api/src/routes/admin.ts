@@ -1811,7 +1811,7 @@ router.delete(
 router.post(
   '/portfolio/:id/image',
   requireCsrf,
-  requirePermission('admin.cotizador.view'),
+  requirePermission('admin.portafolio.manage'),
   upload.single('image'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
@@ -1914,53 +1914,159 @@ router.post(
 // --- Projects Endpoints ---
 
 const projectStatusSchema = z.object({ status: z.string().trim().min(1).max(80) });
+const nullableProjectUrl = z.string().trim().url().max(255).optional().nullable();
+const projectCreateSchema = z.object({
+  customerId: z.string().uuid(),
+  serviceId: z.string().uuid(),
+  organizationId: z.string().uuid().optional().nullable(),
+  name: z.string().trim().min(2).max(180),
+  description: z.string().trim().max(3000).optional().nullable(),
+  status: z.string().trim().min(1).max(80),
+  githubRepo: nullableProjectUrl,
+  githubBranch: z.string().trim().max(160).optional().nullable(),
+  stagingUrl: nullableProjectUrl,
+  productionUrl: nullableProjectUrl,
+  startDate: z.string().date(),
+  estimatedEndDate: z.string().date(),
+  actualEndDate: z.string().date().optional().nullable(),
+  totalBudget: z.coerce.number().min(0),
+  currencyCode: z.string().trim().length(3).transform((value) => value.toUpperCase()).default('PEN'),
+});
+const projectUpdateSchema = projectCreateSchema.partial();
+
+const projectSelectSql = `
+  SELECT p.id, p.project_code, p.customer_id, p.organization_id, p.service_id,
+         p.name, p.description, p.github_repo, p.github_branch, p.staging_url,
+         p.production_url, p.start_date, p.estimated_end_date, p.actual_end_date,
+         p.total_budget, p.currency_code, p.created_at, p.updated_at,
+         sc.code AS status, sc.name AS status_name,
+         COALESCE(c.display_name, NULLIF(concat_ws(' ', c.first_name, c.last_name), '')) AS customer_name,
+         c.primary_email AS customer_email, s.name AS service_name
+  FROM projects p
+  JOIN status_catalog sc ON p.status_id = sc.id AND sc.domain = 'project'
+  JOIN customers c ON p.customer_id = c.id
+  JOIN service_catalog s ON p.service_id = s.id
+  WHERE p.deleted_at IS NULL
+`;
+
+const getProjectStatusId = async (client: Queryable, code: string) => {
+  const result = await client.query(
+    "SELECT id FROM status_catalog WHERE domain = 'project' AND code = $1 AND is_active = true LIMIT 1",
+    [code],
+  );
+  if (!result.rowCount) throw new HttpError(400, 'Estado de proyecto invalido.');
+  return result.rows[0].id as string;
+};
 
 router.get(
   '/projects',
-  requirePermission('admin.cotizador.view'),
+  requirePermission('admin.proyectos.view'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const { limit, offset } = paginationQuerySchema.parse(req.query);
+    const [result, countResult] = await Promise.all([
+      pool.query(`${projectSelectSql} ORDER BY p.created_at DESC LIMIT $1 OFFSET $2`, [limit, offset]),
+      pool.query('SELECT count(*)::int AS total FROM projects WHERE deleted_at IS NULL'),
+    ]);
+    res.json({ data: result.rows, total: countResult.rows[0].total });
+  }),
+);
+
+router.get(
+  '/projects/options',
+  requirePermission('admin.proyectos.create'),
   asyncHandler(async (_req: Request, res: Response) => {
-    const result = await pool.query(`
-      SELECT p.id, p.project_code, p.name, p.description, p.start_date,
-             p.estimated_end_date, p.actual_end_date, p.total_budget,
-             p.currency_code, p.created_at, p.updated_at,
-             sc.code AS status, sc.name AS status_name,
-             cu.first_name, cu.last_name, cu.primary_email,
-             s.name AS service_name
-      FROM projects p
-      JOIN status_catalog sc ON p.status_id = sc.id
-      JOIN customers cu ON p.customer_id = cu.id
-      JOIN service_catalog s ON p.service_id = s.id
-      WHERE p.deleted_at IS NULL
-      ORDER BY p.created_at DESC
-    `);
-    res.json({ items: result.rows });
+    const [customers, services] = await Promise.all([
+      pool.query(`SELECT id, COALESCE(display_name, NULLIF(concat_ws(' ', first_name, last_name), '')) AS name, primary_email AS email
+                  FROM customers WHERE deleted_at IS NULL ORDER BY name ASC LIMIT 200`),
+      pool.query(`SELECT id, code, name FROM service_catalog WHERE is_active = true AND deleted_at IS NULL ORDER BY name ASC`),
+    ]);
+    res.json({ customers: customers.rows, services: services.rows });
+  }),
+);
+
+router.post(
+  '/projects',
+  requireCsrf,
+  requirePermission('admin.proyectos.create'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const body = projectCreateSchema.parse(req.body);
+    const statusId = await getProjectStatusId(pool, body.status);
+    const result = await pool.query(
+      `INSERT INTO projects (
+         project_code, customer_id, organization_id, service_id, name, description,
+         status_id, github_repo, github_branch, staging_url, production_url,
+         start_date, estimated_end_date, actual_end_date, total_budget, currency_code
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+       RETURNING id`,
+      [createBusinessCode('PRJ'), body.customerId, body.organizationId ?? null, body.serviceId,
+       body.name, body.description ?? null, statusId, body.githubRepo ?? null,
+       body.githubBranch ?? null, body.stagingUrl ?? null, body.productionUrl ?? null,
+       body.startDate, body.estimatedEndDate, body.actualEndDate ?? null,
+       body.totalBudget, body.currencyCode],
+    );
+    const created = await pool.query(`${projectSelectSql} AND p.id = $1`, [result.rows[0].id]);
+    res.status(201).json({ item: created.rows[0] });
   }),
 );
 
 router.get(
   '/projects/:id',
-  requirePermission('admin.cotizador.view'),
+  requirePermission('admin.proyectos.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
-    const result = await pool.query(`
-      SELECT p.*, sc.code AS status, sc.name AS status_name,
-             cu.first_name, cu.last_name, cu.primary_email,
-             s.name AS service_name
-      FROM projects p
-      JOIN status_catalog sc ON p.status_id = sc.id
-      JOIN customers cu ON p.customer_id = cu.id
-      JOIN service_catalog s ON p.service_id = s.id
-      WHERE p.id = $1 AND p.deleted_at IS NULL
-    `, [id]);
+    const result = await pool.query(`${projectSelectSql} AND p.id = $1`, [id]);
     if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
     res.json({ item: result.rows[0] });
   }),
 );
 
 router.patch(
+  '/projects/:id',
+  requireCsrf,
+  requirePermission('admin.proyectos.manage'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const body = projectUpdateSchema.parse(req.body);
+    const statusId = body.status ? await getProjectStatusId(pool, body.status) : null;
+    const result = await pool.query(
+      `UPDATE projects SET
+         customer_id = COALESCE($2, customer_id), organization_id = COALESCE($3, organization_id),
+         service_id = COALESCE($4, service_id), name = COALESCE($5, name),
+         description = COALESCE($6, description), status_id = COALESCE($7, status_id),
+         github_repo = COALESCE($8, github_repo), github_branch = COALESCE($9, github_branch),
+         staging_url = COALESCE($10, staging_url), production_url = COALESCE($11, production_url),
+         start_date = COALESCE($12, start_date), estimated_end_date = COALESCE($13, estimated_end_date),
+         actual_end_date = COALESCE($14, actual_end_date), total_budget = COALESCE($15, total_budget),
+         currency_code = COALESCE($16, currency_code), updated_at = now()
+       WHERE id = $1 AND deleted_at IS NULL RETURNING id`,
+      [id, body.customerId ?? null, body.organizationId ?? null, body.serviceId ?? null,
+       body.name ?? null, body.description ?? null, statusId, body.githubRepo ?? null,
+       body.githubBranch ?? null, body.stagingUrl ?? null, body.productionUrl ?? null,
+       body.startDate ?? null, body.estimatedEndDate ?? null, body.actualEndDate ?? null,
+       body.totalBudget ?? null, body.currencyCode ?? null],
+    );
+    if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
+    const updated = await pool.query(`${projectSelectSql} AND p.id = $1`, [id]);
+    res.json({ item: updated.rows[0] });
+  }),
+);
+
+router.delete(
+  '/projects/:id',
+  requireCsrf,
+  requirePermission('admin.proyectos.manage'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const result = await pool.query('UPDATE projects SET deleted_at = now(), updated_at = now() WHERE id = $1 AND deleted_at IS NULL RETURNING id', [id]);
+    if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
+    res.json({ ok: true });
+  }),
+);
+
+router.patch(
   '/projects/:id/status',
   requireCsrf,
-  requirePermission('admin.cotizador.manage'),
+  requirePermission('admin.proyectos.manage'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
     const body = projectStatusSchema.parse(req.body);
@@ -1978,8 +2084,67 @@ router.patch(
 );
 
 router.get(
+  '/projects/:id/milestones',
+  requirePermission('admin.proyectos.view'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const result = await pool.query(
+      `SELECT pm.id, pm.project_id, pm.title, pm.due_date, pm.payment_percentage,
+              pm.completed_at, pm.created_at, pm.updated_at,
+              sc.code AS status, sc.name AS status_name
+       FROM project_milestones pm
+       JOIN status_catalog sc ON pm.status_id = sc.id
+       WHERE pm.project_id = $1 AND sc.domain = 'milestone'
+       ORDER BY pm.due_date ASC, pm.created_at ASC`,
+      [id],
+    );
+    res.json({ items: result.rows });
+  }),
+);
+
+router.patch(
+  '/projects/:id/milestones/:milestone_id',
+  requireCsrf,
+  requirePermission('admin.proyectos.manage'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const projectId = z.string().uuid().parse(req.params.id);
+    const milestoneId = z.string().uuid().parse(req.params.milestone_id);
+    const body = projectStatusSchema.parse(req.body);
+    const result = await pool.query(
+      `UPDATE project_milestones pm
+       SET status_id = sc.id,
+           completed_at = CASE WHEN sc.code = 'completed' THEN COALESCE(pm.completed_at, now()) ELSE NULL END,
+           updated_at = now()
+       FROM status_catalog sc
+       WHERE pm.id = $1 AND pm.project_id = $2
+         AND sc.domain = 'milestone' AND sc.code = $3 AND sc.is_active = true
+       RETURNING pm.id`,
+      [milestoneId, projectId, body.status],
+    );
+    if (!result.rowCount) throw new HttpError(400, 'Hito o estado invalido.');
+    res.json({ ok: true });
+  }),
+);
+
+router.get(
+  '/projects/:id/commits',
+  requirePermission('admin.proyectos.view'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const result = await pool.query(
+      `SELECT id, project_id, commit_hash, message, author_name, author_email,
+              branch, github_url, committed_at, created_at
+       FROM project_commits WHERE project_id = $1
+       ORDER BY COALESCE(committed_at, created_at) DESC LIMIT 100`,
+      [id],
+    );
+    res.json({ items: result.rows });
+  }),
+);
+
+router.get(
   '/projects/:id/history',
-  requirePermission('admin.cotizador.view'),
+  requirePermission('admin.proyectos.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const result = await pool.query(
       statusHistorySelect('project_status_history', 'project_id'),

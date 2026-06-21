@@ -25,7 +25,7 @@ const main = async () => {
           permission.actionCode,
           permission.code,
           permission.name,
-          permission.description ?? null,
+          'description' in permission ? permission.description : null,
         ],
       );
     }

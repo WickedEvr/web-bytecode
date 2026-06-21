@@ -234,3 +234,88 @@ export const fetchPortfolio = async () => {
   });
   return response.items;
 };
+
+export interface Project {
+  id: string;
+  project_code: string;
+  customer_id: string;
+  service_id: string;
+  name: string;
+  description: string | null;
+  github_repo: string | null;
+  github_branch: string | null;
+  staging_url: string | null;
+  production_url: string | null;
+  start_date: string;
+  estimated_end_date: string;
+  actual_end_date: string | null;
+  total_budget: string;
+  currency_code: string;
+  status: string;
+  status_name?: string;
+  customer_name: string;
+  customer_email: string | null;
+  service_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectMilestone {
+  id: string;
+  project_id: string;
+  title: string;
+  due_date: string;
+  payment_percentage: string;
+  completed_at: string | null;
+  status: string;
+  status_name?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectCommit {
+  id: string;
+  project_id: string;
+  commit_hash: string;
+  message: string;
+  author_name: string | null;
+  author_email: string | null;
+  branch: string | null;
+  github_url: string | null;
+  committed_at: string | null;
+  created_at: string | null;
+}
+
+export interface ProjectInput {
+  customerId: string;
+  serviceId: string;
+  name: string;
+  description?: string;
+  status: string;
+  githubRepo?: string;
+  githubBranch?: string;
+  stagingUrl?: string;
+  productionUrl?: string;
+  startDate: string;
+  estimatedEndDate: string;
+  totalBudget: number;
+  currencyCode: string;
+}
+
+export const fetchProjects = (page = 1, limit = 9) =>
+  apiRequest<{ data: Project[]; total: number }>(`/api/admin/projects?limit=${limit}&offset=${(page - 1) * limit}`);
+
+export const fetchProject = (id: string) =>
+  apiRequest<{ item: Project }>(`/api/admin/projects/${id}`).then((response) => response.item);
+
+export const createProject = (input: ProjectInput) =>
+  apiRequest<{ item: Project }>('/api/admin/projects', { method: 'POST', json: input }).then((response) => response.item);
+
+export const fetchProjectMilestones = (projectId: string) =>
+  apiRequest<{ items: ProjectMilestone[] }>(`/api/admin/projects/${projectId}/milestones`).then((response) => response.items);
+
+export const updateProjectMilestone = (projectId: string, milestoneId: string, status: string) =>
+  apiRequest(`/api/admin/projects/${projectId}/milestones/${milestoneId}`, { method: 'PATCH', json: { status } });
+
+export const fetchProjectCommits = (projectId: string) =>
+  apiRequest<{ items: ProjectCommit[] }>(`/api/admin/projects/${projectId}/commits`).then((response) => response.items);

@@ -23,6 +23,7 @@ declare global {
     interface Request {
       admin?: AdminUser;
       sessionId?: string;
+      rawBody?: Buffer;
     }
   }
 }
