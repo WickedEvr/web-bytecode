@@ -359,8 +359,8 @@ router.post(
         customerId = customerRes.rows[0].id;
       }
 
-      const statusRes = await client.query("SELECT id FROM status_catalog WHERE domain = 'case' AND code = 'new' LIMIT 1");
-      if (statusRes.rowCount === 0) throw new Error('Status catalog not initialized');
+      const statusRes = await client.query("SELECT id FROM status_catalog WHERE domain = 'case' AND code = 'new' AND is_active = true LIMIT 1");
+      if (statusRes.rowCount === 0) throw new HttpError(400, 'Estado inicial de contacto no configurado.');
       const statusId = statusRes.rows[0].id;
 
       const caseCode = `CAS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
@@ -584,8 +584,8 @@ router.post(
         customerId = customerRes.rows[0].id;
       }
 
-      const statusRes = await client.query("SELECT id FROM status_catalog WHERE domain = 'case' AND code = 'new' LIMIT 1");
-      if (statusRes.rowCount === 0) throw new Error('Status catalog not initialized');
+      const statusRes = await client.query("SELECT id FROM status_catalog WHERE domain = 'complaint' AND code = 'new' AND is_active = true LIMIT 1");
+      if (statusRes.rowCount === 0) throw new HttpError(400, 'Estado inicial de reclamo no configurado.');
       const statusId = statusRes.rows[0].id;
 
       // Handle complaint_type_id mapping from string code (claimType = queja/reclamo)

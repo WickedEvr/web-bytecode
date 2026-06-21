@@ -781,7 +781,7 @@ router.patch(
       let newStatusId: string | undefined;
       if (body.status) {
         const statusResult = await client.query(
-          "SELECT id FROM status_catalog WHERE domain = 'case' AND code = $1 AND is_active = true",
+          "SELECT id FROM status_catalog WHERE domain = 'complaint' AND code = $1 AND is_active = true",
           [body.status],
         );
         if (!statusResult.rowCount) throw new HttpError(400, 'Estado de reclamo invalido.');

@@ -61,7 +61,7 @@ const Reclamos: React.FC = () => {
 
   const loadCatalogs = async () => {
     try {
-      const res = await apiRequest<{ items: { id: string, code: string, name: string }[] }>('/api/catalog/statuses');
+      const res = await apiRequest<{ items: { id: string, code: string, name: string }[] }>('/api/catalog/statuses?domain=complaint');
       setStatuses(res.items.map(s => ({ value: s.code, label: s.name })));
     } catch (err) {
       console.error(err);

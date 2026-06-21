@@ -103,7 +103,7 @@ const Contactos: React.FC = () => {
 
   const loadCatalogs = async () => {
     try {
-      const res = await apiRequest<{ items: { id: string, code: string, name: string }[] }>('/api/catalog/statuses');
+      const res = await apiRequest<{ items: { id: string, code: string, name: string }[] }>('/api/catalog/statuses?domain=case');
       setStatuses(res.items.map(s => ({ value: s.code, label: s.name })));
       
       const adminRes = await apiRequest<{ data: { id: string, name: string }[]; total: number }>('/api/admin/users?limit=100&offset=0');
