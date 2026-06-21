@@ -286,6 +286,21 @@ export interface ProjectCommit {
   created_at: string | null;
 }
 
+export interface ProjectAssignment {
+  project_id: string;
+  user_id: string;
+  role: string | null;
+  assigned_at: string;
+  name: string;
+  email: string;
+}
+
+export interface ProjectAssignmentOption {
+  id: string;
+  name: string;
+  email: string;
+}
+
 export interface ProjectInput {
   customerId: string;
   serviceId: string;
@@ -319,3 +334,12 @@ export const updateProjectMilestone = (projectId: string, milestoneId: string, s
 
 export const fetchProjectCommits = (projectId: string) =>
   apiRequest<{ items: ProjectCommit[] }>(`/api/admin/projects/${projectId}/commits`).then((response) => response.items);
+
+export const fetchProjectAssignments = (projectId: string) =>
+  apiRequest<{ items: ProjectAssignment[] }>(`/api/admin/projects/${projectId}/assignments`).then((response) => response.items);
+
+export const fetchProjectAssignmentOptions = () =>
+  apiRequest<{ items: ProjectAssignmentOption[] }>('/api/admin/projects/assignment-options').then((response) => response.items);
+
+export const assignProjectUser = (projectId: string, userId: string, role?: string) =>
+  apiRequest(`/api/admin/projects/${projectId}/assignments`, { method: 'POST', json: { userId, role } });

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { FolderKanban, Plus, RefreshCw, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdminPanel from '../../components/admin/AdminPanel';
+import RoleGuard from '../../components/admin/RoleGuard';
 import PaginationControl from '../../components/ui/PaginationControl';
 import CustomDropdown from '../../components/ui/CustomDropdown';
 import {
@@ -113,7 +114,9 @@ const Proyectos: React.FC = () => {
         <div className="flex items-center gap-3"><FolderKanban className="h-6 w-6 text-white/50" /><div><h1 className="text-2xl font-semibold text-white/90">Proyectos</h1><p className="mt-1 text-xs uppercase tracking-widest text-white/40">Entrega y seguimiento técnico</p></div></div>
         <div className="flex gap-3">
           <button type="button" onClick={() => void loadProjects()} className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80"><RefreshCw className="h-4 w-4" />Actualizar</button>
-          <button type="button" onClick={openNew} className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black"><Plus className="h-4 w-4" />Nuevo</button>
+          <RoleGuard requiredPermission="admin.proyectos.create" fallback={null}>
+            <button type="button" onClick={openNew} className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black"><Plus className="h-4 w-4" />Nuevo Proyecto</button>
+          </RoleGuard>
         </div>
       </div>
       {error && <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</p>}

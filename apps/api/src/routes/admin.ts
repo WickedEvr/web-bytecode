@@ -1984,6 +1984,20 @@ router.get(
   }),
 );
 
+router.get(
+  '/projects/assignment-options',
+  requirePermission('admin.proyectos.assign'),
+  asyncHandler(async (_req: Request, res: Response) => {
+    const result = await pool.query(
+      `SELECT id, name, email
+       FROM admin_users
+       WHERE deleted_at IS NULL AND is_active = true
+       ORDER BY name ASC, email ASC`,
+    );
+    res.json({ items: result.rows });
+  }),
+);
+
 router.post(
   '/projects',
   requireCsrf,
@@ -2099,6 +2113,49 @@ router.get(
       [id],
     );
     res.json({ items: result.rows });
+  }),
+);
+
+router.get(
+  '/projects/:id/assignments',
+  requirePermission('admin.proyectos.view'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const projectId = z.string().uuid().parse(req.params.id);
+    const result = await pool.query(
+      `SELECT pa.project_id, pa.user_id, pa.role, pa.assigned_at, u.name, u.email
+       FROM project_assignments pa
+       JOIN admin_users u ON u.id = pa.user_id
+       WHERE pa.project_id = $1
+       ORDER BY pa.assigned_at DESC, u.name ASC`,
+      [projectId],
+    );
+    res.json({ items: result.rows });
+  }),
+);
+
+router.post(
+  '/projects/:id/assignments',
+  requireCsrf,
+  requirePermission('admin.proyectos.assign'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const projectId = z.string().uuid().parse(req.params.id);
+    const body = z.object({
+      userId: z.string().uuid(),
+      role: z.string().trim().max(120).optional().nullable(),
+    }).parse(req.body);
+    const result = await pool.query(
+      `INSERT INTO project_assignments (project_id, user_id, role, assigned_at)
+       SELECT p.id, u.id, $3, now()
+       FROM projects p
+       JOIN admin_users u ON u.id = $2 AND u.deleted_at IS NULL AND u.is_active = true
+       WHERE p.id = $1 AND p.deleted_at IS NULL
+       ON CONFLICT (project_id, user_id)
+       DO UPDATE SET role = EXCLUDED.role, assigned_at = now()
+       RETURNING project_id, user_id, role, assigned_at`,
+      [projectId, body.userId, body.role || null],
+    );
+    if (!result.rowCount) throw new HttpError(400, 'Proyecto o usuario invalido.');
+    res.status(201).json({ item: result.rows[0] });
   }),
 );
 
