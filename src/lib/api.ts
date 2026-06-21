@@ -219,8 +219,8 @@ export interface AdminPortfolioItemData {
   website_url: string | null;
   sort_order: number;
   is_featured: boolean;
-  is_published: boolean;
-  published_at: string | null;
+  status: string;
+  status_name?: string;
   image_url: string | null;
   alt_text: string | null;
   technologies: Array<{ id: string; name: string }>;

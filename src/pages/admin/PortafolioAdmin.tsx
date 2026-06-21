@@ -3,6 +3,7 @@ import { ImageUp, Plus, RefreshCw, Save, Trash2, ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom';
 import AdminPanel from '../../components/admin/AdminPanel';
 import { apiRequest, type AdminPortfolioItemData, type PortfolioTechnologyData } from '../../lib/api';
+import CustomDropdown from '../../components/ui/CustomDropdown';
 
 type PortfolioForm = {
   name: string;
@@ -11,7 +12,7 @@ type PortfolioForm = {
   websiteUrl: string;
   sortOrder: number;
   isFeatured: boolean;
-  isPublished: boolean;
+  status: string;
   technologyIds: string[];
 };
 
@@ -22,7 +23,7 @@ const emptyForm: PortfolioForm = {
   websiteUrl: '',
   sortOrder: 0,
   isFeatured: true,
-  isPublished: true,
+  status: 'draft',
   technologyIds: [],
 };
 
@@ -41,7 +42,7 @@ const toForm = (item: AdminPortfolioItemData): PortfolioForm => ({
   websiteUrl: item.website_url ?? '',
   sortOrder: item.sort_order,
   isFeatured: item.is_featured,
-  isPublished: item.is_published,
+  status: item.status,
   technologyIds: item.technologies.map((technology) => technology.id),
 });
 
@@ -57,6 +58,7 @@ const AdminPortafolio: React.FC = () => {
   const navigate = useNavigate();
   const [items, setItems] = useState<AdminPortfolioItemData[]>([]);
   const [technologies, setTechnologies] = useState<PortfolioTechnologyData[]>([]);
+  const [statuses, setStatuses] = useState<Array<{ id: string; code: string; name: string }>>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [form, setForm] = useState<PortfolioForm>(emptyForm);
   const [newTechnology, setNewTechnology] = useState('');
@@ -76,12 +78,14 @@ const AdminPortafolio: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const [itemsRes, technologiesRes] = await Promise.all([
+      const [itemsRes, technologiesRes, statusesRes] = await Promise.all([
         apiRequest<{ items: AdminPortfolioItemData[] }>('/api/admin/portfolio'),
         apiRequest<{ items: PortfolioTechnologyData[] }>('/api/admin/portfolio/technologies'),
+        apiRequest<{ items: Array<{ id: string; code: string; name: string }> }>('/api/catalog/statuses?domain=cms'),
       ]);
       setItems(itemsRes.items);
       setTechnologies(technologiesRes.items);
+      setStatuses(statusesRes.items);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo cargar el portafolio.');
     } finally {
@@ -139,7 +143,7 @@ const AdminPortafolio: React.FC = () => {
         websiteUrl: normalizedWebsiteUrl || undefined,
         sortOrder: form.sortOrder,
         isFeatured: form.isFeatured,
-        isPublished: form.isPublished,
+        status: form.status,
         technologyIds: form.technologyIds,
       };
 
@@ -169,7 +173,7 @@ const AdminPortafolio: React.FC = () => {
         if (normalizedWebsiteUrl) formData.append('websiteUrl', normalizedWebsiteUrl);
         formData.append('sortOrder', String(form.sortOrder));
         formData.append('isFeatured', String(form.isFeatured));
-        formData.append('isPublished', String(form.isPublished));
+        formData.append('status', form.status);
         formData.append('technologyIds', JSON.stringify(form.technologyIds));
         formData.append('altText', imageAlt || form.name);
         if (imageFile) formData.append('image', imageFile);
@@ -339,11 +343,16 @@ const AdminPortafolio: React.FC = () => {
                 <span className="text-[10px] uppercase tracking-wider text-white/40">Orden</span>
                 <input type="number" min={0} value={form.sortOrder} onChange={(event) => setForm({ ...form, sortOrder: Number(event.target.value) })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition focus:border-white/30" />
               </label>
+              <div className="grid gap-1.5">
+                <span className="text-[10px] uppercase tracking-wider text-white/40">Estado</span>
+                <CustomDropdown
+                  value={form.status}
+                  placeholder="Seleccionar estado..."
+                  onChange={(status) => setForm({ ...form, status })}
+                  options={statuses.map((status) => ({ value: status.code, label: status.name }))}
+                />
+              </div>
               <div className="flex items-end gap-5">
-                <label className="flex items-center gap-2 text-sm text-white/70">
-                  <input type="checkbox" checked={form.isPublished} onChange={(event) => setForm({ ...form, isPublished: event.target.checked })} />
-                  Publicado
-                </label>
                 <label className="flex items-center gap-2 text-sm text-white/70">
                   <input type="checkbox" checked={form.isFeatured} onChange={(event) => setForm({ ...form, isFeatured: event.target.checked })} />
                   Destacado

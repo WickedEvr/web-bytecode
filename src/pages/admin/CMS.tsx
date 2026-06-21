@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Database, Globe, MoreVertical, RefreshCw, Save, Edit2, X } from 'lucide-react';
+import { Database, Globe, MoreVertical, RefreshCw, Save, Edit2, Settings2, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '../../lib/api';
 import AdminPanel from '../../components/admin/AdminPanel';
@@ -90,14 +90,6 @@ const AdminCMS: React.FC = () => {
     setEditingId(page.id);
     setFormData(page);
     setIsModalOpen(true);
-  };
-
-  const handleModify = (page: CMSPage) => {
-    if (page.slug === 'portafolio') {
-      navigate('/admin/portafolio');
-      return;
-    }
-    handleEdit(page);
   };
 
   const handleSave = async () => {
@@ -198,19 +190,30 @@ const AdminCMS: React.FC = () => {
             transition={{ duration: 0.15 }}
             style={{ position: 'absolute', top: actionsMenu.top, left: actionsMenu.left }}
             onClick={(e) => e.stopPropagation()}
-            className="w-40 bg-[#121212] border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden"
+            className="w-52 bg-[#121212] border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden"
           >
             <div className="py-1 px-1 flex flex-col gap-1">
               <button
                 onClick={() => {
                   const page = pages.find(p => p.id === actionsMenu.id);
-                  if (page) handleModify(page);
+                  if (page) handleEdit(page);
                   setActionsMenu(null);
                 }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
               >
-                <Edit2 className="h-4 w-4" /> {pages.find(p => p.id === actionsMenu.id)?.slug === 'portafolio' ? 'Modificar' : 'Editar'}
+                <Edit2 className="h-4 w-4" /> Editar
               </button>
+              {pages.find((page) => page.id === actionsMenu.id)?.slug === 'portafolio' && (
+                <button
+                  onClick={() => {
+                    navigate('/admin/portafolio');
+                    setActionsMenu(null);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                  <Settings2 className="h-4 w-4" /> Gestionar Contenido
+                </button>
+              )}
             </div>
           </motion.div>
         )}

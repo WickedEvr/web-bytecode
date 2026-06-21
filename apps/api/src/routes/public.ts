@@ -202,6 +202,8 @@ router.get('/portfolio', asyncHandler(async (_req: Request, res: Response) => {
       pi.client_name,
       pi.description,
       pi.website_url,
+      sc.code AS status,
+      sc.name AS status_name,
       COALESCE(fa.public_url, fa.storage_key) AS image_url,
       COALESCE(
         array_agg(tc.name ORDER BY pit.sort_order, tc.sort_order, tc.name)
@@ -209,6 +211,8 @@ router.get('/portfolio', asyncHandler(async (_req: Request, res: Response) => {
         ARRAY[]::text[]
       ) AS tags
     FROM portfolio_items pi
+    JOIN status_catalog sc
+      ON pi.status_id = sc.id
     LEFT JOIN portfolio_item_assets pia
       ON pia.portfolio_item_id = pi.id
       AND pia.asset_role = 'cover'
@@ -223,10 +227,10 @@ router.get('/portfolio', asyncHandler(async (_req: Request, res: Response) => {
       ON tc.id = pit.technology_id
       AND tc.is_active = true
       AND tc.deleted_at IS NULL
-    WHERE pi.is_published = true
-      AND pi.deleted_at IS NULL
-      AND (pi.published_at IS NULL OR pi.published_at <= now())
-    GROUP BY pi.id, fa.public_url, fa.storage_key
+    WHERE pi.deleted_at IS NULL
+      AND sc.domain = 'cms'
+      AND sc.code = 'published'
+    GROUP BY pi.id, sc.id, fa.public_url, fa.storage_key
     ORDER BY pi.sort_order ASC, pi.created_at DESC
   `);
 

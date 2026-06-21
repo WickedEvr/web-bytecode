@@ -1447,7 +1447,7 @@ const portfolioItemSchema = z.object({
   websiteUrl: optionalUrl,
   sortOrder: z.coerce.number().int().min(0).max(100000).default(0),
   isFeatured: portfolioBoolean(true),
-  isPublished: portfolioBoolean(true),
+  status: z.string().trim().min(1).max(80),
   technologyIds: technologyIdsSchema,
 });
 
@@ -1484,8 +1484,8 @@ const selectPortfolioItemsSql = `
     pi.website_url,
     pi.sort_order,
     pi.is_featured,
-    pi.is_published,
-    pi.published_at,
+    sc.code AS status,
+    sc.name AS status_name,
     pi.created_at,
     pi.updated_at,
     COALESCE(fa.public_url, fa.storage_key) AS image_url,
@@ -1498,6 +1498,9 @@ const selectPortfolioItemsSql = `
       '[]'::jsonb
     ) AS technologies
   FROM portfolio_items pi
+  JOIN status_catalog sc
+    ON pi.status_id = sc.id
+    AND sc.domain = 'cms'
   LEFT JOIN portfolio_item_assets pia
     ON pia.portfolio_item_id = pi.id
     AND pia.asset_role = 'cover'
@@ -1515,7 +1518,7 @@ const selectPortfolioItemsSql = `
 `;
 
 const portfolioGroupOrderSql = `
-  GROUP BY pi.id, fa.public_url, fa.storage_key, pia.alt_text
+  GROUP BY pi.id, sc.id, fa.public_url, fa.storage_key, pia.alt_text
   ORDER BY pi.sort_order ASC, pi.created_at DESC
 `;
 
@@ -1628,12 +1631,13 @@ router.post(
       }
 
       await client.query('BEGIN');
+      const statusId = await getCmsStatusId(client, body.status);
       const result = await client.query(
         `INSERT INTO portfolio_items (
           item_code, name, client_name, description, website_url, sort_order,
-          is_featured, is_published, published_at, created_by
+          is_featured, status_id, created_by
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CASE WHEN $8 THEN now() ELSE NULL END, $9)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING id`,
         [
           itemCode,
@@ -1643,7 +1647,7 @@ router.post(
           body.websiteUrl ?? null,
           body.sortOrder,
           body.isFeatured,
-          body.isPublished,
+          statusId,
           req.admin?.id ?? null,
         ],
       );
@@ -1717,6 +1721,7 @@ router.patch(
       await client.query('BEGIN');
       const current = await client.query('SELECT * FROM portfolio_items WHERE id = $1 AND deleted_at IS NULL', [id]);
       if (current.rowCount === 0) throw new HttpError(404, 'Proyecto de portafolio no encontrado.');
+      const statusId = body.status ? await getCmsStatusId(client, body.status) : null;
 
       const result = await client.query(
         `UPDATE portfolio_items
@@ -1726,12 +1731,7 @@ router.patch(
              website_url = COALESCE($5, website_url),
              sort_order = COALESCE($6, sort_order),
              is_featured = COALESCE($7, is_featured),
-             is_published = COALESCE($8, is_published),
-             published_at = CASE
-               WHEN $8::boolean = true AND published_at IS NULL THEN now()
-               WHEN $8::boolean = false THEN NULL
-               ELSE published_at
-             END,
+             status_id = COALESCE($8, status_id),
              updated_by = $9,
              updated_at = now()
          WHERE id = $1 AND deleted_at IS NULL
@@ -1744,7 +1744,7 @@ router.patch(
           body.websiteUrl ?? null,
           body.sortOrder ?? null,
           body.isFeatured ?? null,
-          body.isPublished ?? null,
+          statusId,
           req.admin?.id ?? null,
         ],
       );
