@@ -483,47 +483,70 @@ router.patch(
   asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const body = updateSchema.parse(req.body);
-    
-    let statusId;
-    if (body.status) {
-      const statusRes = await pool.query("SELECT id FROM status_catalog WHERE domain='case' AND code=$1", [body.status]);
-      if ((statusRes.rowCount ?? 0) > 0) statusId = statusRes.rows[0].id;
-    }
-
-    const current = await pool.query('SELECT * FROM contact_cases WHERE id = $1', [id]);
-    if (current.rowCount === 0) throw new HttpError(404, 'Mensaje no encontrado.');
-
-    const result = await pool.query(
-      `
-      UPDATE contact_cases
-      SET status_id = COALESCE($2, status_id),
-          internal_notes = COALESCE($3, internal_notes),
-          updated_at = now()
-      WHERE id = $1
-      RETURNING id
-      `,
-      [id, statusId ?? null, body.adminNotes ?? null],
-    );
-
-    if (result.rowCount === 0) throw new HttpError(404, 'Mensaje no encontrado.');
-
-    
     const normalized = await hasNormalizedContactSchema();
-    const updated = await pool.query(
-      `SELECT ${normalized ? contactColumns : legacyContactColumns} FROM contact_cases c ${normalized ? contactJoins : legacyContactJoins} WHERE c.id = $1`, 
-      [id]
-    );
+    const client = await pool.connect();
+    let currentRow: Record<string, unknown>;
+    let updatedRow: Record<string, unknown>;
+
+    try {
+      await client.query('BEGIN');
+      const current = await client.query('SELECT * FROM contact_cases WHERE id = $1 FOR UPDATE', [id]);
+      if (current.rowCount === 0) throw new HttpError(404, 'Mensaje no encontrado.');
+      currentRow = current.rows[0];
+
+      let newStatusId: string | undefined;
+      if (body.status) {
+        const statusResult = await client.query(
+          "SELECT id FROM status_catalog WHERE domain = 'case' AND code = $1 AND is_active = true",
+          [body.status],
+        );
+        if (!statusResult.rowCount) throw new HttpError(400, 'Estado de contacto invalido.');
+        newStatusId = statusResult.rows[0].id;
+      }
+
+      const result = await client.query(
+        `UPDATE contact_cases
+         SET status_id = COALESCE($2, status_id),
+             internal_notes = COALESCE($3, internal_notes),
+             updated_at = now()
+         WHERE id = $1
+         RETURNING id`,
+        [id, newStatusId ?? null, body.adminNotes ?? null],
+      );
+      if (result.rowCount === 0) throw new HttpError(404, 'Mensaje no encontrado.');
+
+      const oldStatusId = currentRow.status_id as string | undefined;
+      if (oldStatusId && newStatusId && oldStatusId !== newStatusId) {
+        await client.query(
+          `INSERT INTO contact_case_status_history (contact_case_id, old_status_id, new_status_id, changed_by)
+           VALUES ($1, $2, $3, $4)`,
+          [id, oldStatusId, newStatusId, req.admin?.id ?? null],
+        );
+      }
+
+      const updated = await client.query(
+        `SELECT ${normalized ? contactColumns : legacyContactColumns} FROM contact_cases c ${normalized ? contactJoins : legacyContactJoins} WHERE c.id = $1`,
+        [id],
+      );
+      updatedRow = updated.rows[0];
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
 
     await auditService.logAdminAction({
         userId: req.admin?.id,
         action: 'update',
         entityType: 'contact_submission',
-        entity: updated.rows[0],
-        previousState: current.rows[0],
+        entity: updatedRow,
+        previousState: currentRow,
         req
     });
 
-    res.json({ item: updated.rows[0] });
+    res.json({ item: updatedRow });
   }),
 );
 
@@ -716,58 +739,81 @@ router.patch(
   asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const body = updateSchema.parse(req.body);
-    
-    let statusId;
-    if (body.status) {
-      const statusRes = await pool.query("SELECT id FROM status_catalog WHERE domain='case' AND code=$1", [body.status]);
-      if ((statusRes.rowCount ?? 0) > 0) statusId = statusRes.rows[0].id;
+    const client = await pool.connect();
+    let currentRow: Record<string, unknown>;
+    let updatedRow: Record<string, unknown>;
+
+    try {
+      await client.query('BEGIN');
+      const current = await client.query(
+        'SELECT id, status_id, internal_notes, assigned_to, updated_at FROM complaints WHERE id = $1 FOR UPDATE',
+        [id],
+      );
+      if (current.rowCount === 0) throw new HttpError(404, 'Reclamo no encontrado.');
+      currentRow = current.rows[0];
+
+      let newStatusId: string | undefined;
+      if (body.status) {
+        const statusResult = await client.query(
+          "SELECT id FROM status_catalog WHERE domain = 'case' AND code = $1 AND is_active = true",
+          [body.status],
+        );
+        if (!statusResult.rowCount) throw new HttpError(400, 'Estado de reclamo invalido.');
+        newStatusId = statusResult.rows[0].id;
+      }
+
+      const result = await client.query(
+        `UPDATE complaints
+         SET status_id = COALESCE($2, status_id),
+             internal_notes = COALESCE($3, internal_notes),
+             updated_at = now()
+         WHERE id = $1
+         RETURNING id`,
+        [id, newStatusId ?? null, body.adminNotes ?? null],
+      );
+      if (result.rowCount === 0) throw new HttpError(404, 'Reclamo no encontrado.');
+
+      const oldStatusId = currentRow.status_id as string | undefined;
+      if (oldStatusId && newStatusId && oldStatusId !== newStatusId) {
+        await client.query(
+          `INSERT INTO complaint_status_history (complaint_id, old_status_id, new_status_id, changed_by)
+           VALUES ($1, $2, $3, $4)`,
+          [id, oldStatusId, newStatusId, req.admin?.id ?? null],
+        );
+      }
+
+      const updated = await client.query(
+        `SELECT ${complaintColumns}
+         FROM complaints c
+         JOIN customers cu ON c.customer_id = cu.id
+         JOIN status_catalog sc ON c.status_id = sc.id
+         JOIN complaint_types ct ON c.complaint_type_id = ct.id
+         LEFT JOIN complaint_details cd ON c.id = cd.complaint_id
+         LEFT JOIN complaint_goods cg ON c.id = cg.complaint_id
+         LEFT JOIN complaint_evidences ce ON c.id = ce.complaint_id
+         LEFT JOIN file_assets fa ON ce.file_asset_id = fa.id
+         WHERE c.id = $1`,
+        [id],
+      );
+      updatedRow = updated.rows[0];
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
-
-    const current = await pool.query(
-      'SELECT id, status_id, internal_notes, assigned_to, updated_at FROM complaints WHERE id = $1',
-      [id],
-    );
-    if (current.rowCount === 0) throw new HttpError(404, 'Reclamo no encontrado.');
-
-    const result = await pool.query(
-      `
-      UPDATE complaints
-      SET status_id = COALESCE($2, status_id),
-          internal_notes = COALESCE($3, internal_notes),
-          updated_at = now()
-      WHERE id = $1
-      RETURNING id
-      `,
-      [id, statusId ?? null, body.adminNotes ?? null],
-    );
-
-    if (result.rowCount === 0) throw new HttpError(404, 'Reclamo no encontrado.');
-
-
-    const updated = await pool.query(
-      `SELECT ${complaintColumns} 
-      FROM complaints c
-      JOIN customers cu ON c.customer_id = cu.id
-      JOIN status_catalog sc ON c.status_id = sc.id
-      JOIN complaint_types ct ON c.complaint_type_id = ct.id
-      LEFT JOIN complaint_details cd ON c.id = cd.complaint_id
-      LEFT JOIN complaint_goods cg ON c.id = cg.complaint_id
-      LEFT JOIN complaint_evidences ce ON c.id = ce.complaint_id
-      LEFT JOIN file_assets fa ON ce.file_asset_id = fa.id
-      WHERE c.id = $1`, 
-      [id]
-    );
 
     await auditService.logAdminAction({
       userId: req.admin?.id,
       action: 'update',
       entityType: 'complaint',
-      entity: updated.rows[0],
-      previousState: current.rows[0],
+      entity: updatedRow,
+      previousState: currentRow,
       req
     });
 
-    res.json({ item: updated.rows[0] });
+    res.json({ item: updatedRow });
   }),
 );
 
@@ -2099,22 +2145,46 @@ router.post(
       let previousQuoteState = null;
       let quoteId: string;
       if (body.editingQuoteId) {
-        const currentQuote = await client.query('SELECT * FROM quotes WHERE id = $1 AND deleted_at IS NULL', [body.editingQuoteId]);
+        const currentQuote = await client.query(
+          'SELECT * FROM quotes WHERE id = $1 AND deleted_at IS NULL FOR UPDATE',
+          [body.editingQuoteId],
+        );
         if (currentQuote.rowCount && currentQuote.rowCount > 0) previousQuoteState = currentQuote.rows[0];
+        if (!previousQuoteState) throw new HttpError(404, 'Cotizacion no encontrada');
+
+        let newStatusId: string | undefined;
+        if (body.status) {
+          const statusResult = await client.query(
+            "SELECT id FROM status_catalog WHERE domain = 'quote' AND code = $1 AND is_active = true",
+            [body.status],
+          );
+          if (!statusResult.rowCount) throw new HttpError(400, 'Estado de cotizacion invalido');
+          newStatusId = statusResult.rows[0].id;
+        }
 
         const quoteRes = await client.query(
           `UPDATE quotes
            SET customer_id = $1,
                total_amount = $2,
                payment_policy = $3,
-               status_id = COALESCE((SELECT id FROM status_catalog WHERE domain = 'quote' AND code = $5 AND is_active = true), status_id),
+               status_id = COALESCE($5, status_id),
                updated_at = now()
            WHERE id = $4 AND deleted_at IS NULL
            RETURNING id`,
-          [customerId, totalAmount, paymentPolicyParts.join('') || null, body.editingQuoteId, body.status ?? null],
+          [customerId, totalAmount, paymentPolicyParts.join('') || null, body.editingQuoteId, newStatusId ?? null],
         );
         if (!quoteRes.rowCount || quoteRes.rowCount === 0) throw new HttpError(404, 'Cotizacion no encontrada');
         quoteId = quoteRes.rows[0].id;
+
+        const oldStatusId = previousQuoteState.status_id as string | undefined;
+        if (oldStatusId && newStatusId && oldStatusId !== newStatusId) {
+          await client.query(
+            `INSERT INTO quote_status_history (quote_id, old_status_id, new_status_id, changed_by)
+             VALUES ($1, $2, $3, $4)`,
+            [quoteId, oldStatusId, newStatusId, req.admin?.id ?? null],
+          );
+        }
+
         await client.query('DELETE FROM quote_items WHERE quote_id = $1', [quoteId]);
       } else {
         const quoteRes = await client.query(
@@ -2163,7 +2233,19 @@ router.get(
   requirePermission('admin.cotizador.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const result = await pool.query(
-      statusHistorySelect('quote_status_history', 'quote_id'),
+      `SELECT h.changed_at AS timestamp,
+              u.name AS user_name,
+              u.email AS user_email,
+              old_sc.code AS old_status,
+              old_sc.name AS old_status_name,
+              new_sc.code AS new_status,
+              new_sc.name AS new_status_name
+       FROM quote_status_history h
+       LEFT JOIN status_catalog old_sc ON h.old_status_id = old_sc.id
+       LEFT JOIN status_catalog new_sc ON h.new_status_id = new_sc.id
+       LEFT JOIN admin_users u ON h.changed_by = u.id
+       WHERE h.quote_id = $1
+       ORDER BY h.changed_at DESC`,
       [z.string().uuid().parse(req.params.id)],
     );
     res.json({ items: result.rows });
