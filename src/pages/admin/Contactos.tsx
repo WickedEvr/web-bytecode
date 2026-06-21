@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, MessageSquareText, RefreshCw, UserCheck, X } from 'lucide-react';
 import { apiRequest } from '../../lib/api';
 import StatusHistoryTimeline from '../../components/admin/StatusHistoryTimeline';
+import Timeline from '../../components/ui/Timeline';
+import PaginationControl from '../../components/ui/PaginationControl';
 import type { StatusHistoryRecord } from '../../types/status';
 
 export interface ContactCase {
@@ -61,15 +63,6 @@ const formatDate = (value?: string) =>
       }).format(new Date(value))
     : '';
 
-const formatShortDate = (value?: string) =>
-  value
-    ? new Intl.DateTimeFormat('es-PE', {
-        day: '2-digit',
-        month: '2-digit',
-        year: '2-digit',
-      }).format(new Date(value))
-    : '';
-
 const formatFullName = (item: Pick<ContactItem, 'nombre' | 'apellido'>) =>
   [item.nombre, item.apellido].filter(Boolean).join(' ');
 
@@ -77,6 +70,8 @@ const formatFullName = (item: Pick<ContactItem, 'nombre' | 'apellido'>) =>
 
 import AdminPanel from '../../components/admin/AdminPanel';
 import CustomDropdown from '../../components/ui/CustomDropdown';
+
+const PAGE_SIZE = 9;
 
 // ... (skip to the component rendering)
 
@@ -95,6 +90,8 @@ const Contactos: React.FC = () => {
   const [statusHistory, setStatusHistory] = useState<StatusHistoryRecord[]>([]);
   const [isAssigning, setIsAssigning] = useState(false);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
 
   const statusLabel = (statusCode: string) => statuses.find((item) => item.value === statusCode)?.label ?? statusCode;
 
@@ -103,8 +100,8 @@ const Contactos: React.FC = () => {
       const res = await apiRequest<{ items: { id: string, code: string, name: string }[] }>('/api/catalog/statuses');
       setStatuses(res.items.map(s => ({ value: s.code, label: s.name })));
       
-      const adminRes = await apiRequest<{ items: { id: string, name: string }[] }>('/api/admin/users');
-      setAdminsList(adminRes.items.map(a => ({ value: a.id, label: a.name })));
+      const adminRes = await apiRequest<{ data: { id: string, name: string }[]; total: number }>('/api/admin/users?limit=100&offset=0');
+      setAdminsList(adminRes.data.map(a => ({ value: a.id, label: a.name })));
     } catch (err) {
       console.error(err);
     }
@@ -114,8 +111,10 @@ const Contactos: React.FC = () => {
     setListLoading(true);
     setError('');
     try {
-      const result = await apiRequest<{ items: ContactItem[] }>('/api/admin/contacts');
-      setContacts(result.items);
+      const result = await apiRequest<{ data: ContactItem[]; total: number }>(`/api/admin/contacts?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`);
+      if (result.data.length === 0 && result.total > 0 && page > 1) { setPage(page - 1); return; }
+      setContacts(result.data);
+      setTotal(result.total);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'No se pudo cargar la lista.');
     } finally {
@@ -149,7 +148,7 @@ const Contactos: React.FC = () => {
   useEffect(() => {
     void loadCatalogs();
     void loadList();
-  }, []);
+  }, [page]);
 
   const handleSave = async () => {
     if (!selectedId) return;
@@ -202,45 +201,21 @@ const Contactos: React.FC = () => {
             ))}
           </div>
 
-          {history.length > 0 && (
-            <div className="pt-6 border-t border-white/5">
-              <h3 className="text-[10px] uppercase tracking-wider text-white/40 mb-8">Historial de Asignaciones</h3>
-              <div className="flex flex-wrap items-center gap-y-12">
-                {history.map((item, index) => {
-                  const isEven = index % 2 === 0;
-                  return (
-                    <React.Fragment key={item.id}>
-                      <div className="relative z-10 group">
-                        <div className="w-8 h-8 rounded-full border border-white/10 bg-white/5 flex items-center justify-center text-white/50 cursor-pointer transition-colors hover:bg-white/10 hover:text-white relative z-20">
-                          <UserCheck className="w-3.5 h-3.5" />
-                        </div>
-                        <div className={`absolute left-1/2 -translate-x-1/2 w-max text-center pointer-events-none ${isEven ? 'top-full mt-2' : 'bottom-full mb-2'}`}>
-                          <span className="text-[9px] text-white/30 font-mono block whitespace-nowrap">
-                            {formatShortDate(item.assigned_at)}
-                          </span>
-                        </div>
-                        <div className={`absolute left-1/2 -translate-x-1/2 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 bg-[#121212] border border-white/10 rounded-lg p-3 shadow-xl z-50 pointer-events-none ${isEven ? 'bottom-full mb-3' : 'top-full mt-3'}`}>
-                          <div className="text-[10px] text-white/40 mb-1">{formatDate(item.assigned_at)}</div>
-                          <div className="text-xs text-white/80">
-                            A <span className="text-white font-medium">{item.assigned_to_name}</span><br />
-                            <span className="text-[10px] text-white/40">por {item.assigned_by_name || 'Sistema'}</span>
-                          </div>
-                          {item.notes && (
-                            <div className="mt-2 text-[10px] text-white/50 border-l border-white/20 pl-2">
-                              "{item.notes}"
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      {index < history.length - 1 && (
-                        <div className="w-6 h-px bg-white/10 mx-1"></div>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          <Timeline
+            heading="Historial de Asignaciones"
+            emptyMessage="No hay asignaciones registradas."
+            items={history.map((item) => ({
+              date: item.assigned_at,
+              icon: <UserCheck className="h-4 w-4" />,
+              title: (
+                <>
+                  Asignado a <span className="font-medium text-white">{item.assigned_to_name}</span>
+                  <span className="block text-white/45">por {item.assigned_by_name || 'Sistema'}</span>
+                  {item.notes && <span className="mt-2 block border-l border-white/20 pl-2 text-white/55">“{item.notes}”</span>}
+                </>
+              ),
+            }))}
+          />
 
           <div className="pt-6 border-t border-white/5 flex flex-col gap-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -372,10 +347,11 @@ const Contactos: React.FC = () => {
               ))
             )}
           </div>
+          <PaginationControl currentPage={page} totalItems={total} itemsPerPage={PAGE_SIZE} onPageChange={setPage} disabled={listLoading} />
         </AdminPanel>
 
         {/* Panel Derecho: Detalle y Controles */}
-        <AdminPanel className="hidden flex-col overflow-hidden lg:flex">
+        <AdminPanel className="hidden flex-col overflow-visible lg:flex">
           {renderDetailContent()}
         </AdminPanel>
       </section>

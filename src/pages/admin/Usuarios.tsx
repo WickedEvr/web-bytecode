@@ -4,6 +4,9 @@ import { Edit2, Plus, RefreshCw, Save, UserCheck, UserX, X, MoreVertical } from 
 import { apiRequest } from '../../lib/api';
 import AdminPanel from '../../components/admin/AdminPanel';
 import CustomDropdown from '../../components/ui/CustomDropdown';
+import PaginationControl from '../../components/ui/PaginationControl';
+
+const PAGE_SIZE = 9;
 
 type AdminUserRow = {
   id: string;
@@ -47,17 +50,21 @@ const Usuarios: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState(emptyForm);
   const [actionsMenu, setActionsMenu] = useState<ActionMenuState | null>(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
 
   const roleOptions = roles.map((role) => ({ value: role.code, label: role.name }));
 
   const loadUsers = async () => {
-    const result = await apiRequest<{ items: AdminUserRow[] }>('/api/admin/users');
-    setUsers(result.items);
+    const result = await apiRequest<{ data: AdminUserRow[]; total: number }>(`/api/admin/users?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`);
+    if (result.data.length === 0 && result.total > 0 && page > 1) { setPage(page - 1); return; }
+    setUsers(result.data);
+    setTotal(result.total);
   };
 
   const loadRoles = async () => {
-    const result = await apiRequest<{ items: RoleOption[] }>('/api/admin/roles');
-    setRoles(result.items.filter((role) => role.is_active));
+    const result = await apiRequest<{ data: RoleOption[]; total: number }>('/api/admin/roles?limit=100&offset=0');
+    setRoles(result.data.filter((role) => role.is_active));
   };
 
   const loadData = async () => {
@@ -74,7 +81,7 @@ const Usuarios: React.FC = () => {
 
   useEffect(() => {
     void loadData();
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     const handleClickOutside = () => setActionsMenu(null);
@@ -240,7 +247,8 @@ const Usuarios: React.FC = () => {
               )}
             </tbody>
           </table>
-        </div>
+          </div>
+        <PaginationControl currentPage={page} totalItems={total} itemsPerPage={PAGE_SIZE} onPageChange={setPage} disabled={loading} />
       </AdminPanel>
 
       <AnimatePresence>

@@ -7,7 +7,10 @@ import { apiRequest } from '../../lib/api';
 import CustomDropdown from '../../components/ui/CustomDropdown';
 import StatusHistoryTimeline from '../../components/admin/StatusHistoryTimeline';
 import type { StatusCatalogItem, StatusHistoryRecord } from '../../types/status';
+import PaginationControl from '../../components/ui/PaginationControl';
 import { useQuoterState, type EditableQuoteItemData, type PreparedQuotePayload, type PricingCatalogItem } from '../../hooks/useQuoterState';
+
+const PAGE_SIZE = 9;
 
 export interface Quote {
   id: string;
@@ -49,6 +52,8 @@ const AdminCotizador: React.FC = () => {
   });
   const [statuses, setStatuses] = useState<StatusCatalogItem[]>([]);
   const [statusHistory, setStatusHistory] = useState<StatusHistoryRecord[]>([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const setCatalogInStore = useQuoterState((state) => state.setCatalog);
   const loadQuoteForEditing = useQuoterState((state) => state.loadQuoteForEditing);
   const resetQuoter = useQuoterState((state) => state.resetQuoter);
@@ -59,11 +64,13 @@ const AdminCotizador: React.FC = () => {
     setError('');
     try {
       const [quotesRes, catalogRes, statusesRes] = await Promise.all([
-        apiRequest<{ items: Quote[] }>('/api/admin/quotes'),
+        apiRequest<{ data: Quote[]; total: number }>(`/api/admin/quotes?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`),
         apiRequest<{ items: PricingCatalogItem[] }>('/api/admin/catalog/pricing'),
         apiRequest<{ items: StatusCatalogItem[] }>('/api/catalog/statuses?domain=quote'),
       ]);
-      setQuotes(quotesRes.items);
+      if (quotesRes.data.length === 0 && quotesRes.total > 0 && page > 1) { setPage(page - 1); return; }
+      setQuotes(quotesRes.data);
+      setTotal(quotesRes.total);
       setCatalog(catalogRes.items);
       setStatuses(statusesRes.items);
     } catch (err) {
@@ -75,7 +82,7 @@ const AdminCotizador: React.FC = () => {
 
   useEffect(() => {
     void loadData();
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     if (!actionsMenu) return;
@@ -315,6 +322,7 @@ const AdminCotizador: React.FC = () => {
             </tbody>
           </table>
         </div>
+        <PaginationControl currentPage={page} totalItems={total} itemsPerPage={PAGE_SIZE} onPageChange={setPage} disabled={loading} />
       </AdminPanel>
 
       <AnimatePresence>
@@ -382,6 +390,20 @@ const AdminCotizador: React.FC = () => {
               notes={formData.notes}
               loading={loading}
               error={isModalOpen ? error : ''}
+              primaryFieldsAfter={(
+                <div className="mb-2 mt-2 space-y-6 rounded-xl border border-white/10 bg-white/[0.02] p-5">
+                  <div>
+                    <label className="mb-2 block text-xs font-semibold uppercase tracking-widest text-white/50">Estado</label>
+                    <CustomDropdown
+                      value={formData.status}
+                      placeholder="Seleccionar estado..."
+                      onChange={(status) => setFormData({ ...formData, status })}
+                      options={statuses.map((item) => ({ value: item.code, label: item.name }))}
+                    />
+                  </div>
+                  {editingQuoteId && <StatusHistoryTimeline records={statusHistory} />}
+                </div>
+              )}
               onCustomerNameChange={(customerName) => setFormData({ ...formData, customerName })}
               onCustomerEmailChange={(customerEmail) => setFormData({ ...formData, customerEmail })}
               onNotesChange={(nextNotes) => setFormData({ ...formData, notes: nextNotes })}
@@ -391,16 +413,6 @@ const AdminCotizador: React.FC = () => {
               }}
               onGenerate={handleCreate}
             />
-            <div className="mt-6">
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-widest text-white/50">Estado</label>
-              <CustomDropdown
-                value={formData.status}
-                placeholder="Seleccionar estado..."
-                onChange={(status) => setFormData({ ...formData, status })}
-                options={statuses.map((item) => ({ value: item.code, label: item.name }))}
-              />
-            </div>
-            {editingQuoteId && <div className="mt-8"><StatusHistoryTimeline records={statusHistory} /></div>}
           </div>
         </div>
       )}

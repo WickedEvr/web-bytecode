@@ -4,6 +4,9 @@ import { Database, Globe, MoreVertical, RefreshCw, Save, Edit2, X } from 'lucide
 import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '../../lib/api';
 import AdminPanel from '../../components/admin/AdminPanel';
+import PaginationControl from '../../components/ui/PaginationControl';
+
+const PAGE_SIZE = 9;
 
 type CMSPage = {
   id: string;
@@ -31,13 +34,17 @@ const AdminCMS: React.FC = () => {
   const [formData, setFormData] = useState<Partial<CMSPage>>({});
   const [actionsMenu, setActionsMenu] = useState<ActionMenuState | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
 
   const loadPages = async () => {
     setLoading(true);
     setError('');
     try {
-      const res = await apiRequest<{ items: CMSPage[] }>('/api/admin/cms/pages');
-      setPages(res.items);
+      const res = await apiRequest<{ data: CMSPage[]; total: number }>(`/api/admin/cms/pages?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`);
+      if (res.data.length === 0 && res.total > 0 && page > 1) { setPage(page - 1); return; }
+      setPages(res.data);
+      setTotal(res.total);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar paginas');
     } finally {
@@ -47,7 +54,7 @@ const AdminCMS: React.FC = () => {
 
   useEffect(() => {
     void loadPages();
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     const handleClickOutside = () => setActionsMenu(null);
@@ -167,6 +174,7 @@ const AdminCMS: React.FC = () => {
               </tbody>
             </table>
           </div>
+          <PaginationControl currentPage={page} totalItems={total} itemsPerPage={PAGE_SIZE} onPageChange={setPage} disabled={loading} />
         </AdminPanel>
       </div>
 

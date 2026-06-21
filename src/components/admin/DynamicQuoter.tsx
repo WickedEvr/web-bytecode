@@ -30,6 +30,7 @@ type DynamicQuoterProps = {
   notes: string;
   loading?: boolean;
   error?: string;
+  primaryFieldsAfter?: React.ReactNode;
   onCustomerNameChange: (value: string) => void;
   onCustomerEmailChange: (value: string) => void;
   onNotesChange: (value: string) => void;
@@ -138,6 +139,7 @@ const DynamicQuoter = ({
   notes,
   loading = false,
   error = '',
+  primaryFieldsAfter,
   onCustomerNameChange,
   onCustomerEmailChange,
   onNotesChange,
@@ -244,6 +246,8 @@ const DynamicQuoter = ({
           />
         </label>
       </div>
+
+      {primaryFieldsAfter}
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => setActiveItem(null)}>
         <div className="grid gap-6 xl:grid-cols-[minmax(300px,0.92fr)_minmax(420px,1.08fr)]">

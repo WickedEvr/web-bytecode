@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, ClipboardList, RefreshCw, Eye, X } from 'lucide-react';
+import { ClipboardList, RefreshCw, Eye, X } from 'lucide-react';
 import { apiRequest } from '../../lib/api';
 
 type AuditLog = {
@@ -23,6 +23,7 @@ type AuditLogsResponse = {
 };
 
 import AdminPanel from '../../components/admin/AdminPanel';
+import PaginationControl from '../../components/ui/PaginationControl';
 
 // ... (skip to component)
 
@@ -74,12 +75,6 @@ const Auditoria: React.FC = () => {
       isCurrent = false;
     };
   }, [loadLogs, page]);
-
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const firstItem = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
-  const lastItem = Math.min(page * PAGE_SIZE, total);
-  const canGoPrevious = page > 1 && !loading;
-  const canGoNext = page < totalPages && !loading;
 
   const formatUserAgent = (ua: string | undefined) => {
     if (!ua) return '-';
@@ -203,34 +198,7 @@ const Auditoria: React.FC = () => {
             </tbody>
           </table>
         </div>
-        <div className="flex flex-col gap-3 border-t border-white/5 px-4 py-4 text-sm text-white/50 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <p>
-            Mostrando {firstItem}-{lastItem} de {total}
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setPage((current) => Math.max(1, current - 1))}
-              disabled={!canGoPrevious}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/70 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-              aria-label="Pagina anterior"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <span className="min-w-24 text-center text-xs uppercase tracking-widest text-white/40">
-              Pagina {page} / {totalPages}
-            </span>
-            <button
-              type="button"
-              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-              disabled={!canGoNext}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/70 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-              aria-label="Pagina siguiente"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+        <PaginationControl currentPage={page} totalItems={total} itemsPerPage={PAGE_SIZE} onPageChange={setPage} disabled={loading} />
       
       </AdminPanel>
 

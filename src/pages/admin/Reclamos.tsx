@@ -4,6 +4,7 @@ import { Download, Mail, MessageSquareText, RefreshCw, X } from 'lucide-react';
 import { apiRequest, apiUrl } from '../../lib/api';
 import StatusHistoryTimeline from '../../components/admin/StatusHistoryTimeline';
 import type { StatusHistoryRecord } from '../../types/status';
+import PaginationControl from '../../components/ui/PaginationControl';
 
 export interface Complaint {
   id: string;
@@ -35,6 +36,8 @@ const formatDate = (value?: string) =>
 import AdminPanel from '../../components/admin/AdminPanel';
 import CustomDropdown from '../../components/ui/CustomDropdown';
 
+const PAGE_SIZE = 9;
+
 // ... (skip to the component rendering)
 
 const Reclamos: React.FC = () => {
@@ -48,6 +51,8 @@ const Reclamos: React.FC = () => {
   const [statuses, setStatuses] = useState<{ value: string, label: string }[]>([]);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [statusHistory, setStatusHistory] = useState<StatusHistoryRecord[]>([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
 
   const statusLabel = (statusCode: string) => statuses.find((item) => item.value === statusCode)?.label ?? statusCode;
 
@@ -64,8 +69,10 @@ const Reclamos: React.FC = () => {
     setListLoading(true);
     setError('');
     try {
-      const result = await apiRequest<{ items: ComplaintItem[] }>('/api/admin/complaints');
-      setComplaints(result.items);
+      const result = await apiRequest<{ data: ComplaintItem[]; total: number }>(`/api/admin/complaints?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`);
+      if (result.data.length === 0 && result.total > 0 && page > 1) { setPage(page - 1); return; }
+      setComplaints(result.data);
+      setTotal(result.total);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'No se pudo cargar la lista.');
     } finally {
@@ -96,7 +103,7 @@ const Reclamos: React.FC = () => {
   useEffect(() => {
     void loadCatalogs();
     void loadList();
-  }, []);
+  }, [page]);
 
   const handleSave = async () => {
     if (!selectedId) return;
@@ -241,10 +248,11 @@ const Reclamos: React.FC = () => {
               ))
             )}
           </div>
+          <PaginationControl currentPage={page} totalItems={total} itemsPerPage={PAGE_SIZE} onPageChange={setPage} disabled={listLoading} />
         </AdminPanel>
 
         {/* Panel Derecho: Detalle y Controles */}
-        <AdminPanel className="hidden flex-col overflow-hidden lg:flex">
+        <AdminPanel className="hidden flex-col overflow-visible lg:flex">
           {renderDetailContent()}
         </AdminPanel>
       </section>

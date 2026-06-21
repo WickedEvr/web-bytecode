@@ -21,6 +21,11 @@ import { HttpError } from '../utils/httpError.js';
 
 const router = Router();
 
+const paginationQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(9),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+
 router.use(requireAdmin);
 
 const upload = multer({
@@ -102,8 +107,9 @@ router.get(
 router.get(
   '/roles',
   requireSuperAdmin,
-  asyncHandler(async (_req: Request, res: Response) => {
-    const result = await pool.query(
+  asyncHandler(async (req: Request, res: Response) => {
+    const { limit, offset } = paginationQuerySchema.parse(req.query);
+    const [result, countResult] = await Promise.all([pool.query(
       `
       SELECT
         r.id,
@@ -122,9 +128,11 @@ router.get(
       WHERE r.deleted_at IS NULL
       GROUP BY r.id
       ORDER BY r.is_system DESC, r.name ASC
+      LIMIT $1 OFFSET $2
       `,
-    );
-    res.json({ items: result.rows });
+      [limit, offset],
+    ), pool.query('SELECT count(*)::int AS total FROM roles WHERE deleted_at IS NULL')]);
+    res.json({ data: result.rows, total: countResult.rows[0].total });
   }),
 );
 
@@ -287,7 +295,7 @@ router.get(
 const listQuerySchema = z.object({
   status: z.string().optional(),
   search: z.string().optional(),
-  limit: z.coerce.number().int().min(1).max(100).default(25),
+  limit: z.coerce.number().int().min(1).max(100).default(9),
   offset: z.coerce.number().int().min(0).default(0),
 });
 
@@ -445,7 +453,7 @@ router.get(
       ? ['cu.first_name', 'cu.last_name', 'cu.primary_email', 'cu.primary_phone', 'c.subject', 'c.message', 'o.legal_name', 'o.ruc', 'co.position_title', 's.name']
       : ['cu.first_name', 'cu.last_name', 'cu.primary_email', 'cu.primary_phone', 'c.subject', 'c.message'];
     const { whereSql, params } = buildWhere(query.status, query.search, contactSearchFields);
-    const result = await pool.query(
+    const [result, countResult] = await Promise.all([pool.query(
       `
       SELECT ${normalized ? contactColumns : legacyContactColumns}
       FROM contact_cases c
@@ -455,9 +463,17 @@ router.get(
       LIMIT $${params.length + 1} OFFSET $${params.length + 2}
       `,
       [...params, query.limit, query.offset],
-    );
+    ), pool.query(
+      `SELECT count(*)::int AS total FROM (
+         SELECT DISTINCT c.id
+         FROM contact_cases c
+         ${normalized ? contactJoins : legacyContactJoins}
+         ${whereSql}
+       ) records`,
+      params,
+    )]);
 
-    res.json({ items: result.rows });
+    res.json({ data: result.rows, total: countResult.rows[0].total });
   }),
 );
 
@@ -676,7 +692,7 @@ router.get(
       'cu.primary_email',
       'cg.category'
     ]);
-    const result = await pool.query(
+    const [result, countResult] = await Promise.all([pool.query(
       `
       SELECT c.id, c.complaint_code as code, cu.first_name as nombres, cu.last_name as apellidos, cu.primary_email as email, cu.primary_phone as telefono, ct.name as claim_type, cg.category as tipo_reclamo, sc.code as status, sc.name as status_name, fa.original_name as attachment_original_name, c.created_at, c.updated_at
       FROM complaints c
@@ -691,9 +707,19 @@ router.get(
       LIMIT $${params.length + 1} OFFSET $${params.length + 2}
       `,
       [...params, query.limit, query.offset],
-    );
+    ), pool.query(
+      `SELECT count(*)::int AS total FROM (
+         SELECT DISTINCT c.id
+         FROM complaints c
+         JOIN customers cu ON c.customer_id = cu.id
+         JOIN status_catalog sc ON c.status_id = sc.id
+         LEFT JOIN complaint_goods cg ON c.id = cg.complaint_id
+         ${whereSql}
+       ) records`,
+      params,
+    )]);
 
-    res.json({ items: result.rows });
+    res.json({ data: result.rows, total: countResult.rows[0].total });
   }),
 );
 
@@ -873,7 +899,8 @@ router.get(
   requireSuperAdmin,
   asyncHandler(async (req: Request, res: Response) => {
     try {
-      const result = await pool.query(`
+      const { limit, offset } = paginationQuerySchema.parse(req.query);
+      const [result, countResult] = await Promise.all([pool.query(`
         SELECT 
           u.id, 
           u.name, 
@@ -889,8 +916,11 @@ router.get(
         WHERE u.deleted_at IS NULL AND u.is_active = true
         GROUP BY u.id
         ORDER BY u.name ASC
-      `);
-      res.json({ items: result.rows });
+        LIMIT $1 OFFSET $2
+      `, [limit, offset]), pool.query(
+        'SELECT count(*)::int AS total FROM admin_users WHERE deleted_at IS NULL AND is_active = true',
+      )]);
+      res.json({ data: result.rows, total: countResult.rows[0].total });
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: 'Internal Server Error' });
@@ -1282,12 +1312,15 @@ const cmsPageSelectSql = `
 router.get(
   '/cms/pages',
   requirePermission('admin.cms.view'),
-  asyncHandler(async (_req: Request, res: Response) => {
-    const result = await pool.query(
+  asyncHandler(async (req: Request, res: Response) => {
+    const { limit, offset } = paginationQuerySchema.parse(req.query);
+    const [result, countResult] = await Promise.all([pool.query(
       `${cmsPageSelectSql}
-       ORDER BY cp.slug`
-    );
-    res.json({ items: result.rows });
+       ORDER BY cp.slug
+       LIMIT $1 OFFSET $2`,
+      [limit, offset],
+    ), pool.query('SELECT count(*)::int AS total FROM cms_pages WHERE deleted_at IS NULL')]);
+    res.json({ data: result.rows, total: countResult.rows[0].total });
   })
 );
 
@@ -2023,8 +2056,9 @@ router.get(
 router.get(
   '/quotes',
   requirePermission('admin.cotizador.view'),
-  asyncHandler(async (_req: Request, res: Response) => {
-    const result = await pool.query(
+  asyncHandler(async (req: Request, res: Response) => {
+    const { limit, offset } = paginationQuerySchema.parse(req.query);
+    const [result, countResult] = await Promise.all([pool.query(
       `SELECT q.id, q.quote_code, q.total_amount, sc.code AS status, sc.name AS status_name,
               q.created_at, cu.first_name, cu.primary_email
        FROM quotes q
@@ -2032,9 +2066,10 @@ router.get(
        LEFT JOIN customers cu ON q.customer_id = cu.id
        WHERE q.deleted_at IS NULL
        ORDER BY q.created_at DESC
-       LIMIT 100`
-    );
-    res.json({ items: result.rows });
+       LIMIT $1 OFFSET $2`,
+      [limit, offset],
+    ), pool.query('SELECT count(*)::int AS total FROM quotes WHERE deleted_at IS NULL')]);
+    res.json({ data: result.rows, total: countResult.rows[0].total });
   })
 );
 

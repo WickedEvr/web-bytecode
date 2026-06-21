@@ -3,6 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Edit2, Plus, RefreshCw, Save, ShieldCheck, X, MoreVertical } from 'lucide-react';
 import { apiRequest } from '../../lib/api';
 import AdminPanel from '../../components/admin/AdminPanel';
+import PaginationControl from '../../components/ui/PaginationControl';
+
+const PAGE_SIZE = 9;
 
 type Permission = {
   id: string;
@@ -59,6 +62,8 @@ const Roles: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState(emptyForm);
   const [actionsMenu, setActionsMenu] = useState<ActionMenuState | null>(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
 
   const permissionsByModule = useMemo(() => {
     return permissions.reduce<Record<string, Permission[]>>((acc, permission) => {
@@ -73,10 +78,12 @@ const Roles: React.FC = () => {
     setError('');
     try {
       const [rolesResult, permissionsResult] = await Promise.all([
-        apiRequest<{ items: Role[] }>('/api/admin/roles'),
+        apiRequest<{ data: Role[]; total: number }>(`/api/admin/roles?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`),
         apiRequest<{ items: Permission[] }>('/api/admin/permissions'),
       ]);
-      setRoles(rolesResult.items);
+      if (rolesResult.data.length === 0 && rolesResult.total > 0 && page > 1) { setPage(page - 1); return; }
+      setRoles(rolesResult.data);
+      setTotal(rolesResult.total);
       setPermissions(permissionsResult.items);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar roles');
@@ -87,7 +94,7 @@ const Roles: React.FC = () => {
 
   useEffect(() => {
     void loadData();
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     const handleClickOutside = () => setActionsMenu(null);
@@ -237,7 +244,8 @@ const Roles: React.FC = () => {
               )}
             </tbody>
           </table>
-        </div>
+          </div>
+        <PaginationControl currentPage={page} totalItems={total} itemsPerPage={PAGE_SIZE} onPageChange={setPage} disabled={loading} />
       </AdminPanel>
 
       <AnimatePresence>
