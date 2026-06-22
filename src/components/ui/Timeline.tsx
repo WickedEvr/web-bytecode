@@ -1,6 +1,6 @@
 import React, { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, Clock3 } from 'lucide-react';
+import InteractiveHoverCard from './InteractiveHoverCard';
 
 export type TimelineItem = {
   title: ReactNode;
@@ -13,13 +13,6 @@ type TimelineProps = {
   heading?: ReactNode;
   emptyMessage?: string;
   loading?: boolean;
-};
-
-type ActiveTooltip = {
-  item: TimelineItem;
-  left: number;
-  top: number;
-  placement: 'above' | 'below';
 };
 
 const formatFullDate = (value: string) => new Intl.DateTimeFormat('es-PE', {
@@ -43,7 +36,6 @@ const Timeline: React.FC<TimelineProps> = ({
   const [needsScroll, setNeedsScroll] = useState(false);
   const [isAtStart, setIsAtStart] = useState(true);
   const [isAtEnd, setIsAtEnd] = useState(false);
-  const [activeTooltip, setActiveTooltip] = useState<ActiveTooltip | null>(null);
 
   const updateScrollState = useCallback(() => {
     const element = scrollRef.current;
@@ -60,7 +52,6 @@ const Timeline: React.FC<TimelineProps> = ({
 
     updateScrollState();
     const handleResize = () => {
-      setActiveTooltip(null);
       updateScrollState();
     };
     const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(handleResize) : null;
@@ -73,17 +64,6 @@ const Timeline: React.FC<TimelineProps> = ({
   }, [items, updateScrollState]);
 
   const scroll = (left: number) => scrollRef.current?.scrollBy({ left, behavior: 'smooth' });
-  const showTooltip = (item: TimelineItem, index: number, anchor: HTMLElement) => {
-    const rect = anchor.getBoundingClientRect();
-    const halfTooltipWidth = 128;
-    setActiveTooltip({
-      item,
-      left: Math.min(window.innerWidth - halfTooltipWidth - 8, Math.max(halfTooltipWidth + 8, rect.left + rect.width / 2)),
-      top: index % 2 === 0 ? rect.top - 12 : rect.bottom + 12,
-      placement: index % 2 === 0 ? 'above' : 'below',
-    });
-  };
-
   return (
     <section className="overflow-visible border-t border-white/5 pt-6">
       {heading && <h3 className="mb-5 text-xs font-semibold uppercase tracking-widest text-white/50">{heading}</h3>}
@@ -106,10 +86,7 @@ const Timeline: React.FC<TimelineProps> = ({
 
           <div
             ref={scrollRef}
-            onScroll={() => {
-              setActiveTooltip(null);
-              updateScrollState();
-            }}
+            onScroll={updateScrollState}
             className="scroll-smooth overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             <ol className="flex min-w-max items-center px-3 py-5">
@@ -118,16 +95,13 @@ const Timeline: React.FC<TimelineProps> = ({
                 return (
                   <React.Fragment key={`${item.date}-${index}`}>
                     <li className="group relative z-10 overflow-visible">
-                      <div
-                        className="relative z-20 flex h-9 w-9 cursor-default items-center justify-center rounded-full border border-white/15 bg-[#111] text-white/55 shadow-lg transition duration-200 hover:border-cyan-300/60 hover:bg-cyan-400/10 hover:text-cyan-100 hover:ring-4 hover:ring-cyan-400/15 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-cyan-400/20"
-                        tabIndex={0}
-                        onMouseEnter={(event) => showTooltip(item, index, event.currentTarget)}
-                        onMouseLeave={() => setActiveTooltip(null)}
-                        onFocus={(event) => showTooltip(item, index, event.currentTarget)}
-                        onBlur={() => setActiveTooltip(null)}
+                      <InteractiveHoverCard
+                        placement={isEven ? 'above' : 'below'}
+                        trigger={<div className="relative z-20 flex h-9 w-9 cursor-default items-center justify-center rounded-full border border-white/15 bg-[#111] text-white/55 shadow-lg transition duration-200 hover:border-cyan-300/60 hover:bg-cyan-400/10 hover:text-cyan-100 hover:ring-4 hover:ring-cyan-400/15 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-cyan-400/20" tabIndex={0}>{item.icon ?? <Clock3 className="h-4 w-4" />}</div>}
                       >
-                        {item.icon ?? <Clock3 className="h-4 w-4" />}
-                      </div>
+                        <time className="mb-2 block border-b border-white/10 pb-2 text-[10px] font-medium text-white/45">{formatFullDate(item.date)}</time>
+                        <div>{item.title}</div>
+                      </InteractiveHoverCard>
                       <time className={`absolute left-1/2 -translate-x-1/2 whitespace-nowrap font-mono text-[9px] text-white/35 ${isEven ? 'top-full mt-2' : 'bottom-full mb-2'}`}>
                         {formatShortDate(item.date)}
                       </time>
@@ -150,19 +124,6 @@ const Timeline: React.FC<TimelineProps> = ({
             </button>
           )}
         </div>
-      )}
-      {activeTooltip && typeof document !== 'undefined' && createPortal(
-        <div
-          role="tooltip"
-          className={`pointer-events-none fixed z-[9999] w-64 -translate-x-1/2 rounded-lg border border-white/10 bg-[#121212] p-3 text-left text-xs leading-5 text-white/75 shadow-2xl ${activeTooltip.placement === 'above' ? '-translate-y-full' : ''}`}
-          style={{ left: activeTooltip.left, top: activeTooltip.top }}
-        >
-          <time className="mb-2 block border-b border-white/10 pb-2 text-[10px] font-medium text-white/45">
-            {formatFullDate(activeTooltip.item.date)}
-          </time>
-          <div>{activeTooltip.item.title}</div>
-        </div>,
-        document.body,
       )}
     </section>
   );
