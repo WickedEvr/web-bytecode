@@ -46,6 +46,9 @@ if (process.env.NODE_ENV === 'production' && process.env.JWT_SECRET === 'dev-onl
 
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
+  appEnv: ['production', 'staging'].includes((process.env.APP_ENV ?? process.env.NODE_ENV ?? '').toLowerCase())
+    ? (process.env.APP_ENV ?? process.env.NODE_ENV ?? '').toLowerCase() as 'production' | 'staging'
+    : 'development' as const,
   databaseUrl: process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@localhost:5432/bytecode',
   jwtSecret: process.env.JWT_SECRET ?? 'dev-only-change-this-secret',
   corsOrigins: parseList(process.env.CORS_ORIGINS),

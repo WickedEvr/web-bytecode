@@ -93,11 +93,11 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
         `INSERT INTO project_environments (project_id, type, name, url, status)
          VALUES ($1, 'ephemeral', $2, $3, 'verifying')
          ON CONFLICT (project_id, type, name)
-         DO UPDATE SET url = EXCLUDED.url, status = 'verifying'
+         DO UPDATE SET url = EXCLUDED.url, status = 'verifying', error_details = NULL
          RETURNING id, url, api_url`,
         [project.rows[0].id, name, environmentUrl],
       );
-      triggerEnvironmentVerification(environment.rows[0].id, environment.rows[0].url, environment.rows[0].api_url);
+      triggerEnvironmentVerification(environment.rows[0].id, 'ephemeral', environment.rows[0].url, environment.rows[0].api_url);
       res.status(202).json({ ok: true, environment: name });
       return;
     }

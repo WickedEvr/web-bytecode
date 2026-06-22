@@ -345,6 +345,7 @@ export interface ProjectEnvironment {
   name: string;
   url: string;
   api_url: string | null;
+  error_details: string | null;
   status: 'active' | 'inactive' | 'failed' | 'verifying';
   created_at: string;
 }

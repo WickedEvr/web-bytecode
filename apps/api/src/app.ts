@@ -126,9 +126,9 @@ import { pool } from './db/pool.js';
 app.get('/api/health', async (_req: Request, res: Response) => {
   try {
     await pool.query('SELECT 1');
-    res.status(200).json({ status: 'ok', database: 'connected' });
+    res.status(200).json({ status: 'ok', database: 'connected', app_env: env.appEnv });
   } catch {
-    res.status(500).json({ status: 'error', database: 'disconnected' });
+    res.status(500).json({ status: 'error', database: 'disconnected', app_env: env.appEnv });
   }
 });
 

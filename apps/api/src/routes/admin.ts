@@ -2226,7 +2226,7 @@ router.get(
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
     const result = await pool.query(
-      `SELECT id, project_id, type, name, url, api_url, status, created_at
+      `SELECT id, project_id, type, name, url, api_url, status, error_details, created_at
        FROM project_environments
        WHERE project_id = $1
        ORDER BY CASE type WHEN 'production' THEN 0 WHEN 'staging' THEN 1 ELSE 2 END,
@@ -2250,12 +2250,12 @@ router.post(
        FROM projects
        WHERE id = $1 AND deleted_at IS NULL
        ON CONFLICT (project_id, type, name)
-       DO UPDATE SET url = EXCLUDED.url, api_url = EXCLUDED.api_url, status = 'verifying'
-       RETURNING id, project_id, type, name, url, api_url, status, created_at`,
+       DO UPDATE SET url = EXCLUDED.url, api_url = EXCLUDED.api_url, status = 'verifying', error_details = NULL
+       RETURNING id, project_id, type, name, url, api_url, status, error_details, created_at`,
       [projectId, body.type, body.name, body.url, body.apiUrl || null],
     );
     if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
-    triggerEnvironmentVerification(result.rows[0].id, result.rows[0].url, result.rows[0].api_url);
+    triggerEnvironmentVerification(result.rows[0].id, result.rows[0].type, result.rows[0].url, result.rows[0].api_url);
     res.status(201).json({ item: result.rows[0] });
   }),
 );
@@ -2269,13 +2269,13 @@ router.post(
     const environmentId = z.string().uuid().parse(req.params.environment_id);
     const result = await pool.query(
       `UPDATE project_environments
-       SET status = 'verifying'
+       SET status = 'verifying', error_details = NULL
        WHERE id = $1 AND project_id = $2
-       RETURNING id, url, api_url`,
+       RETURNING id, type, url, api_url`,
       [environmentId, projectId],
     );
     if (!result.rowCount) throw new HttpError(404, 'Entorno no encontrado');
-    triggerEnvironmentVerification(result.rows[0].id, result.rows[0].url, result.rows[0].api_url);
+    triggerEnvironmentVerification(result.rows[0].id, result.rows[0].type, result.rows[0].url, result.rows[0].api_url);
     res.status(202).json({ ok: true });
   }),
 );
