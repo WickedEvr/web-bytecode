@@ -24,6 +24,24 @@ type GithubPushPayload = {
   head_commit?: GithubCommit | null;
 };
 
+type GithubDeploymentStatusPayload = {
+  repository?: { html_url?: string; full_name?: string };
+  deployment?: { id?: number; environment?: string; task?: string; ref?: string };
+  deployment_status?: { state?: string; environment_url?: string | null };
+};
+
+const findProjectByRepository = (repository?: { html_url?: string; full_name?: string }) => {
+  const htmlUrl = repository?.html_url?.replace(/\/+$/, '') ?? null;
+  const fullNameUrl = repository?.full_name ? `https://github.com/${repository.full_name}` : null;
+  return pool.query(
+    `SELECT id FROM projects
+     WHERE deleted_at IS NULL
+       AND lower(rtrim(github_repo, '/')) IN (lower($1), lower($2))
+     LIMIT 1`,
+    [htmlUrl, fullNameUrl],
+  );
+};
+
 const verifyGithubSignature = (req: Request) => {
   if (!env.githubWebhookSecret) {
     if (env.nodeEnv === 'development') return;
@@ -40,7 +58,52 @@ const verifyGithubSignature = (req: Request) => {
 
 router.post('/github', asyncHandler(async (req: Request, res: Response) => {
   verifyGithubSignature(req);
-  if (req.header('x-github-event') !== 'push') {
+  const event = req.header('x-github-event');
+
+  if (event === 'deployment_status') {
+    const payload = req.body as GithubDeploymentStatusPayload;
+    const project = await findProjectByRepository(payload.repository);
+    if (!project.rowCount) {
+      res.status(202).json({ ok: true, ignored: true, reason: 'project_not_mapped' });
+      return;
+    }
+    const state = payload.deployment_status?.state?.toLowerCase();
+    const name = payload.deployment?.environment || payload.deployment?.task ||
+      (payload.deployment?.id ? `Deployment ${payload.deployment.id}` : null);
+    if (!name) throw new HttpError(400, 'Nombre de entorno ausente.');
+
+    if (state === 'inactive' || state === 'destroyed') {
+      const deleted = await pool.query(
+        `DELETE FROM project_environments
+         WHERE project_id = $1 AND type = 'ephemeral' AND name = $2`,
+        [project.rows[0].id, name],
+      );
+      res.status(202).json({ ok: true, deleted: deleted.rowCount ?? 0 });
+      return;
+    }
+
+    if (state === 'success') {
+      const environmentUrl = payload.deployment_status?.environment_url?.trim();
+      if (!environmentUrl) {
+        res.status(202).json({ ok: true, ignored: true, reason: 'environment_url_missing' });
+        return;
+      }
+      await pool.query(
+        `INSERT INTO project_environments (project_id, type, name, url, status)
+         VALUES ($1, 'ephemeral', $2, $3, 'active')
+         ON CONFLICT (project_id, type, name)
+         DO UPDATE SET url = EXCLUDED.url, status = 'active'`,
+        [project.rows[0].id, name, environmentUrl],
+      );
+      res.status(202).json({ ok: true, environment: name });
+      return;
+    }
+
+    res.status(202).json({ ok: true, ignored: true, reason: 'deployment_state_not_actionable' });
+    return;
+  }
+
+  if (event !== 'push') {
     res.status(202).json({ ok: true, ignored: true });
     return;
   }
@@ -49,10 +112,7 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
   const githubRepo = payload.repository?.html_url;
   if (!githubRepo) throw new HttpError(400, 'Repositorio de GitHub ausente.');
 
-  const project = await pool.query(
-    'SELECT id FROM projects WHERE github_repo = $1 AND deleted_at IS NULL LIMIT 1',
-    [githubRepo],
-  );
+  const project = await findProjectByRepository(payload.repository);
   if (!project.rowCount) {
     res.status(202).json({ ok: true, ignored: true, reason: 'project_not_mapped' });
     return;

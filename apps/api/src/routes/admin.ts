@@ -2219,6 +2219,67 @@ router.delete(
   }),
 );
 
+const projectEnvironmentSchema = z.object({
+  type: z.enum(['production', 'staging']),
+  name: z.string().trim().min(2).max(180),
+  url: z.string().trim().url().max(500),
+});
+
+router.get(
+  '/projects/:id/environments',
+  requirePermission('admin.proyectos.view'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const projectId = z.string().uuid().parse(req.params.id);
+    const result = await pool.query(
+      `SELECT id, project_id, type, name, url, status, created_at
+       FROM project_environments
+       WHERE project_id = $1
+       ORDER BY CASE type WHEN 'production' THEN 0 WHEN 'staging' THEN 1 ELSE 2 END,
+                created_at DESC`,
+      [projectId],
+    );
+    res.json({ items: result.rows });
+  }),
+);
+
+router.post(
+  '/projects/:id/environments',
+  requireCsrf,
+  requirePermission('admin.proyectos.manage'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const projectId = z.string().uuid().parse(req.params.id);
+    const body = projectEnvironmentSchema.parse(req.body);
+    const result = await pool.query(
+      `INSERT INTO project_environments (project_id, type, name, url, status)
+       SELECT id, $2, $3, $4, 'active'
+       FROM projects
+       WHERE id = $1 AND deleted_at IS NULL
+       ON CONFLICT (project_id, type, name)
+       DO UPDATE SET url = EXCLUDED.url, status = 'active'
+       RETURNING id, project_id, type, name, url, status, created_at`,
+      [projectId, body.type, body.name, body.url],
+    );
+    if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
+    res.status(201).json({ item: result.rows[0] });
+  }),
+);
+
+router.delete(
+  '/projects/:id/environments/:environment_id',
+  requireCsrf,
+  requirePermission('admin.proyectos.manage'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const projectId = z.string().uuid().parse(req.params.id);
+    const environmentId = z.string().uuid().parse(req.params.environment_id);
+    const result = await pool.query(
+      'DELETE FROM project_environments WHERE id = $1 AND project_id = $2 RETURNING id',
+      [environmentId, projectId],
+    );
+    if (!result.rowCount) throw new HttpError(404, 'Entorno no encontrado');
+    res.json({ ok: true });
+  }),
+);
+
 router.get(
   '/projects/:id/milestones',
   requirePermission('admin.proyectos.view'),

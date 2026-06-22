@@ -344,6 +344,16 @@ export interface ProjectQuoteItem {
   recurrence: 'none' | 'monthly' | 'yearly';
 }
 
+export interface ProjectEnvironment {
+  id: string;
+  project_id: string;
+  type: 'production' | 'staging' | 'ephemeral';
+  name: string;
+  url: string;
+  status: 'active' | 'inactive' | 'failed';
+  created_at: string;
+}
+
 export interface ProjectQuoteOption {
   id: string;
   quote_code: string;
@@ -399,3 +409,12 @@ export const fetchProjectAssignmentOptions = () =>
 
 export const assignProjectUser = (projectId: string, userId: string, role?: string) =>
   apiRequest(`/api/admin/projects/${projectId}/assignments`, { method: 'POST', json: { userId, role } });
+
+export const fetchProjectEnvironments = (projectId: string) =>
+  apiRequest<{ items: ProjectEnvironment[] }>(`/api/admin/projects/${projectId}/environments`).then((response) => response.items);
+
+export const createProjectEnvironment = (projectId: string, input: { type: 'production' | 'staging'; name: string; url: string }) =>
+  apiRequest<{ item: ProjectEnvironment }>(`/api/admin/projects/${projectId}/environments`, { method: 'POST', json: input }).then((response) => response.item);
+
+export const deleteProjectEnvironment = (projectId: string, environmentId: string) =>
+  apiRequest<{ ok: true }>(`/api/admin/projects/${projectId}/environments/${environmentId}`, { method: 'DELETE' });
