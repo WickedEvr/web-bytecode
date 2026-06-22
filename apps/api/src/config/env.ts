@@ -38,6 +38,7 @@ const smtpRequired = parseBoolean(process.env.REQUIRE_SMTP, false);
 requireInProduction('DATABASE_URL', process.env.DATABASE_URL);
 requireInProduction('JWT_SECRET', process.env.JWT_SECRET);
 requireInProduction('CORS_ORIGINS', process.env.CORS_ORIGINS);
+requireInProduction('VERCEL_GLOBAL_BYPASS_TOKEN', process.env.VERCEL_GLOBAL_BYPASS_TOKEN);
 
 if (process.env.NODE_ENV === 'production' && process.env.JWT_SECRET === 'dev-only-change-this-secret') {
   console.error('JWT_SECRET must not use the development fallback in production.');
@@ -54,6 +55,7 @@ export const env = {
   corsOrigins: parseList(process.env.CORS_ORIGINS),
   publicApiUrl: process.env.PUBLIC_API_URL ?? `http://localhost:${process.env.PORT ?? 4000}`,
   githubWebhookSecret: process.env.GITHUB_WEBHOOK_SECRET,
+  vercelGlobalBypassToken: process.env.VERCEL_GLOBAL_BYPASS_TOKEN,
   database: {
     ssl: parseBoolean(process.env.DATABASE_SSL, process.env.NODE_ENV === 'production'),
     poolMax: parseNumber(process.env.DATABASE_POOL_MAX, 10),

@@ -150,7 +150,23 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
     client.release();
   }
 
-  res.status(202).json({ ok: true, inserted });
+  const environmentType = branch === 'main' ? 'production' : branch === 'develop' ? 'staging' : null;
+  let environmentsVerifying = 0;
+  if (environmentType) {
+    const environments = await pool.query(
+      `UPDATE project_environments
+       SET status = 'verifying', error_details = NULL
+       WHERE project_id = $1 AND type = $2
+       RETURNING id, type, url, api_url`,
+      [project.rows[0].id, environmentType],
+    );
+    environmentsVerifying = environments.rowCount ?? 0;
+    for (const environment of environments.rows) {
+      triggerEnvironmentVerification(environment.id, environment.type, environment.url, environment.api_url);
+    }
+  }
+
+  res.status(202).json({ ok: true, inserted, environmentsVerifying });
 }));
 
 export default router;

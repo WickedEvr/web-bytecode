@@ -1,4 +1,5 @@
 import { pool } from '../db/pool.js';
+import { env } from '../config/env.js';
 
 const HEALTH_TIMEOUT_MS = 8000;
 const INVALID_JSON_MESSAGE = 'La URL no devolvió un JSON válido (Falta vercel.json o ruta errónea)';
@@ -27,15 +28,19 @@ export const verifyEnvironmentHealth = async (
     const parsed = new URL(targetBase);
     if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('Protocolo de URL no soportado.');
     const healthUrl = `${parsed.toString().replace(/\/+$/, '')}/api/health`;
+    const headers: Record<string, string> = {
+      'user-agent': 'Bytecode-Environment-Health/2.0',
+      accept: 'application/json',
+    };
+    if (parsed.hostname.toLowerCase().endsWith('.vercel.app') && env.vercelGlobalBypassToken) {
+      headers.authorization = `Bearer ${env.vercelGlobalBypassToken}`;
+    }
 
     const response = await fetch(healthUrl, {
       method: 'GET',
       redirect: 'follow',
       signal: controller.signal,
-      headers: {
-        'user-agent': 'Bytecode-Environment-Health/2.0',
-        accept: 'application/json',
-      },
+      headers,
     });
 
     if (response.status !== 200) {
