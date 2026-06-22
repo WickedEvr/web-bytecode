@@ -324,6 +324,7 @@ export type ProjectUpdateInput = {
   githubBranch?: string | null;
   quoteId?: string | null;
   totalBudget?: number;
+  vercel_bypass_secret?: string | null;
 };
 
 export interface ProjectQuoteItem {
@@ -408,6 +409,9 @@ export const assignProjectUser = (projectId: string, userId: string, role?: stri
 
 export const fetchProjectEnvironments = (projectId: string) =>
   apiRequest<{ items: ProjectEnvironment[] }>(`/admin/projects/${projectId}/environments`).then((response) => response.items);
+
+export const fetchProjectVercelBypassSecret = (projectId: string) =>
+  apiRequest<{ vercel_bypass_secret: string | null }>(`/admin/projects/${projectId}/vercel-bypass-secret`);
 
 export const createProjectEnvironment = (projectId: string, input: { type: 'production' | 'staging'; name: string; url: string; apiUrl?: string | null }) =>
   apiRequest<{ item: ProjectEnvironment }>(`/admin/projects/${projectId}/environments`, { method: 'POST', json: input }).then((response) => response.item);

@@ -1,5 +1,4 @@
 import { pool } from '../db/pool.js';
-import { env } from '../config/env.js';
 
 const HEALTH_TIMEOUT_MS = 8000;
 const INVALID_JSON_MESSAGE = 'La URL no devolvió un JSON válido (Falta vercel.json o ruta errónea)';
@@ -32,8 +31,17 @@ export const verifyEnvironmentHealth = async (
       'user-agent': 'Bytecode-Environment-Health/2.0',
       accept: 'application/json',
     };
-    if (parsed.hostname.toLowerCase().endsWith('.vercel.app') && env.vercelGlobalBypassToken) {
-      headers.authorization = `Bearer ${env.vercelGlobalBypassToken}`;
+    if (parsed.hostname.toLowerCase().endsWith('.vercel.app')) {
+      const projectResult = await pool.query<{ vercel_bypass_secret: string | null }>(
+        `SELECT p.vercel_bypass_secret
+         FROM project_environments pe
+         JOIN projects p ON p.id = pe.project_id
+         WHERE pe.id = $1 AND p.deleted_at IS NULL
+         LIMIT 1`,
+        [environmentId],
+      );
+      const bypassSecret = projectResult.rows[0]?.vercel_bypass_secret?.trim();
+      if (bypassSecret) headers['x-vercel-protection-bypass'] = bypassSecret;
     }
 
     const response = await fetch(healthUrl, {

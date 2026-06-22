@@ -1933,7 +1933,9 @@ const projectCreateSchema = z.object({
   totalBudget: z.coerce.number().min(0),
   currencyCode: z.string().trim().length(3).transform((value) => value.toUpperCase()).default('PEN'),
 });
-const projectUpdateSchema = projectCreateSchema.partial();
+const projectUpdateSchema = projectCreateSchema.partial().extend({
+  vercel_bypass_secret: z.string().trim().max(500).optional().nullable(),
+});
 
 const projectSelectSql = `
   SELECT p.id, p.project_code, p.customer_id, p.organization_id, p.service_id, p.quote_id,
@@ -2128,6 +2130,22 @@ router.get(
   }),
 );
 
+router.get(
+  '/projects/:id/vercel-bypass-secret',
+  requirePermission('admin.proyectos.manage'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const result = await pool.query(
+      `SELECT vercel_bypass_secret
+       FROM projects
+       WHERE id = $1 AND deleted_at IS NULL`,
+      [id],
+    );
+    if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
+    res.json({ vercel_bypass_secret: result.rows[0].vercel_bypass_secret ?? null });
+  }),
+);
+
 router.patch(
   '/projects/:id',
   requireCsrf,
@@ -2172,6 +2190,7 @@ router.patch(
            actual_end_date = COALESCE($12, actual_end_date), total_budget = COALESCE($13, total_budget),
            currency_code = COALESCE($14, currency_code),
            quote_id = CASE WHEN $18 THEN $17 ELSE quote_id END,
+           vercel_bypass_secret = CASE WHEN $20 THEN $19 ELSE vercel_bypass_secret END,
            updated_at = now()
          WHERE id = $1 AND deleted_at IS NULL`,
         [id, body.customerId ?? null, body.organizationId ?? null, body.serviceId ?? null,
@@ -2179,7 +2198,8 @@ router.patch(
          body.githubBranch ?? null, body.startDate ?? null, body.estimatedEndDate ?? null,
          body.actualEndDate ?? null, body.totalBudget ?? null, body.currencyCode ?? null,
          Object.hasOwn(body, 'description'), Object.hasOwn(body, 'githubRepo'),
-         body.quoteId ?? null, Object.hasOwn(body, 'quoteId')],
+         body.quoteId ?? null, Object.hasOwn(body, 'quoteId'),
+         body.vercel_bypass_secret ?? null, Object.hasOwn(body, 'vercel_bypass_secret')],
       );
       if (oldStatusId && statusId && oldStatusId !== statusId) {
         await client.query(

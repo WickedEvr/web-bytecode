@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, CircleAlert, ExternalLink, LoaderCircle, Plus, RefreshCw, Trash2, X } from 'lucide-react';
+import { useOutletContext } from 'react-router-dom';
+import { AlertTriangle, CircleAlert, ExternalLink, Eye, EyeOff, LoaderCircle, Plus, RefreshCw, ShieldCheck, Trash2, X } from 'lucide-react';
 import AdminPanel from './AdminPanel';
 import RoleGuard from './RoleGuard';
+import type { AdminUser } from './AdminLayout';
 import CustomDropdown from '../ui/CustomDropdown';
 import InteractiveHoverCard from '../ui/InteractiveHoverCard';
-import { createProjectEnvironment, deleteProjectEnvironment, fetchProjectEnvironments, retryProjectEnvironment, type ProjectEnvironment } from '../../lib/api';
+import { createProjectEnvironment, deleteProjectEnvironment, fetchProjectEnvironments, fetchProjectVercelBypassSecret, retryProjectEnvironment, updateProject, type ProjectEnvironment } from '../../lib/api';
 
 const typeLabels: Record<ProjectEnvironment['type'], string> = {
   production: 'Prod',
@@ -13,11 +15,17 @@ const typeLabels: Record<ProjectEnvironment['type'], string> = {
 };
 
 const ProjectEnvironmentsHub: React.FC<{ projectId: string }> = ({ projectId }) => {
+  const { admin } = useOutletContext<{ admin: AdminUser }>();
+  const canManage = admin.roles?.includes('super_admin') || admin.permissions?.includes('admin.proyectos.manage');
   const [items, setItems] = useState<ProjectEnvironment[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [error, setError] = useState('');
+  const [vercelSecret, setVercelSecret] = useState('');
+  const [showVercelSecret, setShowVercelSecret] = useState(false);
+  const [savingVercelSecret, setSavingVercelSecret] = useState(false);
+  const [secretSaved, setSecretSaved] = useState(false);
   const [form, setForm] = useState<{ type: 'production' | 'staging'; name: string; url: string; apiUrl: string }>({ type: 'staging', name: 'Staging', url: '', apiUrl: '' });
 
   const load = async () => {
@@ -32,6 +40,19 @@ const ProjectEnvironmentsHub: React.FC<{ projectId: string }> = ({ projectId }) 
   };
 
   useEffect(() => { void load(); }, [projectId]);
+
+  useEffect(() => {
+    if (!canManage) return;
+    fetchProjectVercelBypassSecret(projectId)
+      .then((response) => setVercelSecret(response.vercel_bypass_secret ?? ''))
+      .catch((requestError) => setError(requestError instanceof Error ? requestError.message : 'No se pudo cargar la configuración de Vercel.'));
+  }, [canManage, projectId]);
+
+  useEffect(() => {
+    if (!secretSaved) return;
+    const timeout = window.setTimeout(() => setSecretSaved(false), 3000);
+    return () => window.clearTimeout(timeout);
+  }, [secretSaved]);
 
   const hasVerifying = items.some((item) => item.status === 'verifying');
   useEffect(() => {
@@ -84,9 +105,40 @@ const ProjectEnvironmentsHub: React.FC<{ projectId: string }> = ({ projectId }) 
     }
   };
 
+  const saveVercelSecret = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSavingVercelSecret(true);
+    setError('');
+    try {
+      await updateProject(projectId, { vercel_bypass_secret: vercelSecret.trim() || null });
+      setSecretSaved(true);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'No se pudo guardar el secret de Vercel.');
+    } finally {
+      setSavingVercelSecret(false);
+    }
+  };
+
   return (
     <AdminPanel className="overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 px-6 py-5"><div><h2 className="font-semibold text-white/85">Hub de Entornos</h2><p className="mt-1 text-xs text-white/35">URLs fijas y previews sincronizados desde GitHub.</p></div><RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}><button type="button" onClick={() => setModalOpen(true)} className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black"><Plus className="h-4 w-4" />Añadir Entorno</button></RoleGuard></div>
+      <RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>
+        <form onSubmit={saveVercelSecret} className="mx-6 mt-5 rounded-xl border border-cyan-400/20 bg-cyan-400/[0.05] p-4">
+          <div className="mb-3 flex items-start gap-3">
+            <span className="rounded-lg border border-cyan-400/20 bg-cyan-400/10 p-2 text-cyan-300"><ShieldCheck className="h-4 w-4" /></span>
+            <div><h3 className="text-sm font-semibold text-white/85">Integración Vercel (Seguridad Bypass)</h3><p className="mt-1 text-xs text-white/40">Secret específico de este proyecto para validar deployments protegidos de Vercel.</p></div>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <label className="relative flex-1">
+              <span className="sr-only">Vercel Protection Bypass Secret</span>
+              <input type={showVercelSecret ? 'text' : 'password'} autoComplete="new-password" value={vercelSecret} onChange={(event) => setVercelSecret(event.target.value)} placeholder="Vercel Protection Bypass Secret" className="w-full rounded-lg border border-white/10 bg-black/35 px-4 py-2.5 pr-11 text-sm text-white outline-none transition focus:border-cyan-400/40" />
+              <button type="button" onClick={() => setShowVercelSecret((current) => !current)} className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-white/40 hover:text-white/75" aria-label={showVercelSecret ? 'Ocultar secret' : 'Mostrar secret'}>{showVercelSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
+            </label>
+            <button type="submit" disabled={savingVercelSecret} className="rounded-lg bg-cyan-300 px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50">{savingVercelSecret ? 'Guardando...' : 'Guardar'}</button>
+          </div>
+        </form>
+      </RoleGuard>
+      {secretSaved && <div role="status" className="fixed right-6 top-6 z-[100] rounded-lg border border-emerald-400/25 bg-[#07130e] px-4 py-3 text-sm text-emerald-300 shadow-2xl">Secret de Vercel guardado correctamente.</div>}
       {error && <p className="m-5 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</p>}
       <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left text-sm"><thead className="bg-white/[0.02] text-xs uppercase tracking-wider text-white/45"><tr><th className="px-6 py-4">Nombre</th><th className="px-6 py-4">Tipo</th><th className="px-6 py-4">Estado</th><th className="px-6 py-4 text-right">Acciones</th></tr></thead><tbody className="divide-y divide-white/5">{items.map((environment) => <tr key={environment.id}><td className="px-6 py-4"><p className="font-medium text-white/80">{environment.name}</p><p className="mt-1 max-w-md truncate text-xs text-white/35">{environment.url}</p></td><td className="px-6 py-4"><span className={`rounded border px-2 py-1 text-[10px] uppercase tracking-wider ${environment.type === 'production' ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-300' : environment.type === 'staging' ? 'border-amber-500/25 bg-amber-500/10 text-amber-300' : 'border-cyan-500/25 bg-cyan-500/10 text-cyan-300'}`}>{typeLabels[environment.type]}</span></td><td className="px-6 py-4"><div className="max-w-sm">{environment.status === 'verifying' ? <span className="inline-flex items-center gap-1.5 text-amber-300"><LoaderCircle className="h-3.5 w-3.5 animate-spin" />Validando...</span> : environment.status === 'active' ? <span className="text-emerald-300">En línea</span> : environment.status === 'failed' ? <span className="text-red-300">Error de conexión</span> : <span className="text-white/40">Inactivo</span>}{environment.status === 'failed' && environment.error_details && <InteractiveHoverCard placement="above" trigger={<span aria-label="Ver detalle del error" tabIndex={0} className={environment.error_details.includes('ALERTA CRÍTICA') ? 'ml-2 inline-flex cursor-help rounded-md border border-red-500/60 bg-red-500/25 p-1 text-red-100' : 'ml-2 inline-flex cursor-help text-red-500'}>{environment.error_details.includes('ALERTA CRÍTICA') ? <AlertTriangle className="h-4 w-4" /> : <CircleAlert className="h-4 w-4" />}</span>}><p className={environment.error_details.includes('ALERTA CRÍTICA') ? 'font-semibold text-red-200' : 'text-white/75'}>{environment.error_details}</p></InteractiveHoverCard>}</div></td><td className="px-6 py-4"><div className="flex justify-end gap-2">{environment.status === 'failed' ? <span aria-disabled="true" className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2 text-xs text-white/25"><ExternalLink className="h-3.5 w-3.5" />Abrir</span> : <a href={environment.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70 hover:bg-white/10"><ExternalLink className="h-3.5 w-3.5" />Abrir</a>}{environment.status === 'failed' && <RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}><button type="button" onClick={() => void retry(environment)} className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-300 hover:bg-amber-500/20"><RefreshCw className="h-3.5 w-3.5" />Reintentar</button></RoleGuard>}<RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}><button type="button" onClick={() => void remove(environment)} className="rounded-lg border border-red-500/15 bg-red-500/5 p-2 text-red-300 hover:bg-red-500/15" aria-label={`Eliminar ${environment.name}`}><Trash2 className="h-4 w-4" /></button></RoleGuard></div></td></tr>)}{!loading && items.length === 0 && <tr><td colSpan={4} className="px-6 py-10 text-center text-white/30">No hay entornos registrados.</td></tr>}{loading && <tr><td colSpan={4} className="px-6 py-10 text-center text-white/30">Cargando entornos...</td></tr>}</tbody></table></div>
       <RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>
