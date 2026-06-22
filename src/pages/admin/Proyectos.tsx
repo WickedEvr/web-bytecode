@@ -36,8 +36,6 @@ const emptyForm = (): ProjectInput => ({
   status: '',
   githubRepo: '',
   githubBranch: 'main',
-  stagingUrl: '',
-  productionUrl: '',
   startDate: today(),
   estimatedEndDate: inThirtyDays(),
   totalBudget: 0,
@@ -104,8 +102,6 @@ const Proyectos: React.FC = () => {
       const created = await createProject({
         ...form,
         githubRepo: form.githubRepo || undefined,
-        stagingUrl: form.stagingUrl || undefined,
-        productionUrl: form.productionUrl || undefined,
       });
       setModalOpen(false);
       if (page !== 1) setPage(1); else await loadProjects();
@@ -163,8 +159,6 @@ const Proyectos: React.FC = () => {
               <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Inicio</span><input type="date" required value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>
               <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Fin estimado</span><input type="date" required value={form.estimatedEndDate} onChange={(e) => setForm({ ...form, estimatedEndDate: e.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>
               <label className="grid gap-1.5 md:col-span-2"><span className="text-xs uppercase tracking-wider text-white/45">GitHub Repo</span><input type="url" value={form.githubRepo} onChange={(e) => setForm({ ...form, githubRepo: e.target.value })} placeholder="https://github.com/org/repo" className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>
-              <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Staging URL</span><input type="url" value={form.stagingUrl} onChange={(e) => setForm({ ...form, stagingUrl: e.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>
-              <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Production URL</span><input type="url" value={form.productionUrl} onChange={(e) => setForm({ ...form, productionUrl: e.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>
               <label className="grid gap-1.5 md:col-span-2"><span className="text-xs uppercase tracking-wider text-white/45">Descripción</span><textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>
             </div>
             <div className="mt-6 flex justify-end gap-3 border-t border-white/5 pt-5"><button type="button" onClick={() => setModalOpen(false)} className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-white/65">Cancelar</button><button disabled={saving || !form.customerId || !form.serviceId || !form.status} className="rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black disabled:opacity-40">{saving ? 'Guardando...' : 'Crear proyecto'}</button></div>

@@ -123,6 +123,15 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 import { pool } from './db/pool.js';
 
 // Healthchecks
+app.get('/api/health', async (_req: Request, res: Response) => {
+  try {
+    await pool.query('SELECT 1');
+    res.status(200).json({ status: 'ok', database: 'connected' });
+  } catch {
+    res.status(500).json({ status: 'error', database: 'disconnected' });
+  }
+});
+
 app.get('/health', async (_req: Request, res: Response) => {
   let dbOk = false;
   try {

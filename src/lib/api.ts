@@ -246,8 +246,6 @@ export interface Project {
   description: string | null;
   github_repo: string | null;
   github_branch: string | null;
-  staging_url: string | null;
-  production_url: string | null;
   start_date: string;
   estimated_end_date: string;
   actual_end_date: string | null;
@@ -312,8 +310,6 @@ export interface ProjectInput {
   status: string;
   githubRepo?: string;
   githubBranch?: string;
-  stagingUrl?: string;
-  productionUrl?: string;
   startDate: string;
   estimatedEndDate: string;
   totalBudget: number;
@@ -326,8 +322,6 @@ export type ProjectUpdateInput = {
   status?: string;
   githubRepo?: string | null;
   githubBranch?: string | null;
-  stagingUrl?: string | null;
-  productionUrl?: string | null;
   quoteId?: string | null;
   totalBudget?: number;
 };
@@ -350,7 +344,7 @@ export interface ProjectEnvironment {
   type: 'production' | 'staging' | 'ephemeral';
   name: string;
   url: string;
-  status: 'active' | 'inactive' | 'failed';
+  status: 'active' | 'inactive' | 'failed' | 'verifying';
   created_at: string;
 }
 
@@ -418,3 +412,6 @@ export const createProjectEnvironment = (projectId: string, input: { type: 'prod
 
 export const deleteProjectEnvironment = (projectId: string, environmentId: string) =>
   apiRequest<{ ok: true }>(`/api/admin/projects/${projectId}/environments/${environmentId}`, { method: 'DELETE' });
+
+export const retryProjectEnvironment = (projectId: string, environmentId: string) =>
+  apiRequest<{ ok: true }>(`/api/admin/projects/${projectId}/environments/${environmentId}/verify`, { method: 'POST' });

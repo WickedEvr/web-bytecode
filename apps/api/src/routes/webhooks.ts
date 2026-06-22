@@ -5,6 +5,7 @@ import { env } from '../config/env.js';
 import { pool } from '../db/pool.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { HttpError } from '../utils/httpError.js';
+import { triggerEnvironmentVerification } from '../services/environmentHealth.js';
 
 const router = Router();
 
@@ -88,13 +89,15 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
         res.status(202).json({ ok: true, ignored: true, reason: 'environment_url_missing' });
         return;
       }
-      await pool.query(
+      const environment = await pool.query(
         `INSERT INTO project_environments (project_id, type, name, url, status)
-         VALUES ($1, 'ephemeral', $2, $3, 'active')
+         VALUES ($1, 'ephemeral', $2, $3, 'verifying')
          ON CONFLICT (project_id, type, name)
-         DO UPDATE SET url = EXCLUDED.url, status = 'active'`,
+         DO UPDATE SET url = EXCLUDED.url, status = 'verifying'
+         RETURNING id, url`,
         [project.rows[0].id, name, environmentUrl],
       );
+      triggerEnvironmentVerification(environment.rows[0].id, environment.rows[0].url);
       res.status(202).json({ ok: true, environment: name });
       return;
     }

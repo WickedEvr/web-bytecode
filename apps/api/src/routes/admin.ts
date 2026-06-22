@@ -16,6 +16,7 @@ import { allowedUploadMimeTypeList, validateUpload } from '../lib/validateUpload
 import { requireAdmin, requirePermission, requireSuperAdmin } from '../middleware/auth.js';
 import { requireCsrf } from '../middleware/csrf.js';
 import { auditService } from '../services/audit.js';
+import { triggerEnvironmentVerification } from '../services/environmentHealth.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { HttpError } from '../utils/httpError.js';
 
@@ -1925,8 +1926,6 @@ const projectCreateSchema = z.object({
   status: z.string().trim().min(1).max(80),
   githubRepo: nullableProjectUrl,
   githubBranch: z.string().trim().max(160).optional().nullable(),
-  stagingUrl: nullableProjectUrl,
-  productionUrl: nullableProjectUrl,
   startDate: z.string().date(),
   estimatedEndDate: z.string().date(),
   actualEndDate: z.string().date().optional().nullable(),
@@ -1937,8 +1936,8 @@ const projectUpdateSchema = projectCreateSchema.partial();
 
 const projectSelectSql = `
   SELECT p.id, p.project_code, p.customer_id, p.organization_id, p.service_id, p.quote_id,
-         p.name, p.description, p.github_repo, p.github_branch, p.staging_url,
-         p.production_url, p.start_date, p.estimated_end_date, p.actual_end_date,
+         p.name, p.description, p.github_repo, p.github_branch,
+         p.start_date, p.estimated_end_date, p.actual_end_date,
          p.total_budget, p.currency_code, p.created_at, p.updated_at,
          sc.code AS status, sc.name AS status_name,
          COALESCE(c.display_name, NULLIF(concat_ws(' ', c.first_name, c.last_name), '')) AS customer_name,
@@ -2103,15 +2102,14 @@ router.post(
     const result = await pool.query(
       `INSERT INTO projects (
          project_code, customer_id, organization_id, service_id, name, description,
-         status_id, github_repo, github_branch, staging_url, production_url,
-         start_date, estimated_end_date, actual_end_date, total_budget, currency_code, quote_id
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+         status_id, github_repo, github_branch, start_date, estimated_end_date,
+         actual_end_date, total_budget, currency_code, quote_id
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
        RETURNING id`,
       [createBusinessCode('PRJ'), body.customerId, body.organizationId ?? null, body.serviceId,
        body.name, body.description ?? null, statusId, body.githubRepo ?? null,
-       body.githubBranch ?? null, body.stagingUrl ?? null, body.productionUrl ?? null,
-       body.startDate, body.estimatedEndDate, body.actualEndDate ?? null,
-       body.totalBudget, body.currencyCode, body.quoteId ?? null],
+       body.githubBranch ?? null, body.startDate, body.estimatedEndDate,
+       body.actualEndDate ?? null, body.totalBudget, body.currencyCode, body.quoteId ?? null],
     );
     const created = await pool.query(`${projectSelectSql} AND p.id = $1`, [result.rows[0].id]);
     res.status(201).json({ item: created.rows[0] });
@@ -2168,23 +2166,19 @@ router.patch(
         `UPDATE projects SET
            customer_id = COALESCE($2, customer_id), organization_id = COALESCE($3, organization_id),
            service_id = COALESCE($4, service_id), name = COALESCE($5, name),
-           description = CASE WHEN $17 THEN $6 ELSE description END, status_id = COALESCE($7, status_id),
-           github_repo = CASE WHEN $18 THEN $8 ELSE github_repo END, github_branch = COALESCE($9, github_branch),
-           staging_url = CASE WHEN $19 THEN $10 ELSE staging_url END,
-           production_url = CASE WHEN $20 THEN $11 ELSE production_url END,
-           start_date = COALESCE($12, start_date), estimated_end_date = COALESCE($13, estimated_end_date),
-           actual_end_date = COALESCE($14, actual_end_date), total_budget = COALESCE($15, total_budget),
-           currency_code = COALESCE($16, currency_code),
-           quote_id = CASE WHEN $22 THEN $21 ELSE quote_id END,
+           description = CASE WHEN $15 THEN $6 ELSE description END, status_id = COALESCE($7, status_id),
+           github_repo = CASE WHEN $16 THEN $8 ELSE github_repo END, github_branch = COALESCE($9, github_branch),
+           start_date = COALESCE($10, start_date), estimated_end_date = COALESCE($11, estimated_end_date),
+           actual_end_date = COALESCE($12, actual_end_date), total_budget = COALESCE($13, total_budget),
+           currency_code = COALESCE($14, currency_code),
+           quote_id = CASE WHEN $18 THEN $17 ELSE quote_id END,
            updated_at = now()
          WHERE id = $1 AND deleted_at IS NULL`,
         [id, body.customerId ?? null, body.organizationId ?? null, body.serviceId ?? null,
          body.name ?? null, body.description ?? null, statusId, body.githubRepo ?? null,
-         body.githubBranch ?? null, body.stagingUrl ?? null, body.productionUrl ?? null,
-         body.startDate ?? null, body.estimatedEndDate ?? null, body.actualEndDate ?? null,
-         body.totalBudget ?? null, body.currencyCode ?? null,
+         body.githubBranch ?? null, body.startDate ?? null, body.estimatedEndDate ?? null,
+         body.actualEndDate ?? null, body.totalBudget ?? null, body.currencyCode ?? null,
          Object.hasOwn(body, 'description'), Object.hasOwn(body, 'githubRepo'),
-         Object.hasOwn(body, 'stagingUrl'), Object.hasOwn(body, 'productionUrl'),
          body.quoteId ?? null, Object.hasOwn(body, 'quoteId')],
       );
       if (oldStatusId && statusId && oldStatusId !== statusId) {
@@ -2251,16 +2245,37 @@ router.post(
     const body = projectEnvironmentSchema.parse(req.body);
     const result = await pool.query(
       `INSERT INTO project_environments (project_id, type, name, url, status)
-       SELECT id, $2, $3, $4, 'active'
+       SELECT id, $2, $3, $4, 'verifying'
        FROM projects
        WHERE id = $1 AND deleted_at IS NULL
        ON CONFLICT (project_id, type, name)
-       DO UPDATE SET url = EXCLUDED.url, status = 'active'
+       DO UPDATE SET url = EXCLUDED.url, status = 'verifying'
        RETURNING id, project_id, type, name, url, status, created_at`,
       [projectId, body.type, body.name, body.url],
     );
     if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
+    triggerEnvironmentVerification(result.rows[0].id, result.rows[0].url);
     res.status(201).json({ item: result.rows[0] });
+  }),
+);
+
+router.post(
+  '/projects/:id/environments/:environment_id/verify',
+  requireCsrf,
+  requirePermission('admin.proyectos.manage'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const projectId = z.string().uuid().parse(req.params.id);
+    const environmentId = z.string().uuid().parse(req.params.environment_id);
+    const result = await pool.query(
+      `UPDATE project_environments
+       SET status = 'verifying'
+       WHERE id = $1 AND project_id = $2
+       RETURNING id, url`,
+      [environmentId, projectId],
+    );
+    if (!result.rowCount) throw new HttpError(404, 'Entorno no encontrado');
+    triggerEnvironmentVerification(result.rows[0].id, result.rows[0].url);
+    res.status(202).json({ ok: true });
   }),
 );
 
