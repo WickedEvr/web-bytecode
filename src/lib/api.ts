@@ -344,6 +344,7 @@ export interface ProjectEnvironment {
   type: 'production' | 'staging' | 'ephemeral';
   name: string;
   url: string;
+  api_url: string | null;
   status: 'active' | 'inactive' | 'failed' | 'verifying';
   created_at: string;
 }
@@ -407,7 +408,7 @@ export const assignProjectUser = (projectId: string, userId: string, role?: stri
 export const fetchProjectEnvironments = (projectId: string) =>
   apiRequest<{ items: ProjectEnvironment[] }>(`/api/admin/projects/${projectId}/environments`).then((response) => response.items);
 
-export const createProjectEnvironment = (projectId: string, input: { type: 'production' | 'staging'; name: string; url: string }) =>
+export const createProjectEnvironment = (projectId: string, input: { type: 'production' | 'staging'; name: string; url: string; apiUrl?: string | null }) =>
   apiRequest<{ item: ProjectEnvironment }>(`/api/admin/projects/${projectId}/environments`, { method: 'POST', json: input }).then((response) => response.item);
 
 export const deleteProjectEnvironment = (projectId: string, environmentId: string) =>

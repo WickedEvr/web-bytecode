@@ -2217,6 +2217,7 @@ const projectEnvironmentSchema = z.object({
   type: z.enum(['production', 'staging']),
   name: z.string().trim().min(2).max(180),
   url: z.string().trim().url().max(500),
+  apiUrl: z.string().trim().url().max(500).optional().nullable(),
 });
 
 router.get(
@@ -2225,7 +2226,7 @@ router.get(
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
     const result = await pool.query(
-      `SELECT id, project_id, type, name, url, status, created_at
+      `SELECT id, project_id, type, name, url, api_url, status, created_at
        FROM project_environments
        WHERE project_id = $1
        ORDER BY CASE type WHEN 'production' THEN 0 WHEN 'staging' THEN 1 ELSE 2 END,
@@ -2244,17 +2245,17 @@ router.post(
     const projectId = z.string().uuid().parse(req.params.id);
     const body = projectEnvironmentSchema.parse(req.body);
     const result = await pool.query(
-      `INSERT INTO project_environments (project_id, type, name, url, status)
-       SELECT id, $2, $3, $4, 'verifying'
+      `INSERT INTO project_environments (project_id, type, name, url, api_url, status)
+       SELECT id, $2, $3, $4, $5, 'verifying'
        FROM projects
        WHERE id = $1 AND deleted_at IS NULL
        ON CONFLICT (project_id, type, name)
-       DO UPDATE SET url = EXCLUDED.url, status = 'verifying'
-       RETURNING id, project_id, type, name, url, status, created_at`,
-      [projectId, body.type, body.name, body.url],
+       DO UPDATE SET url = EXCLUDED.url, api_url = EXCLUDED.api_url, status = 'verifying'
+       RETURNING id, project_id, type, name, url, api_url, status, created_at`,
+      [projectId, body.type, body.name, body.url, body.apiUrl || null],
     );
     if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
-    triggerEnvironmentVerification(result.rows[0].id, result.rows[0].url);
+    triggerEnvironmentVerification(result.rows[0].id, result.rows[0].url, result.rows[0].api_url);
     res.status(201).json({ item: result.rows[0] });
   }),
 );
@@ -2270,11 +2271,11 @@ router.post(
       `UPDATE project_environments
        SET status = 'verifying'
        WHERE id = $1 AND project_id = $2
-       RETURNING id, url`,
+       RETURNING id, url, api_url`,
       [environmentId, projectId],
     );
     if (!result.rowCount) throw new HttpError(404, 'Entorno no encontrado');
-    triggerEnvironmentVerification(result.rows[0].id, result.rows[0].url);
+    triggerEnvironmentVerification(result.rows[0].id, result.rows[0].url, result.rows[0].api_url);
     res.status(202).json({ ok: true });
   }),
 );
