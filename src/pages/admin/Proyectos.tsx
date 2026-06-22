@@ -16,7 +16,8 @@ import {
 import type { StatusCatalogItem } from '../../types/status';
 
 const PAGE_SIZE = 9;
-type Option = { id: string; name: string; email?: string | null };
+type CustomerOption = { id: string; label: string; document: string; email: string; type: string };
+type ServiceOption = { id: string; code: string; name: string };
 
 const today = () => new Date().toISOString().slice(0, 10);
 const inThirtyDays = () => {
@@ -46,8 +47,8 @@ const Proyectos: React.FC = () => {
   const { admin } = useOutletContext<{ admin: AdminUser }>();
   const canCreate = admin.roles.includes('super_admin') || admin.permissions?.includes('admin.proyectos.create') === true;
   const [projects, setProjects] = useState<Project[]>([]);
-  const [customers, setCustomers] = useState<Option[]>([]);
-  const [services, setServices] = useState<Option[]>([]);
+  const [customers, setCustomers] = useState<CustomerOption[]>([]);
+  const [services, setServices] = useState<ServiceOption[]>([]);
   const [statuses, setStatuses] = useState<StatusCatalogItem[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -79,7 +80,7 @@ const Proyectos: React.FC = () => {
       .then((result) => setStatuses(result.items))
       .catch(() => setStatuses([]));
     if (!canCreate) return;
-    apiRequest<{ customers: Option[]; services: Option[] }>('/api/admin/projects/options')
+    apiRequest<{ customers: CustomerOption[]; services: ServiceOption[] }>('/api/admin/projects/options')
       .then((options) => {
         setCustomers(options.customers);
         setServices(options.services);
@@ -151,7 +152,7 @@ const Proyectos: React.FC = () => {
             <div className="mb-6 flex items-center justify-between border-b border-white/5 pb-4"><h2 className="text-lg font-semibold text-white/90">Nuevo proyecto</h2><button type="button" onClick={() => setModalOpen(false)} className="rounded-lg p-2 text-white/50 hover:bg-white/5"><X className="h-5 w-5" /></button></div>
             <div className="grid gap-5 md:grid-cols-2">
               <label className="grid gap-1.5 md:col-span-2"><span className="text-xs uppercase tracking-wider text-white/45">Nombre</span><input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>
-              <div><span className="mb-1.5 block text-xs uppercase tracking-wider text-white/45">Cliente</span><CustomDropdown value={form.customerId} onChange={(customerId) => setForm({ ...form, customerId })} placeholder="Seleccionar cliente..." options={customers.map((item) => ({ value: item.id, label: item.name }))} /></div>
+              <div><span className="mb-1.5 block text-xs uppercase tracking-wider text-white/45">Cliente</span><CustomDropdown value={form.customerId} onChange={(customerId) => setForm({ ...form, customerId })} placeholder="Seleccionar cliente..." options={customers.map((item) => ({ value: item.id, label: item.label }))} /></div>
               <div><span className="mb-1.5 block text-xs uppercase tracking-wider text-white/45">Servicio</span><CustomDropdown value={form.serviceId} onChange={(serviceId) => setForm({ ...form, serviceId })} placeholder="Seleccionar servicio..." options={services.map((item) => ({ value: item.id, label: item.name }))} /></div>
               <div><span className="mb-1.5 block text-xs uppercase tracking-wider text-white/45">Estado</span><CustomDropdown value={form.status} onChange={(status) => setForm({ ...form, status })} placeholder="Seleccionar estado..." options={statuses.map((item) => ({ value: item.code, label: item.name }))} /></div>
               <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Presupuesto</span><input type="number" min={0} required value={form.totalBudget} onChange={(e) => setForm({ ...form, totalBudget: Number(e.target.value) })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>

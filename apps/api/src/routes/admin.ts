@@ -1976,8 +1976,90 @@ router.get(
   requirePermission('admin.proyectos.create'),
   asyncHandler(async (_req: Request, res: Response) => {
     const [customers, services] = await Promise.all([
-      pool.query(`SELECT id, COALESCE(display_name, NULLIF(concat_ws(' ', first_name, last_name), '')) AS name, primary_email AS email
-                  FROM customers WHERE deleted_at IS NULL ORDER BY name ASC LIMIT 200`),
+      pool.query(`
+        WITH source_customers AS (
+          SELECT cc.customer_id, cc.organization_id, cc.created_at AS source_created_at
+          FROM contact_cases cc
+          WHERE cc.deleted_at IS NULL
+          UNION ALL
+          SELECT q.customer_id, NULL::uuid AS organization_id, q.created_at AS source_created_at
+          FROM quotes q
+          WHERE q.deleted_at IS NULL
+        ), enriched AS (
+          SELECT
+            c.id,
+            c.person_type,
+            c.primary_email,
+            c.updated_at,
+            s.source_created_at,
+            NULLIF(trim(concat_ws(' ', c.first_name, c.last_name)), '') AS contact_name,
+            COALESCE(NULLIF(org.trade_name, ''), NULLIF(org.legal_name, '')) AS company_name,
+            COALESCE(NULLIF(org.ruc, ''), NULLIF(doc.document_number, '')) AS company_document,
+            NULLIF(doc.document_number, '') AS personal_document
+          FROM source_customers s
+          JOIN customers c ON c.id = s.customer_id AND c.deleted_at IS NULL
+          LEFT JOIN LATERAL (
+            SELECT cd.document_number
+            FROM customer_documents cd
+            WHERE cd.customer_id = c.id AND cd.deleted_at IS NULL
+            ORDER BY cd.is_primary DESC, cd.updated_at DESC, cd.id
+            LIMIT 1
+          ) doc ON true
+          LEFT JOIN LATERAL (
+            SELECT o.trade_name, o.legal_name, o.ruc
+            FROM organizations o
+            LEFT JOIN customer_organizations co
+              ON co.organization_id = o.id
+             AND co.customer_id = c.id
+             AND co.deleted_at IS NULL
+            WHERE o.deleted_at IS NULL
+              AND (o.id = s.organization_id OR (s.organization_id IS NULL AND co.customer_id IS NOT NULL))
+            ORDER BY
+              CASE WHEN o.id = s.organization_id THEN 0 WHEN co.is_primary THEN 1 ELSE 2 END,
+              co.updated_at DESC NULLS LAST,
+              o.updated_at DESC
+            LIMIT 1
+          ) org ON true
+        ), prepared AS (
+          SELECT
+            id,
+            CASE WHEN person_type IN ('company', 'company_contact', 'empresa') THEN 'empresa' ELSE 'independiente' END AS type,
+            CASE
+              WHEN person_type IN ('company', 'company_contact', 'empresa') THEN
+                CASE
+                  WHEN company_name IS NOT NULL AND contact_name IS NOT NULL
+                    THEN company_name || ' (' || contact_name || ')'
+                  ELSE COALESCE(company_name, contact_name, 'Empresa sin nombre')
+                END
+              ELSE COALESCE(contact_name, 'Cliente sin nombre')
+            END AS label,
+            COALESCE(
+              CASE WHEN person_type IN ('company', 'company_contact', 'empresa') THEN company_document ELSE personal_document END,
+              ''
+            ) AS document,
+            COALESCE(lower(trim(primary_email)), '') AS email,
+            source_created_at,
+            updated_at
+          FROM enriched
+        ), keyed AS (
+          SELECT *,
+            type || ':' || COALESCE(NULLIF(regexp_replace(lower(document), '[^[:alnum:]]', '', 'g'), ''), id::text) AS document_key,
+            type || ':' || COALESCE(NULLIF(email, ''), id::text) AS email_key
+          FROM prepared
+        ), document_deduplicated AS (
+          SELECT DISTINCT ON (document_key) id, label, document, email, type, email_key, source_created_at, updated_at
+          FROM keyed
+          ORDER BY document_key, source_created_at DESC, updated_at DESC, id
+        ), deduplicated AS (
+          SELECT DISTINCT ON (email_key) id, label, document, email, type
+          FROM document_deduplicated
+          ORDER BY email_key, source_created_at DESC, updated_at DESC, id
+        )
+        SELECT id, label, document, email, type
+        FROM deduplicated
+        ORDER BY label ASC, email ASC
+        LIMIT 500
+      `),
       pool.query(`SELECT id, code, name FROM service_catalog WHERE is_active = true AND deleted_at IS NULL ORDER BY name ASC`),
     ]);
     res.json({ customers: customers.rows, services: services.rows });
