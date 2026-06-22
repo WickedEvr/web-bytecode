@@ -1994,7 +1994,6 @@ router.get(
             s.source_created_at,
             NULLIF(trim(concat_ws(' ', c.first_name, c.last_name)), '') AS contact_name,
             COALESCE(NULLIF(org.trade_name, ''), NULLIF(org.legal_name, '')) AS company_name,
-            COALESCE(NULLIF(org.ruc, ''), NULLIF(doc.document_number, '')) AS company_document,
             NULLIF(doc.document_number, '') AS personal_document
           FROM source_customers s
           JOIN customers c ON c.id = s.customer_id AND c.deleted_at IS NULL
@@ -2006,7 +2005,7 @@ router.get(
             LIMIT 1
           ) doc ON true
           LEFT JOIN LATERAL (
-            SELECT o.trade_name, o.legal_name, o.ruc
+            SELECT o.trade_name, o.legal_name
             FROM organizations o
             LEFT JOIN customer_organizations co
               ON co.organization_id = o.id
@@ -2028,34 +2027,35 @@ router.get(
               WHEN person_type IN ('company', 'company_contact', 'empresa') THEN
                 CASE
                   WHEN company_name IS NOT NULL AND contact_name IS NOT NULL
-                    THEN company_name || ' (' || contact_name || ')'
-                  ELSE COALESCE(company_name, contact_name, 'Empresa sin nombre')
+                    THEN contact_name || ' (' || company_name || ')'
+                  ELSE COALESCE(contact_name, company_name, 'Contacto sin nombre')
                 END
               ELSE COALESCE(contact_name, 'Cliente sin nombre')
             END AS label,
-            COALESCE(
-              CASE WHEN person_type IN ('company', 'company_contact', 'empresa') THEN company_document ELSE personal_document END,
-              ''
-            ) AS document,
+            COALESCE(personal_document, '') AS document,
             COALESCE(lower(trim(primary_email)), '') AS email,
+            CASE
+              WHEN person_type IN ('company', 'company_contact', 'empresa') THEN company_name
+              ELSE NULL
+            END AS company_name,
             source_created_at,
             updated_at
           FROM enriched
         ), keyed AS (
           SELECT *,
-            type || ':' || COALESCE(NULLIF(regexp_replace(lower(document), '[^[:alnum:]]', '', 'g'), ''), id::text) AS document_key,
-            type || ':' || COALESCE(NULLIF(email, ''), id::text) AS email_key
+            COALESCE(NULLIF(regexp_replace(lower(document), '[^[:alnum:]]', '', 'g'), ''), id::text) AS document_key,
+            COALESCE(NULLIF(email, ''), id::text) AS email_key
           FROM prepared
         ), document_deduplicated AS (
-          SELECT DISTINCT ON (document_key) id, label, document, email, type, email_key, source_created_at, updated_at
+          SELECT DISTINCT ON (document_key) id, label, document, email, type, company_name, email_key, source_created_at, updated_at
           FROM keyed
           ORDER BY document_key, source_created_at DESC, updated_at DESC, id
         ), deduplicated AS (
-          SELECT DISTINCT ON (email_key) id, label, document, email, type
+          SELECT DISTINCT ON (email_key) id, label, document, email, type, company_name
           FROM document_deduplicated
           ORDER BY email_key, source_created_at DESC, updated_at DESC, id
         )
-        SELECT id, label, document, email, type
+        SELECT id, label, document, email, type, company_name
         FROM deduplicated
         ORDER BY label ASC, email ASC
         LIMIT 500

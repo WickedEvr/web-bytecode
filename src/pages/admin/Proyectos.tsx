@@ -16,7 +16,7 @@ import {
 import type { StatusCatalogItem } from '../../types/status';
 
 const PAGE_SIZE = 9;
-type CustomerOption = { id: string; label: string; document: string; email: string; type: string };
+type CustomerOption = { id: string; label: string; document: string; email: string; type: string; company_name: string | null };
 type ServiceOption = { id: string; code: string; name: string };
 
 const today = () => new Date().toISOString().slice(0, 10);
