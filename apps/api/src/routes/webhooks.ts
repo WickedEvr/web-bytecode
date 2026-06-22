@@ -25,7 +25,10 @@ type GithubPushPayload = {
 };
 
 const verifyGithubSignature = (req: Request) => {
-  if (!env.githubWebhookSecret) return;
+  if (!env.githubWebhookSecret) {
+    if (env.nodeEnv === 'development') return;
+    throw new HttpError(500, 'GitHub webhook secret no configurado.');
+  }
   const signature = req.header('x-hub-signature-256');
   if (!signature?.startsWith('sha256=') || !req.rawBody) throw new HttpError(401, 'Firma de webhook invalida.');
   const expected = crypto.createHmac('sha256', env.githubWebhookSecret).update(req.rawBody).digest('hex');

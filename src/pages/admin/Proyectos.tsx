@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { FolderKanban, Plus, RefreshCw, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import AdminPanel from '../../components/admin/AdminPanel';
+import type { AdminUser } from '../../components/admin/AdminLayout';
 import RoleGuard from '../../components/admin/RoleGuard';
 import PaginationControl from '../../components/ui/PaginationControl';
 import CustomDropdown from '../../components/ui/CustomDropdown';
@@ -42,6 +43,8 @@ const emptyForm = (): ProjectInput => ({
 
 const Proyectos: React.FC = () => {
   const navigate = useNavigate();
+  const { admin } = useOutletContext<{ admin: AdminUser }>();
+  const canCreate = admin.roles.includes('super_admin') || admin.permissions?.includes('admin.proyectos.create') === true;
   const [projects, setProjects] = useState<Project[]>([]);
   const [customers, setCustomers] = useState<Option[]>([]);
   const [services, setServices] = useState<Option[]>([]);
@@ -72,15 +75,17 @@ const Proyectos: React.FC = () => {
   useEffect(() => { void loadProjects(); }, [page]);
 
   useEffect(() => {
-    Promise.all([
-      apiRequest<{ customers: Option[]; services: Option[] }>('/api/admin/projects/options'),
-      apiRequest<{ items: StatusCatalogItem[] }>('/api/catalog/statuses?domain=project'),
-    ]).then(([options, statusResult]) => {
-      setCustomers(options.customers);
-      setServices(options.services);
-      setStatuses(statusResult.items);
-    }).catch(() => undefined);
-  }, []);
+    apiRequest<{ items: StatusCatalogItem[] }>('/api/catalog/statuses?domain=project')
+      .then((result) => setStatuses(result.items))
+      .catch(() => setStatuses([]));
+    if (!canCreate) return;
+    apiRequest<{ customers: Option[]; services: Option[] }>('/api/admin/projects/options')
+      .then((options) => {
+        setCustomers(options.customers);
+        setServices(options.services);
+      })
+      .catch(() => undefined);
+  }, [canCreate]);
 
   const openNew = () => {
     setForm({ ...emptyForm(), status: statuses[0]?.code ?? '' });

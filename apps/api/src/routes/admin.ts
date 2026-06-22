@@ -2046,9 +2046,10 @@ router.patch(
       `UPDATE projects SET
          customer_id = COALESCE($2, customer_id), organization_id = COALESCE($3, organization_id),
          service_id = COALESCE($4, service_id), name = COALESCE($5, name),
-         description = COALESCE($6, description), status_id = COALESCE($7, status_id),
-         github_repo = COALESCE($8, github_repo), github_branch = COALESCE($9, github_branch),
-         staging_url = COALESCE($10, staging_url), production_url = COALESCE($11, production_url),
+         description = CASE WHEN $17 THEN $6 ELSE description END, status_id = COALESCE($7, status_id),
+         github_repo = CASE WHEN $18 THEN $8 ELSE github_repo END, github_branch = COALESCE($9, github_branch),
+         staging_url = CASE WHEN $19 THEN $10 ELSE staging_url END,
+         production_url = CASE WHEN $20 THEN $11 ELSE production_url END,
          start_date = COALESCE($12, start_date), estimated_end_date = COALESCE($13, estimated_end_date),
          actual_end_date = COALESCE($14, actual_end_date), total_budget = COALESCE($15, total_budget),
          currency_code = COALESCE($16, currency_code), updated_at = now()
@@ -2057,7 +2058,9 @@ router.patch(
        body.name ?? null, body.description ?? null, statusId, body.githubRepo ?? null,
        body.githubBranch ?? null, body.stagingUrl ?? null, body.productionUrl ?? null,
        body.startDate ?? null, body.estimatedEndDate ?? null, body.actualEndDate ?? null,
-       body.totalBudget ?? null, body.currencyCode ?? null],
+       body.totalBudget ?? null, body.currencyCode ?? null,
+       Object.hasOwn(body, 'description'), Object.hasOwn(body, 'githubRepo'),
+       Object.hasOwn(body, 'stagingUrl'), Object.hasOwn(body, 'productionUrl')],
     );
     if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
     const updated = await pool.query(`${projectSelectSql} AND p.id = $1`, [id]);
@@ -2073,26 +2076,6 @@ router.delete(
     const id = z.string().uuid().parse(req.params.id);
     const result = await pool.query('UPDATE projects SET deleted_at = now(), updated_at = now() WHERE id = $1 AND deleted_at IS NULL RETURNING id', [id]);
     if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
-    res.json({ ok: true });
-  }),
-);
-
-router.patch(
-  '/projects/:id/status',
-  requireCsrf,
-  requirePermission('admin.proyectos.manage'),
-  asyncHandler(async (req: Request, res: Response) => {
-    const id = z.string().uuid().parse(req.params.id);
-    const body = projectStatusSchema.parse(req.body);
-    const result = await pool.query(`
-      UPDATE projects p
-      SET status_id = sc.id, updated_at = now()
-      FROM status_catalog sc
-      WHERE p.id = $1 AND sc.domain = 'project' AND sc.code = $2
-        AND sc.is_active = true AND p.deleted_at IS NULL
-      RETURNING p.id
-    `, [id, body.status]);
-    if (!result.rowCount) throw new HttpError(400, 'Proyecto o estado invalido');
     res.json({ ok: true });
   }),
 );

@@ -1,18 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, ExternalLink, GitCommitHorizontal, UserPlus } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, ExternalLink, GitCommitHorizontal, Pencil, Trash2, UserPlus, X } from 'lucide-react';
+import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import AdminPanel from '../../components/admin/AdminPanel';
+import type { AdminUser } from '../../components/admin/AdminLayout';
 import RoleGuard from '../../components/admin/RoleGuard';
 import CustomDropdown from '../../components/ui/CustomDropdown';
 import Timeline from '../../components/ui/Timeline';
 import {
   apiRequest,
   assignProjectUser,
+  deleteProject,
   fetchProject,
   fetchProjectAssignmentOptions,
   fetchProjectAssignments,
   fetchProjectCommits,
   fetchProjectMilestones,
+  updateProject,
   updateProjectMilestone,
   type Project,
   type ProjectAssignment,
@@ -23,10 +26,13 @@ import {
 import type { StatusCatalogItem } from '../../types/status';
 
 type Tab = 'general' | 'milestones' | 'activity';
+type ProjectEditForm = { name: string; description: string; githubRepo: string; stagingUrl: string; productionUrl: string };
 
 const ProyectoDetalle: React.FC = () => {
   const { id = '' } = useParams();
   const navigate = useNavigate();
+  const { admin } = useOutletContext<{ admin: AdminUser }>();
+  const canAssign = admin.roles.includes('super_admin') || admin.permissions?.includes('admin.proyectos.assign') === true;
   const [project, setProject] = useState<Project | null>(null);
   const [milestones, setMilestones] = useState<ProjectMilestone[]>([]);
   const [commits, setCommits] = useState<ProjectCommit[]>([]);
@@ -39,6 +45,10 @@ const ProyectoDetalle: React.FC = () => {
   const [tab, setTab] = useState<Tab>('general');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [editOpen, setEditOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [editForm, setEditForm] = useState<ProjectEditForm>({ name: '', description: '', githubRepo: '', stagingUrl: '', productionUrl: '' });
 
   const loadMilestones = async () => setMilestones(await fetchProjectMilestones(id));
 
@@ -60,8 +70,8 @@ const ProyectoDetalle: React.FC = () => {
     }).catch((requestError: unknown) => {
       setError(requestError instanceof Error ? requestError.message : 'No se pudo cargar el proyecto.');
     }).finally(() => setLoading(false));
-    fetchProjectAssignmentOptions().then(setAssignmentOptions).catch(() => setAssignmentOptions([]));
-  }, [id]);
+    if (canAssign) fetchProjectAssignmentOptions().then(setAssignmentOptions).catch(() => setAssignmentOptions([]));
+  }, [id, canAssign]);
 
   const changeMilestoneStatus = async (milestoneId: string, status: string) => {
     try {
@@ -88,6 +98,52 @@ const ProyectoDetalle: React.FC = () => {
     }
   };
 
+  const openEdit = () => {
+    if (!project) return;
+    setEditForm({
+      name: project.name,
+      description: project.description ?? '',
+      githubRepo: project.github_repo ?? '',
+      stagingUrl: project.staging_url ?? '',
+      productionUrl: project.production_url ?? '',
+    });
+    setEditOpen(true);
+  };
+
+  const handleUpdate = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSaving(true);
+    setError('');
+    try {
+      const updated = await updateProject(id, {
+        name: editForm.name,
+        description: editForm.description || null,
+        githubRepo: editForm.githubRepo || null,
+        stagingUrl: editForm.stagingUrl || null,
+        productionUrl: editForm.productionUrl || null,
+      });
+      setProject(updated);
+      setEditOpen(false);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'No se pudo actualizar el proyecto.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm(`¿Eliminar el proyecto "${project?.name ?? ''}"? Esta acción lo retirará del panel.`)) return;
+    setDeleting(true);
+    setError('');
+    try {
+      await deleteProject(id);
+      navigate('/admin/proyectos', { replace: true });
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'No se pudo eliminar el proyecto.');
+      setDeleting(false);
+    }
+  };
+
   if (loading) return <p className="p-8 text-sm text-white/40">Cargando proyecto...</p>;
   if (!project) return <p className="p-8 text-sm text-red-300">{error || 'Proyecto no encontrado.'}</p>;
 
@@ -97,7 +153,7 @@ const ProyectoDetalle: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-6 font-sansation">
-      <div className="flex items-center gap-4 border-b border-white/5 pb-4"><button type="button" onClick={() => navigate('/admin/proyectos')} className="rounded-lg border border-white/10 bg-white/5 p-2 text-white/60"><ArrowLeft className="h-5 w-5" /></button><div><h1 className="text-2xl font-semibold text-white/90">{project.name}</h1><p className="mt-1 text-xs text-white/40">{project.project_code} · {project.customer_name} · {project.status_name || project.status}</p></div></div>
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-4"><div className="flex items-center gap-4"><button type="button" onClick={() => navigate('/admin/proyectos')} className="rounded-lg border border-white/10 bg-white/5 p-2 text-white/60"><ArrowLeft className="h-5 w-5" /></button><div><h1 className="text-2xl font-semibold text-white/90">{project.name}</h1><p className="mt-1 text-xs text-white/40">{project.project_code} · {project.customer_name || 'Cliente sin nombre'} · {project.status_name || project.status}</p></div></div><RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}><div className="flex gap-2"><button type="button" onClick={openEdit} className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/75 hover:bg-white/10"><Pencil className="h-4 w-4" />Editar</button><button type="button" disabled={deleting} onClick={() => void handleDelete()} className="inline-flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm text-red-300 hover:bg-red-500/20 disabled:opacity-40"><Trash2 className="h-4 w-4" />{deleting ? 'Eliminando...' : 'Eliminar'}</button></div></RoleGuard></div>
       {error && <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</p>}
       <div className="flex gap-2 border-b border-white/5 pb-3">
         {([['general', 'General'], ['milestones', 'Hitos'], ['activity', 'Actividad (GitHub)']] as const).map(([value, label]) => <button key={value} type="button" onClick={() => setTab(value)} className={`rounded-lg px-4 py-2 text-sm transition ${tab === value ? 'bg-white text-black' : 'bg-white/5 text-white/55 hover:text-white'}`}>{label}</button>)}
@@ -108,6 +164,8 @@ const ProyectoDetalle: React.FC = () => {
       {tab === 'milestones' && <AdminPanel className="divide-y divide-white/5 overflow-hidden">{milestones.length ? milestones.map((milestone) => <div key={milestone.id} className="grid gap-4 p-5 md:grid-cols-[1fr_180px] md:items-center"><div><h3 className="font-medium text-white/85">{milestone.title}</h3><p className="mt-1 text-xs text-white/35">Vence {new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium' }).format(new Date(milestone.due_date))} · {milestone.payment_percentage}%</p></div><RoleGuard requiredPermission="admin.proyectos.manage" fallback={<div className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white/55" aria-label="Estado de solo lectura">{milestone.status_name || milestone.status}</div>}><CustomDropdown value={milestone.status} onChange={(status) => void changeMilestoneStatus(milestone.id, status)} placeholder="Estado..." options={statuses.map((status) => ({ value: status.code, label: status.name }))} /></RoleGuard></div>) : <p className="p-8 text-center text-sm text-white/30">No hay hitos registrados.</p>}</AdminPanel>}
 
       {tab === 'activity' && <AdminPanel className="p-6 lg:p-8"><Timeline heading="Actividad de GitHub" emptyMessage="No hay commits registrados." items={commits.map((commit) => ({ date: commit.committed_at || commit.created_at || new Date(0).toISOString(), icon: <GitCommitHorizontal className="h-4 w-4" />, title: <><span className="font-medium text-white/90">{commit.author_name || commit.author_email || 'GitHub'}</span><span className="block text-white/65">{commit.message}</span><span className="mt-1 block font-mono text-[10px] text-white/35">{commit.branch || 'branch'} · {commit.commit_hash.slice(0, 7)}</span>{commit.github_url && <a href={commit.github_url} target="_blank" rel="noreferrer" className="pointer-events-auto mt-2 block text-cyan-300">Ver commit</a>}</> }))} /></AdminPanel>}
+
+      <RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>{editOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"><form onSubmit={handleUpdate} className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 shadow-2xl md:p-8"><div className="mb-6 flex items-center justify-between border-b border-white/5 pb-4"><div><h2 className="text-lg font-semibold text-white/90">Editar proyecto</h2><p className="mt-1 text-xs text-white/35">Información general y enlaces de entornos.</p></div><button type="button" onClick={() => setEditOpen(false)} className="rounded-lg p-2 text-white/50 hover:bg-white/5"><X className="h-5 w-5" /></button></div><div className="grid gap-5"><label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Nombre</span><input required minLength={2} value={editForm.name} onChange={(event) => setEditForm({ ...editForm, name: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label><label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Descripción</span><textarea rows={4} value={editForm.description} onChange={(event) => setEditForm({ ...editForm, description: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label><label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Repositorio GitHub</span><input type="url" value={editForm.githubRepo} onChange={(event) => setEditForm({ ...editForm, githubRepo: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label><div className="grid gap-5 md:grid-cols-2"><label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Staging URL</span><input type="url" value={editForm.stagingUrl} onChange={(event) => setEditForm({ ...editForm, stagingUrl: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label><label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Producción URL</span><input type="url" value={editForm.productionUrl} onChange={(event) => setEditForm({ ...editForm, productionUrl: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label></div></div><div className="mt-6 flex justify-end gap-3 border-t border-white/5 pt-5"><button type="button" onClick={() => setEditOpen(false)} className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-white/65">Cancelar</button><button disabled={saving} className="rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black disabled:opacity-40">{saving ? 'Guardando...' : 'Guardar cambios'}</button></div></form></div>}</RoleGuard>
     </div>
   );
 };
