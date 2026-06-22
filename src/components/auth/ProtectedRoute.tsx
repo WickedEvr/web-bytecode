@@ -16,7 +16,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   useEffect(() => {
     let mounted = true;
 
-    apiRequest<{ admin: { roles?: string[] } }>('/api/auth/me')
+    apiRequest<{ admin: { roles?: string[] } }>('/auth/me')
       .then((res) => {
         if (!mounted) return;
         const roles = res.admin.roles ?? [];

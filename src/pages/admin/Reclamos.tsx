@@ -61,7 +61,7 @@ const Reclamos: React.FC = () => {
 
   const loadCatalogs = async () => {
     try {
-      const res = await apiRequest<{ items: { id: string, code: string, name: string }[] }>('/api/catalog/statuses?domain=complaint');
+      const res = await apiRequest<{ items: { id: string, code: string, name: string }[] }>('/catalog/statuses?domain=complaint');
       setStatuses(res.items.map(s => ({ value: s.code, label: s.name })));
     } catch (err) {
       console.error(err);
@@ -72,7 +72,7 @@ const Reclamos: React.FC = () => {
     setListLoading(true);
     setError('');
     try {
-      const result = await apiRequest<{ data: ComplaintItem[]; total: number }>(`/api/admin/complaints?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`);
+      const result = await apiRequest<{ data: ComplaintItem[]; total: number }>(`/admin/complaints?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`);
       if (result.data.length === 0 && result.total > 0 && page > 1) { setPage(page - 1); return; }
       setComplaints(result.data);
       setTotal(result.total);
@@ -88,8 +88,8 @@ const Reclamos: React.FC = () => {
     setError('');
     try {
       const [result, historyResult] = await Promise.all([
-        apiRequest<{ item: DetailItem }>(`/api/admin/complaints/${id}`),
-        apiRequest<{ items: StatusHistoryRecord[] }>(`/api/admin/complaints/${id}/history`),
+        apiRequest<{ item: DetailItem }>(`/admin/complaints/${id}`),
+        apiRequest<{ items: StatusHistoryRecord[] }>(`/admin/complaints/${id}/history`),
       ]);
       setDetail(result.item);
       setStatusHistory(historyResult.items);
@@ -111,12 +111,12 @@ const Reclamos: React.FC = () => {
   const handleSave = async () => {
     if (!selectedId) return;
     try {
-      const result = await apiRequest<{ item: DetailItem }>(`/api/admin/complaints/${selectedId}`, {
+      const result = await apiRequest<{ item: DetailItem }>(`/admin/complaints/${selectedId}`, {
         method: 'PATCH',
         json: { status, adminNotes: notes },
       });
       setDetail(result.item);
-      const historyResult = await apiRequest<{ items: StatusHistoryRecord[] }>(`/api/admin/complaints/${selectedId}/history`);
+      const historyResult = await apiRequest<{ items: StatusHistoryRecord[] }>(`/admin/complaints/${selectedId}/history`);
       setStatusHistory(historyResult.items);
       await loadList();
     } catch (err) {
@@ -141,7 +141,7 @@ const Reclamos: React.FC = () => {
             <h2 className="text-xl font-semibold text-white/90">Detalle del Reclamo</h2>
             {detail.attachment_original_name && selectedId && (
               <a
-                href={apiUrl(`/api/admin/complaints/${selectedId}/attachment`)}
+                href={apiUrl(`/admin/complaints/${selectedId}/attachment`)}
                 className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-white/20"
               >
                 <Download className="h-3.5 w-3.5" /> Adjunto

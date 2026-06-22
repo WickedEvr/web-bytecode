@@ -50,7 +50,7 @@ const Sidebar: React.FC<SidebarProps> = ({ admin, onClose }) => {
   useEffect(() => {
     if (!admin) return;
 
-    apiRequest<{ items: MenuItem[] }>('/api/admin/menu')
+    apiRequest<{ items: MenuItem[] }>('/admin/menu')
       .then((result) => setMenuItems(result.items))
       .catch(() => setMenuItems([]));
   }, [admin]);

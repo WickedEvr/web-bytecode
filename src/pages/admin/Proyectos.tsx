@@ -77,11 +77,11 @@ const Proyectos: React.FC = () => {
   useEffect(() => { void loadProjects(); }, [page]);
 
   useEffect(() => {
-    apiRequest<{ items: StatusCatalogItem[] }>('/api/catalog/statuses?domain=project')
+    apiRequest<{ items: StatusCatalogItem[] }>('/catalog/statuses?domain=project')
       .then((result) => setStatuses(result.items))
       .catch(() => setStatuses([]));
     if (!canCreate) return;
-    apiRequest<{ customers: CustomerOption[]; services: ServiceOption[] }>('/api/admin/projects/options')
+    apiRequest<{ customers: CustomerOption[]; services: ServiceOption[] }>('/admin/projects/options')
       .then((options) => {
         setCustomers(options.customers);
         setServices(options.services);

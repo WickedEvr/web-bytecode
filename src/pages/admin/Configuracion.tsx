@@ -46,7 +46,7 @@ const AdminConfiguracion: React.FC = () => {
     setError('');
     setSuccess(false);
     try {
-      const res = await apiRequest<{ items: SettingItem[] }>('/api/admin/settings');
+      const res = await apiRequest<{ items: SettingItem[] }>('/admin/settings');
 
       // Populate local state
       res.items.forEach(item => {
@@ -102,7 +102,7 @@ const AdminConfiguracion: React.FC = () => {
     setError('');
     setSuccess(false);
     try {
-      await apiRequest('/api/admin/settings', {
+      await apiRequest('/admin/settings', {
         method: 'PATCH',
         json: {
           settings: [

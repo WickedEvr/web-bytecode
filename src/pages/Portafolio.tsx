@@ -37,7 +37,7 @@ const Portafolio: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
 
-    apiRequest<{ item: PublishedCmsSection }>('/api/public/cms/portafolio')
+    apiRequest<{ item: PublishedCmsSection }>('/public/cms/portafolio')
       .then((response) => {
         if (!isMounted) return [];
         setCmsSection(response.item);

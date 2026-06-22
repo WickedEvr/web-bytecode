@@ -46,7 +46,7 @@ const Auditoria: React.FC = () => {
         limit: String(PAGE_SIZE),
         offset: String(offset),
       });
-      const result = await apiRequest<AuditLogsResponse>(`/api/admin/logs?${params.toString()}`);
+      const result = await apiRequest<AuditLogsResponse>(`/admin/logs?${params.toString()}`);
 
       if (result.items.length === 0 && result.total > 0 && targetPage > 1) {
         setPage(targetPage - 1);

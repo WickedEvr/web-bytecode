@@ -78,8 +78,8 @@ const Roles: React.FC = () => {
     setError('');
     try {
       const [rolesResult, permissionsResult] = await Promise.all([
-        apiRequest<{ data: Role[]; total: number }>(`/api/admin/roles?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`),
-        apiRequest<{ items: Permission[] }>('/api/admin/permissions'),
+        apiRequest<{ data: Role[]; total: number }>(`/admin/roles?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`),
+        apiRequest<{ items: Permission[] }>('/admin/permissions'),
       ]);
       if (rolesResult.data.length === 0 && rolesResult.total > 0 && page > 1) { setPage(page - 1); return; }
       setRoles(rolesResult.data);
@@ -137,7 +137,7 @@ const Roles: React.FC = () => {
 
     try {
       if (isEditing) {
-        await apiRequest(`/api/admin/roles/${formData.id}`, {
+        await apiRequest(`/admin/roles/${formData.id}`, {
           method: 'PUT',
           json: {
             name: formData.name,
@@ -147,7 +147,7 @@ const Roles: React.FC = () => {
           },
         });
       } else {
-        await apiRequest('/api/admin/roles', {
+        await apiRequest('/admin/roles', {
           method: 'POST',
           json: {
             code: normalizeRoleCode(formData.code || formData.name),

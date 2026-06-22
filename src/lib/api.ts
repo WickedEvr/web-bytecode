@@ -1,4 +1,4 @@
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '');
+const API_BASE_URL = '/api';
 
 interface RequestOptions extends RequestInit {
   json?: unknown;
@@ -15,7 +15,7 @@ export const resetCsrfToken = () => {
 export const initCsrf = async (force = false): Promise<string | null> => {
   if (cachedCsrfToken && !force) return cachedCsrfToken;
   try {
-    const res = await fetch(`${API_BASE_URL}/api/auth/csrf`, { credentials: 'include' });
+    const res = await fetch(`${API_BASE_URL}/auth/csrf`, { credentials: 'include' });
     if (res.ok) {
       const data = await res.json();
       cachedCsrfToken = data.csrfToken;
@@ -94,7 +94,7 @@ async function apiRequestInternal<T>(path: string, options: RequestOptions = {},
 
   const result = await response.json() as T;
 
-  if (path === '/api/auth/login' || path === '/api/auth/logout') {
+  if (path === '/auth/login' || path === '/auth/logout') {
     resetCsrfToken();
   }
 
@@ -104,13 +104,13 @@ async function apiRequestInternal<T>(path: string, options: RequestOptions = {},
 export const apiUrl = buildUrl;
 
 export const createContactSubmission = (payload: Record<string, string>) =>
-  apiRequest<{ id: string; createdAt: string }>('/api/contact-submissions', {
+  apiRequest<{ id: string; createdAt: string }>('/contact-submissions', {
     method: 'POST',
     json: payload,
   });
 
 export const createComplaint = (payload: FormData) =>
-  apiRequest<{ id: string; code: string; createdAt: string }>('/api/complaints', {
+  apiRequest<{ id: string; code: string; createdAt: string }>('/complaints', {
     method: 'POST',
     body: payload,
   });
@@ -120,7 +120,7 @@ export const warmupBackend = async () => {
   const timeout = window.setTimeout(() => controller.abort(), 15000);
 
   try {
-    await fetch(buildUrl('/api/warmup'), {
+    await fetch(buildUrl('/warmup'), {
       method: 'GET',
       credentials: 'omit',
       cache: 'no-store',
@@ -161,21 +161,21 @@ export interface DocumentTypeData {
 
 // --- Nuevas peticiones GET usando tu wrapper apiRequest ---
 export const fetchCountries = async () => {
-  const response = await apiRequest<{ items: CountryData[] }>('/api/catalog/countries', {
+  const response = await apiRequest<{ items: CountryData[] }>('/catalog/countries', {
     method: 'GET',
   });
   return response.items;
 };
 
 export const fetchServices = async () => {
-  const response = await apiRequest<{ items: ServiceData[] }>('/api/catalog/services', {
+  const response = await apiRequest<{ items: ServiceData[] }>('/catalog/services', {
     method: 'GET',
   });
   return response.items;
 };
 
 export const fetchDocumentTypes = async () => {
-  const response = await apiRequest<any>('/api/catalog/document-types', {
+  const response = await apiRequest<any>('/catalog/document-types', {
     method: 'GET',
   });
   const responseData = response.items || response; // Handle wrapper safely
@@ -229,7 +229,7 @@ export interface AdminPortfolioItemData {
 }
 
 export const fetchPortfolio = async () => {
-  const response = await apiRequest<{ items: PortfolioProjectData[] }>('/api/portfolio', {
+  const response = await apiRequest<{ items: PortfolioProjectData[] }>('/portfolio', {
     method: 'GET',
   });
   return response.items;
@@ -366,53 +366,53 @@ export interface ProjectQuoteOption {
 }
 
 export const fetchProjects = (page = 1, limit = 9) =>
-  apiRequest<{ data: Project[]; total: number }>(`/api/admin/projects?limit=${limit}&offset=${(page - 1) * limit}`);
+  apiRequest<{ data: Project[]; total: number }>(`/admin/projects?limit=${limit}&offset=${(page - 1) * limit}`);
 
 export const fetchProject = (id: string) =>
-  apiRequest<{ item: Project }>(`/api/admin/projects/${id}`).then((response) => response.item);
+  apiRequest<{ item: Project }>(`/admin/projects/${id}`).then((response) => response.item);
 
 export const createProject = (input: ProjectInput) =>
-  apiRequest<{ item: Project }>('/api/admin/projects', { method: 'POST', json: input }).then((response) => response.item);
+  apiRequest<{ item: Project }>('/admin/projects', { method: 'POST', json: input }).then((response) => response.item);
 
 export const updateProject = (id: string, input: ProjectUpdateInput) =>
-  apiRequest<{ item: Project }>(`/api/admin/projects/${id}`, { method: 'PATCH', json: input }).then((response) => response.item);
+  apiRequest<{ item: Project }>(`/admin/projects/${id}`, { method: 'PATCH', json: input }).then((response) => response.item);
 
 export const deleteProject = (id: string) =>
-  apiRequest<{ ok: true }>(`/api/admin/projects/${id}`, { method: 'DELETE' });
+  apiRequest<{ ok: true }>(`/admin/projects/${id}`, { method: 'DELETE' });
 
 export const fetchProjectQuotesByEmail = (email: string) =>
-  apiRequest<{ data: ProjectQuoteOption[]; total: number }>(`/api/admin/quotes?email=${encodeURIComponent(email)}`)
+  apiRequest<{ data: ProjectQuoteOption[]; total: number }>(`/admin/quotes?email=${encodeURIComponent(email)}`)
     .then((response) => response.data);
 
 export const fetchProjectMilestones = (projectId: string) =>
-  apiRequest<{ items: ProjectMilestone[] }>(`/api/admin/projects/${projectId}/milestones`).then((response) => response.items);
+  apiRequest<{ items: ProjectMilestone[] }>(`/admin/projects/${projectId}/milestones`).then((response) => response.items);
 
 export const updateProjectMilestone = (projectId: string, milestoneId: string, status: string) =>
-  apiRequest(`/api/admin/projects/${projectId}/milestones/${milestoneId}`, { method: 'PATCH', json: { status } });
+  apiRequest(`/admin/projects/${projectId}/milestones/${milestoneId}`, { method: 'PATCH', json: { status } });
 
 export const fetchProjectCommits = (projectId: string) =>
-  apiRequest<{ items: ProjectCommit[] }>(`/api/admin/projects/${projectId}/commits`).then((response) => response.items);
+  apiRequest<{ items: ProjectCommit[] }>(`/admin/projects/${projectId}/commits`).then((response) => response.items);
 
 export const fetchProjectStatusHistory = <T>(projectId: string) =>
-  apiRequest<{ items: T[] }>(`/api/admin/projects/${projectId}/history`).then((response) => response.items);
+  apiRequest<{ items: T[] }>(`/admin/projects/${projectId}/history`).then((response) => response.items);
 
 export const fetchProjectAssignments = (projectId: string) =>
-  apiRequest<{ items: ProjectAssignment[] }>(`/api/admin/projects/${projectId}/assignments`).then((response) => response.items);
+  apiRequest<{ items: ProjectAssignment[] }>(`/admin/projects/${projectId}/assignments`).then((response) => response.items);
 
 export const fetchProjectAssignmentOptions = () =>
-  apiRequest<{ items: ProjectAssignmentOption[] }>('/api/admin/projects/assignment-options').then((response) => response.items);
+  apiRequest<{ items: ProjectAssignmentOption[] }>('/admin/projects/assignment-options').then((response) => response.items);
 
 export const assignProjectUser = (projectId: string, userId: string, role?: string) =>
-  apiRequest(`/api/admin/projects/${projectId}/assignments`, { method: 'POST', json: { userId, role } });
+  apiRequest(`/admin/projects/${projectId}/assignments`, { method: 'POST', json: { userId, role } });
 
 export const fetchProjectEnvironments = (projectId: string) =>
-  apiRequest<{ items: ProjectEnvironment[] }>(`/api/admin/projects/${projectId}/environments`).then((response) => response.items);
+  apiRequest<{ items: ProjectEnvironment[] }>(`/admin/projects/${projectId}/environments`).then((response) => response.items);
 
 export const createProjectEnvironment = (projectId: string, input: { type: 'production' | 'staging'; name: string; url: string; apiUrl?: string | null }) =>
-  apiRequest<{ item: ProjectEnvironment }>(`/api/admin/projects/${projectId}/environments`, { method: 'POST', json: input }).then((response) => response.item);
+  apiRequest<{ item: ProjectEnvironment }>(`/admin/projects/${projectId}/environments`, { method: 'POST', json: input }).then((response) => response.item);
 
 export const deleteProjectEnvironment = (projectId: string, environmentId: string) =>
-  apiRequest<{ ok: true }>(`/api/admin/projects/${projectId}/environments/${environmentId}`, { method: 'DELETE' });
+  apiRequest<{ ok: true }>(`/admin/projects/${projectId}/environments/${environmentId}`, { method: 'DELETE' });
 
 export const retryProjectEnvironment = (projectId: string, environmentId: string) =>
-  apiRequest<{ ok: true }>(`/api/admin/projects/${projectId}/environments/${environmentId}/verify`, { method: 'POST' });
+  apiRequest<{ ok: true }>(`/admin/projects/${projectId}/environments/${environmentId}/verify`, { method: 'POST' });

@@ -32,6 +32,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/:match*",
+      "destination": "https://web-bytecode.onrender.com/api/:match*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

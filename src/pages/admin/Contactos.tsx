@@ -103,10 +103,10 @@ const Contactos: React.FC = () => {
 
   const loadCatalogs = async () => {
     try {
-      const res = await apiRequest<{ items: { id: string, code: string, name: string }[] }>('/api/catalog/statuses?domain=case');
+      const res = await apiRequest<{ items: { id: string, code: string, name: string }[] }>('/catalog/statuses?domain=case');
       setStatuses(res.items.map(s => ({ value: s.code, label: s.name })));
       
-      const adminRes = await apiRequest<{ data: { id: string, name: string }[]; total: number }>('/api/admin/users?limit=100&offset=0');
+      const adminRes = await apiRequest<{ data: { id: string, name: string }[]; total: number }>('/admin/users?limit=100&offset=0');
       setAdminsList(adminRes.data.map(a => ({ value: a.id, label: a.name })));
     } catch (err) {
       console.error(err);
@@ -117,7 +117,7 @@ const Contactos: React.FC = () => {
     setListLoading(true);
     setError('');
     try {
-      const result = await apiRequest<{ data: ContactItem[]; total: number }>(`/api/admin/contacts?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`);
+      const result = await apiRequest<{ data: ContactItem[]; total: number }>(`/admin/contacts?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`);
       if (result.data.length === 0 && result.total > 0 && page > 1) { setPage(page - 1); return; }
       setContacts(result.data);
       setTotal(result.total);
@@ -132,14 +132,14 @@ const Contactos: React.FC = () => {
     setSelectedId(id);
     setError('');
     try {
-      const result = await apiRequest<{ item: DetailItem }>(`/api/admin/contacts/${id}`);
+      const result = await apiRequest<{ item: DetailItem }>(`/admin/contacts/${id}`);
       setDetail(result.item);
       setStatus(String(result.item.status ?? 'new'));
       setNotes(String(result.item.admin_notes ?? ''));
       
       const [assignmentResult, statusResult] = await Promise.all([
-        apiRequest<{ items: AssignmentHistoryItem[] }>(`/api/admin/contacts/${id}/assignment-history`),
-        apiRequest<{ items: StatusHistoryRecord[] }>(`/api/admin/contacts/${id}/history`),
+        apiRequest<{ items: AssignmentHistoryItem[] }>(`/admin/contacts/${id}/assignment-history`),
+        apiRequest<{ items: StatusHistoryRecord[] }>(`/admin/contacts/${id}/history`),
       ]);
       setHistory(assignmentResult.items);
       setStatusHistory(statusResult.items);
@@ -159,12 +159,12 @@ const Contactos: React.FC = () => {
   const handleSave = async () => {
     if (!selectedId) return;
     try {
-      const result = await apiRequest<{ item: DetailItem }>(`/api/admin/contacts/${selectedId}`, {
+      const result = await apiRequest<{ item: DetailItem }>(`/admin/contacts/${selectedId}`, {
         method: 'PATCH',
         json: { status, adminNotes: notes },
       });
       setDetail(result.item);
-      const statusResult = await apiRequest<{ items: StatusHistoryRecord[] }>(`/api/admin/contacts/${selectedId}/history`);
+      const statusResult = await apiRequest<{ items: StatusHistoryRecord[] }>(`/admin/contacts/${selectedId}/history`);
       setStatusHistory(statusResult.items);
       await loadList();
     } catch (err) {
@@ -285,12 +285,12 @@ const Contactos: React.FC = () => {
     if (!selectedId) return;
     setIsAssigning(true);
     try {
-      const result = await apiRequest<{ item: DetailItem }>(`/api/admin/contacts/${selectedId}/assign`, {
+      const result = await apiRequest<{ item: DetailItem }>(`/admin/contacts/${selectedId}/assign`, {
         method: 'POST',
         json: { assigned_to: adminId },
       });
       setDetail(result.item);
-      const histResult = await apiRequest<{ items: AssignmentHistoryItem[] }>(`/api/admin/contacts/${selectedId}/assignment-history`);
+      const histResult = await apiRequest<{ items: AssignmentHistoryItem[] }>(`/admin/contacts/${selectedId}/assignment-history`);
       setHistory(histResult.items);
       await loadList();
     } catch (err) {

@@ -26,7 +26,7 @@ const AdminSeguridad: React.FC = () => {
   const fetchSessions = useCallback(async (showSpinner = false) => {
     if (showSpinner) setIsRefreshing(true);
     try {
-      const data = await apiRequest<{ sessions: Session[] }>('/api/auth/sessions');
+      const data = await apiRequest<{ sessions: Session[] }>('/auth/sessions');
       setSessions(data.sessions);
       if (error) setError('');
     } catch (err) {
@@ -52,7 +52,7 @@ const AdminSeguridad: React.FC = () => {
     setSessions(sessions.filter((s) => s.id !== sessionId));
 
     try {
-      await apiRequest(`/api/auth/sessions/${sessionId}/revoke`, { method: 'POST' });
+      await apiRequest(`/auth/sessions/${sessionId}/revoke`, { method: 'POST' });
     } catch (err) {
       // Revert if failed
       setSessions(previousSessions);

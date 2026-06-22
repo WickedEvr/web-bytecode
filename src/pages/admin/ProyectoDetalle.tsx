@@ -67,8 +67,8 @@ const ProyectoDetalle: React.FC = () => {
       fetchProjectMilestones(id),
       fetchProjectCommits(id),
       fetchProjectAssignments(id),
-      apiRequest<{ items: StatusCatalogItem[] }>('/api/catalog/statuses?domain=milestone'),
-      apiRequest<{ items: StatusCatalogItem[] }>('/api/catalog/statuses?domain=project'),
+      apiRequest<{ items: StatusCatalogItem[] }>('/catalog/statuses?domain=milestone'),
+      apiRequest<{ items: StatusCatalogItem[] }>('/catalog/statuses?domain=project'),
       fetchProjectStatusHistory<StatusHistoryRecord>(id),
     ]).then(([projectResult, milestoneResult, commitResult, assignmentResult, statusResult, projectStatusResult, historyResult]) => {
       setProject(projectResult);

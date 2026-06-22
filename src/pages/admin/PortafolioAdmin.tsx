@@ -79,9 +79,9 @@ const AdminPortafolio: React.FC = () => {
     setError('');
     try {
       const [itemsRes, technologiesRes, statusesRes] = await Promise.all([
-        apiRequest<{ items: AdminPortfolioItemData[] }>('/api/admin/portfolio'),
-        apiRequest<{ items: PortfolioTechnologyData[] }>('/api/admin/portfolio/technologies'),
-        apiRequest<{ items: Array<{ id: string; code: string; name: string }> }>('/api/catalog/statuses?domain=cms'),
+        apiRequest<{ items: AdminPortfolioItemData[] }>('/admin/portfolio'),
+        apiRequest<{ items: PortfolioTechnologyData[] }>('/admin/portfolio/technologies'),
+        apiRequest<{ items: Array<{ id: string; code: string; name: string }> }>('/catalog/statuses?domain=cms'),
       ]);
       setItems(itemsRes.items);
       setTechnologies(technologiesRes.items);
@@ -150,7 +150,7 @@ const AdminPortafolio: React.FC = () => {
       let response: { item: AdminPortfolioItemData };
 
       if (selectedId) {
-        response = await apiRequest<{ item: AdminPortfolioItemData }>(`/api/admin/portfolio/${selectedId}`, {
+        response = await apiRequest<{ item: AdminPortfolioItemData }>(`/admin/portfolio/${selectedId}`, {
           method: 'PATCH',
           json: payload,
         });
@@ -160,7 +160,7 @@ const AdminPortafolio: React.FC = () => {
           imageFormData.append('image', imageFile);
           imageFormData.append('altText', imageAlt || form.name);
 
-          response = await apiRequest<{ item: AdminPortfolioItemData }>(`/api/admin/portfolio/${selectedId}/image`, {
+          response = await apiRequest<{ item: AdminPortfolioItemData }>(`/admin/portfolio/${selectedId}/image`, {
             method: 'POST',
             body: imageFormData,
           });
@@ -178,7 +178,7 @@ const AdminPortafolio: React.FC = () => {
         formData.append('altText', imageAlt || form.name);
         if (imageFile) formData.append('image', imageFile);
 
-        response = await apiRequest<{ item: AdminPortfolioItemData }>('/api/admin/portfolio', {
+        response = await apiRequest<{ item: AdminPortfolioItemData }>('/admin/portfolio', {
           method: 'POST',
           body: formData,
         });
@@ -206,7 +206,7 @@ const AdminPortafolio: React.FC = () => {
     setSaving(true);
     setError('');
     try {
-      const response = await apiRequest<{ item: PortfolioTechnologyData }>('/api/admin/portfolio/technologies', {
+      const response = await apiRequest<{ item: PortfolioTechnologyData }>('/admin/portfolio/technologies', {
         method: 'POST',
         json: { name: newTechnology.trim(), sortOrder: technologies.length * 10 + 10 },
       });
@@ -238,7 +238,7 @@ const AdminPortafolio: React.FC = () => {
     setSaving(true);
     setError('');
     try {
-      await apiRequest(`/api/admin/portfolio/${selectedId}`, { method: 'DELETE' });
+      await apiRequest(`/admin/portfolio/${selectedId}`, { method: 'DELETE' });
       setItems((current) => current.filter((item) => item.id !== selectedId));
       handleNew();
     } catch (err) {

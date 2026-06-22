@@ -46,7 +46,7 @@ const AdminCMS: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await apiRequest<{ data: CMSPage[]; total: number }>(`/api/admin/cms/pages?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`);
+      const res = await apiRequest<{ data: CMSPage[]; total: number }>(`/admin/cms/pages?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`);
       if (res.data.length === 0 && res.total > 0 && page > 1) { setPage(page - 1); return; }
       setPages(res.data);
       setTotal(res.total);
@@ -62,7 +62,7 @@ const AdminCMS: React.FC = () => {
   }, [page]);
 
   useEffect(() => {
-    apiRequest<{ items: CmsStatus[] }>('/api/catalog/statuses?domain=cms')
+    apiRequest<{ items: CmsStatus[] }>('/catalog/statuses?domain=cms')
       .then((result) => setStatuses(result.items))
       .catch((requestError: unknown) => setError(requestError instanceof Error ? requestError.message : 'Error al cargar estados CMS'));
   }, []);
@@ -97,7 +97,7 @@ const AdminCMS: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      await apiRequest(`/api/admin/cms/pages/${editingId}`, {
+      await apiRequest(`/admin/cms/pages/${editingId}`, {
         method: 'PATCH',
         json: {
           title: formData.title,

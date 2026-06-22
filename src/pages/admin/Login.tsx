@@ -17,7 +17,7 @@ const Login: React.FC = () => {
     setShowVerificationModal(false);
     
     try {
-      await apiRequest('/api/auth/login', {
+      await apiRequest('/auth/login', {
         method: 'POST',
         json: credentials,
       });

@@ -39,7 +39,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     let isMounted = true;
     const fetchSettings = async () => {
       try {
-        const response = await apiRequest<{ data: PublicSettings }>('/api/public/settings');
+        const response = await apiRequest<{ data: PublicSettings }>('/public/settings');
         if (isMounted) {
           setSettings(response.data);
           setError(null);

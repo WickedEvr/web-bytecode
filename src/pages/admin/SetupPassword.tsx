@@ -46,7 +46,7 @@ const SetupPassword: React.FC = () => {
 
     setLoading(true);
     try {
-      await apiRequest('/api/auth/first-password-change', {
+      await apiRequest('/auth/first-password-change', {
         method: 'POST',
         json: {
           userId,

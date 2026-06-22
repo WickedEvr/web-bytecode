@@ -56,14 +56,14 @@ const Usuarios: React.FC = () => {
   const roleOptions = roles.map((role) => ({ value: role.code, label: role.name }));
 
   const loadUsers = async () => {
-    const result = await apiRequest<{ data: AdminUserRow[]; total: number }>(`/api/admin/users?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`);
+    const result = await apiRequest<{ data: AdminUserRow[]; total: number }>(`/admin/users?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`);
     if (result.data.length === 0 && result.total > 0 && page > 1) { setPage(page - 1); return; }
     setUsers(result.data);
     setTotal(result.total);
   };
 
   const loadRoles = async () => {
-    const result = await apiRequest<{ data: RoleOption[]; total: number }>('/api/admin/roles?limit=100&offset=0');
+    const result = await apiRequest<{ data: RoleOption[]; total: number }>('/admin/roles?limit=100&offset=0');
     setRoles(result.data.filter((role) => role.is_active));
   };
 
@@ -127,12 +127,12 @@ const Usuarios: React.FC = () => {
           updatePayload.password = formData.password;
         }
 
-        await apiRequest(`/api/admin/users/${formData.id}`, {
+        await apiRequest(`/admin/users/${formData.id}`, {
           method: 'PATCH',
           json: updatePayload,
         });
       } else {
-        await apiRequest('/api/admin/users', {
+        await apiRequest('/admin/users', {
           method: 'POST',
           json: {
             email: formData.email,
@@ -158,7 +158,7 @@ const Usuarios: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      await apiRequest(`/api/admin/users/${user.id}`, {
+      await apiRequest(`/admin/users/${user.id}`, {
         method: 'PATCH',
         json: { isActive: !user.is_active },
       });

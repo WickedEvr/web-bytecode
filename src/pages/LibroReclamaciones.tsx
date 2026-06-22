@@ -57,7 +57,7 @@ const LibroReclamaciones: React.FC = () => {
       setIsLoadingCatalogs(true);
       try {
         const [complaintsRes, servicesData, docTypesData, countriesData] = await Promise.all([
-          apiRequest<{ items: { id: string, code: string, name: string }[] }>('/api/catalog/complaint-types'),
+          apiRequest<{ items: { id: string, code: string, name: string }[] }>('/catalog/complaint-types'),
           fetchServices(),
           fetchDocumentTypes(),
           fetchCountries(),

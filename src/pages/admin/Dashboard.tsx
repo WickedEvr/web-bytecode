@@ -24,7 +24,7 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const res = await apiRequest<DashboardData>('/api/admin/stats');
+        const res = await apiRequest<DashboardData>('/admin/stats');
         setData(res);
       } catch (err) {
         console.error("Error loading dashboard stats", err);

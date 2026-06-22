@@ -23,7 +23,7 @@ const VerifyAccount: React.FC = () => {
 
     const verifyToken = async () => {
       try {
-        await apiRequest(`/api/auth/verify-email?token=${token}`);
+        await apiRequest(`/auth/verify-email?token=${token}`);
         if (isMounted) {
           setSuccess(true);
         }

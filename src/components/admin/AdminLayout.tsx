@@ -18,13 +18,13 @@ const AdminLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    apiRequest<{ admin: AdminUser }>('/api/auth/me')
+    apiRequest<{ admin: AdminUser }>('/auth/me')
       .then((res) => setAdmin(res.admin))
       .catch(() => navigate('/admin/login'));
   }, [navigate]);
 
   const handleLogout = async () => {
-    await apiRequest('/api/auth/logout', { method: 'POST' }).catch(() => null);
+    await apiRequest('/auth/logout', { method: 'POST' }).catch(() => null);
     navigate('/admin/login');
   };
 

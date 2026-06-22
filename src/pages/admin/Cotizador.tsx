@@ -64,9 +64,9 @@ const AdminCotizador: React.FC = () => {
     setError('');
     try {
       const [quotesRes, catalogRes, statusesRes] = await Promise.all([
-        apiRequest<{ data: Quote[]; total: number }>(`/api/admin/quotes?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`),
-        apiRequest<{ items: PricingCatalogItem[] }>('/api/admin/catalog/pricing'),
-        apiRequest<{ items: StatusCatalogItem[] }>('/api/catalog/statuses?domain=quote'),
+        apiRequest<{ data: Quote[]; total: number }>(`/admin/quotes?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`),
+        apiRequest<{ items: PricingCatalogItem[] }>('/admin/catalog/pricing'),
+        apiRequest<{ items: StatusCatalogItem[] }>('/catalog/statuses?domain=quote'),
       ]);
       if (quotesRes.data.length === 0 && quotesRes.total > 0 && page > 1) { setPage(page - 1); return; }
       setQuotes(quotesRes.data);
@@ -124,8 +124,8 @@ const AdminCotizador: React.FC = () => {
     try {
       setCatalogInStore(catalog);
       const [detail, historyResult] = await Promise.all([
-        apiRequest<QuoteDetailResponse>(`/api/admin/quotes/${quoteId}`),
-        apiRequest<{ items: StatusHistoryRecord[] }>(`/api/admin/quotes/${quoteId}/history`),
+        apiRequest<QuoteDetailResponse>(`/admin/quotes/${quoteId}`),
+        apiRequest<{ items: StatusHistoryRecord[] }>(`/admin/quotes/${quoteId}/history`),
       ]);
       loadQuoteForEditing({ id: detail.quote.id }, detail.items);
       setFormData({
@@ -151,7 +151,7 @@ const AdminCotizador: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      await apiRequest(`/api/admin/quotes/${quote.id}`, { method: 'DELETE' });
+      await apiRequest(`/admin/quotes/${quote.id}`, { method: 'DELETE' });
       if (editingQuoteId === quote.id) {
         resetQuoter();
         setIsModalOpen(false);
@@ -173,7 +173,7 @@ const AdminCotizador: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      await apiRequest('/api/admin/quotes', {
+      await apiRequest('/admin/quotes', {
         method: 'POST',
         json: {
           editingQuoteId: payload.editingQuoteId,
