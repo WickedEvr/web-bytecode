@@ -332,8 +332,8 @@ CREATE TABLE projects (
 CREATE TABLE project_status_history (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-  old_status varchar(40),
-  new_status varchar(40) NOT NULL,
+  old_status_id uuid REFERENCES status_catalog(id),
+  new_status_id uuid NOT NULL REFERENCES status_catalog(id),
   changed_by uuid REFERENCES admin_users(id) ON DELETE SET NULL,
   reason text,
   changed_at timestamptz NOT NULL DEFAULT now()

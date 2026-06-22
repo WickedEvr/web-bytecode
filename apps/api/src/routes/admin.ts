@@ -2139,19 +2139,16 @@ router.patch(
     try {
       await client.query('BEGIN');
       const current = await client.query(
-        `SELECT p.status_id, p.customer_id, sc.name AS status_name
+        `SELECT p.status_id, p.customer_id
          FROM projects p
-         LEFT JOIN status_catalog sc ON sc.id = p.status_id
          WHERE p.id = $1 AND p.deleted_at IS NULL
          FOR UPDATE OF p`,
         [id],
       );
       if (!current.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
       const oldStatusId = current.rows[0].status_id as string | null;
-      const oldStatusName = current.rows[0].status_name as string | null;
       const statusInfo = body.status ? await getProjectStatusInfo(client, body.status) : null;
       const statusId = statusInfo?.id ?? null;
-      const statusName = statusInfo?.name ?? null;
       if (body.quoteId) {
         const customerId = body.customerId ?? current.rows[0].customer_id;
         const quote = await client.query(
@@ -2187,9 +2184,9 @@ router.patch(
       if (oldStatusId && statusId && oldStatusId !== statusId) {
         await client.query(
           `INSERT INTO project_status_history (
-             project_id, old_status, new_status, changed_by
+             project_id, old_status_id, new_status_id, changed_by
            ) VALUES ($1, $2, $3, $4)`,
-          [id, oldStatusName, statusName, req.admin?.id ?? null],
+          [id, oldStatusId, statusId, req.admin?.id ?? null],
         );
       }
       const updated = await client.query(`${projectSelectSql} AND p.id = $1`, [id]);
