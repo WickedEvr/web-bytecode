@@ -2136,49 +2136,74 @@ router.patch(
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
     const body = projectUpdateSchema.parse(req.body);
-    const statusId = body.status ? await getProjectStatusId(pool, body.status) : null;
-    if (body.quoteId) {
-      const customerId = body.customerId ?? (await pool.query(
-        'SELECT customer_id FROM projects WHERE id = $1 AND deleted_at IS NULL',
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const current = await client.query(
+        `SELECT p.status_id, p.customer_id, sc.code AS status_code
+         FROM projects p
+         LEFT JOIN status_catalog sc ON sc.id = p.status_id
+         WHERE p.id = $1 AND p.deleted_at IS NULL
+         FOR UPDATE OF p`,
         [id],
-      )).rows[0]?.customer_id;
-      const quote = customerId ? await pool.query(
-        `SELECT q.id
-         FROM quotes q
-         JOIN customers quote_customer ON quote_customer.id = q.customer_id
-         JOIN customers project_customer ON project_customer.id = $2
-         WHERE q.id = $1 AND q.deleted_at IS NULL
-           AND lower(quote_customer.primary_email) = lower(project_customer.primary_email)`,
-        [body.quoteId, customerId],
-      ) : null;
-      if (!quote?.rowCount) throw new HttpError(400, 'La cotizacion no pertenece al cliente seleccionado.');
+      );
+      if (!current.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
+      const oldStatusId = current.rows[0].status_id as string | null;
+      const oldStatusCode = current.rows[0].status_code as string | null;
+      const statusId = body.status ? await getProjectStatusId(client, body.status) : null;
+      if (body.quoteId) {
+        const customerId = body.customerId ?? current.rows[0].customer_id;
+        const quote = await client.query(
+          `SELECT q.id
+           FROM quotes q
+           JOIN customers quote_customer ON quote_customer.id = q.customer_id
+           JOIN customers project_customer ON project_customer.id = $2
+           WHERE q.id = $1 AND q.deleted_at IS NULL
+             AND lower(quote_customer.primary_email) = lower(project_customer.primary_email)`,
+          [body.quoteId, customerId],
+        );
+        if (!quote.rowCount) throw new HttpError(400, 'La cotizacion no pertenece al cliente seleccionado.');
+      }
+      await client.query(
+        `UPDATE projects SET
+           customer_id = COALESCE($2, customer_id), organization_id = COALESCE($3, organization_id),
+           service_id = COALESCE($4, service_id), name = COALESCE($5, name),
+           description = CASE WHEN $17 THEN $6 ELSE description END, status_id = COALESCE($7, status_id),
+           github_repo = CASE WHEN $18 THEN $8 ELSE github_repo END, github_branch = COALESCE($9, github_branch),
+           staging_url = CASE WHEN $19 THEN $10 ELSE staging_url END,
+           production_url = CASE WHEN $20 THEN $11 ELSE production_url END,
+           start_date = COALESCE($12, start_date), estimated_end_date = COALESCE($13, estimated_end_date),
+           actual_end_date = COALESCE($14, actual_end_date), total_budget = COALESCE($15, total_budget),
+           currency_code = COALESCE($16, currency_code),
+           quote_id = CASE WHEN $22 THEN $21 ELSE quote_id END,
+           updated_at = now()
+         WHERE id = $1 AND deleted_at IS NULL`,
+        [id, body.customerId ?? null, body.organizationId ?? null, body.serviceId ?? null,
+         body.name ?? null, body.description ?? null, statusId, body.githubRepo ?? null,
+         body.githubBranch ?? null, body.stagingUrl ?? null, body.productionUrl ?? null,
+         body.startDate ?? null, body.estimatedEndDate ?? null, body.actualEndDate ?? null,
+         body.totalBudget ?? null, body.currencyCode ?? null,
+         Object.hasOwn(body, 'description'), Object.hasOwn(body, 'githubRepo'),
+         Object.hasOwn(body, 'stagingUrl'), Object.hasOwn(body, 'productionUrl'),
+         body.quoteId ?? null, Object.hasOwn(body, 'quoteId')],
+      );
+      if (oldStatusId && statusId && oldStatusId !== statusId) {
+        await client.query(
+          `INSERT INTO project_status_history (
+             project_id, old_status, new_status, old_status_id, new_status_id, changed_by
+           ) VALUES ($1, $2, $3, $4, $5, $6)`,
+          [id, oldStatusCode, body.status, oldStatusId, statusId, req.admin?.id ?? null],
+        );
+      }
+      const updated = await client.query(`${projectSelectSql} AND p.id = $1`, [id]);
+      await client.query('COMMIT');
+      res.json({ item: updated.rows[0] });
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
     }
-    const result = await pool.query(
-      `UPDATE projects SET
-         customer_id = COALESCE($2, customer_id), organization_id = COALESCE($3, organization_id),
-         service_id = COALESCE($4, service_id), name = COALESCE($5, name),
-         description = CASE WHEN $17 THEN $6 ELSE description END, status_id = COALESCE($7, status_id),
-         github_repo = CASE WHEN $18 THEN $8 ELSE github_repo END, github_branch = COALESCE($9, github_branch),
-         staging_url = CASE WHEN $19 THEN $10 ELSE staging_url END,
-         production_url = CASE WHEN $20 THEN $11 ELSE production_url END,
-         start_date = COALESCE($12, start_date), estimated_end_date = COALESCE($13, estimated_end_date),
-         actual_end_date = COALESCE($14, actual_end_date), total_budget = COALESCE($15, total_budget),
-         currency_code = COALESCE($16, currency_code),
-         quote_id = CASE WHEN $22 THEN $21 ELSE quote_id END,
-         updated_at = now()
-       WHERE id = $1 AND deleted_at IS NULL RETURNING id`,
-      [id, body.customerId ?? null, body.organizationId ?? null, body.serviceId ?? null,
-       body.name ?? null, body.description ?? null, statusId, body.githubRepo ?? null,
-       body.githubBranch ?? null, body.stagingUrl ?? null, body.productionUrl ?? null,
-       body.startDate ?? null, body.estimatedEndDate ?? null, body.actualEndDate ?? null,
-       body.totalBudget ?? null, body.currencyCode ?? null,
-       Object.hasOwn(body, 'description'), Object.hasOwn(body, 'githubRepo'),
-       Object.hasOwn(body, 'stagingUrl'), Object.hasOwn(body, 'productionUrl'),
-       body.quoteId ?? null, Object.hasOwn(body, 'quoteId')],
-    );
-    if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
-    const updated = await pool.query(`${projectSelectSql} AND p.id = $1`, [id]);
-    res.json({ item: updated.rows[0] });
   }),
 );
 

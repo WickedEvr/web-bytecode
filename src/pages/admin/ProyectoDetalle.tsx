@@ -5,6 +5,7 @@ import AdminPanel from '../../components/admin/AdminPanel';
 import type { AdminUser } from '../../components/admin/AdminLayout';
 import RoleGuard from '../../components/admin/RoleGuard';
 import ProjectQuoteSelector from '../../components/admin/ProjectQuoteSelector';
+import StatusHistoryTimeline from '../../components/admin/StatusHistoryTimeline';
 import CustomDropdown from '../../components/ui/CustomDropdown';
 import Timeline from '../../components/ui/Timeline';
 import {
@@ -16,6 +17,7 @@ import {
   fetchProjectAssignments,
   fetchProjectCommits,
   fetchProjectMilestones,
+  fetchProjectStatusHistory,
   updateProject,
   updateProjectMilestone,
   type Project,
@@ -24,9 +26,9 @@ import {
   type ProjectCommit,
   type ProjectMilestone,
 } from '../../lib/api';
-import type { StatusCatalogItem } from '../../types/status';
+import type { StatusCatalogItem, StatusHistoryRecord } from '../../types/status';
 
-type Tab = 'general' | 'milestones' | 'activity';
+type Tab = 'general' | 'milestones' | 'activity' | 'history';
 type ProjectEditForm = { name: string; description: string; githubRepo: string; stagingUrl: string; productionUrl: string; quoteId: string; totalBudget: number };
 
 const ProyectoDetalle: React.FC = () => {
@@ -43,6 +45,9 @@ const ProyectoDetalle: React.FC = () => {
   const [assignmentRole, setAssignmentRole] = useState('');
   const [assigning, setAssigning] = useState(false);
   const [statuses, setStatuses] = useState<StatusCatalogItem[]>([]);
+  const [projectStatuses, setProjectStatuses] = useState<StatusCatalogItem[]>([]);
+  const [statusHistory, setStatusHistory] = useState<StatusHistoryRecord[]>([]);
+  const [updatingProjectStatus, setUpdatingProjectStatus] = useState(false);
   const [tab, setTab] = useState<Tab>('general');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -62,12 +67,16 @@ const ProyectoDetalle: React.FC = () => {
       fetchProjectCommits(id),
       fetchProjectAssignments(id),
       apiRequest<{ items: StatusCatalogItem[] }>('/api/catalog/statuses?domain=milestone'),
-    ]).then(([projectResult, milestoneResult, commitResult, assignmentResult, statusResult]) => {
+      apiRequest<{ items: StatusCatalogItem[] }>('/api/catalog/statuses?domain=project'),
+      fetchProjectStatusHistory<StatusHistoryRecord>(id),
+    ]).then(([projectResult, milestoneResult, commitResult, assignmentResult, statusResult, projectStatusResult, historyResult]) => {
       setProject(projectResult);
       setMilestones(milestoneResult);
       setCommits(commitResult);
       setAssignments(assignmentResult);
       setStatuses(statusResult.items);
+      setProjectStatuses(projectStatusResult.items);
+      setStatusHistory(historyResult);
     }).catch((requestError: unknown) => {
       setError(requestError instanceof Error ? requestError.message : 'No se pudo cargar el proyecto.');
     }).finally(() => setLoading(false));
@@ -80,6 +89,21 @@ const ProyectoDetalle: React.FC = () => {
       await loadMilestones();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'No se pudo actualizar el hito.');
+    }
+  };
+
+  const changeProjectStatus = async (status: string) => {
+    if (!project || status === project.status) return;
+    setUpdatingProjectStatus(true);
+    setError('');
+    try {
+      const updated = await updateProject(id, { status });
+      setProject(updated);
+      setStatusHistory(await fetchProjectStatusHistory<StatusHistoryRecord>(id));
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'No se pudo actualizar el estado del proyecto.');
+    } finally {
+      setUpdatingProjectStatus(false);
     }
   };
 
@@ -161,14 +185,16 @@ const ProyectoDetalle: React.FC = () => {
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-4"><div className="flex items-center gap-4"><button type="button" onClick={() => navigate('/admin/proyectos')} className="rounded-lg border border-white/10 bg-white/5 p-2 text-white/60"><ArrowLeft className="h-5 w-5" /></button><div><h1 className="text-2xl font-semibold text-white/90">{project.name}</h1><p className="mt-1 text-xs text-white/40">{project.project_code} · {project.customer_name || 'Cliente sin nombre'} · {project.status_name || project.status}</p></div></div><RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}><div className="flex gap-2"><button type="button" onClick={openEdit} className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/75 hover:bg-white/10"><Pencil className="h-4 w-4" />Editar</button><button type="button" disabled={deleting} onClick={() => void handleDelete()} className="inline-flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm text-red-300 hover:bg-red-500/20 disabled:opacity-40"><Trash2 className="h-4 w-4" />{deleting ? 'Eliminando...' : 'Eliminar'}</button></div></RoleGuard></div>
       {error && <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</p>}
       <div className="flex gap-2 border-b border-white/5 pb-3">
-        {([['general', 'General'], ['milestones', 'Hitos'], ['activity', 'Actividad (GitHub)']] as const).map(([value, label]) => <button key={value} type="button" onClick={() => setTab(value)} className={`rounded-lg px-4 py-2 text-sm transition ${tab === value ? 'bg-white text-black' : 'bg-white/5 text-white/55 hover:text-white'}`}>{label}</button>)}
+        {([['general', 'General'], ['milestones', 'Hitos'], ['activity', 'Actividad (GitHub)'], ['history', 'Historial de Estados']] as const).map(([value, label]) => <button key={value} type="button" onClick={() => setTab(value)} className={`rounded-lg px-4 py-2 text-sm transition ${tab === value ? 'bg-white text-black' : 'bg-white/5 text-white/55 hover:text-white'}`}>{label}</button>)}
       </div>
 
-      {tab === 'general' && <div className="grid gap-6"><AdminPanel className="p-6 lg:p-8"><div className="grid gap-5 md:grid-cols-2"><div><p className="text-xs uppercase tracking-wider text-white/35">Cliente</p><p className="mt-2 text-white/80">{project.customer_name}</p></div><div><p className="text-xs uppercase tracking-wider text-white/35">Servicio</p><p className="mt-2 text-white/80">{project.service_name}</p></div><div className="md:col-span-2"><p className="text-xs uppercase tracking-wider text-white/35">Descripción</p><p className="mt-2 text-sm leading-6 text-white/60">{project.description || 'Sin descripción.'}</p></div>{link('Repositorio GitHub', project.github_repo)}{link('Staging', project.staging_url)}{link('Producción', project.production_url)}</div></AdminPanel><AdminPanel className="p-6 lg:p-8"><div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-sm font-semibold uppercase tracking-wider text-white/75">Equipo asignado</h2><p className="mt-1 text-xs text-white/35">Integrantes con acceso operativo al proyecto.</p></div><RoleGuard requiredPermission="admin.proyectos.assign" fallback={null}><div className="flex flex-wrap items-end gap-2"><div className="min-w-52"><CustomDropdown value={selectedUserId} onChange={setSelectedUserId} placeholder="Seleccionar integrante..." options={assignmentOptions.map((user) => ({ value: user.id, label: `${user.name} · ${user.email}` }))} /></div><input value={assignmentRole} onChange={(event) => setAssignmentRole(event.target.value)} placeholder="Rol en el proyecto" className="rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white" /><button type="button" disabled={!selectedUserId || assigning} onClick={() => void handleAssign()} className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-black disabled:opacity-40"><UserPlus className="h-4 w-4" />{assigning ? 'Asignando...' : 'Asignar'}</button></div></RoleGuard></div><div className="mt-5 grid gap-2">{assignments.length ? assignments.map((assignment) => <div key={assignment.user_id} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.02] px-4 py-3"><div><p className="text-sm text-white/80">{assignment.name}</p><p className="text-xs text-white/35">{assignment.email}</p></div><span className="text-xs text-white/50">{assignment.role || 'Integrante'}</span></div>) : <p className="py-3 text-sm text-white/30">No hay integrantes asignados.</p>}</div></AdminPanel></div>}
+      {tab === 'general' && <div className="grid gap-6"><AdminPanel className="p-6 lg:p-8"><div className="grid gap-5 md:grid-cols-2"><div><p className="text-xs uppercase tracking-wider text-white/35">Cliente</p><p className="mt-2 text-white/80">{project.customer_name}</p></div><div><p className="text-xs uppercase tracking-wider text-white/35">Servicio</p><p className="mt-2 text-white/80">{project.service_name}</p></div><div><p className="mb-1.5 text-xs uppercase tracking-wider text-white/35">Estado del Proyecto</p><RoleGuard requiredPermission="admin.proyectos.manage" fallback={<div className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white/55">{project.status_name || project.status}</div>}><CustomDropdown value={project.status} onChange={(status) => void changeProjectStatus(status)} placeholder="Seleccionar estado..." disabled={updatingProjectStatus} options={projectStatuses.map((status) => ({ value: status.code, label: status.name }))} /></RoleGuard></div><div className="md:col-span-2"><p className="text-xs uppercase tracking-wider text-white/35">Descripción</p><p className="mt-2 text-sm leading-6 text-white/60">{project.description || 'Sin descripción.'}</p></div>{link('Repositorio GitHub', project.github_repo)}{link('Staging', project.staging_url)}{link('Producción', project.production_url)}</div></AdminPanel><AdminPanel className="p-6 lg:p-8"><div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-sm font-semibold uppercase tracking-wider text-white/75">Equipo asignado</h2><p className="mt-1 text-xs text-white/35">Integrantes con acceso operativo al proyecto.</p></div><RoleGuard requiredPermission="admin.proyectos.assign" fallback={null}><div className="flex flex-wrap items-end gap-2"><div className="min-w-52"><CustomDropdown value={selectedUserId} onChange={setSelectedUserId} placeholder="Seleccionar integrante..." options={assignmentOptions.map((user) => ({ value: user.id, label: `${user.name} · ${user.email}` }))} /></div><input value={assignmentRole} onChange={(event) => setAssignmentRole(event.target.value)} placeholder="Rol en el proyecto" className="rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white" /><button type="button" disabled={!selectedUserId || assigning} onClick={() => void handleAssign()} className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-black disabled:opacity-40"><UserPlus className="h-4 w-4" />{assigning ? 'Asignando...' : 'Asignar'}</button></div></RoleGuard></div><div className="mt-5 grid gap-2">{assignments.length ? assignments.map((assignment) => <div key={assignment.user_id} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.02] px-4 py-3"><div><p className="text-sm text-white/80">{assignment.name}</p><p className="text-xs text-white/35">{assignment.email}</p></div><span className="text-xs text-white/50">{assignment.role || 'Integrante'}</span></div>) : <p className="py-3 text-sm text-white/30">No hay integrantes asignados.</p>}</div></AdminPanel></div>}
 
       {tab === 'milestones' && <AdminPanel className="divide-y divide-white/5 overflow-hidden">{milestones.length ? milestones.map((milestone) => <div key={milestone.id} className="grid gap-4 p-5 md:grid-cols-[1fr_180px] md:items-center"><div><h3 className="font-medium text-white/85">{milestone.title}</h3><p className="mt-1 text-xs text-white/35">Vence {new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium' }).format(new Date(milestone.due_date))} · {milestone.payment_percentage}%</p></div><RoleGuard requiredPermission="admin.proyectos.manage" fallback={<div className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white/55" aria-label="Estado de solo lectura">{milestone.status_name || milestone.status}</div>}><CustomDropdown value={milestone.status} onChange={(status) => void changeMilestoneStatus(milestone.id, status)} placeholder="Estado..." options={statuses.map((status) => ({ value: status.code, label: status.name }))} /></RoleGuard></div>) : <p className="p-8 text-center text-sm text-white/30">No hay hitos registrados.</p>}</AdminPanel>}
 
       {tab === 'activity' && <AdminPanel className="p-6 lg:p-8"><Timeline heading="Actividad de GitHub" emptyMessage="No hay commits registrados." items={commits.map((commit) => ({ date: commit.committed_at || commit.created_at || new Date(0).toISOString(), icon: <GitCommitHorizontal className="h-4 w-4" />, title: <><span className="font-medium text-white/90">{commit.author_name || commit.author_email || 'GitHub'}</span><span className="block text-white/65">{commit.message}</span><span className="mt-1 block font-mono text-[10px] text-white/35">{commit.branch || 'branch'} · {commit.commit_hash.slice(0, 7)}</span>{commit.github_url && <a href={commit.github_url} target="_blank" rel="noreferrer" className="pointer-events-auto mt-2 block text-cyan-300">Ver commit</a>}</> }))} /></AdminPanel>}
+
+      {tab === 'history' && <AdminPanel className="p-6 lg:p-8"><StatusHistoryTimeline records={statusHistory} /></AdminPanel>}
 
       <RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>{editOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"><form onSubmit={handleUpdate} className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 shadow-2xl md:p-8"><div className="mb-6 flex items-center justify-between border-b border-white/5 pb-4"><div><h2 className="text-lg font-semibold text-white/90">Editar proyecto</h2><p className="mt-1 text-xs text-white/35">Información general, cotización y enlaces de entornos.</p></div><button type="button" onClick={() => setEditOpen(false)} className="rounded-lg p-2 text-white/50 hover:bg-white/5"><X className="h-5 w-5" /></button></div><div className="grid gap-5"><label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Nombre</span><input required minLength={2} value={editForm.name} onChange={(event) => setEditForm({ ...editForm, name: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label><ProjectQuoteSelector email={project.customer_email ?? ''} value={editForm.quoteId} onChange={(quote) => setEditForm({ ...editForm, quoteId: quote?.id ?? '', totalBudget: quote ? Number(quote.total_amount) : editForm.totalBudget })} /><label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Presupuesto</span><input type="number" min={0} required value={editForm.totalBudget} onChange={(event) => setEditForm({ ...editForm, totalBudget: Number(event.target.value) })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label><label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Descripción</span><textarea rows={4} value={editForm.description} onChange={(event) => setEditForm({ ...editForm, description: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label><label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Repositorio GitHub</span><input type="url" value={editForm.githubRepo} onChange={(event) => setEditForm({ ...editForm, githubRepo: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label><div className="grid gap-5 md:grid-cols-2"><label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Staging URL</span><input type="url" value={editForm.stagingUrl} onChange={(event) => setEditForm({ ...editForm, stagingUrl: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label><label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Producción URL</span><input type="url" value={editForm.productionUrl} onChange={(event) => setEditForm({ ...editForm, productionUrl: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label></div></div><div className="mt-6 flex justify-end gap-3 border-t border-white/5 pt-5"><button type="button" onClick={() => setEditOpen(false)} className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-white/65">Cancelar</button><button disabled={saving} className="rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black disabled:opacity-40">{saving ? 'Guardando...' : 'Guardar cambios'}</button></div></form></div>}</RoleGuard>
     </div>

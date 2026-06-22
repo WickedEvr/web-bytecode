@@ -388,6 +388,9 @@ export const updateProjectMilestone = (projectId: string, milestoneId: string, s
 export const fetchProjectCommits = (projectId: string) =>
   apiRequest<{ items: ProjectCommit[] }>(`/api/admin/projects/${projectId}/commits`).then((response) => response.items);
 
+export const fetchProjectStatusHistory = <T>(projectId: string) =>
+  apiRequest<{ items: T[] }>(`/api/admin/projects/${projectId}/history`).then((response) => response.items);
+
 export const fetchProjectAssignments = (projectId: string) =>
   apiRequest<{ items: ProjectAssignment[] }>(`/api/admin/projects/${projectId}/assignments`).then((response) => response.items);
 
