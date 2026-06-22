@@ -336,13 +336,7 @@ CREATE TABLE project_status_history (
   new_status varchar(40) NOT NULL,
   changed_by uuid REFERENCES admin_users(id) ON DELETE SET NULL,
   reason text,
-  changed_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT ck_project_status_history_old_status CHECK (
-    old_status IS NULL OR old_status IN ('planning', 'in_development', 'qa', 'deployed', 'maintenance')
-  ),
-  CONSTRAINT ck_project_status_history_new_status CHECK (
-    new_status IN ('planning', 'in_development', 'qa', 'deployed', 'maintenance')
-  )
+  changed_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE project_milestones (
