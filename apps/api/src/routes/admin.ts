@@ -1919,6 +1919,7 @@ const projectCreateSchema = z.object({
   customerId: z.string().uuid(),
   serviceId: z.string().uuid(),
   organizationId: z.string().uuid().optional().nullable(),
+  quoteId: z.string().uuid().optional().nullable(),
   name: z.string().trim().min(2).max(180),
   description: z.string().trim().max(3000).optional().nullable(),
   status: z.string().trim().min(1).max(80),
@@ -1935,7 +1936,7 @@ const projectCreateSchema = z.object({
 const projectUpdateSchema = projectCreateSchema.partial();
 
 const projectSelectSql = `
-  SELECT p.id, p.project_code, p.customer_id, p.organization_id, p.service_id,
+  SELECT p.id, p.project_code, p.customer_id, p.organization_id, p.service_id, p.quote_id,
          p.name, p.description, p.github_repo, p.github_branch, p.staging_url,
          p.production_url, p.start_date, p.estimated_end_date, p.actual_end_date,
          p.total_budget, p.currency_code, p.created_at, p.updated_at,
@@ -2055,7 +2056,7 @@ router.get(
           FROM document_deduplicated
           ORDER BY email_key, source_created_at DESC, updated_at DESC, id
         )
-        SELECT id, label, document, email, type, company_name
+        SELECT id, label, email, type, company_name
         FROM deduplicated
         ORDER BY label ASC, email ASC
         LIMIT 500
@@ -2087,18 +2088,30 @@ router.post(
   asyncHandler(async (req: Request, res: Response) => {
     const body = projectCreateSchema.parse(req.body);
     const statusId = await getProjectStatusId(pool, body.status);
+    if (body.quoteId) {
+      const quote = await pool.query(
+        `SELECT q.id
+         FROM quotes q
+         JOIN customers quote_customer ON quote_customer.id = q.customer_id
+         JOIN customers project_customer ON project_customer.id = $2
+         WHERE q.id = $1 AND q.deleted_at IS NULL
+           AND lower(quote_customer.primary_email) = lower(project_customer.primary_email)`,
+        [body.quoteId, body.customerId],
+      );
+      if (!quote.rowCount) throw new HttpError(400, 'La cotizacion no pertenece al cliente seleccionado.');
+    }
     const result = await pool.query(
       `INSERT INTO projects (
          project_code, customer_id, organization_id, service_id, name, description,
          status_id, github_repo, github_branch, staging_url, production_url,
-         start_date, estimated_end_date, actual_end_date, total_budget, currency_code
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+         start_date, estimated_end_date, actual_end_date, total_budget, currency_code, quote_id
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
        RETURNING id`,
       [createBusinessCode('PRJ'), body.customerId, body.organizationId ?? null, body.serviceId,
        body.name, body.description ?? null, statusId, body.githubRepo ?? null,
        body.githubBranch ?? null, body.stagingUrl ?? null, body.productionUrl ?? null,
        body.startDate, body.estimatedEndDate, body.actualEndDate ?? null,
-       body.totalBudget, body.currencyCode],
+       body.totalBudget, body.currencyCode, body.quoteId ?? null],
     );
     const created = await pool.query(`${projectSelectSql} AND p.id = $1`, [result.rows[0].id]);
     res.status(201).json({ item: created.rows[0] });
@@ -2124,6 +2137,22 @@ router.patch(
     const id = z.string().uuid().parse(req.params.id);
     const body = projectUpdateSchema.parse(req.body);
     const statusId = body.status ? await getProjectStatusId(pool, body.status) : null;
+    if (body.quoteId) {
+      const customerId = body.customerId ?? (await pool.query(
+        'SELECT customer_id FROM projects WHERE id = $1 AND deleted_at IS NULL',
+        [id],
+      )).rows[0]?.customer_id;
+      const quote = customerId ? await pool.query(
+        `SELECT q.id
+         FROM quotes q
+         JOIN customers quote_customer ON quote_customer.id = q.customer_id
+         JOIN customers project_customer ON project_customer.id = $2
+         WHERE q.id = $1 AND q.deleted_at IS NULL
+           AND lower(quote_customer.primary_email) = lower(project_customer.primary_email)`,
+        [body.quoteId, customerId],
+      ) : null;
+      if (!quote?.rowCount) throw new HttpError(400, 'La cotizacion no pertenece al cliente seleccionado.');
+    }
     const result = await pool.query(
       `UPDATE projects SET
          customer_id = COALESCE($2, customer_id), organization_id = COALESCE($3, organization_id),
@@ -2134,7 +2163,9 @@ router.patch(
          production_url = CASE WHEN $20 THEN $11 ELSE production_url END,
          start_date = COALESCE($12, start_date), estimated_end_date = COALESCE($13, estimated_end_date),
          actual_end_date = COALESCE($14, actual_end_date), total_budget = COALESCE($15, total_budget),
-         currency_code = COALESCE($16, currency_code), updated_at = now()
+         currency_code = COALESCE($16, currency_code),
+         quote_id = CASE WHEN $22 THEN $21 ELSE quote_id END,
+         updated_at = now()
        WHERE id = $1 AND deleted_at IS NULL RETURNING id`,
       [id, body.customerId ?? null, body.organizationId ?? null, body.serviceId ?? null,
        body.name ?? null, body.description ?? null, statusId, body.githubRepo ?? null,
@@ -2142,7 +2173,8 @@ router.patch(
        body.startDate ?? null, body.estimatedEndDate ?? null, body.actualEndDate ?? null,
        body.totalBudget ?? null, body.currencyCode ?? null,
        Object.hasOwn(body, 'description'), Object.hasOwn(body, 'githubRepo'),
-       Object.hasOwn(body, 'stagingUrl'), Object.hasOwn(body, 'productionUrl')],
+       Object.hasOwn(body, 'stagingUrl'), Object.hasOwn(body, 'productionUrl'),
+       body.quoteId ?? null, Object.hasOwn(body, 'quoteId')],
     );
     if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
     const updated = await pool.query(`${projectSelectSql} AND p.id = $1`, [id]);
@@ -2350,11 +2382,59 @@ router.get(
   })
 );
 
+const requireQuoteListAccess = (req: Request, _res: Response, next: NextFunction) => {
+  if (!req.admin) return next(new HttpError(401, 'No autenticado.'));
+  if (req.admin.roles.includes('super_admin')) return next();
+  const required = req.query.email
+    ? ['admin.cotizador.view', 'admin.proyectos.create', 'admin.proyectos.manage']
+    : ['admin.cotizador.view'];
+  if (!required.some((permission) => req.admin?.permissions?.includes(permission))) {
+    return next(new HttpError(403, 'Acceso denegado (Permiso requerido).'));
+  }
+  next();
+};
+
+const quoteListQuerySchema = paginationQuerySchema.extend({
+  email: z.string().trim().email().optional(),
+});
+
 router.get(
   '/quotes',
-  requirePermission('admin.cotizador.view'),
+  requireQuoteListAccess,
   asyncHandler(async (req: Request, res: Response) => {
-    const { limit, offset } = paginationQuerySchema.parse(req.query);
+    const { limit, offset, email } = quoteListQuerySchema.parse(req.query);
+    if (email) {
+      const result = await pool.query(
+        `SELECT q.id, q.quote_code, q.total_amount, q.currency_code, q.valid_until,
+                q.payment_policy, sc.code AS status, sc.name AS status_name,
+                q.created_at, cu.first_name, cu.last_name, cu.primary_email,
+                COALESCE(items.items, '[]'::json) AS items
+         FROM quotes q
+         JOIN status_catalog sc ON q.status_id = sc.id AND sc.domain = 'quote'
+         JOIN customers cu ON q.customer_id = cu.id
+         LEFT JOIN LATERAL (
+           SELECT json_agg(json_build_object(
+             'id', qi.id,
+             'catalog_item_id', qi.pricing_catalog_id,
+             'item_code', pc.item_code,
+             'name', COALESCE(qi.custom_name, pc.name),
+             'custom_name', qi.custom_name,
+             'quantity', qi.quantity,
+             'unit_price', qi.unit_price,
+             'subtotal', qi.subtotal,
+             'recurrence', qi.recurrence
+           ) ORDER BY qi.created_at ASC) AS items
+           FROM quote_items qi
+           JOIN pricing_catalog pc ON pc.id = qi.pricing_catalog_id
+           WHERE qi.quote_id = q.id
+         ) items ON true
+         WHERE q.deleted_at IS NULL AND lower(cu.primary_email) = lower($1)
+         ORDER BY q.created_at DESC`,
+        [email],
+      );
+      res.json({ data: result.rows, total: result.rowCount ?? 0 });
+      return;
+    }
     const [result, countResult] = await Promise.all([pool.query(
       `SELECT q.id, q.quote_code, q.total_amount, sc.code AS status, sc.name AS status_name,
               q.created_at, cu.first_name, cu.primary_email

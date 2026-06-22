@@ -240,6 +240,7 @@ export interface Project {
   project_code: string;
   customer_id: string;
   organization_id: string | null;
+  quote_id: string | null;
   service_id: string;
   name: string;
   description: string | null;
@@ -305,6 +306,7 @@ export interface ProjectAssignmentOption {
 export interface ProjectInput {
   customerId: string;
   serviceId: string;
+  quoteId?: string | null;
   name: string;
   description?: string;
   status: string;
@@ -326,7 +328,37 @@ export type ProjectUpdateInput = {
   githubBranch?: string | null;
   stagingUrl?: string | null;
   productionUrl?: string | null;
+  quoteId?: string | null;
+  totalBudget?: number;
 };
+
+export interface ProjectQuoteItem {
+  id: string;
+  catalog_item_id: string;
+  item_code: string;
+  name: string;
+  custom_name: string | null;
+  quantity: number;
+  unit_price: string | number;
+  subtotal: string | number;
+  recurrence: 'none' | 'monthly' | 'yearly';
+}
+
+export interface ProjectQuoteOption {
+  id: string;
+  quote_code: string;
+  total_amount: string;
+  currency_code: string;
+  valid_until: string;
+  payment_policy: string | null;
+  status: string;
+  status_name: string;
+  created_at: string;
+  first_name: string;
+  last_name: string | null;
+  primary_email: string;
+  items: ProjectQuoteItem[];
+}
 
 export const fetchProjects = (page = 1, limit = 9) =>
   apiRequest<{ data: Project[]; total: number }>(`/api/admin/projects?limit=${limit}&offset=${(page - 1) * limit}`);
@@ -342,6 +374,10 @@ export const updateProject = (id: string, input: ProjectUpdateInput) =>
 
 export const deleteProject = (id: string) =>
   apiRequest<{ ok: true }>(`/api/admin/projects/${id}`, { method: 'DELETE' });
+
+export const fetchProjectQuotesByEmail = (email: string) =>
+  apiRequest<{ data: ProjectQuoteOption[]; total: number }>(`/api/admin/quotes?email=${encodeURIComponent(email)}`)
+    .then((response) => response.data);
 
 export const fetchProjectMilestones = (projectId: string) =>
   apiRequest<{ items: ProjectMilestone[] }>(`/api/admin/projects/${projectId}/milestones`).then((response) => response.items);

@@ -4,6 +4,7 @@ import { useNavigate, useOutletContext } from 'react-router-dom';
 import AdminPanel from '../../components/admin/AdminPanel';
 import type { AdminUser } from '../../components/admin/AdminLayout';
 import RoleGuard from '../../components/admin/RoleGuard';
+import ProjectQuoteSelector from '../../components/admin/ProjectQuoteSelector';
 import PaginationControl from '../../components/ui/PaginationControl';
 import CustomDropdown from '../../components/ui/CustomDropdown';
 import {
@@ -16,7 +17,7 @@ import {
 import type { StatusCatalogItem } from '../../types/status';
 
 const PAGE_SIZE = 9;
-type CustomerOption = { id: string; label: string; document: string; email: string; type: string; company_name: string | null };
+type CustomerOption = { id: string; label: string; email: string; type: string; company_name: string | null };
 type ServiceOption = { id: string; code: string; name: string };
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -29,6 +30,7 @@ const inThirtyDays = () => {
 const emptyForm = (): ProjectInput => ({
   customerId: '',
   serviceId: '',
+  quoteId: null,
   name: '',
   description: '',
   status: '',
@@ -57,6 +59,7 @@ const Proyectos: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const selectedCustomerEmail = customers.find((customer) => customer.id === form.customerId)?.email ?? '';
 
   const loadProjects = async () => {
     setLoading(true);
@@ -152,8 +155,9 @@ const Proyectos: React.FC = () => {
             <div className="mb-6 flex items-center justify-between border-b border-white/5 pb-4"><h2 className="text-lg font-semibold text-white/90">Nuevo proyecto</h2><button type="button" onClick={() => setModalOpen(false)} className="rounded-lg p-2 text-white/50 hover:bg-white/5"><X className="h-5 w-5" /></button></div>
             <div className="grid gap-5 md:grid-cols-2">
               <label className="grid gap-1.5 md:col-span-2"><span className="text-xs uppercase tracking-wider text-white/45">Nombre</span><input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>
-              <div><span className="mb-1.5 block text-xs uppercase tracking-wider text-white/45">Cliente</span><CustomDropdown value={form.customerId} onChange={(customerId) => setForm({ ...form, customerId })} placeholder="Seleccionar cliente..." options={customers.map((item) => ({ value: item.id, label: item.label }))} /></div>
+              <div><span className="mb-1.5 block text-xs uppercase tracking-wider text-white/45">Cliente</span><CustomDropdown value={form.customerId} onChange={(customerId) => setForm({ ...form, customerId, quoteId: null, totalBudget: 0 })} placeholder="Seleccionar cliente..." options={customers.map((item) => ({ value: item.id, label: item.label }))} /></div>
               <div><span className="mb-1.5 block text-xs uppercase tracking-wider text-white/45">Servicio</span><CustomDropdown value={form.serviceId} onChange={(serviceId) => setForm({ ...form, serviceId })} placeholder="Seleccionar servicio..." options={services.map((item) => ({ value: item.id, label: item.name }))} /></div>
+              <div className="md:col-span-2"><ProjectQuoteSelector email={selectedCustomerEmail} value={form.quoteId ?? ''} onChange={(quote) => setForm({ ...form, quoteId: quote?.id ?? null, totalBudget: quote ? Number(quote.total_amount) : form.totalBudget })} /></div>
               <div><span className="mb-1.5 block text-xs uppercase tracking-wider text-white/45">Estado</span><CustomDropdown value={form.status} onChange={(status) => setForm({ ...form, status })} placeholder="Seleccionar estado..." options={statuses.map((item) => ({ value: item.code, label: item.name }))} /></div>
               <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Presupuesto</span><input type="number" min={0} required value={form.totalBudget} onChange={(e) => setForm({ ...form, totalBudget: Number(e.target.value) })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>
               <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Inicio</span><input type="date" required value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>

@@ -4,6 +4,7 @@ import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import AdminPanel from '../../components/admin/AdminPanel';
 import type { AdminUser } from '../../components/admin/AdminLayout';
 import RoleGuard from '../../components/admin/RoleGuard';
+import ProjectQuoteSelector from '../../components/admin/ProjectQuoteSelector';
 import CustomDropdown from '../../components/ui/CustomDropdown';
 import Timeline from '../../components/ui/Timeline';
 import {
@@ -26,7 +27,7 @@ import {
 import type { StatusCatalogItem } from '../../types/status';
 
 type Tab = 'general' | 'milestones' | 'activity';
-type ProjectEditForm = { name: string; description: string; githubRepo: string; stagingUrl: string; productionUrl: string };
+type ProjectEditForm = { name: string; description: string; githubRepo: string; stagingUrl: string; productionUrl: string; quoteId: string; totalBudget: number };
 
 const ProyectoDetalle: React.FC = () => {
   const { id = '' } = useParams();
@@ -48,7 +49,7 @@ const ProyectoDetalle: React.FC = () => {
   const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [editForm, setEditForm] = useState<ProjectEditForm>({ name: '', description: '', githubRepo: '', stagingUrl: '', productionUrl: '' });
+  const [editForm, setEditForm] = useState<ProjectEditForm>({ name: '', description: '', githubRepo: '', stagingUrl: '', productionUrl: '', quoteId: '', totalBudget: 0 });
 
   const loadMilestones = async () => setMilestones(await fetchProjectMilestones(id));
 
@@ -106,6 +107,8 @@ const ProyectoDetalle: React.FC = () => {
       githubRepo: project.github_repo ?? '',
       stagingUrl: project.staging_url ?? '',
       productionUrl: project.production_url ?? '',
+      quoteId: project.quote_id ?? '',
+      totalBudget: Number(project.total_budget),
     });
     setEditOpen(true);
   };
@@ -121,6 +124,8 @@ const ProyectoDetalle: React.FC = () => {
         githubRepo: editForm.githubRepo || null,
         stagingUrl: editForm.stagingUrl || null,
         productionUrl: editForm.productionUrl || null,
+        quoteId: editForm.quoteId || null,
+        totalBudget: editForm.totalBudget,
       });
       setProject(updated);
       setEditOpen(false);
@@ -165,7 +170,7 @@ const ProyectoDetalle: React.FC = () => {
 
       {tab === 'activity' && <AdminPanel className="p-6 lg:p-8"><Timeline heading="Actividad de GitHub" emptyMessage="No hay commits registrados." items={commits.map((commit) => ({ date: commit.committed_at || commit.created_at || new Date(0).toISOString(), icon: <GitCommitHorizontal className="h-4 w-4" />, title: <><span className="font-medium text-white/90">{commit.author_name || commit.author_email || 'GitHub'}</span><span className="block text-white/65">{commit.message}</span><span className="mt-1 block font-mono text-[10px] text-white/35">{commit.branch || 'branch'} · {commit.commit_hash.slice(0, 7)}</span>{commit.github_url && <a href={commit.github_url} target="_blank" rel="noreferrer" className="pointer-events-auto mt-2 block text-cyan-300">Ver commit</a>}</> }))} /></AdminPanel>}
 
-      <RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>{editOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"><form onSubmit={handleUpdate} className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 shadow-2xl md:p-8"><div className="mb-6 flex items-center justify-between border-b border-white/5 pb-4"><div><h2 className="text-lg font-semibold text-white/90">Editar proyecto</h2><p className="mt-1 text-xs text-white/35">Información general y enlaces de entornos.</p></div><button type="button" onClick={() => setEditOpen(false)} className="rounded-lg p-2 text-white/50 hover:bg-white/5"><X className="h-5 w-5" /></button></div><div className="grid gap-5"><label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Nombre</span><input required minLength={2} value={editForm.name} onChange={(event) => setEditForm({ ...editForm, name: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label><label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Descripción</span><textarea rows={4} value={editForm.description} onChange={(event) => setEditForm({ ...editForm, description: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label><label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Repositorio GitHub</span><input type="url" value={editForm.githubRepo} onChange={(event) => setEditForm({ ...editForm, githubRepo: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label><div className="grid gap-5 md:grid-cols-2"><label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Staging URL</span><input type="url" value={editForm.stagingUrl} onChange={(event) => setEditForm({ ...editForm, stagingUrl: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label><label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Producción URL</span><input type="url" value={editForm.productionUrl} onChange={(event) => setEditForm({ ...editForm, productionUrl: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label></div></div><div className="mt-6 flex justify-end gap-3 border-t border-white/5 pt-5"><button type="button" onClick={() => setEditOpen(false)} className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-white/65">Cancelar</button><button disabled={saving} className="rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black disabled:opacity-40">{saving ? 'Guardando...' : 'Guardar cambios'}</button></div></form></div>}</RoleGuard>
+      <RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>{editOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"><form onSubmit={handleUpdate} className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 shadow-2xl md:p-8"><div className="mb-6 flex items-center justify-between border-b border-white/5 pb-4"><div><h2 className="text-lg font-semibold text-white/90">Editar proyecto</h2><p className="mt-1 text-xs text-white/35">Información general, cotización y enlaces de entornos.</p></div><button type="button" onClick={() => setEditOpen(false)} className="rounded-lg p-2 text-white/50 hover:bg-white/5"><X className="h-5 w-5" /></button></div><div className="grid gap-5"><label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Nombre</span><input required minLength={2} value={editForm.name} onChange={(event) => setEditForm({ ...editForm, name: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label><ProjectQuoteSelector email={project.customer_email ?? ''} value={editForm.quoteId} onChange={(quote) => setEditForm({ ...editForm, quoteId: quote?.id ?? '', totalBudget: quote ? Number(quote.total_amount) : editForm.totalBudget })} /><label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Presupuesto</span><input type="number" min={0} required value={editForm.totalBudget} onChange={(event) => setEditForm({ ...editForm, totalBudget: Number(event.target.value) })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label><label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Descripción</span><textarea rows={4} value={editForm.description} onChange={(event) => setEditForm({ ...editForm, description: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label><label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Repositorio GitHub</span><input type="url" value={editForm.githubRepo} onChange={(event) => setEditForm({ ...editForm, githubRepo: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label><div className="grid gap-5 md:grid-cols-2"><label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Staging URL</span><input type="url" value={editForm.stagingUrl} onChange={(event) => setEditForm({ ...editForm, stagingUrl: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label><label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Producción URL</span><input type="url" value={editForm.productionUrl} onChange={(event) => setEditForm({ ...editForm, productionUrl: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label></div></div><div className="mt-6 flex justify-end gap-3 border-t border-white/5 pt-5"><button type="button" onClick={() => setEditOpen(false)} className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-white/65">Cancelar</button><button disabled={saving} className="rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black disabled:opacity-40">{saving ? 'Guardando...' : 'Guardar cambios'}</button></div></form></div>}</RoleGuard>
     </div>
   );
 };
