@@ -2,7 +2,7 @@ import { pool } from '../db/pool.js';
 import { adminMenuItems, adminPermissions, initialRolePermissions } from '../config/adminPermissions.js';
 
 const main = async () => {
-  const client = await pool.connect();
+  const client = await pool.connect(); 
 
   try {
     await client.query('BEGIN');
