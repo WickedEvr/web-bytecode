@@ -25,12 +25,6 @@ type GithubPushPayload = {
   head_commit?: GithubCommit | null;
 };
 
-type GithubDeploymentStatusPayload = {
-  repository?: { html_url?: string; full_name?: string };
-  deployment?: { id?: number; environment?: string; task?: string; ref?: string };
-  deployment_status?: { state?: string; environment_url?: string | null };
-};
-
 const findProjectByRepository = (repository?: { html_url?: string; full_name?: string }) => {
   const htmlUrl = repository?.html_url?.replace(/\/+$/, '') ?? null;
   const fullNameUrl = repository?.full_name ? `https://github.com/${repository.full_name}` : null;
@@ -59,59 +53,23 @@ const verifyGithubSignature = (req: Request) => {
 
 router.post('/github', asyncHandler(async (req: Request, res: Response) => {
   verifyGithubSignature(req);
-  const event = req.header('x-github-event');
+  const githubEvent = req.headers['x-github-event'];
 
-  if (event === 'deployment_status') {
-    const payload = req.body as GithubDeploymentStatusPayload;
-    const project = await findProjectByRepository(payload.repository);
-    if (!project.rowCount) {
-      res.status(202).json({ ok: true, ignored: true, reason: 'project_not_mapped' });
-      return;
-    }
-    const state = payload.deployment_status?.state?.toLowerCase();
-    const name = payload.deployment?.environment || payload.deployment?.task ||
-      (payload.deployment?.id ? `Deployment ${payload.deployment.id}` : null);
-    if (!name) throw new HttpError(400, 'Nombre de entorno ausente.');
-
-    if (state === 'inactive' || state === 'destroyed') {
-      const deleted = await pool.query(
-        `DELETE FROM project_environments
-         WHERE project_id = $1 AND type = 'ephemeral' AND name = $2`,
-        [project.rows[0].id, name],
-      );
-      res.status(202).json({ ok: true, deleted: deleted.rowCount ?? 0 });
-      return;
-    }
-
-    if (state === 'success') {
-      const environmentUrl = payload.deployment_status?.environment_url?.trim();
-      if (!environmentUrl) {
-        res.status(202).json({ ok: true, ignored: true, reason: 'environment_url_missing' });
-        return;
-      }
-      const environment = await pool.query(
-        `INSERT INTO project_environments (project_id, type, name, url, status)
-         VALUES ($1, 'ephemeral', $2, $3, 'verifying')
-         ON CONFLICT (project_id, type, name)
-         DO UPDATE SET url = EXCLUDED.url, status = 'verifying', error_details = NULL
-         RETURNING id, url, api_url`,
-        [project.rows[0].id, name, environmentUrl],
-      );
-      triggerEnvironmentVerification(environment.rows[0].id, 'ephemeral', environment.rows[0].url, environment.rows[0].api_url);
-      res.status(202).json({ ok: true, environment: name });
-      return;
-    }
-
-    res.status(202).json({ ok: true, ignored: true, reason: 'deployment_state_not_actionable' });
-    return;
+  if (githubEvent === 'deployment_status' || githubEvent === 'ping' || githubEvent === 'deployment') {
+    console.log(`[GitHub Webhook] Ignored informational event: ${githubEvent}`);
+    return res.status(202).json({ message: `Event ${githubEvent} ignored safely` });
   }
 
-  if (event !== 'push') {
+  if (githubEvent !== 'push') {
     res.status(202).json({ ok: true, ignored: true });
     return;
   }
 
   const payload = req.body as GithubPushPayload;
+  if (!payload.ref) {
+    res.status(202).json({ ok: true, ignored: true, reason: 'branch_missing' });
+    return;
+  }
   const githubRepo = payload.repository?.html_url;
   if (!githubRepo) throw new HttpError(400, 'Repositorio de GitHub ausente.');
 
@@ -122,7 +80,7 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
   }
 
   const commits = payload.commits?.length ? payload.commits : payload.head_commit ? [payload.head_commit] : [];
-  const branch = payload.ref?.replace(/^refs\/heads\//, '') ?? null;
+  const branchName = payload.ref.replace('refs/heads/', '');
   const client = await pool.connect();
   let inserted = 0;
   try {
@@ -138,7 +96,7 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
          ON CONFLICT (project_id, commit_hash) DO NOTHING
          RETURNING id`,
         [project.rows[0].id, commit.id, commit.message, author?.name ?? author?.username ?? null,
-         author?.email ?? null, branch, commit.url ?? null, commit.timestamp ?? null],
+         author?.email ?? null, branchName, commit.url ?? null, commit.timestamp ?? null],
       );
       inserted += result.rowCount ?? 0;
     }
@@ -150,7 +108,7 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
     client.release();
   }
 
-  const environmentType = branch === 'main' ? 'production' : branch === 'develop' ? 'staging' : null;
+  const environmentType = branchName === 'main' ? 'production' : branchName === 'develop' ? 'staging' : null;
   let environmentsVerifying = 0;
   if (environmentType) {
     const environments = await pool.query(
