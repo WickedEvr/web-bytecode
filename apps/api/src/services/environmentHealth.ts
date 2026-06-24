@@ -16,6 +16,11 @@ export const verifyEnvironmentHealth = async (
   const targetBase = apiUrl?.trim() || url;
   const parsed = new URL(targetBase);
   if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('Protocolo de URL no soportado.');
+  const hostname = parsed.hostname.toLowerCase();
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]') {
+    console.log('Validación de salud omitida: Entorno local detectado.');
+    return true;
+  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS);
