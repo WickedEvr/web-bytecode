@@ -2234,7 +2234,7 @@ router.delete(
 );
 
 const projectEnvironmentSchema = z.object({
-  type: z.enum(['production', 'staging']),
+  type: z.enum(['production', 'staging', 'ephemeral']),
   name: z.string().trim().min(2).max(180),
   url: z.string().trim().url().max(500),
   apiUrl: z.string().trim().url().max(500).optional().nullable(),
@@ -2264,6 +2264,9 @@ router.post(
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
     const body = projectEnvironmentSchema.parse(req.body);
+    if (body.type === 'ephemeral') {
+      throw new HttpError(400, 'La creación de entornos efímeros no está permitida a través de esta ruta.');
+    }
     const result = await pool.query(
       `INSERT INTO project_environments (project_id, type, name, url, api_url, status)
        SELECT id, $2, $3, $4, $5, 'verifying'

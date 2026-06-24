@@ -89,6 +89,7 @@ const verifyVercelSignature = (req: Request) => {
   }
   const signature = req.header('x-vercel-signature');
   if (!signature || !req.rawBody) throw new HttpError(401, 'Firma de webhook invalida.');
+  // Considerar usar un algoritmo de hash más fuerte si Vercel lo soporta en el futuro, ya que SHA1 es criptográficamente débil. (Actualmente Vercel exige SHA1).
   const expected = crypto.createHmac('sha1', env.vercelWebhookSecret).update(req.rawBody).digest('hex');
   if (signature.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
     throw new HttpError(401, 'Firma de webhook invalida.');
