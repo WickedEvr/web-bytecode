@@ -2,19 +2,30 @@ import bcrypt from 'bcryptjs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { PoolClient } from 'pg';
 import { pool } from './pool.js';
 import { env } from '../config/env.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const schemaPath = path.resolve(__dirname, '../../../../docs/database/postgresql_enterprise_schema.sql');
+const migrationsPath = path.resolve(__dirname, '../../src/db/migrations');
 
-async function seedAdmins() {
+async function runIncrementalMigrations(client: PoolClient) {
+  const migrationFiles = (await fs.readdir(migrationsPath))
+    .filter((file) => file.endsWith('.sql'))
+    .sort();
+  for (const migrationFile of migrationFiles) {
+    console.log('Executing migration:', migrationFile);
+    await client.query(await fs.readFile(path.join(migrationsPath, migrationFile), 'utf-8'));
+  }
+}
+
+async function seedAdmins(client: PoolClient) {
   for (const admin of env.adminSeeds) {
     if (!admin.email || !admin.password) continue;
 
     const passwordHash = await bcrypt.hash(admin.password, 12);
-    await pool.query(
+    await client.query(
       `
       INSERT INTO admin_users (email, name, password_hash, role, is_verified, force_password_change)
       VALUES ($1, $2, $3, 'super_admin', true, false)
@@ -33,19 +44,26 @@ async function seedAdmins() {
 }
 
 async function migrate() {
-  console.log('Reading enterprise schema from:', schemaPath);
-  const schema = await fs.readFile(schemaPath, 'utf-8');
-  console.log('Executing schema...');
-  await pool.query(schema);
-  console.log('Seeding admins...');
-  await seedAdmins();
-  await pool.end();
-  console.log('Database migration completed.');
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    console.log('Running incremental migrations...');
+    await runIncrementalMigrations(client);
+    console.log('Seeding admins...');
+    await seedAdmins(client);
+    await client.query('COMMIT');
+    console.log('Database migration completed.');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+    await pool.end();
+  }
 }
 
-migrate().catch(async (error) => {
+migrate().catch((error) => {
   console.error('Migration failed:', error);
-  await pool.end();
   process.exit(1);
 });
 
