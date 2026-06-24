@@ -54,6 +54,7 @@ export const env = {
   corsOrigins: parseList(process.env.CORS_ORIGINS),
   publicApiUrl: process.env.PUBLIC_API_URL ?? `http://localhost:${process.env.PORT ?? 4000}`,
   githubWebhookSecret: process.env.GITHUB_WEBHOOK_SECRET,
+  vercelWebhookSecret: process.env.VERCEL_WEBHOOK_SECRET,
   database: {
     ssl: parseBoolean(process.env.DATABASE_SSL, process.env.NODE_ENV === 'production'),
     poolMax: parseNumber(process.env.DATABASE_POOL_MAX, 10),

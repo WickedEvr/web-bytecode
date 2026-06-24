@@ -1257,4 +1257,11 @@ INSERT INTO complaint_types (code, name, legal_description) VALUES
   ('reclamo', 'Reclamo', 'Disconformidad relacionada con productos o servicios contratados.')
 ON CONFLICT (code) DO NOTHING;
 
+DO $$
+BEGIN
+  IF to_regclass('public.project_environments') IS NOT NULL THEN
+    ALTER TABLE project_environments ADD COLUMN IF NOT EXISTS branch_name VARCHAR;
+  END IF;
+END $$;
+
 COMMIT;

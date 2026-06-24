@@ -31,6 +31,29 @@ type GithubDeploymentStatusPayload = {
   deployment_status?: { state?: string; environment_url?: string | null };
 };
 
+type GithubPullRequestPayload = {
+  action?: string;
+  repository?: { html_url?: string; full_name?: string };
+  pull_request?: { head?: { ref?: string }; number?: number };
+};
+
+type VercelDeploymentPayload = {
+  type?: string;
+  payload?: {
+    deployment?: {
+      id?: string;
+      name?: string;
+      url?: string;
+      meta?: { githubCommitRef?: string; githubCommitOrg?: string; githubCommitRepo?: string };
+    };
+  };
+};
+
+const isProductionBranch = (branchName?: string | null) => {
+  const normalized = branchName?.trim().toLowerCase();
+  return normalized === 'main' || normalized === 'master';
+};
+
 const findProjectByRepository = (repository?: { html_url?: string; full_name?: string }) => {
   const htmlUrl = repository?.html_url?.replace(/\/+$/, '') ?? null;
   const fullNameUrl = repository?.full_name ? `https://github.com/${repository.full_name}` : null;
@@ -57,12 +80,57 @@ const verifyGithubSignature = (req: Request) => {
   }
 };
 
+const verifyVercelSignature = (req: Request) => {
+  if (!env.vercelWebhookSecret) {
+    if (env.nodeEnv === 'development') return;
+    throw new HttpError(500, 'Vercel webhook secret no configurado.');
+  }
+  const signature = req.header('x-vercel-signature');
+  if (!signature || !req.rawBody) throw new HttpError(401, 'Firma de webhook invalida.');
+  const expected = crypto.createHmac('sha1', env.vercelWebhookSecret).update(req.rawBody).digest('hex');
+  if (signature.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+    throw new HttpError(401, 'Firma de webhook invalida.');
+  }
+};
+
 router.post('/github', asyncHandler(async (req: Request, res: Response) => {
   verifyGithubSignature(req);
   const event = req.header('x-github-event');
 
+  if (event === 'pull_request') {
+    const payload = req.body as GithubPullRequestPayload;
+    const branchName = payload.pull_request?.head?.ref?.trim();
+    if (isProductionBranch(branchName)) {
+      res.status(202).json({ ok: true, ignored: true, reason: 'production_branch' });
+      return;
+    }
+    if (!branchName) {
+      res.status(202).json({ ok: true, ignored: true, reason: 'branch_missing' });
+      return;
+    }
+
+    // PR payloads do not contain a deployed URL, so deployment webhooks own creation.
+    if (payload.action === 'closed') {
+      const project = await findProjectByRepository(payload.repository);
+      if (project.rowCount) {
+        await pool.query(
+          `DELETE FROM project_environments
+           WHERE project_id = $1 AND type = 'ephemeral' AND branch_name = $2`,
+          [project.rows[0].id, branchName],
+        );
+      }
+    }
+    res.status(202).json({ ok: true, branch: branchName });
+    return;
+  }
+
   if (event === 'deployment_status') {
     const payload = req.body as GithubDeploymentStatusPayload;
+    const branchName = payload.deployment?.ref?.trim();
+    if (isProductionBranch(branchName)) {
+      res.status(202).json({ ok: true, ignored: true, reason: 'production_branch' });
+      return;
+    }
     const project = await findProjectByRepository(payload.repository);
     if (!project.rowCount) {
       res.status(202).json({ ok: true, ignored: true, reason: 'project_not_mapped' });
@@ -90,12 +158,13 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
         return;
       }
       const environment = await pool.query(
-        `INSERT INTO project_environments (project_id, type, name, url, status)
-         VALUES ($1, 'ephemeral', $2, $3, 'verifying')
+        `INSERT INTO project_environments (project_id, type, name, url, branch_name, status)
+         VALUES ($1, 'ephemeral', $2, $3, $4, 'verifying')
          ON CONFLICT (project_id, type, name)
-         DO UPDATE SET url = EXCLUDED.url, status = 'verifying', error_details = NULL
+         DO UPDATE SET url = EXCLUDED.url, branch_name = EXCLUDED.branch_name,
+                       status = 'verifying', error_details = NULL
          RETURNING id, url, api_url`,
-        [project.rows[0].id, name, environmentUrl],
+        [project.rows[0].id, name, environmentUrl, branchName || null],
       );
       triggerEnvironmentVerification(environment.rows[0].id, 'ephemeral', environment.rows[0].url, environment.rows[0].api_url);
       res.status(202).json({ ok: true, environment: name });
@@ -167,6 +236,63 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
   }
 
   res.status(202).json({ ok: true, inserted, environmentsVerifying });
+}));
+
+router.post('/vercel', asyncHandler(async (req: Request, res: Response) => {
+  verifyVercelSignature(req);
+  const webhook = req.body as VercelDeploymentPayload;
+  const deployment = webhook.payload?.deployment;
+  const branchName = deployment?.meta?.githubCommitRef?.trim();
+  if (isProductionBranch(branchName)) {
+    res.status(202).json({ ok: true, ignored: true, reason: 'production_branch' });
+    return;
+  }
+  if (!branchName) {
+    res.status(202).json({ ok: true, ignored: true, reason: 'branch_missing' });
+    return;
+  }
+
+  const repository = deployment?.meta?.githubCommitOrg && deployment.meta.githubCommitRepo
+    ? { full_name: `${deployment.meta.githubCommitOrg}/${deployment.meta.githubCommitRepo}` }
+    : undefined;
+  const project = await findProjectByRepository(repository);
+  if (!project.rowCount) {
+    res.status(202).json({ ok: true, ignored: true, reason: 'project_not_mapped' });
+    return;
+  }
+
+  const name = deployment?.name ? `${deployment.name}: ${branchName}` : branchName;
+  if (webhook.type === 'deployment.canceled' || webhook.type === 'deployment.deleted') {
+    const deleted = await pool.query(
+      `DELETE FROM project_environments
+       WHERE project_id = $1 AND type = 'ephemeral' AND branch_name = $2`,
+      [project.rows[0].id, branchName],
+    );
+    res.status(202).json({ ok: true, deleted: deleted.rowCount ?? 0 });
+    return;
+  }
+  if (webhook.type !== 'deployment.ready') {
+    res.status(202).json({ ok: true, ignored: true, reason: 'deployment_state_not_actionable' });
+    return;
+  }
+
+  const deploymentUrl = deployment?.url?.trim();
+  if (!deploymentUrl) {
+    res.status(202).json({ ok: true, ignored: true, reason: 'environment_url_missing' });
+    return;
+  }
+  const environmentUrl = /^https?:\/\//i.test(deploymentUrl) ? deploymentUrl : `https://${deploymentUrl}`;
+  const environment = await pool.query(
+    `INSERT INTO project_environments (project_id, type, name, url, branch_name, status)
+     VALUES ($1, 'ephemeral', $2, $3, $4, 'verifying')
+     ON CONFLICT (project_id, type, name)
+     DO UPDATE SET url = EXCLUDED.url, branch_name = EXCLUDED.branch_name,
+                   status = 'verifying', error_details = NULL
+     RETURNING id, url, api_url`,
+    [project.rows[0].id, name, environmentUrl, branchName],
+  );
+  triggerEnvironmentVerification(environment.rows[0].id, 'ephemeral', environment.rows[0].url, environment.rows[0].api_url);
+  res.status(202).json({ ok: true, environment: name });
 }));
 
 export default router;
