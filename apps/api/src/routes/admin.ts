@@ -2246,7 +2246,7 @@ router.get(
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
     const result = await pool.query(
-      `SELECT id, project_id, type, name, url, api_url, status, error_details, created_at
+      `SELECT id, project_id, type, name, url, api_url, branch_name, status, error_details, created_at
        FROM project_environments
        WHERE project_id = $1
        ORDER BY CASE type WHEN 'production' THEN 0 WHEN 'staging' THEN 1 ELSE 2 END,

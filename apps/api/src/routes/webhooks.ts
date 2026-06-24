@@ -25,6 +25,20 @@ type GithubPushPayload = {
   head_commit?: GithubCommit | null;
 };
 
+type VercelMeta = {
+  githubCommitRef?: string;
+  branch?: string;
+  githubCommitOrg?: string;
+  githubCommitRepo?: string;
+};
+
+type VercelDeployment = {
+  name?: string;
+  url?: string;
+  target?: string;
+  meta?: VercelMeta;
+};
+
 const findProjectByRepository = (repository?: { html_url?: string; full_name?: string }) => {
   const htmlUrl = repository?.html_url?.replace(/\/+$/, '') ?? null;
   const fullNameUrl = repository?.full_name ? `https://github.com/${repository.full_name}` : null;
@@ -56,8 +70,8 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
   const githubEvent = req.headers['x-github-event'];
 
   if (githubEvent === 'deployment_status' || githubEvent === 'ping' || githubEvent === 'deployment') {
-    console.log(`[GitHub Webhook] Ignored informational event: ${githubEvent}`);
-    return res.status(202).json({ message: `Event ${githubEvent} ignored safely` });
+    console.log(`[GitHub Webhook] Safely ignored informational event: ${githubEvent}`);
+    return res.status(202).json({ message: `Event ${githubEvent} ignored` });
   }
 
   if (githubEvent !== 'push') {
@@ -125,6 +139,61 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
   }
 
   res.status(202).json({ ok: true, inserted, environmentsVerifying });
+}));
+
+router.post('/vercel', asyncHandler(async (req: Request, res: Response) => {
+  const payload = req.body.payload || req.body;
+  const deployment = (payload.deployment || payload) as VercelDeployment;
+  const meta = payload.deployment?.meta || payload.meta || {} as VercelMeta;
+  const branchName = meta.githubCommitRef || meta.branch;
+  const target = payload.target || payload.deployment?.target;
+
+  if (target === 'production' || branchName === 'main' || branchName === 'master') {
+    console.log(`[Vercel Webhook] Blocked production preview (Branch: ${branchName}, Target: ${target})`);
+    return res.status(200).json({ message: 'Ignored production preview' });
+  }
+  if (!branchName) {
+    return res.status(400).json({ error: 'Missing branchName' });
+  }
+
+  const repository = meta.githubCommitOrg && meta.githubCommitRepo
+    ? { full_name: `${meta.githubCommitOrg}/${meta.githubCommitRepo}` }
+    : undefined;
+  const project = await findProjectByRepository(repository);
+  if (!project.rowCount) {
+    return res.status(202).json({ ok: true, ignored: true, reason: 'project_not_mapped' });
+  }
+
+  const name = `${deployment.name || 'Preview'}: ${branchName}`;
+  const eventType = req.body.type as string | undefined;
+  if (eventType === 'deployment.canceled' || eventType === 'deployment.deleted') {
+    const deleted = await pool.query(
+      `DELETE FROM project_environments
+       WHERE project_id = $1 AND type = 'ephemeral' AND name = $2`,
+      [project.rows[0].id, name],
+    );
+    return res.status(202).json({ ok: true, deleted: deleted.rowCount ?? 0 });
+  }
+  if (eventType !== 'deployment.ready') {
+    return res.status(202).json({ ok: true, ignored: true, reason: 'deployment_state_not_actionable' });
+  }
+
+  const deploymentUrl = deployment.url?.trim();
+  if (!deploymentUrl) {
+    return res.status(202).json({ ok: true, ignored: true, reason: 'environment_url_missing' });
+  }
+  const environmentUrl = /^https?:\/\//i.test(deploymentUrl) ? deploymentUrl : `https://${deploymentUrl}`;
+  const environment = await pool.query(
+    `INSERT INTO project_environments (project_id, type, name, url, branch_name, status)
+     VALUES ($1, 'ephemeral', $2, $3, $4, 'verifying')
+     ON CONFLICT (project_id, type, name)
+     DO UPDATE SET url = EXCLUDED.url, branch_name = EXCLUDED.branch_name,
+                   status = 'verifying', error_details = NULL
+     RETURNING id, url, api_url`,
+    [project.rows[0].id, name, environmentUrl, branchName],
+  );
+  triggerEnvironmentVerification(environment.rows[0].id, 'ephemeral', environment.rows[0].url, environment.rows[0].api_url);
+  return res.status(202).json({ ok: true, environment: name });
 }));
 
 export default router;
