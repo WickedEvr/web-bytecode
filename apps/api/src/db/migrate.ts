@@ -8,6 +8,17 @@ import { env } from '../config/env.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const schemaPath = path.resolve(__dirname, '../../../../docs/database/postgresql_enterprise_schema.sql');
+const migrationsPath = path.resolve(__dirname, 'migrations');
+
+async function runMigrations() {
+  const migrationFiles = (await fs.readdir(migrationsPath))
+    .filter((file) => file.endsWith('.sql'))
+    .sort();
+  for (const migrationFile of migrationFiles) {
+    console.log('Executing migration:', migrationFile);
+    await pool.query(await fs.readFile(path.join(migrationsPath, migrationFile), 'utf-8'));
+  }
+}
 
 async function seedAdmins() {
   for (const admin of env.adminSeeds) {
@@ -37,6 +48,7 @@ async function migrate() {
   const schema = await fs.readFile(schemaPath, 'utf-8');
   console.log('Executing schema...');
   await pool.query(schema);
+  await runMigrations();
   console.log('Seeding admins...');
   await seedAdmins();
   await pool.end();

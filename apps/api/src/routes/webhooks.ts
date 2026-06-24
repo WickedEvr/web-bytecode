@@ -131,6 +131,10 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
       res.status(202).json({ ok: true, ignored: true, reason: 'production_branch' });
       return;
     }
+    if (!branchName) {
+      res.status(202).json({ ok: true, ignored: true, reason: 'branch_missing' });
+      return;
+    }
     const project = await findProjectByRepository(payload.repository);
     if (!project.rowCount) {
       res.status(202).json({ ok: true, ignored: true, reason: 'project_not_mapped' });
@@ -144,8 +148,8 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
     if (state === 'inactive' || state === 'destroyed') {
       const deleted = await pool.query(
         `DELETE FROM project_environments
-         WHERE project_id = $1 AND type = 'ephemeral' AND name = $2`,
-        [project.rows[0].id, name],
+         WHERE project_id = $1 AND type = 'ephemeral' AND branch_name = $2`,
+        [project.rows[0].id, branchName],
       );
       res.status(202).json({ ok: true, deleted: deleted.rowCount ?? 0 });
       return;
@@ -160,11 +164,11 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
       const environment = await pool.query(
         `INSERT INTO project_environments (project_id, type, name, url, branch_name, status)
          VALUES ($1, 'ephemeral', $2, $3, $4, 'verifying')
-         ON CONFLICT (project_id, type, name)
-         DO UPDATE SET url = EXCLUDED.url, branch_name = EXCLUDED.branch_name,
+         ON CONFLICT (project_id, type, branch_name) WHERE type = 'ephemeral'
+         DO UPDATE SET url = EXCLUDED.url, name = EXCLUDED.name,
                        status = 'verifying', error_details = NULL
          RETURNING id, url, api_url`,
-        [project.rows[0].id, name, environmentUrl, branchName || null],
+        [project.rows[0].id, name, environmentUrl, branchName],
       );
       triggerEnvironmentVerification(environment.rows[0].id, 'ephemeral', environment.rows[0].url, environment.rows[0].api_url);
       res.status(202).json({ ok: true, environment: name });
@@ -285,8 +289,8 @@ router.post('/vercel', asyncHandler(async (req: Request, res: Response) => {
   const environment = await pool.query(
     `INSERT INTO project_environments (project_id, type, name, url, branch_name, status)
      VALUES ($1, 'ephemeral', $2, $3, $4, 'verifying')
-     ON CONFLICT (project_id, type, name)
-     DO UPDATE SET url = EXCLUDED.url, branch_name = EXCLUDED.branch_name,
+     ON CONFLICT (project_id, type, branch_name) WHERE type = 'ephemeral'
+     DO UPDATE SET url = EXCLUDED.url, name = EXCLUDED.name,
                    status = 'verifying', error_details = NULL
      RETURNING id, url, api_url`,
     [project.rows[0].id, name, environmentUrl, branchName],

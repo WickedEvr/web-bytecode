@@ -2269,7 +2269,7 @@ router.post(
        SELECT id, $2, $3, $4, $5, 'verifying'
        FROM projects
        WHERE id = $1 AND deleted_at IS NULL
-       ON CONFLICT (project_id, type, name)
+       ON CONFLICT (project_id, type, name) WHERE type != 'ephemeral'
        DO UPDATE SET url = EXCLUDED.url, api_url = EXCLUDED.api_url, status = 'verifying', error_details = NULL
        RETURNING id, project_id, type, name, url, api_url, status, error_details, created_at`,
       [projectId, body.type, body.name, body.url, body.apiUrl || null],
