@@ -67,7 +67,7 @@ const Sidebar: React.FC<SidebarProps> = ({ admin, onClose }) => {
           </button>
         )}
       </div>
-      <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto custom-scrollbar">
+      <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto custom-scrollbar"> 
         {menuItems.map((item) => {
           const Icon = iconMap[item.icon_name as keyof typeof iconMap] ?? LayoutDashboard;
 
