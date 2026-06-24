@@ -2290,7 +2290,9 @@ router.post(
     const result = await pool.query(
       `UPDATE project_environments
        SET status = 'verifying', error_details = NULL
-       WHERE id = $1 AND project_id = $2 AND type = 'ephemeral' AND status IN ('deployed_ui', 'active', 'ready', 'failed')
+       WHERE id = $1 AND project_id = $2
+         AND type IN ('ephemeral', 'staging')
+         AND status IN ('deployed_ui', 'active', 'ready', 'failed')
        RETURNING id`,
       [environmentId, projectId],
     );
