@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { PoolClient } from 'pg';
 import { pool } from './pool.js';
 import { env } from '../config/env.js';
 
@@ -10,22 +11,36 @@ const __dirname = path.dirname(__filename);
 const schemaPath = path.resolve(__dirname, '../../../../docs/database/postgresql_enterprise_schema.sql');
 const migrationsPath = path.resolve(__dirname, 'migrations');
 
-async function runMigrations() {
+const removeTransactionBoundaries = (sql: string) =>
+  sql.replace(/^\s*BEGIN;\s*$/gim, '').replace(/^\s*COMMIT;\s*$/gim, '');
+
+async function runMigrations(client: PoolClient) {
+  try {
+    await fs.access(migrationsPath);
+  } catch (error: unknown) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      console.log(`No se encontraron migraciones en: ${migrationsPath}`);
+      return;
+    }
+    throw error;
+  }
+
   const migrationFiles = (await fs.readdir(migrationsPath))
     .filter((file) => file.endsWith('.sql'))
     .sort();
   for (const migrationFile of migrationFiles) {
     console.log('Executing migration:', migrationFile);
-    await pool.query(await fs.readFile(path.join(migrationsPath, migrationFile), 'utf-8'));
+    const migration = await fs.readFile(path.join(migrationsPath, migrationFile), 'utf-8');
+    await client.query(removeTransactionBoundaries(migration));
   }
 }
 
-async function seedAdmins() {
+async function seedAdmins(client: PoolClient) {
   for (const admin of env.adminSeeds) {
     if (!admin.email || !admin.password) continue;
 
     const passwordHash = await bcrypt.hash(admin.password, 12);
-    await pool.query(
+    await client.query(
       `
       INSERT INTO admin_users (email, name, password_hash, role, is_verified, force_password_change)
       VALUES ($1, $2, $3, 'super_admin', true, false)
@@ -44,13 +59,23 @@ async function seedAdmins() {
 }
 
 async function migrate() {
-  console.log('Reading enterprise schema from:', schemaPath);
-  const schema = await fs.readFile(schemaPath, 'utf-8');
-  console.log('Executing schema...');
-  await pool.query(schema);
-  await runMigrations();
-  console.log('Seeding admins...');
-  await seedAdmins();
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    console.log('Reading enterprise schema from:', schemaPath);
+    const schema = await fs.readFile(schemaPath, 'utf-8');
+    console.log('Executing schema...');
+    await client.query(removeTransactionBoundaries(schema));
+    await runMigrations(client);
+    console.log('Seeding admins...');
+    await seedAdmins(client);
+    await client.query('COMMIT');
+  } catch (error: unknown) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
   await pool.end();
   console.log('Database migration completed.');
 }

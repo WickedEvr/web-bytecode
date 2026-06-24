@@ -54,6 +54,8 @@ const isProductionBranch = (branchName?: string | null) => {
   return normalized === 'main' || normalized === 'master';
 };
 
+const MAX_NAME_LENGTH = 255;
+
 const findProjectByRepository = (repository?: { html_url?: string; full_name?: string }) => {
   const htmlUrl = repository?.html_url?.replace(/\/+$/, '') ?? null;
   const fullNameUrl = repository?.full_name ? `https://github.com/${repository.full_name}` : null;
@@ -265,7 +267,10 @@ router.post('/vercel', asyncHandler(async (req: Request, res: Response) => {
     return;
   }
 
-  const name = deployment?.name ? `${deployment.name}: ${branchName}` : branchName;
+  let name = deployment?.name ? `${deployment.name}: ${branchName}` : branchName;
+  if (name.length > MAX_NAME_LENGTH) {
+    name = `${name.substring(0, MAX_NAME_LENGTH - 3)}...`;
+  }
   if (webhook.type === 'deployment.canceled' || webhook.type === 'deployment.deleted') {
     const deleted = await pool.query(
       `DELETE FROM project_environments
