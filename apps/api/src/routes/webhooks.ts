@@ -44,10 +44,12 @@ type VercelMeta = {
 };
 
 type VercelDeploymentData = {
+  target?: string;
   deployment?: {
     id?: string;
     name?: string;
     url?: string;
+    target?: string;
     meta?: VercelMeta;
   };
   meta?: VercelMeta;
@@ -245,10 +247,17 @@ router.post('/vercel', asyncHandler(async (req: Request, res: Response) => {
   const webhook = req.body as VercelDeploymentPayload;
   const payload = webhook.payload ?? webhook;
   const deployment = payload.deployment;
-  const branchName = payload.deployment?.meta?.githubCommitRef || payload.meta?.githubCommitRef;
-  if (!branchName || branchName === 'main' || branchName === 'master') {
-    console.log(`Ignoring deployment for branch: ${branchName}`);
-    return res.status(200).json({ message: 'Ignored production/undefined branch preview' });
+  const branchName = payload.deployment?.meta?.githubCommitRef;
+  // Extract Vercel target (e.g., 'production', 'staging', 'preview')
+  const target = payload.target || payload.deployment?.target;
+
+  if (target === 'production' || branchName === 'main' || branchName === 'master') {
+    console.log(`Ignoring production deployment (Target: ${target}, Branch: ${branchName})`);
+    return res.status(200).json({ message: 'Ignored production deployment' });
+  }
+  if (!branchName) {
+    console.log('Ignoring deployment with undefined branch');
+    return res.status(200).json({ message: 'Ignored undefined branch deployment' });
   }
 
   const deploymentMeta = deployment?.meta ?? payload.meta;
