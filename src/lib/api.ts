@@ -347,8 +347,9 @@ export interface ProjectEnvironment {
   url: string;
   api_url: string | null;
   branch_name: string | null;
+  commit_sha: string | null;
   error_details: string | null;
-  status: 'active' | 'inactive' | 'failed' | 'verifying';
+  status: 'active' | 'ready' | 'inactive' | 'failed' | 'verifying';
   created_at: string;
 }
 
