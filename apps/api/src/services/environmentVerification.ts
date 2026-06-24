@@ -1,5 +1,5 @@
 import { pool } from '../db/pool.js';
-import { verifyEnvironmentHealth, type EnvironmentType } from './environmentHealth.js';
+import { runEnvironmentAudit, type EnvironmentType } from './environmentHealth.js';
 
 export const verifyEnvironment = async (environmentId: string, projectId?: string) => {
   try {
@@ -14,15 +14,26 @@ export const verifyEnvironment = async (environmentId: string, projectId?: strin
     if (!environment) throw new Error('Entorno no encontrado.');
     if (!environment.url) throw new Error('La URL del entorno todavía no está disponible.');
 
-    await verifyEnvironmentHealth(
+    const auditReport = await runEnvironmentAudit(
       environment.id,
       environment.type as EnvironmentType,
-      environment.url,
-      environment.api_url,
+      environment.api_url?.trim() || environment.url,
     );
+    const failedLayers = Object.values(auditReport.layers).filter((layer) => !layer.ok);
+    if (failedLayers.length) {
+      await pool.query(
+        `UPDATE project_environments
+         SET status = 'failed', error_details = $2, audit_report = $3
+         WHERE id = $1`,
+        [environmentId, failedLayers.map((layer) => layer.msg).join(' · '), auditReport],
+      );
+      return;
+    }
     await pool.query(
-      `UPDATE project_environments SET status = 'ready', error_details = NULL WHERE id = $1`,
-      [environmentId],
+      `UPDATE project_environments
+       SET status = 'ready', error_details = NULL, audit_report = $2
+       WHERE id = $1`,
+      [environmentId, auditReport],
     );
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

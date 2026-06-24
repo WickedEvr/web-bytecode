@@ -349,6 +349,10 @@ export interface ProjectEnvironment {
   branch_name: string | null;
   commit_sha: string | null;
   error_details: string | null;
+  audit_report: {
+    layers: Record<'red' | 'config' | 'aislamiento', { ok: boolean; msg: string; suggestion: string }>;
+    errors: string[];
+  } | null;
   status: 'active' | 'ready' | 'inactive' | 'failed' | 'verifying' | 'deployed_ui';
   created_at: string;
 }
