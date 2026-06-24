@@ -90,7 +90,7 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
       return res.status(200).json({ message: 'Skipped: No project found' });
     }
 
-    const initialUrl = '';
+    const initialUrl = null;
     try {
       await pool.query(
         `INSERT INTO project_environments (project_id, type, name, branch_name, commit_sha, status, url)
@@ -122,11 +122,11 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
   if (environmentType === 'production') {
     await pool.query(
       `UPDATE project_environments
-       SET url = $1, status = 'ready'
+       SET url = $1, status = 'active'
        WHERE project_id = $2 AND type = 'production'`,
       [targetUrl, projectId],
     );
-    return res.status(200).json({ message: 'Production URL updated, preview creation blocked.' });
+    return res.status(200).json({ message: 'Production updated' });
   }
 
   if (environmentType === 'preview' && state === 'success') {
@@ -135,14 +135,17 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
     }
     const updated = await pool.query(
       `UPDATE project_environments
-       SET url = $1, status = 'ready', error_details = NULL
+       SET url = $1, status = 'active', error_details = NULL
        WHERE project_id = $2 AND commit_sha = $3 AND type = 'ephemeral'`,
       [targetUrl, projectId, sha],
     );
-    return res.status(200).json({ message: 'Preview URL updated', updated: updated.rowCount ?? 0 });
+    if (!updated.rowCount) {
+      console.warn(`[Webhook] No ephemeral row found for SHA: ${sha}. Skipping update.`);
+    }
+    return res.status(200).json({ message: 'Preview updated' });
   }
 
-  return res.status(202).json({ message: 'Deployment status ignored' });
+  return res.status(200).json({ message: 'Ignored status' });
 }));
 
 export default router;
