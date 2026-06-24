@@ -75,19 +75,34 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
     }
     if (!sha) return res.status(400).json({ error: 'Missing commit SHA' });
 
-    const project = await findProjectByRepository(payload.repository);
-    if (!project.rowCount) {
-      return res.status(202).json({ ok: true, ignored: true, reason: 'project_not_mapped' });
+    const repoName = payload.repository?.full_name;
+    let projectId: string | undefined;
+    try {
+      const project = await findProjectByRepository(payload.repository);
+      projectId = project.rows[0]?.id as string | undefined;
+    } catch (lookupError) {
+      console.error('[GitHub Webhook] Project lookup error for repo:', repoName, lookupError);
+      return res.status(200).json({ message: 'Skipped: Project lookup failed' });
     }
-    const projectId = project.rows[0].id;
-    await pool.query(
-      `INSERT INTO project_environments (project_id, type, name, branch_name, commit_sha, status)
-       VALUES ($1, 'ephemeral', $2, $3, $4, 'verifying')
-       ON CONFLICT (project_id, type, name)
-       DO UPDATE SET commit_sha = EXCLUDED.commit_sha, branch_name = EXCLUDED.branch_name,
-                     status = 'verifying', error_details = NULL`,
-      [projectId, `Preview: ${branchName}`, branchName, sha],
-    );
+
+    if (!projectId) {
+      console.error('[GitHub Webhook] CRITICAL: Could not resolve projectId for repo:', repoName);
+      return res.status(200).json({ message: 'Skipped: No project found' });
+    }
+
+    try {
+      await pool.query(
+        `INSERT INTO project_environments (project_id, type, name, branch_name, commit_sha, status)
+         VALUES ($1, 'ephemeral', $2, $3, $4, 'verifying')
+         ON CONFLICT (project_id, type, name)
+         DO UPDATE SET commit_sha = EXCLUDED.commit_sha, branch_name = EXCLUDED.branch_name,
+                       status = 'verifying', error_details = NULL`,
+        [projectId, `Preview: ${branchName}`, branchName, sha],
+      );
+    } catch (err) {
+      console.error('[GitHub Webhook] SQL Error:', err);
+      return res.status(200).json({ message: 'SQL Error occurred, but we caught it' });
+    }
     return res.status(200).json({ message: 'Preview initialized', branchName, sha });
   }
 
