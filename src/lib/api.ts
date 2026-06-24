@@ -349,7 +349,7 @@ export interface ProjectEnvironment {
   branch_name: string | null;
   commit_sha: string | null;
   error_details: string | null;
-  status: 'active' | 'ready' | 'inactive' | 'failed' | 'verifying';
+  status: 'active' | 'ready' | 'inactive' | 'failed' | 'verifying' | 'deployed_ui';
   created_at: string;
 }
 
