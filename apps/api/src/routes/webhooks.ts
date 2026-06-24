@@ -41,6 +41,8 @@ type VercelMeta = {
   githubCommitRef?: string;
   githubCommitOrg?: string;
   githubCommitRepo?: string;
+  githubCommitSha?: string;
+  branch?: string;
 };
 
 type VercelDeploymentData = {
@@ -194,8 +196,12 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
     return;
   }
 
+  if (!payload.ref) {
+    res.status(202).json({ ok: true, ignored: true, reason: 'branch_missing' });
+    return;
+  }
   const commits = payload.commits?.length ? payload.commits : payload.head_commit ? [payload.head_commit] : [];
-  const branch = payload.ref?.replace(/^refs\/heads\//, '') ?? null;
+  const branchName = payload.ref.replace('refs/heads/', '');
   const client = await pool.connect();
   let inserted = 0;
   try {
@@ -211,7 +217,7 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
          ON CONFLICT (project_id, commit_hash) DO NOTHING
          RETURNING id`,
         [project.rows[0].id, commit.id, commit.message, author?.name ?? author?.username ?? null,
-         author?.email ?? null, branch, commit.url ?? null, commit.timestamp ?? null],
+         author?.email ?? null, branchName, commit.url ?? null, commit.timestamp ?? null],
       );
       inserted += result.rowCount ?? 0;
     }
@@ -223,20 +229,19 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
     client.release();
   }
 
-  const environmentType = branch === 'main' ? 'production' : branch === 'develop' ? 'staging' : null;
+  const environmentType = branchName === 'main' ? 'production' : branchName === 'develop' ? 'staging' : 'ephemeral';
   let environmentsVerifying = 0;
-  if (environmentType) {
-    const environments = await pool.query(
-      `UPDATE project_environments
-       SET status = 'verifying', error_details = NULL
-       WHERE project_id = $1 AND type = $2
-       RETURNING id, type, url, api_url`,
-      [project.rows[0].id, environmentType],
-    );
-    environmentsVerifying = environments.rowCount ?? 0;
-    for (const environment of environments.rows) {
-      triggerEnvironmentVerification(environment.id, environment.type, environment.url, environment.api_url);
-    }
+  const environments = await pool.query(
+    `UPDATE project_environments
+     SET status = 'verifying', error_details = NULL
+     WHERE project_id = $1 AND type = $2
+       AND ($2 != 'ephemeral' OR branch_name = $3)
+     RETURNING id, type, url, api_url`,
+    [project.rows[0].id, environmentType, branchName],
+  );
+  environmentsVerifying = environments.rowCount ?? 0;
+  for (const environment of environments.rows) {
+    triggerEnvironmentVerification(environment.id, environment.type, environment.url, environment.api_url);
   }
 
   res.status(202).json({ ok: true, inserted, environmentsVerifying });
@@ -245,24 +250,30 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
 router.post('/vercel', asyncHandler(async (req: Request, res: Response) => {
   verifyVercelSignature(req);
   const webhook = req.body as VercelDeploymentPayload;
-  const payload = webhook.payload ?? webhook;
-  const deployment = payload.deployment;
-  const branchName = payload.deployment?.meta?.githubCommitRef;
-  // Extract Vercel target (e.g., 'production', 'staging', 'preview')
-  const target = payload.target || payload.deployment?.target;
+  const payload = req.body.payload || req.body;
+  const deployment = payload?.deployment || payload;
+  const meta = deployment?.meta || {};
 
+  // 1. Robust Branch Extraction
+  const branchName = meta?.githubCommitRef || meta?.branch;
+  const target = payload?.target || deployment?.target;
+
+  console.log(`[Vercel Webhook] Target: ${target}, Branch: ${branchName}, SHA: ${meta?.githubCommitSha}`);
+
+  // 2. The Kill Switch
   if (target === 'production' || branchName === 'main' || branchName === 'master') {
-    console.log(`Ignoring production deployment (Target: ${target}, Branch: ${branchName})`);
+    console.log('[Vercel Webhook] Ignored: Production deployment detected.');
     return res.status(200).json({ message: 'Ignored production deployment' });
   }
+
+  // 3. Safety Check
   if (!branchName) {
-    console.log('Ignoring deployment with undefined branch');
-    return res.status(200).json({ message: 'Ignored undefined branch deployment' });
+    console.error('[Vercel Webhook] FAILED: Missing branchName in payload. Cannot create ephemeral environment.');
+    return res.status(400).json({ error: 'Missing branchName' });
   }
 
-  const deploymentMeta = deployment?.meta ?? payload.meta;
-  const repository = deploymentMeta?.githubCommitOrg && deploymentMeta.githubCommitRepo
-    ? { full_name: `${deploymentMeta.githubCommitOrg}/${deploymentMeta.githubCommitRepo}` }
+  const repository = meta?.githubCommitOrg && meta.githubCommitRepo
+    ? { full_name: `${meta.githubCommitOrg}/${meta.githubCommitRepo}` }
     : undefined;
   const project = await findProjectByRepository(repository);
   if (!project.rowCount) {
@@ -294,8 +305,8 @@ router.post('/vercel', asyncHandler(async (req: Request, res: Response) => {
   const environment = await pool.query(
     `INSERT INTO project_environments (project_id, type, name, url, branch_name, status)
      VALUES ($1, 'ephemeral', $2, $3, $4, 'verifying')
-     ON CONFLICT (project_id, type, name)
-     DO UPDATE SET url = EXCLUDED.url, branch_name = EXCLUDED.branch_name,
+     ON CONFLICT (project_id, type, branch_name) WHERE type = 'ephemeral'
+     DO UPDATE SET url = EXCLUDED.url, name = EXCLUDED.name,
                    status = 'verifying', error_details = NULL
      RETURNING id, url, api_url`,
     [project.rows[0].id, name, environmentUrl, branchName],
