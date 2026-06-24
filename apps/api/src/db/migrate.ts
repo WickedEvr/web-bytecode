@@ -9,7 +9,8 @@ import { env } from '../config/env.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const schemaPath = path.resolve(__dirname, '../../../../docs/database/postgresql_enterprise_schema.sql');
-const migrationsPath = path.resolve(__dirname, 'migrations');
+// Resolve from the API root so this works from both src/db (tsx) and dist/db (node).
+const migrationsPath = path.resolve(__dirname, '../../src/db/migrations');
 
 const removeTransactionBoundaries = (sql: string) =>
   sql.replace(/^\s*BEGIN;\s*$/gim, '').replace(/^\s*COMMIT;\s*$/gim, '');
