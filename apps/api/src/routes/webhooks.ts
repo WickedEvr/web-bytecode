@@ -5,41 +5,28 @@ import { env } from '../config/env.js';
 import { pool } from '../db/pool.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { HttpError } from '../utils/httpError.js';
-import { triggerEnvironmentVerification } from '../services/environmentHealth.js';
 
 const router = Router();
 
-type GithubCommit = {
-  id?: string;
-  message?: string;
-  url?: string;
-  timestamp?: string;
-  author?: { name?: string; email?: string; username?: string };
-  committer?: { name?: string; email?: string; username?: string };
-};
+type GithubRepository = { html_url?: string; full_name?: string };
 
 type GithubPushPayload = {
   ref?: string;
-  repository?: { html_url?: string; full_name?: string };
-  commits?: GithubCommit[];
-  head_commit?: GithubCommit | null;
+  after?: string;
+  repository?: GithubRepository;
 };
 
-type VercelMeta = {
-  githubCommitRef?: string;
-  branch?: string;
-  githubCommitOrg?: string;
-  githubCommitRepo?: string;
+type GithubDeploymentStatusPayload = {
+  repository?: GithubRepository;
+  deployment?: { sha?: string };
+  deployment_status?: {
+    target_url?: string | null;
+    environment?: string;
+    state?: string;
+  };
 };
 
-type VercelDeployment = {
-  name?: string;
-  url?: string;
-  target?: string;
-  meta?: VercelMeta;
-};
-
-const findProjectByRepository = (repository?: { html_url?: string; full_name?: string }) => {
+const findProjectByRepository = (repository?: GithubRepository) => {
   const htmlUrl = repository?.html_url?.replace(/\/+$/, '') ?? null;
   const fullNameUrl = repository?.full_name ? `https://github.com/${repository.full_name}` : null;
   return pool.query(
@@ -69,147 +56,77 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
   verifyGithubSignature(req);
   const githubEvent = req.headers['x-github-event'];
 
-  if (githubEvent === 'deployment_status' || githubEvent === 'ping' || githubEvent === 'deployment') {
-    console.log(`[GitHub Webhook] Safely ignored informational event: ${githubEvent}`);
+  if (githubEvent === 'ping') {
+    return res.status(202).json({ message: 'Event ping ignored' });
+  }
+  if (githubEvent !== 'push' && githubEvent !== 'deployment_status') {
     return res.status(202).json({ message: `Event ${githubEvent} ignored` });
   }
 
-  if (githubEvent !== 'push') {
-    res.status(202).json({ ok: true, ignored: true });
-    return;
+  if (githubEvent === 'push') {
+    const payload = req.body as GithubPushPayload;
+    if (!payload.ref) return res.status(400).json({ error: 'Missing ref' });
+
+    const branchName = payload.ref.replace('refs/heads/', '');
+    const sha = payload.after;
+    if (branchName === 'main' || branchName === 'master') {
+      console.log(`[GitHub Webhook] Ignored production push for branch: ${branchName}`);
+      return res.status(200).json({ message: 'Production push ignored; no preview created.' });
+    }
+    if (!sha) return res.status(400).json({ error: 'Missing commit SHA' });
+
+    const project = await findProjectByRepository(payload.repository);
+    if (!project.rowCount) {
+      return res.status(202).json({ ok: true, ignored: true, reason: 'project_not_mapped' });
+    }
+    const projectId = project.rows[0].id;
+    await pool.query(
+      `INSERT INTO project_environments (project_id, type, name, branch_name, commit_sha, status)
+       VALUES ($1, 'ephemeral', $2, $3, $4, 'verifying')
+       ON CONFLICT (project_id, type, name)
+       DO UPDATE SET commit_sha = EXCLUDED.commit_sha, branch_name = EXCLUDED.branch_name,
+                     status = 'verifying', error_details = NULL`,
+      [projectId, `Preview: ${branchName}`, branchName, sha],
+    );
+    return res.status(200).json({ message: 'Preview initialized', branchName, sha });
   }
 
-  const payload = req.body as GithubPushPayload;
-  if (!payload.ref) {
-    res.status(202).json({ ok: true, ignored: true, reason: 'branch_missing' });
-    return;
-  }
-  const githubRepo = payload.repository?.html_url;
-  if (!githubRepo) throw new HttpError(400, 'Repositorio de GitHub ausente.');
-
+  const payload = req.body as GithubDeploymentStatusPayload;
   const project = await findProjectByRepository(payload.repository);
-  if (!project.rowCount) {
-    res.status(202).json({ ok: true, ignored: true, reason: 'project_not_mapped' });
-    return;
-  }
-
-  const commits = payload.commits?.length ? payload.commits : payload.head_commit ? [payload.head_commit] : [];
-  const branchName = payload.ref.replace('refs/heads/', '');
-  const client = await pool.connect();
-  let inserted = 0;
-  try {
-    await client.query('BEGIN');
-    for (const commit of commits) {
-      if (!commit.id || !commit.message) continue;
-      const author = commit.author ?? commit.committer;
-      const result = await client.query(
-        `INSERT INTO project_commits (
-           project_id, commit_hash, message, author_name, author_email,
-           branch, github_url, committed_at
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-         ON CONFLICT (project_id, commit_hash) DO NOTHING
-         RETURNING id`,
-        [project.rows[0].id, commit.id, commit.message, author?.name ?? author?.username ?? null,
-         author?.email ?? null, branchName, commit.url ?? null, commit.timestamp ?? null],
-      );
-      inserted += result.rowCount ?? 0;
-    }
-    await client.query('COMMIT');
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
-  }
-
-  let environmentsVerifying = 0;
-  if (branchName === 'main') {
-    const environments = await pool.query(
-      `UPDATE project_environments
-       SET status = 'verifying', error_details = NULL
-       WHERE project_id = $1 AND type = 'production'
-       RETURNING id, type, url, api_url`,
-      [project.rows[0].id],
-    );
-    environmentsVerifying = environments.rowCount ?? 0;
-    for (const environment of environments.rows) {
-      triggerEnvironmentVerification(environment.id, environment.type, environment.url, environment.api_url);
-    }
-  } else {
-    const environments = await pool.query(
-      `UPDATE project_environments
-       SET status = 'verifying', error_details = NULL
-       WHERE project_id = $1 AND type = 'ephemeral' AND branch_name = $2`,
-      [project.rows[0].id, branchName],
-    );
-    environmentsVerifying = environments.rowCount ?? 0;
-  }
-
-  res.status(202).json({ ok: true, inserted, environmentsVerifying });
-}));
-
-router.post('/vercel', asyncHandler(async (req: Request, res: Response) => {
-  const payload = req.body.payload || req.body;
-  const deployment = (payload.deployment || payload) as VercelDeployment;
-  const meta = payload.deployment?.meta || payload.meta || {} as VercelMeta;
-  const branchName = payload.deployment?.meta?.githubCommitRef || payload.meta?.githubCommitRef || null;
-  const target = payload.target || payload.deployment?.target;
-
-  if (target === 'production' || branchName === 'main' || branchName === 'master') {
-    console.log(`[Vercel Webhook] Blocked production preview (Branch: ${branchName}, Target: ${target})`);
-    return res.status(200).json({ message: 'Ignored production preview' });
-  }
-  if (!branchName) {
-    return res.status(400).json({ error: 'Missing branchName' });
-  }
-
-  const repository = meta.githubCommitOrg && meta.githubCommitRepo
-    ? { full_name: `${meta.githubCommitOrg}/${meta.githubCommitRepo}` }
-    : undefined;
-  const project = await findProjectByRepository(repository);
   if (!project.rowCount) {
     return res.status(202).json({ ok: true, ignored: true, reason: 'project_not_mapped' });
   }
 
-  const name = `${deployment.name || 'Preview'}: ${branchName}`;
-  const eventType = req.body.type as string | undefined;
-  if (eventType === 'deployment.canceled' || eventType === 'deployment.deleted') {
-    const deleted = await pool.query(
-      `DELETE FROM project_environments
-       WHERE project_id = $1 AND type = 'ephemeral' AND name = $2`,
-      [project.rows[0].id, name],
+  const projectId = project.rows[0].id;
+  const sha = payload.deployment?.sha;
+  const targetUrl = payload.deployment_status?.target_url;
+  const environmentType = payload.deployment_status?.environment?.toLowerCase();
+  const state = payload.deployment_status?.state?.toLowerCase();
+
+  if (environmentType === 'production') {
+    await pool.query(
+      `UPDATE project_environments
+       SET url = $1, status = 'ready'
+       WHERE project_id = $2 AND type = 'production'`,
+      [targetUrl, projectId],
     );
-    return res.status(202).json({ ok: true, deleted: deleted.rowCount ?? 0 });
-  }
-  if (eventType !== 'deployment.ready') {
-    return res.status(202).json({ ok: true, ignored: true, reason: 'deployment_state_not_actionable' });
+    return res.status(200).json({ message: 'Production URL updated, preview creation blocked.' });
   }
 
-  const deploymentUrl = deployment.url?.trim();
-  if (!deploymentUrl) {
-    return res.status(202).json({ ok: true, ignored: true, reason: 'environment_url_missing' });
-  }
-  const environmentUrl = /^https?:\/\//i.test(deploymentUrl) ? deploymentUrl : `https://${deploymentUrl}`;
-  try {
-    const environment = await pool.query(
-      `INSERT INTO project_environments (project_id, type, name, url, branch_name, status)
-       VALUES ($1, 'ephemeral', $2, $3, $4, 'verifying')
-       ON CONFLICT (project_id, type, name)
-       DO UPDATE SET
-         url = EXCLUDED.url,
-         branch_name = EXCLUDED.branch_name,
-         status = 'verifying',
-         error_details = NULL
-       RETURNING id, url, api_url`,
-      [project.rows[0].id, name, environmentUrl, branchName],
+  if (environmentType === 'preview' && state === 'success') {
+    if (!sha || !targetUrl) {
+      return res.status(400).json({ error: 'Missing deployment SHA or target URL' });
+    }
+    const updated = await pool.query(
+      `UPDATE project_environments
+       SET url = $1, status = 'ready', error_details = NULL
+       WHERE project_id = $2 AND commit_sha = $3 AND type = 'ephemeral'`,
+      [targetUrl, projectId, sha],
     );
-    console.log(`[Vercel Webhook] Successfully upserted ephemeral env for branch: ${branchName}`);
-    triggerEnvironmentVerification(environment.rows[0].id, 'ephemeral', environment.rows[0].url, environment.rows[0].api_url);
-    return res.status(202).json({ ok: true, environment: name });
-  } catch (dbError) {
-    console.error('[Vercel Webhook] CRITICAL DB ERROR during upsert:', dbError);
-    return res.status(500).json({ error: 'Database insertion failed' });
+    return res.status(200).json({ message: 'Preview URL updated', updated: updated.rowCount ?? 0 });
   }
+
+  return res.status(202).json({ message: 'Deployment status ignored' });
 }));
 
 export default router;
