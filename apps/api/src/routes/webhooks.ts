@@ -190,20 +190,26 @@ router.post('/vercel', asyncHandler(async (req: Request, res: Response) => {
     return res.status(202).json({ ok: true, ignored: true, reason: 'environment_url_missing' });
   }
   const environmentUrl = /^https?:\/\//i.test(deploymentUrl) ? deploymentUrl : `https://${deploymentUrl}`;
-  const environment = await pool.query(
-    `INSERT INTO project_environments (project_id, type, name, url, branch_name, status)
-     VALUES ($1, 'ephemeral', $2, $3, $4, 'verifying')
-     ON CONFLICT (project_id, type, name) WHERE type != 'ephemeral'
-     DO UPDATE SET
-       url = EXCLUDED.url,
-       branch_name = EXCLUDED.branch_name,
-       status = 'verifying',
-       error_details = NULL
-     RETURNING id, url, api_url`,
-    [project.rows[0].id, name, environmentUrl, branchName],
-  );
-  triggerEnvironmentVerification(environment.rows[0].id, 'ephemeral', environment.rows[0].url, environment.rows[0].api_url);
-  return res.status(202).json({ ok: true, environment: name });
+  try {
+    const environment = await pool.query(
+      `INSERT INTO project_environments (project_id, type, name, url, branch_name, status)
+       VALUES ($1, 'ephemeral', $2, $3, $4, 'verifying')
+       ON CONFLICT (project_id, type, name)
+       DO UPDATE SET
+         url = EXCLUDED.url,
+         branch_name = EXCLUDED.branch_name,
+         status = 'verifying',
+         error_details = NULL
+       RETURNING id, url, api_url`,
+      [project.rows[0].id, name, environmentUrl, branchName],
+    );
+    console.log(`[Vercel Webhook] Successfully upserted ephemeral env for branch: ${branchName}`);
+    triggerEnvironmentVerification(environment.rows[0].id, 'ephemeral', environment.rows[0].url, environment.rows[0].api_url);
+    return res.status(202).json({ ok: true, environment: name });
+  } catch (dbError) {
+    console.error('[Vercel Webhook] CRITICAL DB ERROR during upsert:', dbError);
+    return res.status(500).json({ error: 'Database insertion failed' });
+  }
 }));
 
 export default router;
