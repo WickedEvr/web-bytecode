@@ -90,14 +90,15 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
       return res.status(200).json({ message: 'Skipped: No project found' });
     }
 
+    const initialUrl = '';
     try {
       await pool.query(
-        `INSERT INTO project_environments (project_id, type, name, branch_name, commit_sha, status)
-         VALUES ($1, 'ephemeral', $2, $3, $4, 'verifying')
+        `INSERT INTO project_environments (project_id, type, name, branch_name, commit_sha, status, url)
+         VALUES ($1, 'ephemeral', $2, $3, $4, 'verifying', $5)
          ON CONFLICT (project_id, type, name)
          DO UPDATE SET commit_sha = EXCLUDED.commit_sha, branch_name = EXCLUDED.branch_name,
                        status = 'verifying', error_details = NULL`,
-        [projectId, `Preview: ${branchName}`, branchName, sha],
+        [projectId, `Preview: ${branchName}`, branchName, sha, initialUrl],
       );
     } catch (err) {
       console.error('[GitHub Webhook] SQL Error:', err);
