@@ -1,99 +1,73 @@
-import { pool } from '../db/pool.js';
+import { env } from '../config/env.js';
 
 const HEALTH_TIMEOUT_MS = 8000;
-const INVALID_JSON_MESSAGE = 'La URL no devolvió un JSON válido (Falta vercel.json o ruta errónea)';
 const CONTAMINATION_MESSAGE = 'ALERTA CRÍTICA: Contaminación de datos. Este entorno de pruebas está apuntando a la Base de Datos de Producción.';
 
-type EnvironmentType = 'production' | 'staging' | 'ephemeral';
+export type EnvironmentType = 'production' | 'staging' | 'ephemeral';
 type HealthPayload = { status?: unknown; database?: unknown; app_env?: unknown };
-
-const persistResult = (environmentId: string, status: 'active' | 'failed', errorDetails: string | null) =>
-  pool.query(
-    'UPDATE project_environments SET status = $2, error_details = $3 WHERE id = $1',
-    [environmentId, status, errorDetails],
-  );
+type InternalConfigPayload = { dbUrl?: unknown; isStaticOnly?: unknown };
 
 export const verifyEnvironmentHealth = async (
-  environmentId: string,
-  environmentType: EnvironmentType,
-  environmentUrl: string,
+  _environmentId: string,
+  type: EnvironmentType,
+  url: string,
   apiUrl?: string | null,
 ) => {
+  const targetBase = apiUrl?.trim() || url;
+  const parsed = new URL(targetBase);
+  if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('Protocolo de URL no soportado.');
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS);
+  const baseUrl = parsed.toString().replace(/\/+$/, '');
+  const requestOptions: RequestInit = {
+    method: 'GET',
+    redirect: 'follow',
+    signal: controller.signal,
+    headers: {
+      'user-agent': 'Bytecode-Environment-Health/3.0',
+      accept: 'application/json',
+    },
+  };
 
   try {
-    const targetBase = apiUrl?.trim() || environmentUrl;
-    const parsed = new URL(targetBase);
-    if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('Protocolo de URL no soportado.');
-    const healthUrl = `${parsed.toString().replace(/\/+$/, '')}/api/health`;
-    const headers: Record<string, string> = {
-      'user-agent': 'Bytecode-Environment-Health/2.0',
-      accept: 'application/json',
-    };
-    if (parsed.hostname.toLowerCase().endsWith('.vercel.app')) {
-      const projectResult = await pool.query<{ vercel_bypass_secret: string | null }>(
-        `SELECT p.vercel_bypass_secret
-         FROM project_environments pe
-         JOIN projects p ON p.id = pe.project_id
-         WHERE pe.id = $1 AND p.deleted_at IS NULL
-         LIMIT 1`,
-        [environmentId],
-      );
-      const bypassSecret = projectResult.rows[0]?.vercel_bypass_secret?.trim();
-      if (bypassSecret) headers['x-vercel-protection-bypass'] = bypassSecret;
-    }
+    const healthResponse = await fetch(`${baseUrl}/api/health`, requestOptions);
+    if (!healthResponse.ok) throw new Error('El backend no responde.');
 
-    const response = await fetch(healthUrl, {
-      method: 'GET',
-      redirect: 'follow',
-      signal: controller.signal,
-      headers,
-    });
-
-    if (response.status !== 200) {
-      await persistResult(environmentId, 'failed', `Error HTTP ${response.status}: ${response.statusText}`);
-      return;
-    }
-
-    let payload: HealthPayload;
+    let health: HealthPayload;
     try {
-      payload = await response.json() as HealthPayload;
+      health = await healthResponse.json() as HealthPayload;
     } catch {
-      await persistResult(environmentId, 'failed', INVALID_JSON_MESSAGE);
-      return;
+      throw new Error('El endpoint de salud no devolvió un JSON válido.');
     }
-
-    if ((environmentType === 'staging' || environmentType === 'ephemeral') && payload.app_env === 'production') {
-      await persistResult(environmentId, 'failed', CONTAMINATION_MESSAGE);
-      return;
-    }
-
-    if (payload.status !== 'ok' || payload.database !== 'connected') {
-      await persistResult(
-        environmentId,
-        'failed',
-        `Health Check inválido: status=${String(payload.status)}, database=${String(payload.database)}, app_env=${String(payload.app_env)}`,
+    if (health.status !== 'ok' || health.database !== 'connected') {
+      throw new Error(
+        `Health Check inválido: status=${String(health.status)}, database=${String(health.database)}, app_env=${String(health.app_env)}`,
       );
-      return;
     }
 
-    await persistResult(environmentId, 'active', null);
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    await persistResult(environmentId, 'failed', message);
+    if (type === 'staging' || type === 'ephemeral') {
+      if (health.app_env === 'production') throw new Error(CONTAMINATION_MESSAGE);
+
+      const configResponse = await fetch(`${baseUrl}/api/internal/config`, requestOptions);
+      if (!configResponse.ok) throw new Error('No se pudo validar la configuración interna del backend.');
+
+      let config: InternalConfigPayload;
+      try {
+        config = await configResponse.json() as InternalConfigPayload;
+      } catch {
+        throw new Error('La configuración interna no devolvió un JSON válido.');
+      }
+
+      if (config.isStaticOnly === true) {
+        console.log('Entorno estático detectado, omitiendo validación de BD.');
+      } else if (typeof config.dbUrl !== 'string' || !config.dbUrl.trim() || config.dbUrl === env.databaseUrl) {
+        throw new Error(CONTAMINATION_MESSAGE);
+      }
+    }
+
+    return true;
   } finally {
     clearTimeout(timeout);
   }
-};
-
-export const triggerEnvironmentVerification = (
-  environmentId: string,
-  environmentType: EnvironmentType,
-  environmentUrl: string,
-  apiUrl?: string | null,
-) => {
-  void verifyEnvironmentHealth(environmentId, environmentType, environmentUrl, apiUrl).catch((error: unknown) => {
-    console.error('Environment health verification failed:', error);
-  });
 };

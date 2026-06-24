@@ -16,7 +16,7 @@ import { allowedUploadMimeTypeList, validateUpload } from '../lib/validateUpload
 import { requireAdmin, requirePermission, requireSuperAdmin } from '../middleware/auth.js';
 import { requireCsrf } from '../middleware/csrf.js';
 import { auditService } from '../services/audit.js';
-import { triggerEnvironmentVerification } from '../services/environmentHealth.js';
+import { triggerEnvironmentVerification } from '../services/environmentVerification.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { HttpError } from '../utils/httpError.js';
 
@@ -2275,7 +2275,7 @@ router.post(
       [projectId, body.type, body.name, body.url, body.apiUrl || null],
     );
     if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
-    triggerEnvironmentVerification(result.rows[0].id, result.rows[0].type, result.rows[0].url, result.rows[0].api_url);
+    triggerEnvironmentVerification(result.rows[0].id, projectId);
     res.status(201).json({ item: result.rows[0] });
   }),
 );
@@ -2290,12 +2290,12 @@ router.post(
     const result = await pool.query(
       `UPDATE project_environments
        SET status = 'verifying', error_details = NULL
-       WHERE id = $1 AND project_id = $2
-       RETURNING id, type, url, api_url`,
+       WHERE id = $1 AND project_id = $2 AND type = 'ephemeral' AND status IN ('deployed_ui', 'failed')
+       RETURNING id`,
       [environmentId, projectId],
     );
-    if (!result.rowCount) throw new HttpError(404, 'Entorno no encontrado');
-    triggerEnvironmentVerification(result.rows[0].id, result.rows[0].type, result.rows[0].url, result.rows[0].api_url);
+    if (!result.rowCount) throw new HttpError(409, 'El entorno no está listo para iniciar la verificación.');
+    triggerEnvironmentVerification(environmentId, projectId);
     res.status(202).json({ ok: true });
   }),
 );

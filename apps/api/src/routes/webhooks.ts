@@ -135,7 +135,7 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
     }
     const updated = await pool.query(
       `UPDATE project_environments
-       SET url = $1, status = 'active', error_details = NULL
+       SET url = $1, status = 'deployed_ui', error_details = NULL
        WHERE project_id = $2 AND commit_sha = $3 AND type = 'ephemeral'`,
       [targetUrl, projectId, sha],
     );
