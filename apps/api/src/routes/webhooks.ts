@@ -122,20 +122,27 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
     client.release();
   }
 
-  const environmentType = branchName === 'main' ? 'production' : branchName === 'develop' ? 'staging' : null;
   let environmentsVerifying = 0;
-  if (environmentType) {
+  if (branchName === 'main') {
     const environments = await pool.query(
       `UPDATE project_environments
        SET status = 'verifying', error_details = NULL
-       WHERE project_id = $1 AND type = $2
+       WHERE project_id = $1 AND type = 'production'
        RETURNING id, type, url, api_url`,
-      [project.rows[0].id, environmentType],
+      [project.rows[0].id],
     );
     environmentsVerifying = environments.rowCount ?? 0;
     for (const environment of environments.rows) {
       triggerEnvironmentVerification(environment.id, environment.type, environment.url, environment.api_url);
     }
+  } else {
+    const environments = await pool.query(
+      `UPDATE project_environments
+       SET status = 'verifying', error_details = NULL
+       WHERE project_id = $1 AND type = 'ephemeral' AND branch_name = $2`,
+      [project.rows[0].id, branchName],
+    );
+    environmentsVerifying = environments.rowCount ?? 0;
   }
 
   res.status(202).json({ ok: true, inserted, environmentsVerifying });
@@ -145,7 +152,7 @@ router.post('/vercel', asyncHandler(async (req: Request, res: Response) => {
   const payload = req.body.payload || req.body;
   const deployment = (payload.deployment || payload) as VercelDeployment;
   const meta = payload.deployment?.meta || payload.meta || {} as VercelMeta;
-  const branchName = meta.githubCommitRef || meta.branch;
+  const branchName = payload.deployment?.meta?.githubCommitRef || payload.meta?.githubCommitRef || null;
   const target = payload.target || payload.deployment?.target;
 
   if (target === 'production' || branchName === 'main' || branchName === 'master') {
@@ -186,9 +193,12 @@ router.post('/vercel', asyncHandler(async (req: Request, res: Response) => {
   const environment = await pool.query(
     `INSERT INTO project_environments (project_id, type, name, url, branch_name, status)
      VALUES ($1, 'ephemeral', $2, $3, $4, 'verifying')
-     ON CONFLICT (project_id, type, name)
-     DO UPDATE SET url = EXCLUDED.url, branch_name = EXCLUDED.branch_name,
-                   status = 'verifying', error_details = NULL
+     ON CONFLICT (project_id, type, name) WHERE type != 'ephemeral'
+     DO UPDATE SET
+       url = EXCLUDED.url,
+       branch_name = EXCLUDED.branch_name,
+       status = 'verifying',
+       error_details = NULL
      RETURNING id, url, api_url`,
     [project.rows[0].id, name, environmentUrl, branchName],
   );
