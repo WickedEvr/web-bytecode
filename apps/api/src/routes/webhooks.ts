@@ -37,24 +37,26 @@ type GithubPullRequestPayload = {
   pull_request?: { head?: { ref?: string }; number?: number };
 };
 
-type VercelDeploymentPayload = {
-  type?: string;
-  payload?: {
-    deployment?: {
-      id?: string;
-      name?: string;
-      url?: string;
-      meta?: { githubCommitRef?: string; githubCommitOrg?: string; githubCommitRepo?: string };
-    };
+type VercelMeta = {
+  githubCommitRef?: string;
+  githubCommitOrg?: string;
+  githubCommitRepo?: string;
+};
+
+type VercelDeploymentData = {
+  deployment?: {
+    id?: string;
+    name?: string;
+    url?: string;
+    meta?: VercelMeta;
   };
+  meta?: VercelMeta;
 };
 
-const isProductionBranch = (branchName?: string | null) => {
-  const normalized = branchName?.trim().toLowerCase();
-  return normalized === 'main' || normalized === 'master';
+type VercelDeploymentPayload = VercelDeploymentData & {
+  type?: string;
+  payload?: VercelDeploymentData;
 };
-
-const MAX_NAME_LENGTH = 255;
 
 const findProjectByRepository = (repository?: { html_url?: string; full_name?: string }) => {
   const htmlUrl = repository?.html_url?.replace(/\/+$/, '') ?? null;
@@ -102,14 +104,10 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
 
   if (event === 'pull_request') {
     const payload = req.body as GithubPullRequestPayload;
-    const branchName = payload.pull_request?.head?.ref?.trim();
-    if (isProductionBranch(branchName)) {
-      res.status(202).json({ ok: true, ignored: true, reason: 'production_branch' });
-      return;
-    }
-    if (!branchName) {
-      res.status(202).json({ ok: true, ignored: true, reason: 'branch_missing' });
-      return;
+    const branchName = payload.pull_request?.head?.ref;
+    if (!branchName || branchName === 'main' || branchName === 'master') {
+      console.log(`Ignoring deployment for branch: ${branchName}`);
+      return res.status(200).json({ message: 'Ignored production/undefined branch preview' });
     }
 
     // PR payloads do not contain a deployed URL, so deployment webhooks own creation.
@@ -129,14 +127,10 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
 
   if (event === 'deployment_status') {
     const payload = req.body as GithubDeploymentStatusPayload;
-    const branchName = payload.deployment?.ref?.trim();
-    if (isProductionBranch(branchName)) {
-      res.status(202).json({ ok: true, ignored: true, reason: 'production_branch' });
-      return;
-    }
-    if (!branchName) {
-      res.status(202).json({ ok: true, ignored: true, reason: 'branch_missing' });
-      return;
+    const branchName = payload.deployment?.ref;
+    if (!branchName || branchName === 'main' || branchName === 'master') {
+      console.log(`Ignoring deployment for branch: ${branchName}`);
+      return res.status(200).json({ message: 'Ignored production/undefined branch preview' });
     }
     const project = await findProjectByRepository(payload.repository);
     if (!project.rowCount) {
@@ -144,9 +138,10 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
       return;
     }
     const state = payload.deployment_status?.state?.toLowerCase();
-    const name = payload.deployment?.environment || payload.deployment?.task ||
+    const deploymentName = payload.deployment?.environment || payload.deployment?.task ||
       (payload.deployment?.id ? `Deployment ${payload.deployment.id}` : null);
-    if (!name) throw new HttpError(400, 'Nombre de entorno ausente.');
+    if (!deploymentName) throw new HttpError(400, 'Nombre de entorno ausente.');
+    const name = `${deploymentName}: ${branchName}`;
 
     if (state === 'inactive' || state === 'destroyed') {
       const deleted = await pool.query(
@@ -167,8 +162,8 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
       const environment = await pool.query(
         `INSERT INTO project_environments (project_id, type, name, url, branch_name, status)
          VALUES ($1, 'ephemeral', $2, $3, $4, 'verifying')
-         ON CONFLICT (project_id, type, branch_name) WHERE type = 'ephemeral'
-         DO UPDATE SET url = EXCLUDED.url, name = EXCLUDED.name,
+         ON CONFLICT (project_id, type, name)
+         DO UPDATE SET url = EXCLUDED.url, branch_name = EXCLUDED.branch_name,
                        status = 'verifying', error_details = NULL
          RETURNING id, url, api_url`,
         [project.rows[0].id, name, environmentUrl, branchName],
@@ -248,19 +243,17 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
 router.post('/vercel', asyncHandler(async (req: Request, res: Response) => {
   verifyVercelSignature(req);
   const webhook = req.body as VercelDeploymentPayload;
-  const deployment = webhook.payload?.deployment;
-  const branchName = deployment?.meta?.githubCommitRef?.trim();
-  if (isProductionBranch(branchName)) {
-    res.status(202).json({ ok: true, ignored: true, reason: 'production_branch' });
-    return;
-  }
-  if (!branchName) {
-    res.status(202).json({ ok: true, ignored: true, reason: 'branch_missing' });
-    return;
+  const payload = webhook.payload ?? webhook;
+  const deployment = payload.deployment;
+  const branchName = payload.deployment?.meta?.githubCommitRef || payload.meta?.githubCommitRef;
+  if (!branchName || branchName === 'main' || branchName === 'master') {
+    console.log(`Ignoring deployment for branch: ${branchName}`);
+    return res.status(200).json({ message: 'Ignored production/undefined branch preview' });
   }
 
-  const repository = deployment?.meta?.githubCommitOrg && deployment.meta.githubCommitRepo
-    ? { full_name: `${deployment.meta.githubCommitOrg}/${deployment.meta.githubCommitRepo}` }
+  const deploymentMeta = deployment?.meta ?? payload.meta;
+  const repository = deploymentMeta?.githubCommitOrg && deploymentMeta.githubCommitRepo
+    ? { full_name: `${deploymentMeta.githubCommitOrg}/${deploymentMeta.githubCommitRepo}` }
     : undefined;
   const project = await findProjectByRepository(repository);
   if (!project.rowCount) {
@@ -268,10 +261,7 @@ router.post('/vercel', asyncHandler(async (req: Request, res: Response) => {
     return;
   }
 
-  let name = deployment?.name ? `${deployment.name}: ${branchName}` : branchName;
-  if (name.length > MAX_NAME_LENGTH) {
-    name = `${name.substring(0, MAX_NAME_LENGTH - 3)}...`;
-  }
+  const name = deployment?.name ? `${deployment.name}: ${branchName}` : branchName;
   if (webhook.type === 'deployment.canceled' || webhook.type === 'deployment.deleted') {
     const deleted = await pool.query(
       `DELETE FROM project_environments
@@ -295,8 +285,8 @@ router.post('/vercel', asyncHandler(async (req: Request, res: Response) => {
   const environment = await pool.query(
     `INSERT INTO project_environments (project_id, type, name, url, branch_name, status)
      VALUES ($1, 'ephemeral', $2, $3, $4, 'verifying')
-     ON CONFLICT (project_id, type, branch_name) WHERE type = 'ephemeral'
-     DO UPDATE SET url = EXCLUDED.url, name = EXCLUDED.name,
+     ON CONFLICT (project_id, type, name)
+     DO UPDATE SET url = EXCLUDED.url, branch_name = EXCLUDED.branch_name,
                    status = 'verifying', error_details = NULL
      RETURNING id, url, api_url`,
     [project.rows[0].id, name, environmentUrl, branchName],
