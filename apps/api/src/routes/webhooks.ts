@@ -122,11 +122,11 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
   if (environmentType === 'production') {
     await pool.query(
       `UPDATE project_environments
-       SET url = $1, status = 'active'
-       WHERE project_id = $2 AND type = 'production'`,
-      [targetUrl, projectId],
+       SET status = 'ready'
+       WHERE project_id = $1 AND type = 'production'`,
+      [projectId],
     );
-    return res.status(200).json({ message: 'Production updated' });
+    return res.status(200).json({ message: 'Production status synced, URL preserved' });
   }
 
   if (environmentType === 'preview' && state === 'success') {
