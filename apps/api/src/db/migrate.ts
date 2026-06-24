@@ -8,7 +8,6 @@ import { env } from '../config/env.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const schemaPath = path.resolve(__dirname, '../../../../docs/database/postgresql_enterprise_schema.sql');
 // Resolve from the API root so this works from both src/db (tsx) and dist/db (node).
 const migrationsPath = path.resolve(__dirname, '../../src/db/migrations');
 
@@ -63,10 +62,6 @@ async function migrate() {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    console.log('Reading enterprise schema from:', schemaPath);
-    const schema = await fs.readFile(schemaPath, 'utf-8');
-    console.log('Executing schema...');
-    await client.query(removeTransactionBoundaries(schema));
     await runMigrations(client);
     console.log('Seeding admins...');
     await seedAdmins(client);
