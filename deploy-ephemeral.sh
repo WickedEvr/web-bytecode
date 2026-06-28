@@ -39,13 +39,21 @@ case "$ACTION" in
         git checkout -B "$BRANCH_NAME" "origin/$BRANCH_NAME" || git checkout "$BRANCH_NAME"
         git pull origin "$BRANCH_NAME"
 
-        DB_PASSWORD=$(openssl rand -hex 16)
-        JWT_SECRET_PR=$(openssl rand -hex 32)
+        # Reutilizar credenciales si el .env ya existe para no romper la conexión con el volumen persistente de Postgres
+        if [ -f "$EPHEMERAL_ROOT/.env" ]; then
+            echo "--> Detectadas credenciales existentes..."
+            DB_PASSWORD=$(grep -E "^DB_PASSWORD=" "$EPHEMERAL_ROOT/.env" | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+            JWT_SECRET_PR=$(grep -E "^JWT_SECRET=" "$EPHEMERAL_ROOT/.env" | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+        else
+            echo "--> Generando nuevas credenciales..."
+            DB_PASSWORD=$(openssl rand -hex 16)
+            JWT_SECRET_PR=$(openssl rand -hex 32)
+        fi
 
-        # Copiar variables de producción
+        # Copiar las variables comunes de producción
         cp "$MAIN_ENV_FILE" "$EPHEMERAL_ROOT/.env"
         
-        # Actualizar credenciales en .env temporal
+        # Sobrescribir con las credenciales locales del PR
         sed -i "s/^DB_PASSWORD=.*/DB_PASSWORD=${DB_PASSWORD}/" "$EPHEMERAL_ROOT/.env"
         sed -i "s/^JWT_SECRET=.*/JWT_SECRET=${JWT_SECRET_PR}/" "$EPHEMERAL_ROOT/.env"
 
