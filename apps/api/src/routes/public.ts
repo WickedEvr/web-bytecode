@@ -27,6 +27,13 @@ router.get('/health', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/internal/config', (req: Request, res: Response) => {
+  res.status(200).json({
+    dbUrl: env.databaseUrl ? env.databaseUrl.replace(/:[^:@]+@/, ':****@') : '',
+    isStaticOnly: false
+  });
+});
+
 router.get('/settings', asyncHandler(async (req: Request, res: Response) => {
   const result = await pool.query('SELECT setting_key, setting_value FROM system_settings WHERE is_sensitive = false');
   const settings = result.rows.reduce((acc: Record<string, unknown>, row) => {
