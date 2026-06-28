@@ -25,10 +25,10 @@ async function seedAdmins(client: PoolClient) {
     if (!admin.email || !admin.password) continue;
 
     const passwordHash = await bcrypt.hash(admin.password, 12);
-    await client.query(
+    const res = await client.query(
       `
-      INSERT INTO admin_users (email, name, password_hash, role, is_verified, force_password_change)
-      VALUES ($1, $2, $3, 'super_admin', true, false)
+      INSERT INTO admin_users (email, name, password_hash, is_verified, force_password_change)
+      VALUES ($1, $2, $3, true, false)
       ON CONFLICT (email)
       DO UPDATE SET
         name = EXCLUDED.name,
@@ -37,9 +37,26 @@ async function seedAdmins(client: PoolClient) {
         is_verified = true,
         force_password_change = false,
         updated_at = now()
+      RETURNING id
       `,
       [admin.email.toLowerCase(), admin.name ?? admin.email, passwordHash],
     );
+
+    const adminId = res.rows[0]?.id;
+    if (adminId) {
+      const roleRes = await client.query("SELECT id FROM roles WHERE code = 'super_admin' LIMIT 1");
+      const roleId = roleRes.rows[0]?.id;
+      if (roleId) {
+        await client.query(
+          `
+          INSERT INTO admin_user_roles (admin_user_id, role_id)
+          VALUES ($1, $2)
+          ON CONFLICT (admin_user_id, role_id) DO NOTHING
+          `,
+          [adminId, roleId]
+        );
+      }
+    }
   }
 }
 
