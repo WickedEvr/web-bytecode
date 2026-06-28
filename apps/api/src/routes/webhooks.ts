@@ -11,9 +11,14 @@ const router = Router();
 
 type GithubRepository = { html_url?: string; full_name?: string };
 
-type GithubPushPayload = {
-  ref?: string;
-  after?: string;
+type GithubPullRequestPayload = {
+  action?: 'opened' | 'synchronize' | 'closed' | 'reopened';
+  number?: number;
+  pull_request?: {
+    head?: { ref?: string; sha?: string };
+    base?: { ref?: string };
+    state?: string;
+  };
   repository?: GithubRepository;
 };
 
@@ -60,21 +65,25 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
   if (githubEvent === 'ping') {
     return res.status(202).json({ message: 'Event ping ignored' });
   }
-  if (githubEvent !== 'push' && githubEvent !== 'deployment_status') {
+  if (githubEvent !== 'pull_request' && githubEvent !== 'deployment_status') {
     return res.status(202).json({ message: `Event ${githubEvent} ignored` });
   }
 
-  if (githubEvent === 'push') {
-    const payload = req.body as GithubPushPayload;
-    if (!payload.ref) return res.status(400).json({ error: 'Missing ref' });
-
-    const branchName = payload.ref.replace('refs/heads/', '');
-    const sha = payload.after;
-    if (branchName === 'main' || branchName === 'master') {
-      console.log(`[GitHub Webhook] Ignored production push for branch: ${branchName}`);
-      return res.status(200).json({ message: 'Production push ignored; no preview created.' });
+  if (githubEvent === 'pull_request') {
+    const payload = req.body as GithubPullRequestPayload;
+    if (!payload.action || !payload.pull_request) {
+      return res.status(400).json({ error: 'Missing pull_request payload data' });
     }
-    if (!sha) return res.status(400).json({ error: 'Missing commit SHA' });
+
+    const action = payload.action;
+    const branchName = payload.pull_request.head?.ref;
+    const sha = payload.pull_request.head?.sha;
+
+    if (!branchName) return res.status(400).json({ error: 'Missing head branch name' });
+
+    if (branchName === 'main' || branchName === 'master') {
+      return res.status(200).json({ message: 'Main branch PR ignored.' });
+    }
 
     const repoName = payload.repository?.full_name;
     let projectId: string | undefined;
@@ -91,21 +100,40 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
       return res.status(200).json({ message: 'Skipped: No project found' });
     }
 
-    const initialUrl = null;
-    try {
-      await pool.query(
-        `INSERT INTO project_environments (project_id, type, name, branch_name, commit_sha, status, url)
-         VALUES ($1, 'ephemeral', $2, $3, $4, 'verifying', $5)
-         ON CONFLICT (project_id, type, name)
-         DO UPDATE SET commit_sha = EXCLUDED.commit_sha, branch_name = EXCLUDED.branch_name,
-                       status = 'verifying', error_details = NULL`,
-        [projectId, `Preview: ${branchName}`, branchName, sha, initialUrl],
-      );
-    } catch (err) {
-      console.error('[GitHub Webhook] SQL Error:', err);
-      return res.status(200).json({ message: 'SQL Error occurred, but we caught it' });
+    if (action === 'opened' || action === 'synchronize' || action === 'reopened') {
+      if (!sha) return res.status(400).json({ error: 'Missing commit SHA' });
+      const initialUrl = null;
+      try {
+        await pool.query(
+          `INSERT INTO project_environments (project_id, type, name, branch_name, commit_sha, status, url)
+           VALUES ($1, 'ephemeral', $2, $3, $4, 'verifying', $5)
+           ON CONFLICT (project_id, type, name)
+           DO UPDATE SET commit_sha = EXCLUDED.commit_sha, branch_name = EXCLUDED.branch_name,
+                         status = 'verifying', error_details = NULL`,
+          [projectId, `Preview: ${branchName}`, branchName, sha, initialUrl],
+        );
+      } catch (err) {
+        console.error('[GitHub Webhook] SQL Error:', err);
+        return res.status(200).json({ message: 'SQL Error occurred, but we caught it' });
+      }
+      return res.status(200).json({ message: 'Preview environment initialized/updated', branchName, sha });
     }
-    return res.status(200).json({ message: 'Preview initialized', branchName, sha });
+
+    if (action === 'closed') {
+      try {
+        await pool.query(
+          `UPDATE project_environments
+           SET status = 'destroyed', url = NULL, error_details = NULL, audit_report = NULL
+           WHERE project_id = $1 AND branch_name = $2 AND type = 'ephemeral'`,
+          [projectId, branchName],
+        );
+      } catch (err) {
+        console.error('[GitHub Webhook] SQL Error on PR close:', err);
+      }
+      return res.status(200).json({ message: 'Preview environment marked as destroyed', branchName });
+    }
+
+    return res.status(200).json({ message: `Action ${action} ignored` });
   }
 
   const payload = req.body as GithubDeploymentStatusPayload;

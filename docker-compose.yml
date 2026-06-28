@@ -27,6 +27,7 @@ services:
       PORT: 4000
       DATABASE_URL: postgresql://bytecode_user:${DB_PASSWORD}@db:5432/bytecode_prod?sslmode=disable
       JWT_SECRET: ${JWT_SECRET}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET}
       COOKIE_NAME: bc_admin
       COOKIE_SAME_SITE: lax
       CORS_ORIGINS: https://bytecode.com.pe,https://www.bytecode.com.pe
