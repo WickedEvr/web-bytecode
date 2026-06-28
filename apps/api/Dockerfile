@@ -6,7 +6,7 @@ COPY package.json package-lock.json ./
 COPY apps/api/package.json ./apps/api/
 
 # Instalar todas las dependencias
-RUN npm ci
+RUN npm install --no-audit --no-fund
 
 # Copiar el código fuente de la API
 COPY apps/api/ ./apps/api/
@@ -23,7 +23,7 @@ COPY package.json package-lock.json ./
 COPY apps/api/package.json ./apps/api/
 
 # Instalar solo dependencias de producción
-RUN npm ci --omit=dev
+RUN npm install --omit=dev --no-audit --no-fund
 
 # Copiar el build compilado y scripts necesarios
 COPY --from=builder /app/apps/api/dist ./apps/api/dist

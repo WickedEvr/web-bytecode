@@ -11,6 +11,18 @@ const router = Router();
 
 type GithubRepository = { html_url?: string; full_name?: string };
 
+type GithubPushPayload = {
+  ref?: string;
+  repository?: GithubRepository;
+  commits?: Array<{
+    id: string;
+    message: string;
+    timestamp: string;
+    url: string;
+    author: { name: string; email: string };
+  }>;
+};
+
 type GithubPullRequestPayload = {
   action?: 'opened' | 'synchronize' | 'closed' | 'reopened';
   number?: number;
@@ -65,8 +77,58 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
   if (githubEvent === 'ping') {
     return res.status(202).json({ message: 'Event ping ignored' });
   }
-  if (githubEvent !== 'pull_request' && githubEvent !== 'deployment_status') {
+  if (githubEvent !== 'pull_request' && githubEvent !== 'deployment_status' && githubEvent !== 'push') {
     return res.status(202).json({ message: `Event ${githubEvent} ignored` });
+  }
+
+  if (githubEvent === 'push') {
+    const payload = req.body as GithubPushPayload;
+    const branchName = payload.ref?.replace('refs/heads/', '') ?? '';
+    const repoName = payload.repository?.full_name;
+
+    let projectId: string | undefined;
+    try {
+      const project = await findProjectByRepository(payload.repository);
+      projectId = project.rows[0]?.id as string | undefined;
+    } catch (lookupError) {
+      console.error('[GitHub Webhook] Project lookup error for repo:', repoName, lookupError);
+      return res.status(200).json({ message: 'Skipped: Project lookup failed' });
+    }
+
+    if (!projectId) {
+      console.error('[GitHub Webhook] CRITICAL: Could not resolve projectId for repo:', repoName);
+      return res.status(200).json({ message: 'Skipped: No project found' });
+    }
+
+    const commits = payload.commits || [];
+    let insertedCount = 0;
+
+    for (const commit of commits) {
+      try {
+        await pool.query(
+          `INSERT INTO project_commits (
+            project_id, commit_hash, message, author_name, author_email, 
+            branch, github_url, committed_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           ON CONFLICT (project_id, commit_hash) DO NOTHING`,
+          [
+            projectId,
+            commit.id,
+            commit.message,
+            commit.author?.name || 'Unknown',
+            commit.author?.email || '',
+            branchName,
+            commit.url || '',
+            commit.timestamp ? new Date(commit.timestamp) : new Date(),
+          ],
+        );
+        insertedCount++;
+      } catch (err) {
+        console.error('[GitHub Webhook] SQL Error saving commit:', commit.id, err);
+      }
+    }
+
+    return res.status(200).json({ message: `Processed ${commits.length} commits, inserted ${insertedCount}`, projectId });
   }
 
   if (githubEvent === 'pull_request') {
