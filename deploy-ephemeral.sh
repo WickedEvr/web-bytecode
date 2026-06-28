@@ -19,6 +19,10 @@ case "$ACTION" in
     opened|synchronize)
         echo "--> Creando/Actualizando entorno efímero..."
         mkdir -p /var/www/ephemeral
+        mkdir -p "$CADDY_CONF_DIR"
+        if [ ! -f "${CADDY_CONF_DIR}/placeholder.conf" ]; then
+            echo "# Placeholder for Caddy dynamic imports" > "${CADDY_CONF_DIR}/placeholder.conf"
+        fi
 
         # Sincronizar el repositorio base de producción con GitHub
         echo "--> Sincronizando ramas de GitHub en repositorio base..."

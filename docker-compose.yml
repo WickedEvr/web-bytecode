@@ -71,6 +71,7 @@ services:
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
+      - /var/www/caddy-ephemeral:/etc/caddy/conf.d
       - caddy_data:/data
       - caddy_config:/config
     depends_on:

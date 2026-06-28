@@ -10,3 +10,5 @@ bytecode.com.pe, www.bytecode.com.pe {
 api.bytecode.com.pe {
     reverse_proxy backend:4000
 }
+
+import /etc/caddy/conf.d/*.conf
