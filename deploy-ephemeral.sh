@@ -74,7 +74,7 @@ api-pr${PR_NUMBER}.env.bytecode.com.pe {
 
         echo "--> Notificando al Backend del nuevo despliegue..."
         # Leer JWT_SECRET limpiando comillas dobles y simples
-        PROD_JWT_SECRET=$(grep -E "^JWT_SECRET=" "$MAIN_ENV_FILE" | cut -d'=' -f2- | tr -d '"'\'')
+        PROD_JWT_SECRET=$(grep -E "^JWT_SECRET=" "$MAIN_ENV_FILE" | cut -d'=' -f2- | tr -d '"' | tr -d "'")
         
         curl -s -X POST https://api.bytecode.com.pe/api/webhooks/ephemeral-deploy \
           -H "Authorization: Bearer ${PROD_JWT_SECRET}" \
@@ -102,7 +102,7 @@ api-pr${PR_NUMBER}.env.bytecode.com.pe {
 
         echo "--> Notificando al Backend de la desinstalación..."
         # Leer JWT_SECRET limpiando comillas
-        PROD_JWT_SECRET=$(grep -E "^JWT_SECRET=" "$MAIN_ENV_FILE" | cut -d'=' -f2- | tr -d '"'\'')
+        PROD_JWT_SECRET=$(grep -E "^JWT_SECRET=" "$MAIN_ENV_FILE" | cut -d'=' -f2- | tr -d '"' | tr -d "'")
 
         curl -s -X POST https://api.bytecode.com.pe/api/webhooks/ephemeral-deploy \
           -H "Authorization: Bearer ${PROD_JWT_SECRET}" \
