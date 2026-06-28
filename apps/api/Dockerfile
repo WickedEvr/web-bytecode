@@ -28,6 +28,7 @@ RUN npm install --omit=dev --no-audit --no-fund
 # Copiar el build compilado y scripts necesarios
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/scripts ./apps/api/scripts
+COPY --from=builder /app/apps/api/src/db/migrations ./apps/api/src/db/migrations
 
 EXPOSE 4000
 CMD ["npm", "run", "start", "-w", "@bytecode/api"]
