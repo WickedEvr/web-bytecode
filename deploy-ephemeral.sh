@@ -65,8 +65,11 @@ case "$ACTION" in
         echo "--> Levantando contenedores en Docker..."
         docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml up -d --build
 
+        echo "--> Inicializando esquema base de datos..."
+        docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T db psql -U bytecode_user -d "bytecode_pr_${PR_NUMBER}" < docs/database/postgresql_enterprise_schema.sql
+
         echo "--> Corriendo migraciones en la base de datos temporal..."
-        sleep 6
+        sleep 2
         docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T backend node apps/api/dist/db/migrate.js
 
         echo "--> Configurando subdominio dinámico en Caddy..."
