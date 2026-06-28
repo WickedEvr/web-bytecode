@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
-import { AlertCircle, ExternalLink, Eye, EyeOff, GitBranch, LoaderCircle, Plus, RefreshCw, ShieldCheck, Trash2, X } from 'lucide-react';
+import { AlertCircle, ExternalLink, GitBranch, LoaderCircle, Plus, RefreshCw, ShieldCheck, Trash2, X } from 'lucide-react';
 import AdminPanel from './AdminPanel';
 import RoleGuard from './RoleGuard';
-import type { AdminUser } from './AdminLayout';
 import CustomDropdown from '../ui/CustomDropdown';
-import { createProjectEnvironment, deleteProjectEnvironment, fetchProjectEnvironments, retryProjectEnvironment, updateProject, type ProjectEnvironment } from '../../lib/api';
+import { createProjectEnvironment, deleteProjectEnvironment, fetchProjectEnvironments, retryProjectEnvironment, type ProjectEnvironment } from '../../lib/api';
 
 const typeLabels: Record<ProjectEnvironment['type'], string> = {
   production: 'Prod',
@@ -31,8 +29,6 @@ const EnvironmentAuditReport: React.FC<{
 );
 
 const ProjectEnvironmentsHub: React.FC<{ projectId: string }> = ({ projectId }) => {
-  const { admin } = useOutletContext<{ admin: AdminUser }>();
-  const canManage = admin.roles?.includes('super_admin') || admin.permissions?.includes('admin.proyectos.manage');
   const [items, setItems] = useState<ProjectEnvironment[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -105,7 +101,7 @@ const ProjectEnvironmentsHub: React.FC<{ projectId: string }> = ({ projectId }) 
     }
   };
 
-
+  return (
     <AdminPanel className="overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 px-6 py-5"><div><h2 className="font-semibold text-white/85">Hub de Entornos</h2><p className="mt-1 text-xs text-white/35">URLs fijas y previews sincronizados desde GitHub.</p></div><RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}><button type="button" onClick={() => setModalOpen(true)} className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black"><Plus className="h-4 w-4" />Añadir Entorno</button></RoleGuard></div>
       {error && <p className="m-5 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</p>}

@@ -5,7 +5,7 @@ import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { UAParser } from 'ua-parser-js';
 import { env } from '../config/env.js';
-import { COOKIE_NAME } from '../config/constants.js';
+import { COOKIE_NAME, COOKIE_SAME_SITE, COOKIE_SECURE } from '../config/constants.js';
 import { pool } from '../db/pool.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { HttpError } from '../utils/httpError.js';
@@ -134,8 +134,8 @@ router.post(
     // Secure Cookies
     res.cookie(COOKIE_NAME, plainToken, {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none',
+      secure: COOKIE_SECURE,
+      sameSite: COOKIE_SAME_SITE,
       maxAge: ONE_HOUR_MS,
       path: '/',
     });
@@ -143,8 +143,8 @@ router.post(
     // Maintain CSRF compatibility cookie
     res.cookie('bc_csrf', crypto.randomUUID(), {
       httpOnly: false,
-      secure: true,
-      sameSite: 'none',
+      secure: COOKIE_SECURE,
+      sameSite: COOKIE_SAME_SITE,
       maxAge: ONE_HOUR_MS,
       path: '/',
     });
@@ -174,8 +174,8 @@ router.get('/csrf', (req: Request, res: Response) => {
     token = crypto.randomUUID();
     res.cookie('bc_csrf', token, {
       httpOnly: false,
-      secure: true,
-      sameSite: 'none',
+      secure: COOKIE_SECURE,
+      sameSite: COOKIE_SAME_SITE,
       maxAge: 60 * 60 * 1000, // 1 Hour
       path: '/',
     });

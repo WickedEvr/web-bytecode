@@ -1,5 +1,10 @@
 bytecode.com.pe, www.bytecode.com.pe {
-    reverse_proxy frontend:80
+    handle /api/* {
+        reverse_proxy backend:4000
+    }
+    handle {
+        reverse_proxy frontend:80
+    }
 }
 
 api.bytecode.com.pe {
