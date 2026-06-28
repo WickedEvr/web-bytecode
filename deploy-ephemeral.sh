@@ -61,6 +61,14 @@ case "$ACTION" in
         sed -i "s/^DB_PASSWORD=.*/DB_PASSWORD=${DB_PASSWORD}/" "$EPHEMERAL_ROOT/.env"
         sed -i "s/^JWT_SECRET=.*/JWT_SECRET=${JWT_SECRET_PR}/" "$EPHEMERAL_ROOT/.env"
 
+        # Si no existen variables de admin seed, definir unas por defecto para el entorno efímero
+        if ! grep -q "^ADMIN_1_EMAIL=" "$EPHEMERAL_ROOT/.env"; then
+            echo "" >> "$EPHEMERAL_ROOT/.env"
+            echo "ADMIN_1_NAME=\"Admin Efimero\"" >> "$EPHEMERAL_ROOT/.env"
+            echo "ADMIN_1_EMAIL=\"admin@bytecode.com.pe\"" >> "$EPHEMERAL_ROOT/.env"
+            echo "ADMIN_1_PASSWORD=\"BytecodeAdmin2026!\"" >> "$EPHEMERAL_ROOT/.env"
+        fi
+
         export PR_NUMBER DB_PASSWORD JWT_SECRET_PR
         set -a
         . "$EPHEMERAL_ROOT/.env"
