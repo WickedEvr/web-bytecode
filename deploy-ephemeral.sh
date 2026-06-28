@@ -42,8 +42,8 @@ case "$ACTION" in
         # Reutilizar credenciales si el .env ya existe para no romper la conexión con el volumen persistente de Postgres
         if [ -f "$EPHEMERAL_ROOT/.env" ]; then
             echo "--> Detectadas credenciales existentes..."
-            DB_PASSWORD=$(grep -E "^DB_PASSWORD=" "$EPHEMERAL_ROOT/.env" | cut -d'=' -f2- | tr -d '"' | tr -d "'")
-            JWT_SECRET_PR=$(grep -E "^JWT_SECRET=" "$EPHEMERAL_ROOT/.env" | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+            DB_PASSWORD=$(grep -E "^DB_PASSWORD=" "$EPHEMERAL_ROOT/.env" | cut -d'=' -f2- | tr -d '"' | tr -d "'" | tr -d '\r')
+            JWT_SECRET_PR=$(grep -E "^JWT_SECRET=" "$EPHEMERAL_ROOT/.env" | cut -d'=' -f2- | tr -d '"' | tr -d "'" | tr -d '\r')
         else
             echo "--> Generando nuevas credenciales..."
             DB_PASSWORD=$(openssl rand -hex 16)
@@ -82,7 +82,7 @@ api-pr${PR_NUMBER}.env.bytecode.com.pe {
 
         echo "--> Notificando al Backend del nuevo despliegue..."
         # Leer JWT_SECRET limpiando comillas dobles y simples
-        PROD_JWT_SECRET=$(grep -E "^JWT_SECRET=" "$MAIN_ENV_FILE" | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+        PROD_JWT_SECRET=$(grep -E "^JWT_SECRET=" "$MAIN_ENV_FILE" | cut -d'=' -f2- | tr -d '"' | tr -d "'" | tr -d '\r')
         
         curl -s -X POST https://api.bytecode.com.pe/api/webhooks/ephemeral-deploy \
           -H "Authorization: Bearer ${PROD_JWT_SECRET}" \
@@ -110,7 +110,7 @@ api-pr${PR_NUMBER}.env.bytecode.com.pe {
 
         echo "--> Notificando al Backend de la desinstalación..."
         # Leer JWT_SECRET limpiando comillas
-        PROD_JWT_SECRET=$(grep -E "^JWT_SECRET=" "$MAIN_ENV_FILE" | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+        PROD_JWT_SECRET=$(grep -E "^JWT_SECRET=" "$MAIN_ENV_FILE" | cut -d'=' -f2- | tr -d '"' | tr -d "'" | tr -d '\r')
 
         curl -s -X POST https://api.bytecode.com.pe/api/webhooks/ephemeral-deploy \
           -H "Authorization: Bearer ${PROD_JWT_SECRET}" \
