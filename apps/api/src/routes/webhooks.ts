@@ -5,6 +5,7 @@ import { env } from '../config/env.js';
 import { pool } from '../db/pool.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { HttpError } from '../utils/httpError.js';
+import { triggerEnvironmentVerification } from '../services/environmentVerification.js';
 
 const router = Router();
 
@@ -146,6 +147,46 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
   }
 
   return res.status(200).json({ message: 'Ignored status' });
+}));
+
+router.post('/ephemeral-deploy', asyncHandler(async (req: Request, res: Response) => {
+  const { branchName, url, apiUrl, status } = req.body;
+
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    throw new HttpError(401, 'No autorizado: Falta el token');
+  }
+  const token = authHeader.split(' ')[1];
+  if (token !== env.jwtSecret) {
+    throw new HttpError(401, 'No autorizado: Token invalido');
+  }
+
+  if (status === 'destroyed') {
+    await pool.query(
+      `UPDATE project_environments
+       SET status = 'destroyed', url = NULL, error_details = NULL, audit_report = NULL
+       WHERE branch_name = $1 AND type = 'ephemeral'`,
+      [branchName],
+    );
+    return res.status(200).json({ ok: true, message: 'Ephemeral environment marked as destroyed' });
+  }
+
+  const result = await pool.query(
+    `UPDATE project_environments
+     SET url = $1, api_url = $2, status = 'deployed_ui', error_details = NULL
+     WHERE branch_name = $3 AND type = 'ephemeral'
+     RETURNING id, project_id`,
+    [url, apiUrl, branchName],
+  );
+
+  if (result.rowCount) {
+    const { id, project_id } = result.rows[0];
+    triggerEnvironmentVerification(id, project_id);
+  } else {
+    console.warn(`[Webhook] No ephemeral environment row found for branch: ${branchName} to update to deployed_ui.`);
+  }
+
+  res.status(200).json({ ok: true, message: 'Ephemeral environment updated and verification triggered' });
 }));
 
 export default router;
