@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  db-pr-${PR_NUMBER}:
+  db-pr:
     image: postgres:17-alpine
     container_name: bytecode-db-pr-${PR_NUMBER}
     restart: always
@@ -45,7 +45,7 @@ services:
       MAIL_FROM: ${MAIL_FROM}
       ADMIN_NOTIFICATION_EMAILS: ${ADMIN_NOTIFICATION_EMAILS}
     depends_on:
-      - db-pr-${PR_NUMBER}
+      - db-pr
     networks:
       - bytecode-network
 
