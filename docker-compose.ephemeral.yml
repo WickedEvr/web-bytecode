@@ -14,7 +14,7 @@ services:
     networks:
       - bytecode-network
 
-  backend:
+  backend-pr:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
@@ -49,7 +49,7 @@ services:
     networks:
       - bytecode-network
 
-  frontend:
+  frontend-pr:
     build:
       context: .
       dockerfile: Dockerfile.frontend
