@@ -70,7 +70,7 @@ case "$ACTION" in
         sleep 8
 
         echo "--> Inicializando esquema base de datos..."
-        docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T db psql -U bytecode_user -d "bytecode_pr_${PR_NUMBER}" < /var/www/web-bytecode/docs/database/production_schema.sql
+        docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T db-pr psql -U bytecode_user -d "bytecode_pr_${PR_NUMBER}" < /var/www/web-bytecode/docs/database/production_schema.sql
 
         echo "--> Corriendo migraciones en la base de datos temporal..."
         docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T backend node apps/api/dist/db/migrate.js
