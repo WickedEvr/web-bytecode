@@ -86,7 +86,12 @@ case "$ACTION" in
 
         echo "--> Configurando subdominio dinámico en Caddy..."
         echo "pr${PR_NUMBER}.env.bytecode.com.pe {
-    reverse_proxy bytecode-frontend-pr-${PR_NUMBER}:80
+    handle /api/* {
+        reverse_proxy bytecode-backend-pr-${PR_NUMBER}:4000
+    }
+    handle {
+        reverse_proxy bytecode-frontend-pr-${PR_NUMBER}:80
+    }
 }
 api-pr${PR_NUMBER}.env.bytecode.com.pe {
     reverse_proxy bytecode-backend-pr-${PR_NUMBER}:4000
