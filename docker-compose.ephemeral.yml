@@ -26,6 +26,7 @@ services:
       DATABASE_URL: postgresql://bytecode_user:${DB_PASSWORD}@db:5432/bytecode_pr_${PR_NUMBER}?sslmode=disable
       DATABASE_SSL: "false"
       JWT_SECRET: ${JWT_SECRET}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET}
       COOKIE_NAME: bc_admin_pr_${PR_NUMBER}
       COOKIE_SAME_SITE: lax
       COOKIE_SECURE: "true"
