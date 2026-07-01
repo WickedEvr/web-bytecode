@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: bytecode-db
+    restart: always
+    environment:
+      POSTGRES_USER: bytecode_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: bytecode_prod
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432" # Expuesto solo a localhost por seguridad
+    networks:
+      - bytecode-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: bytecode-backend
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://bytecode_user:${DB_PASSWORD}@db:5432/bytecode_prod?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET}
+      COOKIE_NAME: bc_admin
+      COOKIE_SAME_SITE: lax
+      CORS_ORIGINS: https://bytecode.com.pe,https://www.bytecode.com.pe
+      PUBLIC_API_URL: https://api.bytecode.com.pe/
+      MAX_UPLOAD_MB: 10
+      # Cloudinary
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+      CLOUDINARY_UPLOAD_FOLDER: complaints-attachments
+      # SMTP (Brevo)
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_SECURE: ${SMTP_SECURE}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      MAIL_FROM: ${MAIL_FROM}
+      ADMIN_NOTIFICATION_EMAILS: ${ADMIN_NOTIFICATION_EMAILS}
+    depends_on:
+      - db
+    networks:
+      - bytecode-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        VITE_API_BASE_URL: https://api.bytecode.com.pe
+    container_name: bytecode-frontend
+    restart: always
+    networks:
+      - bytecode-network
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: bytecode-proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - /var/www/caddy-ephemeral:/etc/caddy/conf.d
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - bytecode-network
+
+networks:
+  bytecode-network:
+    driver: bridge
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

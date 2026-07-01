@@ -18,13 +18,20 @@ const router = Router();
 
 router.get('/health', async (req: Request, res: Response) => {
   try {
-    // Execute a lightweight query to force Neon out of zero-compute sleep mode
+    // Verificar que la base de datos responda correctamente
     await pool.query('SELECT 1 AS status'); 
-    res.status(200).json({ status: 'awake', timestamp: new Date().toISOString() });
+    res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
   } catch (error) {
     console.error("Health check failed:", error);
-    res.status(500).json({ status: 'error', message: 'Database wake failure' });
+    res.status(500).json({ status: 'error', message: 'Database connection failure' });
   }
+});
+
+router.get('/internal/config', (req: Request, res: Response) => {
+  res.status(200).json({
+    dbUrl: env.databaseUrl ? env.databaseUrl.replace(/:[^:@]+@/, ':****@') : '',
+    isStaticOnly: false
+  });
 });
 
 router.get('/settings', asyncHandler(async (req: Request, res: Response) => {
@@ -205,12 +212,6 @@ router.get('/catalog/pricing', asyncHandler(async (req: Request, res: Response) 
     [userRole]
   );
   res.json({ items: result.rows });
-}));
-
-router.get('/warmup', asyncHandler(async (_req: Request, res: Response) => {
-  await pool.query('SELECT 1');
-  res.setHeader('Cache-Control', 'no-store');
-  res.json({ ok: true });
 }));
 
 router.get('/portfolio', asyncHandler(async (_req: Request, res: Response) => {

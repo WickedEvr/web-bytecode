@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  db-pr:
+    image: postgres:17-alpine
+    container_name: bytecode-db-pr-${PR_NUMBER}
+    restart: always
+    environment:
+      POSTGRES_USER: bytecode_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: bytecode_pr_${PR_NUMBER}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - bytecode-network
+
+  backend-pr:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: bytecode-backend-pr-${PR_NUMBER}
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://bytecode_user:${DB_PASSWORD}@bytecode-db-pr-${PR_NUMBER}:5432/bytecode_pr_${PR_NUMBER}?sslmode=disable
+      DATABASE_SSL: "false"
+      JWT_SECRET: ${JWT_SECRET}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET}
+      COOKIE_NAME: bc_admin_pr_${PR_NUMBER}
+      COOKIE_SAME_SITE: lax
+      COOKIE_SECURE: "true"
+      CORS_ORIGINS: https://pr${PR_NUMBER}.env.bytecode.com.pe,http://localhost:5173
+      PUBLIC_API_URL: https://api-pr${PR_NUMBER}.env.bytecode.com.pe/
+      MAX_UPLOAD_MB: 10
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+      CLOUDINARY_UPLOAD_FOLDER: complaints-attachments-pr-${PR_NUMBER}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_SECURE: ${SMTP_SECURE}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      MAIL_FROM: ${MAIL_FROM}
+      ADMIN_NOTIFICATION_EMAILS: ${ADMIN_NOTIFICATION_EMAILS}
+      ADMIN_1_NAME: ${ADMIN_1_NAME}
+      ADMIN_1_EMAIL: ${ADMIN_1_EMAIL}
+      ADMIN_1_PASSWORD: ${ADMIN_1_PASSWORD}
+      ADMIN_2_NAME: ${ADMIN_2_NAME}
+      ADMIN_2_EMAIL: ${ADMIN_2_EMAIL}
+      ADMIN_2_PASSWORD: ${ADMIN_2_PASSWORD}
+    depends_on:
+      - db-pr
+    networks:
+      - bytecode-network
+
+  frontend-pr:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        VITE_API_BASE_URL: https://api-pr${PR_NUMBER}.env.bytecode.com.pe
+    container_name: bytecode-frontend-pr-${PR_NUMBER}
+    restart: always
+    networks:
+      - bytecode-network
+
+networks:
+  bytecode-network:
+    # Se conecta a la red compartida del Caddy de producción
+    name: web-bytecode_bytecode-network
+    external: true
+
+volumes:
+  pgdata:
