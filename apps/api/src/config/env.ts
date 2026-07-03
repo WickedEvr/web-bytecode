@@ -33,7 +33,6 @@ const requireInProduction = (key: string, value: string | undefined) => {
   }
 };
 
-const smtpRequired = parseBoolean(process.env.REQUIRE_SMTP, false);
 
 requireInProduction('DATABASE_URL', process.env.DATABASE_URL);
 requireInProduction('JWT_SECRET', process.env.JWT_SECRET);
@@ -60,21 +59,6 @@ export const env = {
     idleTimeoutMs: parseNumber(process.env.DATABASE_IDLE_TIMEOUT_MS, 30000),
     connectionTimeoutMs: parseNumber(process.env.DATABASE_CONNECTION_TIMEOUT_MS, 10000),
     maxUses: parseNumber(process.env.DATABASE_MAX_USES, 7500),
-  },
-  cloudinary: {
-    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
-    apiKey: process.env.CLOUDINARY_API_KEY,
-    apiSecret: process.env.CLOUDINARY_API_SECRET,
-    uploadTimeoutMs: Number(process.env.CLOUDINARY_UPLOAD_TIMEOUT_MS ?? 30000),
-  },
-  smtp: {
-    required: smtpRequired,
-    host: process.env.SMTP_HOST,
-    port: parseNumber(process.env.SMTP_PORT, 587),
-    secure: parseBoolean(process.env.SMTP_SECURE, false),
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-    maxRetries: parseNumber(process.env.SMTP_MAX_RETRIES, 2),
   },
   adminSeeds: [
     {

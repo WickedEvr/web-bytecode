@@ -104,6 +104,7 @@ case "$ACTION" in
 api-pr${PR_NUMBER}.env.bytecode.com.pe {
     reverse_proxy bytecode-backend-pr-${PR_NUMBER}:4000
 }" > "${CADDY_CONF_DIR}/pr-${PR_NUMBER}.conf"
+        chmod 644 "${CADDY_CONF_DIR}/pr-${PR_NUMBER}.conf"
 
         echo "--> Recargando Caddy..."
         docker exec bytecode-proxy caddy reload --config /etc/caddy/Caddyfile

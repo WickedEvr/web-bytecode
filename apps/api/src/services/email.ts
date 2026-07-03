@@ -4,6 +4,8 @@ import { pool } from '../db/pool.js';
 import { buildAdminNotification } from './emailTemplates.js';
 import { getSmtpConfig } from './settings.js';
 
+const SMTP_MAX_RETRIES = Number(process.env.SMTP_MAX_RETRIES ?? 2);
+
 // 1. DEFINICIÓN DE MÓDULOS Y REMITENTES DINÁMICOS
 export type EmailModuleType = 'complaint' | 'quote' | 'contact' | 'system';
 
@@ -102,13 +104,13 @@ export async function notifyAdmins(
   };
 
   let lastError: unknown;
-  for (let attempt = 0; attempt <= (env.smtp.maxRetries || 3); attempt += 1) {
+  for (let attempt = 0; attempt <= SMTP_MAX_RETRIES; attempt += 1) {
     try {
       await transporter.sendMail(message);
       return;
     } catch (error) {
       lastError = error;
-      if (attempt < (env.smtp.maxRetries || 3)) {
+      if (attempt < SMTP_MAX_RETRIES) {
         await wait(500 * (attempt + 1));
       }
     }
@@ -146,13 +148,13 @@ export async function sendCustomerAcknowledgement(
   };
 
   let lastError: unknown;
-  for (let attempt = 0; attempt <= (env.smtp.maxRetries || 3); attempt += 1) {
+  for (let attempt = 0; attempt <= SMTP_MAX_RETRIES; attempt += 1) {
     try {
       await transporter.sendMail(message);
       return;
     } catch (error) {
       lastError = error;
-      if (attempt < (env.smtp.maxRetries || 3)) {
+      if (attempt < SMTP_MAX_RETRIES) {
         await wait(500 * (attempt + 1));
       }
     }

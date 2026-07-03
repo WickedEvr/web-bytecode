@@ -62,14 +62,7 @@ ADMIN_1_PASSWORD=contraseña-segura
 ADMIN_2_NAME=Admin 2
 ADMIN_2_EMAIL=admin2@bytecode.com.pe
 ADMIN_2_PASSWORD=contraseña-segura
-
-SMTP_HOST=smtp.tuproveedor.com
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=usuario-smtp
-SMTP_PASS=password-smtp
-MAIL_FROM="Bytecode Web <no-reply@bytecode.com.pe>"
-ADMIN_NOTIFICATION_EMAILS=admin1@bytecode.com.pe,admin2@bytecode.com.pe
+# (Las configuraciones de SMTP y Cloudinary se realizan desde el Panel de Administración -> Configuración)
 ```
 
 Para producción con frontend en Vercel y API en Railway, `COOKIE_SAME_SITE=none` es importante para que el login del panel funcione entre dominios.
