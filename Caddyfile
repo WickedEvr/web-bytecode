@@ -1,4 +1,20 @@
+(security_headers) {
+    header {
+        # Protección contra Clickjacking
+        X-Frame-Options "DENY"
+        # Protección contra XSS y Content Sniffing
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # Obligar el uso de HTTPS por 1 año (HSTS)
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        # Ocultar la firma de Caddy
+        -Server
+    }
+}
+
 bytecode.com.pe, www.bytecode.com.pe {
+    import security_headers
+    
     handle /api/* {
         reverse_proxy backend:4000
     }
@@ -8,6 +24,7 @@ bytecode.com.pe, www.bytecode.com.pe {
 }
 
 api.bytecode.com.pe {
+    import security_headers
     reverse_proxy backend:4000
 }
 

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db-pr:
     image: postgres:17-alpine
@@ -12,7 +10,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
-      - bytecode-network
+      - pr-network-${PR_NUMBER}
 
   backend-pr:
     build:
@@ -33,17 +31,7 @@ services:
       CORS_ORIGINS: https://pr${PR_NUMBER}.env.bytecode.com.pe,http://localhost:5173
       PUBLIC_API_URL: https://api-pr${PR_NUMBER}.env.bytecode.com.pe/
       MAX_UPLOAD_MB: 10
-      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
-      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
-      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
       CLOUDINARY_UPLOAD_FOLDER: complaints-attachments-pr-${PR_NUMBER}
-      SMTP_HOST: ${SMTP_HOST}
-      SMTP_PORT: ${SMTP_PORT}
-      SMTP_SECURE: ${SMTP_SECURE}
-      SMTP_USER: ${SMTP_USER}
-      SMTP_PASS: ${SMTP_PASS}
-      MAIL_FROM: ${MAIL_FROM}
-      ADMIN_NOTIFICATION_EMAILS: ${ADMIN_NOTIFICATION_EMAILS}
       ADMIN_1_NAME: ${ADMIN_1_NAME}
       ADMIN_1_EMAIL: ${ADMIN_1_EMAIL}
       ADMIN_1_PASSWORD: ${ADMIN_1_PASSWORD}
@@ -53,6 +41,7 @@ services:
     depends_on:
       - db-pr
     networks:
+      - pr-network-${PR_NUMBER}
       - bytecode-network
 
   frontend-pr:
@@ -64,9 +53,12 @@ services:
     container_name: bytecode-frontend-pr-${PR_NUMBER}
     restart: always
     networks:
+      - pr-network-${PR_NUMBER}
       - bytecode-network
 
 networks:
+  pr-network-${PR_NUMBER}:
+    driver: bridge
   bytecode-network:
     # Se conecta a la red compartida del Caddy de producción
     name: web-bytecode_bytecode-network

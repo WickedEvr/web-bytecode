@@ -28,3 +28,4 @@ apps/api/uploads
 *.sln
 *.sw?
 /.claude
+docs/database/*.sql

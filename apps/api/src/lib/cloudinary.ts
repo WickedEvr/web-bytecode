@@ -4,6 +4,8 @@ import { env } from '../config/env.js';
 import { CLOUDINARY_UPLOAD_FOLDER } from '../config/constants.js';
 import { getCloudinaryConfig } from '../services/settings.js';
 
+const CLOUDINARY_UPLOAD_TIMEOUT_MS = Number(process.env.CLOUDINARY_UPLOAD_TIMEOUT_MS ?? 30000);
+
 export type CloudinaryResourceType = 'image' | 'raw';
 
 export type CloudinaryStoredAsset = {
@@ -57,7 +59,7 @@ export async function uploadComplaintEvidenceToCloudinary(input: {
     const timeout = setTimeout(() => {
       stream.destroy(new Error('Cloudinary upload timed out.'));
       fail(new Error('Cloudinary upload timed out.'));
-    }, env.cloudinary.uploadTimeoutMs);
+    }, CLOUDINARY_UPLOAD_TIMEOUT_MS);
 
     const stream = cloudinary.uploader.upload_stream(
       {
@@ -110,7 +112,7 @@ export async function uploadPortfolioImageToCloudinary(input: {
     const timeout = setTimeout(() => {
       stream.destroy(new Error('Cloudinary upload timed out.'));
       fail(new Error('Cloudinary upload timed out.'));
-    }, env.cloudinary.uploadTimeoutMs);
+    }, CLOUDINARY_UPLOAD_TIMEOUT_MS);
 
     const stream = cloudinary.uploader.upload_stream(
       {
