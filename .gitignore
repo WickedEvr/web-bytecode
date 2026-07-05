@@ -28,4 +28,5 @@ apps/api/uploads
 *.sln
 *.sw?
 /.claude
+docker-compose.override.yml
 docs/database/*.sql

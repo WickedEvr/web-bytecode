@@ -27,7 +27,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://web-bytecode.onrender.com', 
+        target: 'http://localhost:4000/', 
         changeOrigin: true,
         secure: false,
       },
