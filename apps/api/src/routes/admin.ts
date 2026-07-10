@@ -10,6 +10,7 @@ import { pool } from '../db/pool.js';
 import {
   deleteCloudinaryAsset,
   uploadPortfolioImageToCloudinary,
+  uploadPaymentReceiptToCloudinary,
   type CloudinaryStoredAsset,
 } from '../lib/cloudinary.js';
 import { allowedUploadMimeTypeList, validateUpload } from '../lib/validateUpload.js';
@@ -2318,6 +2319,50 @@ router.delete(
   }),
 );
 
+const milestoneCreateSchema = z.object({
+  title: z.string().trim().min(1).max(180),
+  dueDate: z.string().date(),
+  paymentPercentage: z.coerce.number().min(0).max(100),
+  statusId: z.string().uuid(),
+});
+
+router.post(
+  '/projects/:id/milestones',
+  requireCsrf,
+  requirePermission('admin.proyectos.manage'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const projectId = z.string().uuid().parse(req.params.id);
+    const body = milestoneCreateSchema.parse(req.body);
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const sumResult = await client.query(
+        'SELECT COALESCE(SUM(payment_percentage), 0) as total FROM project_milestones WHERE project_id = $1',
+        [projectId]
+      );
+      const currentTotal = parseFloat(sumResult.rows[0].total);
+      if (currentTotal + body.paymentPercentage > 100) {
+        throw new HttpError(400, 'El porcentaje total de los hitos no puede superar el 100%.');
+      }
+
+      const result = await client.query(
+        `INSERT INTO project_milestones (project_id, title, due_date, payment_percentage, status_id)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING id`,
+        [projectId, body.title, body.dueDate, body.paymentPercentage, body.statusId],
+      );
+      await client.query('COMMIT');
+      res.status(201).json({ id: result.rows[0].id });
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
+  }),
+);
+
 router.get(
   '/projects/:id/milestones',
   requirePermission('admin.proyectos.view'),
@@ -2326,14 +2371,129 @@ router.get(
     const result = await pool.query(
       `SELECT pm.id, pm.project_id, pm.title, pm.due_date, pm.payment_percentage,
               pm.completed_at, pm.created_at, pm.updated_at,
-              sc.code AS status, sc.name AS status_name
+              sc.code AS status, sc.name AS status_name,
+              COALESCE(payments_data.payments, '[]'::json) AS payments
        FROM project_milestones pm
        JOIN status_catalog sc ON pm.status_id = sc.id
+       LEFT JOIN LATERAL (
+         SELECT json_agg(json_build_object(
+           'id', mp.id,
+           'milestone_id', mp.milestone_id,
+           'amount_paid', mp.amount_paid,
+           'currency_code', mp.currency_code,
+           'payment_method', mp.payment_method,
+           'reference_number', mp.reference_number,
+           'receipt_file_id', mp.receipt_file_id,
+           'receipt_url', fa.public_url,
+           'paid_at', mp.paid_at,
+           'status', mp.status,
+           'created_at', mp.created_at
+         ) ORDER BY mp.created_at ASC) AS payments
+         FROM milestone_payments mp
+         LEFT JOIN file_assets fa ON mp.receipt_file_id = fa.id
+         WHERE mp.milestone_id = pm.id AND mp.deleted_at IS NULL
+       ) payments_data ON true
        WHERE pm.project_id = $1 AND sc.domain = 'milestone'
        ORDER BY pm.due_date ASC, pm.created_at ASC`,
       [id],
     );
     res.json({ items: result.rows });
+  }),
+);
+
+const milestonePaymentSchema = z.object({
+  amountPaid: z.coerce.number().min(0.01),
+  paymentMethod: z.string().min(1).max(80),
+  referenceNumber: z.string().max(180).optional().nullable(),
+  paidAt: z.string().date(),
+});
+
+router.post(
+  '/projects/:id/milestones/:milestone_id/payments',
+  requireCsrf,
+  requirePermission('admin.proyectos.manage'),
+  upload.single('receipt'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const projectId = z.string().uuid().parse(req.params.id);
+    const milestoneId = z.string().uuid().parse(req.params.milestone_id);
+    const body = milestonePaymentSchema.parse(req.body);
+    const file = req.file;
+
+    const client = await pool.connect();
+    let cloudinaryAsset: CloudinaryStoredAsset | null = null;
+
+    try {
+      await client.query('BEGIN');
+      
+      const projectRes = await client.query(
+        'SELECT project_code, currency_code FROM projects WHERE id = $1 AND deleted_at IS NULL',
+        [projectId]
+      );
+      if (!projectRes.rowCount) throw new HttpError(404, 'Proyecto no encontrado.');
+      const projectCode = projectRes.rows[0].project_code;
+      const currencyCode = projectRes.rows[0].currency_code;
+
+      let fileAssetId: string | null = null;
+
+      if (file) {
+        const validatedFile = await validateUpload(file);
+        cloudinaryAsset = await uploadPaymentReceiptToCloudinary({
+          buffer: file.buffer,
+          projectCode,
+          originalName: validatedFile.originalName,
+          mimeType: validatedFile.mimeType,
+        });
+
+        const fileResult = await client.query(
+          `INSERT INTO file_assets (
+            original_name, storage_provider, storage_key, public_url,
+            mime_type, byte_size, checksum_sha256, uploaded_by, created_by
+          )
+          VALUES ($1, 'cloudinary', $2, $3, $4, $5, $6, $7, $7)
+          RETURNING id`,
+          [
+            validatedFile.originalName,
+            cloudinaryAsset.publicId,
+            cloudinaryAsset.secureUrl,
+            validatedFile.mimeType,
+            cloudinaryAsset.bytes || file.size,
+            validatedFile.checksumSha256,
+            req.admin?.id ?? null,
+          ]
+        );
+        fileAssetId = fileResult.rows[0].id;
+      }
+
+      const result = await client.query(
+        `INSERT INTO milestone_payments (
+          milestone_id, amount_paid, currency_code, payment_method,
+          reference_number, receipt_file_id, paid_at, status, created_by
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, 'valid', $8)
+        RETURNING id`,
+        [
+          milestoneId,
+          body.amountPaid,
+          currencyCode,
+          body.paymentMethod,
+          body.referenceNumber || null,
+          fileAssetId,
+          body.paidAt,
+          req.admin?.id ?? null,
+        ]
+      );
+
+      await client.query('COMMIT');
+      res.status(201).json({ id: result.rows[0].id });
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      if (cloudinaryAsset) {
+        await deleteCloudinaryAsset(cloudinaryAsset.publicId, cloudinaryAsset.resourceType).catch(() => undefined);
+      }
+      throw error;
+    } finally {
+      client.release();
+    }
   }),
 );
 
