@@ -166,7 +166,7 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
       return res.status(200).json({ message: 'Skipped: No project found' });
     }
 
-    const prNumber = payload.pull_request.number;
+    const prNumber = payload.number;
 
     if (action === 'opened' || action === 'synchronize' || action === 'reopened') {
       if (!sha) return res.status(400).json({ error: 'Missing commit SHA' });
@@ -198,7 +198,7 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
           console.error('[GitHub Webhook] Docker/DB provisioning failed:', dockerError);
           await pool.query(
             `UPDATE project_environments
-             SET status = 'error', error_details = $1
+             SET status = 'failed', error_details = $1
              WHERE project_id = $2 AND name = $3`,
             [String(dockerError.message || dockerError), projectId, envName],
           );
