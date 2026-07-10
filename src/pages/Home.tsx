@@ -245,24 +245,29 @@ const ServiciosSection: React.FC = () => {
   )), []);
 
   return (
-    <div className="relative -mt-[18%] font-sansation md:-mt-[15%] lg:-mt-[11%] lg:max-xl:-mt-[16%] xl:max-2xl:-mt-[13%] [@media(max-height:720px)]:lg:-mt-[8%] [@media(max-height:720px)]:xl:-mt-[9%]">
-      <div className="absolute inset-0 z-0 overflow-hidden rounded-t-[10%] pointer-events-none select-none md:relative md:inset-auto lg:rounded-none">
-        <img src="/vectors/shadows/sombra-segunda.svg" aria-hidden="true" className="h-full w-full object-cover object-top md:h-auto md:object-contain" />
+    <div className="relative -mt-28 md:-mt-44 lg:-mt-64 font-sansation">
+      {/* Título en zona oscura */}
+      <div className="relative z-10 flex flex-col items-center justify-start px-5 select-none pt-[clamp(2rem,5vw,4rem)] pb-56 md:pb-68 lg:pb-64 xl:pb-80 text-center bg-black rounded-t-[35px] md:rounded-t-[50px] lg:rounded-t-[70px]">
+        <p className="mb-1 text-[clamp(1.65rem,4.4vw,2.25rem)] font-extrabold leading-[1.2] text-[#0CA3C6] md:mb-[0.6rem] md:text-[clamp(2.24rem,5.6vw,3.36rem)]">
+          Haz crecer tu negocio
+        </p>
+        <p className="mb-6 text-[clamp(1.15rem,3.1vw,1.55rem)] font-normal leading-normal text-white md:text-[clamp(1.4rem,3.5vw,2.03rem)]">
+          Te mereces un sitio web que haga{' '}
+          <span className="text-[#0CA3C6]">todo lo que necesitas.</span>
+        </p>
       </div>
 
-      <div className="relative z-[60] flex flex-col items-center justify-start px-5 select-none pb-16 pt-[clamp(1rem,5vw,3rem)] md:absolute md:inset-0 md:pb-0 md:pt-[3%]">
-        <div className="relative z-[15] text-center">
-          <p className="mb-1 text-[clamp(1.65rem,4.4vw,2.25rem)] font-extrabold leading-[1.2] text-[#0CA3C6] md:mb-[0.6rem] md:text-[clamp(2.24rem,5.6vw,3.36rem)]">
-            Haz crecer tu negocio
-          </p>
-          <p className="mb-6 text-[clamp(1.15rem,3.1vw,1.55rem)] font-normal leading-normal text-white md:text-[clamp(1.4rem,3.5vw,2.03rem)]">
-            Te mereces un sitio web que haga{' '}
-            <span className="text-[#0CA3C6]">todo lo que necesitas.</span>
-          </p>
+      {/* Zona Blanca del Carrusel (Zone B) */}
+      <div className="relative z-20 bg-white text-black w-full pb-16 pt-12 md:pt-20 md:pb-20">
+        {/* Divider superior curvo blanco */}
+        <div className="absolute top-0 left-0 w-full overflow-hidden leading-none z-10 -translate-y-[99%]">
+          <svg viewBox="0 0 1440 100" fill="none" className="relative block w-full h-[40px] md:h-[70px] lg:h-[100px]" preserveAspectRatio="none">
+            <path d="M0,100 C480,0 960,0 1440,100 Z" fill="#ffffff" />
+          </svg>
         </div>
-
-        <div className="relative z-[60] mt-0 w-full max-w-[min(306px,90vw)] md:-mt-2 md:max-w-[420px] lg:mt-[23px] lg:max-w-[85%]">
-          <div className="relative z-[60] h-[409px] md:h-[475px] lg:hidden">
+        <div className="relative z-20 mx-auto w-full max-w-[min(306px,90vw)] md:max-w-[420px] lg:max-w-[85%] -mt-56 md:-mt-72 lg:-mt-56 xl:-mt-72">
+          {/* Mobile Stack Carousel */}
+          <div className="relative z-20 h-[409px] md:h-[475px] lg:hidden">
             <Stack
               randomRotation={false}
               sensitivity={80}
@@ -276,7 +281,8 @@ const ServiciosSection: React.FC = () => {
             />
           </div>
 
-          <div className="relative z-[60] hidden overflow-hidden rounded-[28px] shadow-[0px_4px_20.4px_9px_rgba(0,0,0,0.22)] lg:block lg:rounded-[48px]">
+          {/* Desktop/Tablet Slide Carousel */}
+          <div className="relative z-20 hidden overflow-hidden rounded-[28px] shadow-[0px_4px_20.4px_9px_rgba(0,0,0,0.15)] lg:block lg:rounded-[48px]">
             <div className="relative h-[409px] lg:h-[clamp(320px,44vw,554px)] [@media(max-height:720px)]:lg:h-[350px]">
               <AnimatePresence>
                 <motion.img
@@ -317,8 +323,8 @@ const ServiciosSection: React.FC = () => {
             {services.map((_, i) => (
               <div
                 key={i}
-                className={`block h-[11px] rounded-full bg-gray-400 transition-[width,background-color] duration-300 ${
-                  slide === i ? 'w-[72px]' : 'w-6'
+                className={`block h-[11px] rounded-full transition-[width,background-color] duration-300 ${
+                  slide === i ? 'w-[72px] bg-[#0CA3C6]' : 'w-6 bg-gray-300'
                 }`}
                 aria-hidden="true"
               />
@@ -331,40 +337,31 @@ const ServiciosSection: React.FC = () => {
 };
 
 /* ==========================================================================
-    SECTION: HERramientas (Logos Marquee)
+    SECTION: Herramientas (Logos Marquee)
    ========================================================================== */
 
 const HerramientasSection: React.FC = () => (
-  <section className="relative z-[40] -mt-[11rem] h-[30rem] overflow-visible px-6 pb-12 pt-0 font-sansation md:-mt-[10rem] md:h-[25rem] md:max-lg:!mt-[14rem] lg:-mt-[13rem] lg:h-[25rem] lg:max-[1339px]:!mt-[16rem] xl:-mt-[20rem] xl:h-[25rem] 2xl:-mt-36 2xl:h-[25rem] [@media(max-height:720px)]:lg:-mt-[5rem] [@media(max-height:720px)]:xl:-mt-[9.8rem] [@media(max-height:720px)]:2xl:-mt-[12rem] [@media(max-height:720px)]:lg:h-[22rem]">
-    <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-[-10rem] hidden h-[28rem] w-screen -translate-x-1/2 bg-white max-md:block" />
-
-    <img
-      src="/vectors/designs/formablancagrande.svg"
-      alt=""
-      aria-hidden="true"
-      className="pointer-events-none absolute left-0 top-[5.6rem] w-full max-w-none origin-top select-none md:top-[-13rem] md:w-[110%] md:scale-y-[0.9] lg:top-[-12rem] lg:w-[120%] lg:scale-y-[0.78] min-[1200px]:max-[1339px]:top-[-10rem] min-[1200px]:max-[1339px]:!scale-y-[0.82] xl:top-[-21rem] xl:w-full xl:scale-y-[0.72] 2xl:top-[-31.2rem]"
-    />
-
-    <div className="relative z-10 mx-auto flex w-full flex-col items-center pt-[8.5rem] md:w-[85%] md:pt-0 md:-mt-[3.5rem] md:max-lg:mt-[1rem] lg:-mt-[6rem] min-[1200px]:max-[1339px]:mt-[30rem] xl:-mt-[7rem] 2xl:-mt-[10rem] [@media(max-height:720px)]:lg:-mt-[2.5rem] [@media(max-height:720px)]:xl:-mt-[4.4rem] [@media(max-height:720px)]:2xl:-mt-[5.5rem]">
+  <section className="relative z-20 bg-white text-[#3C3C3B] px-6 pb-6 md:pb-8 lg:pb-12 pt-0 font-sansation">
+    <div className="relative z-20 mx-auto flex w-full max-w-7xl flex-col items-center pt-6 md:pt-10 lg:pt-12">
       <div className="mb-8 flex w-full max-w-[358px] items-center justify-center gap-0 md:mb-12 md:max-w-none md:gap-3 lg:mb-10">
-        <div className="h-0 flex-1 border-t-2 border-[rgba(60,60,59,0.69)]" />
+        <div className="h-0 flex-1 border-t-2 border-[rgba(60,60,59,0.4)]" />
         <h2
           className="w-[178px] shrink-0 px-2 text-center text-2xl font-bold leading-[27px] text-[#3C3C3B] md:w-auto md:text-[clamp(1.2rem,3.5vw,2.5rem)] md:leading-[1.2]"
         >
           Nuestras Herramientas
         </h2>
-        <div className="h-0 flex-1 border-t-2 border-[rgba(60,60,59,0.69)]" />
+        <div className="h-0 flex-1 border-t-2 border-[rgba(60,60,59,0.4)]" />
       </div>
 
-      <div className="relative mx-auto w-[90vw] overflow-hidden opacity-80 [mask-image:linear-gradient(to_right,transparent_0%,black_10%,black_90%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,transparent_0%,black_10%,black_90%,transparent_100%)]">
+      <div className="relative mx-auto w-[90vw] overflow-hidden opacity-90 [mask-image:linear-gradient(to_right,transparent_0%,black_10%,black_90%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,transparent_0%,black_10%,black_90%,transparent_100%)]">
         <div className="flex w-max flex-nowrap items-center animate-[marquee-scroll_18s_linear_infinite]">
           {[0, 1, 2, 3].map(copy => (
             <React.Fragment key={copy}>
-              <img src="/vectors/logos/brands/laravel.svg" alt={copy === 0 ? 'Laravel' : ''} aria-hidden={copy !== 0} className="mx-[clamp(1.2rem,3vw,2.5rem)] h-[clamp(28px,4.7vw,54px)] w-auto shrink-0 grayscale" />
-              <img src="/vectors/logos/brands/github.svg" alt={copy === 0 ? 'GitHub' : ''} aria-hidden={copy !== 0} className="mx-[clamp(1.2rem,3vw,2.5rem)] h-[clamp(30px,4.9vw,56px)] w-auto shrink-0 grayscale" />
-              <img src="/vectors/logos/brands/php.svg" alt={copy === 0 ? 'PHP' : ''} aria-hidden={copy !== 0} className="mx-[clamp(1.2rem,3vw,2.5rem)] h-[clamp(36px,6.6vw,76px)] w-auto shrink-0 grayscale" />
-              <img src="/vectors/logos/brands/JAVA.svg" alt={copy === 0 ? 'Java' : ''} aria-hidden={copy !== 0} className="mx-[clamp(1.2rem,3vw,2.5rem)] h-[clamp(40px,7.5vw,86px)] w-auto shrink-0 grayscale" />
-              <img src="/vectors/logos/brands/mongodb.svg" alt={copy === 0 ? 'MongoDB' : ''} aria-hidden={copy !== 0} className="mx-[clamp(1.2rem,3vw,2.5rem)] h-[clamp(44px,8vw,92px)] w-auto shrink-0 grayscale" />
+              <img src="/vectors/logos/brands/laravel.svg" alt={copy === 0 ? 'Laravel' : ''} aria-hidden={copy !== 0} className="mx-[clamp(1.2rem,3vw,2.5rem)] h-[clamp(28px,4.7vw,54px)] w-auto shrink-0 grayscale opacity-80" />
+              <img src="/vectors/logos/brands/github.svg" alt={copy === 0 ? 'GitHub' : ''} aria-hidden={copy !== 0} className="mx-[clamp(1.2rem,3vw,2.5rem)] h-[clamp(30px,4.9vw,56px)] w-auto shrink-0 grayscale opacity-80" />
+              <img src="/vectors/logos/brands/php.svg" alt={copy === 0 ? 'PHP' : ''} aria-hidden={copy !== 0} className="mx-[clamp(1.2rem,3vw,2.5rem)] h-[clamp(36px,6.6vw,76px)] w-auto shrink-0 grayscale opacity-80" />
+              <img src="/vectors/logos/brands/JAVA.svg" alt={copy === 0 ? 'Java' : ''} aria-hidden={copy !== 0} className="mx-[clamp(1.2rem,3vw,2.5rem)] h-[clamp(40px,7.5vw,86px)] w-auto shrink-0 grayscale opacity-80" />
+              <img src="/vectors/logos/brands/mongodb.svg" alt={copy === 0 ? 'MongoDB' : ''} aria-hidden={copy !== 0} className="mx-[clamp(1.2rem,3vw,2.5rem)] h-[clamp(44px,8vw,92px)] w-auto shrink-0 grayscale opacity-80" />
             </React.Fragment>
           ))}
         </div>
@@ -378,19 +375,30 @@ const HerramientasSection: React.FC = () => (
    ========================================================================== */
 
 const IASection: React.FC = () => (
-  <section className="relative z-[60] -mt-60 min-h-[800px] overflow-x-hidden pb-8 md:mt-0 md:min-h-[1240px] md:overflow-visible lg:min-h-[680px] xl:min-h-[660px] 2xl:min-h-[800px] [@media(max-height:720px)]:lg:-mt-28">
+  <section className="relative z-30 bg-transparent pt-20 pb-20 overflow-hidden font-sansation">
+    {/* Curved Background Waves Transition (Zone C) */}
+    <div className="absolute top-0 left-0 w-full overflow-hidden pointer-events-none z-0">
+      <svg viewBox="0 0 1365 476" fill="none" className="relative block w-full h-[150px] md:h-[220px] lg:h-[300px]" preserveAspectRatio="none">
+        {/* Zona Blanca superior */}
+        <path d="M0,0 L1365,0 L1365,160 C1160,390 980,280 760,250 C520,220 250,10 0,180 Z" fill="#ffffff" />
+        {/* Onda Celeste */}
+        <path d="M0,180 C250,10 520,220 760,250 C980,280 1160,390 1365,160 L1365,310 C1165,392 950,281 720,251 C500,222 230,170 0,330 Z" fill="#00A6C8" />
+        {/* Onda Negra */}
+        <path d="M0,330 C230,170 500,222 720,251 C950,281 1165,392 1365,310 L1365,370 C1165,452 950,341 720,311 C500,282 230,230 0,390 Z" fill="#000000" />
+      </svg>
+    </div>
+
+    {/* Mobile background wave hack (preserves mobile look) */}
     <div className="absolute bottom-[258px] left-0 right-0 top-[258px] z-0 bg-white md:hidden" />
 
-    <div className="relative z-10 flex flex-col items-center justify-between px-6 pt-8 pb-8 w-full md:w-[85%] md:px-0 md:pt-10 md:gap-10 lg:-mt-12 lg:flex-row lg:items-end lg:gap-0 lg:pt-0 lg:pr-[17px] xl:-mt-35 2xl:-mt-24 [@media(max-height:720px)]:lg:-mt-4 [@media(max-height:720px)]:xl:-mt-8 mx-auto gap-8">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute bottom-[clamp(-20px,1.5vw,0px)] left-[72%] z-[1] hidden h-[clamp(164px,18vw,237px)] w-[clamp(228px,25vw,329px)] -translate-x-1/2 rounded-[59px] bg-white lg:block xl:h-[176px] xl:w-[244px] 2xl:h-[clamp(164px,18vw,237px)] 2xl:w-[clamp(228px,25vw,329px)]"
-      />
+    <div className="relative z-10 flex flex-col items-center justify-between lg:justify-end px-6 w-full md:w-[85%] md:px-0 mx-auto gap-8 lg:gap-x-8 xl:gap-x-10 lg:flex-row lg:items-end pt-8 md:pt-12 lg:pt-16 -mt-16 md:-mt-24 lg:mt-0">
 
-      <div className="relative order-1 mt-15 flex w-full justify-center md:mt-0 lg:order-2 lg:w-auto lg:px-8 2xl:-mr-62 2xl:px-2">
+      {/* Girl character card */}
+      <div className="relative order-1 flex w-full justify-center md:mt-0 lg:order-2 lg:w-auto lg:px-8">
+        {/* Shape A: White shape behind girl (visible on mobile and desktop) */}
         <div
           aria-hidden="true"
-          className="absolute left-1/2 top-10 z-0 h-[118px] w-[256px] -translate-x-[66%] rounded-[60px] bg-white md:h-[156px] md:w-[338px] md:rounded-[78px] lg:top-[clamp(84px,6.4vw,60px)] lg:h-[clamp(69px,18.8vw,177px)] lg:w-[clamp(154px,41.9vw,382px)] lg:-translate-x-[65%] lg:rounded-[90px] xl:h-[122px] xl:w-[264px] 2xl:h-[clamp(69px,18.8vw,177px)] 2xl:w-[clamp(154px,41.9vw,382px)]"
+          className="absolute left-1/2 top-10 z-0 -translate-x-[66%] rounded-[60px] md:rounded-[78px] lg:rounded-[90px] bg-white h-[118px] w-[256px] md:h-[156px] md:w-[338px] lg:h-[177px] lg:w-[382px]"
         />
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -410,7 +418,8 @@ const IASection: React.FC = () => (
         </motion.div>
       </div>
 
-      <div className="order-2 z-20 mb-auto flex w-full max-w-[520px] flex-col items-center gap-3 text-center lg:order-1 lg:my-auto lg:flex-1 lg:items-start lg:pr-4 lg:text-left xl:translate-y-25 2xl:translate-x-[160px] [@media(max-height:720px)]:xl:translate-y-0 [@media(max-height:720px)]:2xl:translate-x-0" >
+      {/* Center text column */}
+      <div className="order-2 z-20 mb-auto flex w-full max-w-[520px] flex-col items-center gap-3 text-center lg:order-1 lg:my-auto lg:flex-1 lg:items-start lg:pr-4 lg:text-left lg:mr-auto" >
         <h2 className="max-w-[450px] text-[clamp(24px,3vw,2.5rem)] font-bold leading-[27px] text-[#0CA3C6] md:leading-[1] md:text-[2rem] 2xl:text-[3.3rem]">
           Lanzar tu proyecto nunca fue tan fácil
         </h2>
@@ -422,10 +431,17 @@ const IASection: React.FC = () => (
         </p>
       </div>
 
+      {/* Guy character card */}
       <div className="relative order-3 flex w-full justify-center lg:w-auto">
+        {/* Shape B: White circle/ellipse peeking between girl and guy cards on desktop */}
         <div
           aria-hidden="true"
-          className="absolute bottom-[-22px] left-1/2 z-0 h-[172px] w-[165px] translate-x-[-10%] rounded-[20px] bg-white md:h-[212px] md:w-[204px] md:rounded-[28px] lg:bottom-[clamp(50px,-3.5vw,-13px)] lg:h-[clamp(101px,27.4vw,259px)] lg:w-[clamp(100px,27vw,246px)] lg:rounded-[30px] xl:h-[182px] xl:w-[172px] 2xl:h-[clamp(101px,27.4vw,259px)] 2xl:w-[clamp(100px,27vw,246px)]"
+          className="pointer-events-none absolute bottom-[-20px] xl:bottom-[-25px] left-0 z-[1] hidden lg:block rounded-[59px] bg-white h-[237px] w-[329px] -translate-x-1/2"
+        />
+        {/* Shape C: White shape behind guy */}
+        <div
+          aria-hidden="true"
+          className="absolute left-1/2 z-0 translate-x-[-10%] rounded-[20px] md:rounded-[28px] lg:rounded-[30px] bg-white h-[172px] w-[165px] md:h-[212px] md:w-[204px] lg:h-[259px] lg:w-[246px] bottom-[-25px] lg:bottom-[45px]"
         />
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -440,11 +456,6 @@ const IASection: React.FC = () => (
     </div>
   </section>
 );
-
-/* ==========================================================================
-    SECTION: TESTIMONIALS (3D Carousel)
-   ========================================================================== */
-
 const TestimonialsSection: React.FC = () => {
   const [activeCard, setActiveCard] = useState(0);
 
@@ -455,7 +466,7 @@ const TestimonialsSection: React.FC = () => {
 
   return (
     <section className="relative overflow-hidden font-sansation">
-      <div className="mx-auto mb-7 hidden w-[86.6%] border-t border-white md:block lg:mb-10" />
+      <div className="mx-auto mt-16 mb-7 hidden w-[86.6%] border-t border-white md:block lg:mt-28 lg:mb-10" />
 
       <div className="relative z-[1] flex min-h-[clamp(500px,60vw,760px)] w-full flex-col items-center justify-center gap-10 py-10 lg:flex-row lg:justify-between lg:gap-0 lg:py-0 lg:pl-0 lg:pr-0">
 
@@ -535,7 +546,7 @@ const Home: React.FC = () => {
       <HerramientasSection />
 
       {/* SECCIONES CON FONDO COMPARTIDO (IA, Testimonials, CTA) */}
-      <div className="relative mt-[clamp(2rem,5vw,5rem)] xl:mt-12 2xl:mt-16">
+      <div className="relative z-30">
         <IASection />
         <div className="mx-auto my-1 w-[86.6%] border-t border-white md:hidden" />
         <TestimonialsSection />
