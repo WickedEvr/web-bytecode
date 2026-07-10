@@ -33,6 +33,7 @@ services:
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - /var/www/web-bytecode:/var/www/web-bytecode
     environment:
       NODE_ENV: production
       PORT: 4000
