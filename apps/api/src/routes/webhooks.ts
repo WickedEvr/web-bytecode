@@ -185,7 +185,7 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
         );
 
         try {
-          await execAsync(`docker exec bytecode-db dropdb -U bytecode_user --if-exists ${dbName} && docker exec bytecode-db createdb -U bytecode_user -T bytecode_prod ${dbName}`);
+          await execAsync(`docker exec bytecode-db sh -c "dropdb -U bytecode_user --if-exists ${dbName} && createdb -U bytecode_user ${dbName} && pg_dump -U bytecode_user bytecode_prod | psql -U bytecode_user -d ${dbName} > /dev/null"`);
           await execAsync(`docker compose -p pr-${prNumber} up -d`);
 
           await pool.query(
