@@ -30,6 +30,8 @@ services:
       dockerfile: apps/api/Dockerfile
     container_name: bytecode-backend
     restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       NODE_ENV: production
       PORT: 4000
