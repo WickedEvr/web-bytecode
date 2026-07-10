@@ -1,5 +1,4 @@
 FROM node:20-alpine AS builder
-RUN apt-get update && apt-get install -y docker.io docker-compose-v2 && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 # Copiar archivos de workspaces
