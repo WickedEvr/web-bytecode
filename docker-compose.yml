@@ -29,6 +29,7 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile
     container_name: bytecode-backend
+    user: "root"
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
