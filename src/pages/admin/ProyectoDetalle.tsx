@@ -138,7 +138,7 @@ const ProyectoDetalle: React.FC = () => {
     if (!activeMilestoneId) return;
     setSavingPayment(true);
     setError('');
-    
+     
     try {
       const formData = new FormData();
       formData.append('amountPaid', paymentForm.amount.toString());
