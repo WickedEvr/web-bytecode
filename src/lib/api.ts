@@ -245,6 +245,20 @@ export interface Project {
   updated_at: string;
 }
 
+export interface MilestonePayment {
+  id: string;
+  milestone_id: string;
+  amount_paid: string | number;
+  currency_code: string;
+  payment_method: string;
+  reference_number: string | null;
+  receipt_file_id: string | null;
+  receipt_url?: string | null;
+  paid_at: string;
+  status: string;
+  created_at: string;
+}
+
 export interface ProjectMilestone {
   id: string;
   project_id: string;
@@ -256,6 +270,7 @@ export interface ProjectMilestone {
   status_name?: string;
   created_at: string;
   updated_at: string;
+  payments?: MilestonePayment[];
 }
 
 export interface ProjectCommit {
@@ -380,8 +395,20 @@ export const fetchProjectQuotesByEmail = (email: string) =>
 export const fetchProjectMilestones = (projectId: string) =>
   apiRequest<{ items: ProjectMilestone[] }>(`/admin/projects/${projectId}/milestones`).then((response) => response.items);
 
+export const createProjectMilestone = (projectId: string, data: { title: string; dueDate: string; paymentPercentage: number; statusId: string }) =>
+  apiRequest<{ id: string }>(`/admin/projects/${projectId}/milestones`, {
+    method: 'POST',
+    json: data,
+  });
+
 export const updateProjectMilestone = (projectId: string, milestoneId: string, status: string) =>
   apiRequest(`/admin/projects/${projectId}/milestones/${milestoneId}`, { method: 'PATCH', json: { status } });
+
+export const createMilestonePayment = (projectId: string, milestoneId: string, data: FormData) =>
+  apiRequest<{ id: string }>(`/admin/projects/${projectId}/milestones/${milestoneId}/payments`, {
+    method: 'POST',
+    body: data,
+  });
 
 export const fetchProjectCommits = (projectId: string) =>
   apiRequest<{ items: ProjectCommit[] }>(`/admin/projects/${projectId}/commits`).then((response) => response.items);
