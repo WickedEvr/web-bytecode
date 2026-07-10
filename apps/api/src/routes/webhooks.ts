@@ -185,7 +185,7 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
         );
 
         try {
-          await execAsync(`dropdb --if-exists ${dbName} && createdb -T bytecode_prod ${dbName}`);
+          await execAsync(`docker exec bytecode-db dropdb -U bytecode_user --if-exists ${dbName} && docker exec bytecode-db createdb -U bytecode_user -T bytecode_prod ${dbName}`);
           await execAsync(`docker compose -p pr-${prNumber} up -d`);
 
           await pool.query(
@@ -214,7 +214,7 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
       const dbName = `pr_${prNumber}`;
       try {
         await execAsync(`docker compose -p pr-${prNumber} down -v`);
-        await execAsync(`dropdb --if-exists ${dbName}`);
+        await execAsync(`docker exec bytecode-db dropdb -U bytecode_user --if-exists ${dbName}`);
       } catch (cleanupError: any) {
         console.error('[GitHub Webhook] Cleanup Error:', cleanupError);
       }
