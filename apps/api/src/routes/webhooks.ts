@@ -222,14 +222,14 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
       try {
         await pool.query(
           `UPDATE project_environments
-           SET status = 'destroyed', url = NULL, error_details = NULL, audit_report = NULL
+           SET status = 'inactive', url = NULL, error_details = NULL, audit_report = NULL
            WHERE project_id = $1 AND branch_name = $2 AND type = 'ephemeral'`,
           [projectId, branchName],
         );
       } catch (err) {
         console.error('[GitHub Webhook] SQL Error on PR close:', err);
       }
-      return res.status(200).json({ message: 'Preview environment marked as destroyed', branchName });
+      return res.status(200).json({ message: 'Preview environment marked as inactive', branchName });
     }
 
     return res.status(200).json({ message: `Action ${action} ignored` });
