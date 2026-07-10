@@ -1,9 +1,5 @@
 import crypto from 'node:crypto';
-import { exec } from 'node:child_process';
-import { promisify } from 'node:util';
 import { Router } from 'express';
-
-const execAsync = promisify(exec);
 import type { Request, Response } from 'express';
 import { env } from '../config/env.js';
 import { pool } from '../db/pool.js';
@@ -166,43 +162,18 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
       return res.status(200).json({ message: 'Skipped: No project found' });
     }
 
-    const prNumber = payload.pull_request.number;
-
     if (action === 'opened' || action === 'synchronize' || action === 'reopened') {
       if (!sha) return res.status(400).json({ error: 'Missing commit SHA' });
-      const envName = `Preview: ${branchName}`;
-      const url = `https://pr${prNumber}.env.bytecode.com.pe`;
-      const dbName = `pr_${prNumber}`;
-
+      const initialUrl = null;
       try {
         await pool.query(
           `INSERT INTO project_environments (project_id, type, name, branch_name, commit_sha, status, url)
-           VALUES ($1, 'ephemeral', $2, $3, $4, 'verifying', NULL)
+           VALUES ($1, 'ephemeral', $2, $3, $4, 'verifying', $5)
            ON CONFLICT (project_id, type, name)
            DO UPDATE SET commit_sha = EXCLUDED.commit_sha, branch_name = EXCLUDED.branch_name,
                          status = 'verifying', error_details = NULL`,
-          [projectId, envName, branchName, sha],
+          [projectId, `Preview: ${branchName}`, branchName, sha, initialUrl],
         );
-
-        try {
-          await execAsync(`dropdb --if-exists ${dbName} && createdb -T bytecode_prod ${dbName}`);
-          await execAsync(`docker compose -p pr-${prNumber} up -d`);
-
-          await pool.query(
-            `UPDATE project_environments
-             SET status = 'active', url = $1
-             WHERE project_id = $2 AND name = $3`,
-            [url, projectId, envName],
-          );
-        } catch (dockerError: any) {
-          console.error('[GitHub Webhook] Docker/DB provisioning failed:', dockerError);
-          await pool.query(
-            `UPDATE project_environments
-             SET status = 'error', error_details = $1
-             WHERE project_id = $2 AND name = $3`,
-            [String(dockerError.message || dockerError), projectId, envName],
-          );
-        }
       } catch (err) {
         console.error('[GitHub Webhook] SQL Error:', err);
         return res.status(200).json({ message: 'SQL Error occurred, but we caught it' });
@@ -211,14 +182,6 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
     }
 
     if (action === 'closed') {
-      const dbName = `pr_${prNumber}`;
-      try {
-        await execAsync(`docker compose -p pr-${prNumber} down -v`);
-        await execAsync(`dropdb --if-exists ${dbName}`);
-      } catch (cleanupError: any) {
-        console.error('[GitHub Webhook] Cleanup Error:', cleanupError);
-      }
-
       try {
         await pool.query(
           `UPDATE project_environments
