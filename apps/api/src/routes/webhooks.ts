@@ -185,8 +185,14 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
         );
 
         try {
-          await execAsync(`docker exec bytecode-db sh -c "dropdb -U bytecode_user --if-exists ${dbName} && createdb -U bytecode_user ${dbName} && pg_dump -U bytecode_user bytecode_prod | psql -U bytecode_user -d ${dbName}"`);
+          // 1. Levantar el entorno efímero (incluyendo su propia base de datos aislada)
           await execAsync(`cd /var/www/web-bytecode && PR_NUMBER=${prNumber} docker compose --env-file .env -f docker-compose.ephemeral.yml -p pr-${prNumber} up -d`);
+          
+          // 2. Darle 15 segundos a Postgres efímero para inicializarse y aceptar conexiones
+          await new Promise(resolve => setTimeout(resolve, 15000));
+          
+          // 3. Cruzar los datos: Volcar desde Prod y empujar hacia el contenedor Efímero
+          await execAsync(`docker exec bytecode-db pg_dump -U bytecode_user bytecode_prod | docker exec -i bytecode-db-pr-${prNumber} psql -U bytecode_user -d bytecode_prod`);
 
           await pool.query(
             `UPDATE project_environments
@@ -214,7 +220,6 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
       const dbName = `pr_${prNumber}`;
       try {
         await execAsync(`cd /var/www/web-bytecode && PR_NUMBER=${prNumber} docker compose --env-file .env -f docker-compose.ephemeral.yml -p pr-${prNumber} down -v`);
-        await execAsync(`docker exec bytecode-db dropdb -U bytecode_user --if-exists ${dbName}`);
       } catch (cleanupError: any) {
         console.error('[GitHub Webhook] Cleanup Error:', cleanupError);
       }
