@@ -8,7 +8,7 @@ import SpotlightText from '../components/typography/SpotlightText';
 const NotFound: React.FC = () => {
   return (
     <div className="relative min-h-screen flex flex-col overflow-hidden font-sansation select-none">
-       
+      
       {/* Fondo Espacial Unificado */}
       <div className="absolute inset-0 z-0 bg-black">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,_rgba(12,163,198,0.25)_0%,_transparent_50%)]" />
