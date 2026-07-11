@@ -63,18 +63,17 @@ app.use(helmet({
 
 app.use(
   cors({
-    origin(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
-      if (!origin) {
-        callback(null, false);
-        return;
-      }
-
-      if (allowedCorsOrigins.has(origin)) {
+    origin: (origin, callback) => {
+      if (
+        !origin || 
+        allowedCorsOrigins.has(origin) || 
+        origin.startsWith('http://localhost') || 
+        origin.match(/^https:\/\/pr\d+\.env\.bytecode\.com\.pe$/)
+      ) {
         callback(null, true);
-        return;
+      } else {
+        callback(new Error('CORS origin not allowed.'));
       }
-
-      callback(new Error('CORS origin not allowed.'));
     },
     credentials: true,
   }),
