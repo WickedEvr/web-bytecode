@@ -186,7 +186,7 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
 
         try {
           await execAsync(`docker exec bytecode-db sh -c "dropdb -U bytecode_user --if-exists ${dbName} && createdb -U bytecode_user ${dbName} && pg_dump -U bytecode_user bytecode_prod | psql -U bytecode_user -d ${dbName} > /dev/null"`);
-          await execAsync(`cd /var/www/web-bytecode && docker compose -f docker-compose.ephemeral.yml -p pr-${prNumber} up -d`);
+          await execAsync(`cd /var/www/web-bytecode && PR_NUMBER=${prNumber} docker compose --env-file .env -f docker-compose.ephemeral.yml -p pr-${prNumber} up -d`);
 
           await pool.query(
             `UPDATE project_environments
@@ -213,7 +213,7 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
     if (action === 'closed') {
       const dbName = `pr_${prNumber}`;
       try {
-        await execAsync(`docker compose -p pr-${prNumber} down -v`);
+        await execAsync(`cd /var/www/web-bytecode && PR_NUMBER=${prNumber} docker compose --env-file .env -f docker-compose.ephemeral.yml -p pr-${prNumber} down -v`);
         await execAsync(`docker exec bytecode-db dropdb -U bytecode_user --if-exists ${dbName}`);
       } catch (cleanupError: any) {
         console.error('[GitHub Webhook] Cleanup Error:', cleanupError);
