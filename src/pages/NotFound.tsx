@@ -24,7 +24,7 @@ const NotFound: React.FC = () => {
       </div>
 
       <div className="relative z-10 w-full max-w-[750px] mx-auto px-6 py-20 pointer-events-auto flex-1 flex flex-col justify-center items-center">
-         
+        
         {/* Contenedor Animado */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
