@@ -194,10 +194,13 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
           // 3. Detener el backend efímero temporalmente para evitar bloqueos
           await execAsync(`docker stop bytecode-backend-pr-${prNumber}`).catch(() => {});
 
-          // 4. Cruzar los datos: de Prod (bytecode_prod) a Efímero (bytecode_prod), limpiando tablas previas
+          // 4. ¡CREAR LA BASE DE DATOS DESTINO! (bytecode_prod)
+          await execAsync(`docker exec bytecode-db-pr-${prNumber} createdb -U bytecode_user bytecode_prod`).catch(() => {});
+
+          // 5. Cruzar los datos: de Prod a Efímero, limpiando tablas previas
           await execAsync(`docker exec bytecode-db pg_dump -U bytecode_user -c --if-exists bytecode_prod | docker exec -i bytecode-db-pr-${prNumber} psql -U bytecode_user -d bytecode_prod`);
 
-          // 5. Volver a encender el backend efímero
+          // 6. Volver a encender el backend efímero
           await execAsync(`docker start bytecode-backend-pr-${prNumber}`).catch(() => {});
 
           await pool.query(
