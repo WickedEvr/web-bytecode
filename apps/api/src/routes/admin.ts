@@ -2810,26 +2810,35 @@ router.post(
         customerId = newCust.rows[0].id;
       }
 
-      const quoteItemsData: Array<{ catalog_item_id: string; quantity: number; name: string; unitPrice: number; recurrence: 'none' | 'monthly' | 'yearly' }> = [];
+      const quoteItemsData: Array<{ catalog_item_id: string; quantity: number; name: string; unitPrice: number; discountAmount: number; recurrence: 'none' | 'monthly' | 'yearly' }> = [];
       for (const item of body.items) {
         const catRes = await client.query(
           'SELECT id, name, base_price FROM pricing_catalog WHERE id = $1 AND is_active = true AND deleted_at IS NULL',
           [item.catalog_item_id],
         );
         if (!catRes.rowCount || catRes.rowCount === 0) throw new HttpError(400, 'Item de catálogo inválido');
-        const unitPrice = item.unit_price ?? parseFloat(catRes.rows[0].base_price);
+        
+        let unitPrice = item.unit_price ?? parseFloat(catRes.rows[0].base_price);
+        let discountAmount = 0;
+        
+        if (unitPrice < 0) {
+          discountAmount = Math.abs(unitPrice);
+          unitPrice = 0;
+        }
+
         quoteItemsData.push({
           catalog_item_id: item.catalog_item_id,
           quantity: item.quantity,
           name: item.custom_name ?? catRes.rows[0].name,
           unitPrice,
+          discountAmount,
           recurrence: item.recurrence ?? 'none',
         });
       }
 
       const totalAmount = body.totalAmount ?? quoteItemsData
         .filter((item) => item.recurrence === 'none')
-        .reduce((acc, item) => acc + item.unitPrice * item.quantity, 0);
+        .reduce((acc, item) => acc + (item.unitPrice - item.discountAmount) * item.quantity, 0);
       const paymentPolicyParts = [
         body.notes,
         body.projectCategory ? `Categoria de proyecto: ${body.projectCategory}` : undefined,
@@ -2897,9 +2906,9 @@ router.post(
 
       for (const qi of quoteItemsData) {
         await client.query(
-          `INSERT INTO quote_items (quote_id, pricing_catalog_id, custom_name, quantity, unit_price, recurrence)
-           VALUES ($1, $2, $3, $4, $5, $6)`,
-          [quoteId, qi.catalog_item_id, qi.name, qi.quantity, qi.unitPrice, qi.recurrence]
+          `INSERT INTO quote_items (quote_id, pricing_catalog_id, custom_name, quantity, unit_price, discount_amount, recurrence)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [quoteId, qi.catalog_item_id, qi.name, qi.quantity, qi.unitPrice, qi.discountAmount, qi.recurrence]
         );
       }
 
