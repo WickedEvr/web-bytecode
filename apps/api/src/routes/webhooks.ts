@@ -188,16 +188,16 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
           // 1. Levantar el entorno efímero
           await execAsync(`cd /var/www/web-bytecode && PR_NUMBER=${prNumber} docker compose --env-file .env -f docker-compose.ephemeral.yml -p pr-${prNumber} up -d`);
 
-          // 2. Darle 15 segundos a Postgres efímero para inicializarse
-          await new Promise(resolve => setTimeout(resolve, 15000));
+          // 2. Esperar activamente a que Postgres efímero esté listo (sin timeouts fijos)
+          await execAsync(`until docker exec bytecode-db-pr-${prNumber} pg_isready -U bytecode_user; do sleep 2; done`);
 
-          // 3. Crear la base de datos destino (ignorar error si ya existe)
-          await execAsync(`docker exec bytecode-db-pr-${prNumber} createdb -U bytecode_user ${dbName}`).catch(() => {});
+          // 3. Asegurar que la base de datos destino exista en el contenedor efímero
+          await execAsync(`docker exec bytecode-db-pr-${prNumber} createdb -U bytecode_user bytecode_prod`).catch(() => {});
 
-          // 4. Cruzar los datos: Volcar desde Prod (limpiando tablas previas con -c) y empujar a la DB Efímera
-          await execAsync(`docker exec bytecode-db pg_dump -U bytecode_user -c --if-exists bytecode_prod | docker exec -i bytecode-db-pr-${prNumber} psql -U bytecode_user -d ${dbName}`);
+          // 4. Cruzar los datos: de bytecode_prod (Prod) a bytecode_prod (Efímero), limpiando tablas previas (-c)
+          await execAsync(`docker exec bytecode-db pg_dump -U bytecode_user -c --if-exists bytecode_prod | docker exec -i bytecode-db-pr-${prNumber} psql -U bytecode_user -d bytecode_prod`);
 
-          // 5. Reiniciar el backend efímero para que conecte limpio
+          // 5. Reiniciar el backend efímero para que limpie sus conexiones y use la BD poblada
           await execAsync(`docker restart bytecode-backend-pr-${prNumber}`).catch(() => {});
 
           await pool.query(
