@@ -5,6 +5,7 @@ import { apiRequest, apiUrl } from '../../lib/api';
 import StatusHistoryTimeline from '../../components/admin/StatusHistoryTimeline';
 import type { StatusHistoryRecord } from '../../types/status';
 import PaginationControl from '../../components/ui/PaginationControl';
+import { useTerminalState } from '../../hooks/useTerminalState';
 
 export interface Complaint {
   id: string;
@@ -47,6 +48,7 @@ const Reclamos: React.FC = () => {
   const [complaints, setComplaints] = useState<ComplaintItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<DetailItem | null>(null);
+  const { isReadOnly, formProps } = useTerminalState({ isTerminal: Boolean(detail?.isTerminal) });
   const [notes, setNotes] = useState('');
   const [status, setStatus] = useState('new');
   const [listLoading, setListLoading] = useState(false);
@@ -167,11 +169,12 @@ const Reclamos: React.FC = () => {
           <div className="pt-6 border-t border-white/5 flex flex-col gap-5">
             <div>
               <label className="mb-1.5 block text-[10px] uppercase tracking-wider text-white/40">Estado</label>
-              <CustomDropdown value={status} placeholder="Seleccionar estado..." onChange={(val) => setStatus(val)} options={statuses} />
+              <CustomDropdown value={status} placeholder="Seleccionar estado..." onChange={(val) => setStatus(val)} options={statuses} disabled={isReadOnly} />
             </div>
             <div>
               <label className="mb-1.5 block text-[10px] uppercase tracking-wider text-white/40">Notas Internas</label>
               <textarea
+                {...formProps}
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
                 rows={3}
@@ -193,9 +196,13 @@ const Reclamos: React.FC = () => {
             ) : (
               <div />
             )}
-            <button onClick={handleSave} className="flex items-center justify-center gap-2 rounded-lg bg-white text-black py-2.5 text-sm font-medium transition hover:bg-white/90">
+            {isReadOnly ? (
+              <p className="text-red-400 font-bold text-xs flex items-center justify-center">Este caso está cerrado y no admite modificaciones.</p>
+            ) : (
+              <button onClick={handleSave} className="flex items-center justify-center gap-2 rounded-lg bg-white text-black py-2.5 text-sm font-medium transition hover:bg-white/90">
               Guardar
             </button>
+            )}
           </div>
         </div>
       </div>

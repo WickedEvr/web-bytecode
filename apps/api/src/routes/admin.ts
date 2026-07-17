@@ -16,6 +16,7 @@ import {
 import { allowedUploadMimeTypeList, validateUpload } from '../lib/validateUpload.js';
 import { requireAdmin, requirePermission, requireSuperAdmin } from '../middleware/auth.js';
 import { requireCsrf } from '../middleware/csrf.js';
+import { requireNonTerminalState } from '../middleware/requireNonTerminalState.js';
 import { auditService } from '../services/audit.js';
 import { triggerEnvironmentVerification } from '../services/environmentVerification.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -498,6 +499,7 @@ router.patch(
   '/contacts/:id',
   requireCsrf,
   requirePermission('admin.contactos.manage'),
+  requireNonTerminalState('contact_cases'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const body = updateSchema.parse(req.body);
@@ -696,7 +698,7 @@ router.get(
     ]);
     const [result, countResult] = await Promise.all([pool.query(
       `
-      SELECT c.id, c.complaint_code as code, cu.first_name as nombres, cu.last_name as apellidos, cu.primary_email as email, cu.primary_phone as telefono, ct.name as claim_type, cg.category as tipo_reclamo, sc.code as status, sc.name as status_name, fa.original_name as attachment_original_name, c.created_at, c.updated_at
+      SELECT c.id, c.complaint_code as code, cu.first_name as nombres, cu.last_name as apellidos, cu.primary_email as email, cu.primary_phone as telefono, ct.name as claim_type, cg.category as tipo_reclamo, sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal", fa.original_name as attachment_original_name, c.created_at, c.updated_at
       FROM complaints c
       JOIN customers cu ON c.customer_id = cu.id
       JOIN status_catalog sc ON c.status_id = sc.id
@@ -764,6 +766,7 @@ router.patch(
   '/complaints/:id',
   requireCsrf,
   requirePermission('admin.reclamos.manage'),
+  requireNonTerminalState('complaints'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const body = updateSchema.parse(req.body);
@@ -1943,7 +1946,7 @@ const projectSelectSql = `
          p.name, p.description, p.github_repo, p.github_branch,
          p.start_date, p.estimated_end_date, p.actual_end_date,
          p.total_budget, p.currency_code, p.created_at, p.updated_at,
-         sc.code AS status, sc.name AS status_name,
+         sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
          COALESCE(c.display_name, NULLIF(concat_ws(' ', c.first_name, c.last_name), '')) AS customer_name,
          c.primary_email AS customer_email, s.name AS service_name
   FROM projects p
@@ -2151,6 +2154,7 @@ router.patch(
   '/projects/:id',
   requireCsrf,
   requirePermission('admin.proyectos.manage'),
+  requireNonTerminalState('projects'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
     const body = projectUpdateSchema.parse(req.body);
@@ -2371,7 +2375,7 @@ router.get(
     const result = await pool.query(
       `SELECT pm.id, pm.project_id, pm.title, pm.due_date, pm.payment_percentage,
               pm.completed_at, pm.created_at, pm.updated_at,
-              sc.code AS status, sc.name AS status_name,
+              sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
               COALESCE(payments_data.payments, '[]'::json) AS payments
        FROM project_milestones pm
        JOIN status_catalog sc ON pm.status_id = sc.id
@@ -2544,6 +2548,7 @@ router.patch(
   '/projects/:id/milestones/:milestone_id',
   requireCsrf,
   requirePermission('admin.proyectos.manage'),
+  requireNonTerminalState('projects'),
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
     const milestoneId = z.string().uuid().parse(req.params.milestone_id);
@@ -2690,7 +2695,7 @@ router.get(
     if (email) {
       const result = await pool.query(
         `SELECT q.id, q.quote_code, q.total_amount, q.currency_code, q.valid_until,
-                q.payment_policy, sc.code AS status, sc.name AS status_name,
+                q.payment_policy, sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
                 q.created_at, cu.first_name, cu.last_name, cu.primary_email,
                 COALESCE(items.items, '[]'::json) AS items
          FROM quotes q
@@ -2720,7 +2725,7 @@ router.get(
       return;
     }
     const [result, countResult] = await Promise.all([pool.query(
-      `SELECT q.id, q.quote_code, q.total_amount, sc.code AS status, sc.name AS status_name,
+      `SELECT q.id, q.quote_code, q.total_amount, sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
               q.created_at, cu.first_name, cu.primary_email
        FROM quotes q
        JOIN status_catalog sc ON q.status_id = sc.id
@@ -2740,7 +2745,7 @@ router.get(
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
     const quoteResult = await pool.query(
-      `SELECT q.id, q.quote_code, q.total_amount, sc.code AS status, sc.name AS status_name,
+      `SELECT q.id, q.quote_code, q.total_amount, sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
               q.payment_policy, q.created_at,
               cu.first_name, cu.primary_email
        FROM quotes q
@@ -2791,6 +2796,7 @@ router.post(
   '/quotes',
   requireCsrf,
   requirePermission('admin.cotizador.manage'),
+  requireNonTerminalState('quotes', 'editingQuoteId', true),
   asyncHandler(async (req: Request, res: Response) => {
     const body = createQuoteSchema.parse(req.body);
     
@@ -2961,6 +2967,7 @@ router.delete(
   '/quotes/:id',
   requireCsrf,
   requirePermission('admin.cotizador.manage'),
+  requireNonTerminalState('quotes'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
     const current = await pool.query('SELECT * FROM quotes WHERE id = $1', [id]);

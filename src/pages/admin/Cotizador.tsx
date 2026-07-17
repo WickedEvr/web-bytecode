@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Calculator, Edit, MoreVertical, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AdminPanel from '../../components/admin/AdminPanel';
 import DynamicQuoter from '../../components/admin/DynamicQuoter';
 import { apiRequest } from '../../lib/api';
+import { useTerminalState } from '../../hooks/useTerminalState';
 import CustomDropdown from '../../components/ui/CustomDropdown';
 import StatusHistoryTimeline from '../../components/admin/StatusHistoryTimeline';
 import type { StatusCatalogItem, StatusHistoryRecord } from '../../types/status';
@@ -17,6 +18,7 @@ export interface Quote {
   quote_code: string;
   total_amount: string;
   status: string;
+    isTerminal?: boolean;
   status_name?: string;
   created_at: string;
   first_name: string;
@@ -49,6 +51,7 @@ const AdminCotizador: React.FC = () => {
     customerEmail: '',
     notes: '',
     status: 'draft',
+      isTerminal: false,
   });
   const [statuses, setStatuses] = useState<StatusCatalogItem[]>([]);
   const [statusHistory, setStatusHistory] = useState<StatusHistoryRecord[]>([]);
@@ -58,8 +61,9 @@ const AdminCotizador: React.FC = () => {
   const loadQuoteForEditing = useQuoterState((state) => state.loadQuoteForEditing);
   const resetQuoter = useQuoterState((state) => state.resetQuoter);
   const editingQuoteId = useQuoterState((state) => state.editingQuoteId);
+  const { isReadOnly } = useTerminalState({ isTerminal: formData.isTerminal });
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -78,11 +82,14 @@ const AdminCotizador: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, setCatalog]);
 
   useEffect(() => {
-    void loadData();
-  }, [page]);
+    const timer = setTimeout(() => {
+      void loadData();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [loadData]);
 
   useEffect(() => {
     if (!actionsMenu) return;
@@ -111,7 +118,7 @@ const AdminCotizador: React.FC = () => {
   const openNewQuote = () => {
     setCatalogInStore(catalog);
     resetQuoter();
-    setFormData({ customerName: '', customerEmail: '', notes: '', status: statuses[0]?.code ?? 'draft' });
+    setFormData({ customerName: '', customerEmail: '', notes: '', status: statuses[0]?.code ?? 'draft' , isTerminal: false });
     setStatusHistory([]);
     setError('');
     setIsModalOpen(true);
@@ -133,6 +140,7 @@ const AdminCotizador: React.FC = () => {
         customerEmail: detail.quote.primary_email || '',
         notes: detail.quote.payment_policy || '',
         status: detail.quote.status,
+          isTerminal: Boolean(detail.quote.isTerminal),
       });
       setStatusHistory(historyResult.items);
       setIsModalOpen(true);
@@ -198,7 +206,7 @@ const AdminCotizador: React.FC = () => {
         },
       });
       setIsModalOpen(false);
-      setFormData({ customerName: '', customerEmail: '', notes: '', status: statuses[0]?.code ?? 'draft' });
+      setFormData({ customerName: '', customerEmail: '', notes: '', status: statuses[0]?.code ?? 'draft' , isTerminal: false });
       resetQuoter();
       await loadData();
     } catch (err) {
@@ -384,6 +392,7 @@ const AdminCotizador: React.FC = () => {
             </div>
 
             <DynamicQuoter
+              isReadOnly={isReadOnly}
               initialCatalog={catalog}
               customerName={formData.customerName}
               customerEmail={formData.customerEmail}
@@ -399,6 +408,7 @@ const AdminCotizador: React.FC = () => {
                       placeholder="Seleccionar estado..."
                       onChange={(status) => setFormData({ ...formData, status })}
                       options={statuses.map((item) => ({ value: item.code, label: item.name }))}
+                      disabled={isReadOnly}
                     />
                   </div>
                   {editingQuoteId && <StatusHistoryTimeline records={statusHistory} />}

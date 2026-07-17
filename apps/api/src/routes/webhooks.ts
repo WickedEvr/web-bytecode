@@ -185,8 +185,19 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
         );
 
         try {
-          // 1. Levantar el entorno efímero
-          await execAsync(`cd /var/www/web-bytecode && PR_NUMBER=${prNumber} docker compose --env-file .env -f docker-compose.ephemeral.yml -p pr-${prNumber} up -d`);
+          // 1. Levantar el entorno efímero sincronizando la rama correcta y forzando el build
+          const ephemeralDir = `/var/www/ephemeral/pr-${prNumber}`;
+          await execAsync(`
+            mkdir -p /var/www/ephemeral &&
+            if [ ! -d "${ephemeralDir}" ]; then git clone --shared /var/www/web-bytecode ${ephemeralDir}; fi &&
+            cd ${ephemeralDir} &&
+            git remote set-url origin https://github.com/bytecode-web/web-bytecode.git &&
+            git fetch origin ${branchName} &&
+            git checkout -B ${branchName} origin/${branchName} &&
+            git reset --hard origin/${branchName} &&
+            cp /var/www/web-bytecode/.env .env &&
+            PR_NUMBER=${prNumber} docker compose --env-file .env -f docker-compose.ephemeral.yml -p pr-${prNumber} up -d --build
+          `);
 
           // 2. Esperar 20 segundos para que Postgres inicialice
           await new Promise(resolve => setTimeout(resolve, 20000));
@@ -202,6 +213,8 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
 
           // 6. Volver a encender el backend efímero
           await execAsync(`docker start bytecode-backend-pr-${prNumber}`).catch(() => {});
+
+          await execAsync(`docker image prune -f`).catch(() => {});
 
           await pool.query(
             `UPDATE project_environments
@@ -228,7 +241,8 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
     if (action === 'closed') {
       const dbName = `pr_${prNumber}`;
       try {
-        await execAsync(`cd /var/www/web-bytecode && PR_NUMBER=${prNumber} docker compose --env-file .env -f docker-compose.ephemeral.yml -p pr-${prNumber} down -v`);
+        const ephemeralDir = `/var/www/ephemeral/pr-${prNumber}`;
+        await execAsync(`cd ${ephemeralDir} && PR_NUMBER=${prNumber} docker compose --env-file .env -f docker-compose.ephemeral.yml -p pr-${prNumber} down -v && cd /var/www/ephemeral && rm -rf pr-${prNumber}`);
       } catch (cleanupError: any) {
         console.error('[GitHub Webhook] Cleanup Error:', cleanupError);
       }
