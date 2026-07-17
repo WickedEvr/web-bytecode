@@ -21,7 +21,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Instalar docker-cli y plugin de compose
-RUN apk add --no-cache docker-cli docker-cli-compose
+RUN apk add --no-cache docker-cli docker-cli-compose git
 
 # Crear usuario sin privilegios para ejecución segura
 RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
