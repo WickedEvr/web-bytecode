@@ -206,6 +206,7 @@ export interface AdminPortfolioItemData {
   is_featured: boolean;
   status: string;
   status_name?: string;
+  isTerminal?: boolean;
   image_url: string | null;
   alt_text: string | null;
   technologies: Array<{ id: string; name: string }>;
@@ -238,6 +239,7 @@ export interface Project {
   currency_code: string;
   status: string;
   status_name?: string;
+  isTerminal?: boolean;
   customer_name: string | null;
   customer_email: string | null;
   service_name: string;
@@ -268,6 +270,7 @@ export interface ProjectMilestone {
   completed_at: string | null;
   status: string;
   status_name?: string;
+  isTerminal?: boolean;
   created_at: string;
   updated_at: string;
   payments?: MilestonePayment[];
