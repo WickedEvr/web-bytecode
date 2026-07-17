@@ -288,7 +288,7 @@ const ProyectoDetalle: React.FC = () => {
       <RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>
         {paymentModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-            <form onSubmit={handlePaymentSubmit} className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 shadow-2xl md:p-8">
+            <form onSubmit={handlePaymentSubmit} className="max-h-[92vh] w-full max-w-md overflow-visible rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 shadow-2xl md:p-8">
               <div className="mb-6 flex items-center justify-between border-b border-white/5 pb-4">
                 <div><h2 className="text-lg font-semibold text-white/90">Registrar Pago</h2></div>
                 <button type="button" onClick={() => setPaymentModalOpen(false)} className="rounded-lg p-2 text-white/50 hover:bg-white/5"><X className="h-5 w-5" /></button>
@@ -322,7 +322,7 @@ const ProyectoDetalle: React.FC = () => {
       <RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>
         {addMilestoneOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-            <form onSubmit={handleAddMilestoneSubmit} className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 shadow-2xl md:p-8">
+            <form onSubmit={handleAddMilestoneSubmit} className="max-h-[92vh] w-full max-w-md overflow-visible rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 shadow-2xl md:p-8">
               <div className="mb-6 flex items-center justify-between border-b border-white/5 pb-4">
                 <div><h2 className="text-lg font-semibold text-white/90">Añadir Hito</h2></div>
                 <button type="button" onClick={() => setAddMilestoneOpen(false)} className="rounded-lg p-2 text-white/50 hover:bg-white/5"><X className="h-5 w-5" /></button>
