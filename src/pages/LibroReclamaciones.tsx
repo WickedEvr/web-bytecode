@@ -72,8 +72,7 @@ const LibroReclamaciones: React.FC = () => {
           ));
         }
 
-        const filteredServices = servicesData.filter(s => s.code !== 'custom_software');
-        setServiceOptions(filteredServices.map(s => ({ value: s.code, label: s.name })));
+        setServiceOptions(servicesData.map(s => ({ value: s.code, label: s.name })));
 
         setAllDocumentTypes(docTypesData);
         setAllCountries(countriesData);
