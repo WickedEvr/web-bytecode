@@ -3005,4 +3005,83 @@ router.delete(
   }),
 );
 
+// --- Status Catalog Endpoints ---
+
+const statusCatalogUpdateSchema = z.object({
+  name: z.string().min(1).optional(),
+  sort_order: z.number().int().optional(),
+  is_active: z.boolean().optional(),
+});
+
+router.put(
+  '/status-catalog/:id',
+  requireCsrf,
+  requireSuperAdmin,
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = z.string().uuid().parse(req.params.id);
+
+    // Prevención de Asignación Masiva
+    if (req.body) {
+      delete req.body.code;
+      delete req.body.domain;
+      delete req.body.is_terminal;
+    }
+
+    const body = statusCatalogUpdateSchema.parse(req.body);
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+      const current = await client.query('SELECT * FROM status_catalog WHERE id = $1', [id]);
+      
+      if (current.rowCount === 0) {
+        throw new HttpError(404, 'Estado no encontrado en el catálogo.');
+      }
+
+      const result = await client.query(
+        `UPDATE status_catalog
+         SET name = COALESCE($2, name),
+             sort_order = COALESCE($3, sort_order),
+             is_active = COALESCE($4, is_active),
+             updated_at = now()
+         WHERE id = $1
+         RETURNING *`,
+        [
+          id,
+          body.name ?? null,
+          body.sort_order ?? null,
+          body.is_active ?? null
+        ],
+      );
+
+      await client.query('COMMIT');
+      
+      await auditService.logAdminAction({
+        userId: req.admin?.id,
+        action: 'update',
+        entityType: 'status_catalog',
+        entity: result.rows[0],
+        previousState: current.rows[0],
+        req
+      });
+
+      res.json({ item: result.rows[0] });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }),
+);
+
+router.delete(
+  '/status-catalog/:id',
+  requireCsrf,
+  requireSuperAdmin,
+  asyncHandler(async (req: Request, res: Response) => {
+    throw new HttpError(405, 'La eliminación de estados no está permitida para mantener la integridad del sistema.');
+  }),
+);
+
 export default router;
