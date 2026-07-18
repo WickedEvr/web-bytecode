@@ -216,6 +216,12 @@ router.put(
   requireSuperAdmin,
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
+
+    if (req.body) {
+      delete req.body.code;
+      delete req.body.is_system;
+    }
+
     const body = roleUpdateSchema.parse(req.body);
     const client = await pool.connect();
 
@@ -268,6 +274,15 @@ router.put(
     } finally {
       client.release();
     }
+  }),
+);
+
+router.delete(
+  '/roles/:id',
+  requireCsrf,
+  requireSuperAdmin,
+  asyncHandler(async (req: Request, res: Response) => {
+    throw new HttpError(405, 'La eliminación de roles no está soportada por el sistema.');
   }),
 );
 
@@ -2989,5 +3004,149 @@ router.delete(
     res.json({ ok: true });
   }),
 );
+
+// --- Status Catalog Endpoints ---
+
+const statusCatalogUpdateSchema = z.object({
+  name: z.string().min(1).optional(),
+  sort_order: z.number().int().optional(),
+  is_active: z.boolean().optional(),
+});
+
+router.put(
+  '/status-catalog/:id',
+  requireCsrf,
+  requireSuperAdmin,
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = z.string().uuid().parse(req.params.id);
+
+    // Prevención de Asignación Masiva
+    if (req.body) {
+      delete req.body.code;
+      delete req.body.domain;
+      delete req.body.is_terminal;
+    }
+
+    const body = statusCatalogUpdateSchema.parse(req.body);
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+      const current = await client.query('SELECT * FROM status_catalog WHERE id = $1', [id]);
+      
+      if (current.rowCount === 0) {
+        throw new HttpError(404, 'Estado no encontrado en el catálogo.');
+      }
+
+      const result = await client.query(
+        `UPDATE status_catalog
+         SET name = COALESCE($2, name),
+             sort_order = COALESCE($3, sort_order),
+             is_active = COALESCE($4, is_active),
+             updated_at = now()
+         WHERE id = $1
+         RETURNING *`,
+        [
+          id,
+          body.name ?? null,
+          body.sort_order ?? null,
+          body.is_active ?? null
+        ],
+      );
+
+      await client.query('COMMIT');
+      
+      await auditService.logAdminAction({
+        userId: req.admin?.id,
+        action: 'update',
+        entityType: 'status_catalog',
+        entity: result.rows[0],
+        previousState: current.rows[0],
+        req
+      });
+
+      res.json({ item: result.rows[0] });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }),
+);
+
+router.delete(
+  '/status-catalog/:id',
+  requireCsrf,
+  requireSuperAdmin,
+  asyncHandler(async (req: Request, res: Response) => {
+    throw new HttpError(405, 'La eliminación de estados no está permitida para mantener la integridad del sistema.');
+  }),
+);
+
+// --- Pricing Catalog Endpoints ---
+
+router.put(
+  '/pricing-catalog/:id',
+  requireCsrf,
+  requireSuperAdmin,
+  asyncHandler(async (req: Request, res: Response) => {
+    throw new HttpError(405, 'La modificación de ítems de precio no está soportada para garantizar la integridad financiera.');
+  }),
+);
+
+router.patch(
+  '/pricing-catalog/:id',
+  requireCsrf,
+  requireSuperAdmin,
+  asyncHandler(async (req: Request, res: Response) => {
+    throw new HttpError(405, 'La modificación de ítems de precio no está soportada para garantizar la integridad financiera.');
+  }),
+);
+
+router.delete(
+  '/pricing-catalog/:id',
+  requireCsrf,
+  requireSuperAdmin,
+  asyncHandler(async (req: Request, res: Response) => {
+    throw new HttpError(405, 'La eliminación física de ítems de precio no está permitida para mantener la integridad de las cotizaciones históricas.');
+  }),
+);
+
+// --- Append-Only Audit Endpoints ---
+
+const blockAuditMutation = asyncHandler(async (req: Request, res: Response) => {
+  throw new HttpError(405, 'Los registros de auditoría son inmutables (Append-Only) y no pueden ser alterados ni eliminados por razones de seguridad y cumplimiento normativo.');
+});
+
+router.put('/audit-logs/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+router.patch('/audit-logs/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+router.delete('/audit-logs/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+
+router.put('/data-change-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+router.patch('/data-change-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+router.delete('/data-change-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+
+// --- Append-Only: Historiales Operativos ---
+
+// 1. Historial de estados de proyectos
+router.put('/project-status-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+router.patch('/project-status-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+router.delete('/project-status-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+
+// 2. Historial de estados de cotizaciones
+router.put('/quote-status-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+router.patch('/quote-status-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+router.delete('/quote-status-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+
+// 3. Historial de estados de reclamos
+router.put('/complaint-status-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+router.patch('/complaint-status-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+router.delete('/complaint-status-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+
+// 4. Historial de estados de casos de contacto (contactos web)
+router.put('/contact-case-status-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+router.patch('/contact-case-status-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+router.delete('/contact-case-status-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation)
 
 export default router;
