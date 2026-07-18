@@ -216,6 +216,12 @@ router.put(
   requireSuperAdmin,
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
+
+    if (req.body) {
+      delete req.body.code;
+      delete req.body.is_system;
+    }
+
     const body = roleUpdateSchema.parse(req.body);
     const client = await pool.connect();
 
@@ -268,6 +274,15 @@ router.put(
     } finally {
       client.release();
     }
+  }),
+);
+
+router.delete(
+  '/roles/:id',
+  requireCsrf,
+  requireSuperAdmin,
+  asyncHandler(async (req: Request, res: Response) => {
+    throw new HttpError(405, 'La eliminación de roles no está soportada por el sistema.');
   }),
 );
 
