@@ -106,7 +106,7 @@ const ProyectoDetalle: React.FC = () => {
     }, 0);
     return () => clearTimeout(timer);
   }, [loadData]);
- 
+
   const changeMilestoneStatus = async (milestoneId: string, status: string) => {
     try {
       await updateProjectMilestone(id, milestoneId, status);
