@@ -3084,4 +3084,69 @@ router.delete(
   }),
 );
 
+// --- Pricing Catalog Endpoints ---
+
+router.put(
+  '/pricing-catalog/:id',
+  requireCsrf,
+  requireSuperAdmin,
+  asyncHandler(async (req: Request, res: Response) => {
+    throw new HttpError(405, 'La modificación de ítems de precio no está soportada para garantizar la integridad financiera.');
+  }),
+);
+
+router.patch(
+  '/pricing-catalog/:id',
+  requireCsrf,
+  requireSuperAdmin,
+  asyncHandler(async (req: Request, res: Response) => {
+    throw new HttpError(405, 'La modificación de ítems de precio no está soportada para garantizar la integridad financiera.');
+  }),
+);
+
+router.delete(
+  '/pricing-catalog/:id',
+  requireCsrf,
+  requireSuperAdmin,
+  asyncHandler(async (req: Request, res: Response) => {
+    throw new HttpError(405, 'La eliminación física de ítems de precio no está permitida para mantener la integridad de las cotizaciones históricas.');
+  }),
+);
+
+// --- Append-Only Audit Endpoints ---
+
+const blockAuditMutation = asyncHandler(async (req: Request, res: Response) => {
+  throw new HttpError(405, 'Los registros de auditoría son inmutables (Append-Only) y no pueden ser alterados ni eliminados por razones de seguridad y cumplimiento normativo.');
+});
+
+router.put('/audit-logs/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+router.patch('/audit-logs/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+router.delete('/audit-logs/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+
+router.put('/data-change-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+router.patch('/data-change-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+router.delete('/data-change-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+
+// --- Append-Only: Historiales Operativos ---
+
+// 1. Historial de estados de proyectos
+router.put('/project-status-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+router.patch('/project-status-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+router.delete('/project-status-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+
+// 2. Historial de estados de cotizaciones
+router.put('/quote-status-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+router.patch('/quote-status-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+router.delete('/quote-status-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+
+// 3. Historial de estados de reclamos
+router.put('/complaint-status-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+router.patch('/complaint-status-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+router.delete('/complaint-status-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+
+// 4. Historial de estados de casos de contacto (contactos web)
+router.put('/contact-case-status-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+router.patch('/contact-case-status-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation);
+router.delete('/contact-case-status-history/:id', requireCsrf, requireSuperAdmin, blockAuditMutation)
+
 export default router;
