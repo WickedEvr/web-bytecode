@@ -202,6 +202,84 @@ router.get('/me', requireAdmin, (req: Request, res: Response) => {
   res.json({ admin: req.admin });
 });
 
+router.get('/me/sessions', requireAdmin, asyncHandler(async (req: Request, res: Response) => {
+  const result = await pool.query(
+    `
+    SELECT s.*, u.email as user_email, u.name as user_name
+    FROM admin_sessions s
+    JOIN admin_users u ON s.admin_user_id = u.id
+    WHERE s.revoked_at IS NULL
+      AND s.expires_at > NOW()
+      AND s.admin_user_id = $1
+    ORDER BY s.created_at DESC
+    `,
+    [req.admin?.id]
+  );
+
+  const sessions = result.rows.map((row) => {
+    let uaData: { raw: string; platform?: string; platformVersion?: string } = { raw: '' };
+    try {
+      const parsed = JSON.parse(row.user_agent || '{}');
+      if (parsed && typeof parsed === 'object' && 'raw' in parsed) uaData = parsed;
+      else uaData = { raw: row.user_agent || '' };
+    } catch {
+      uaData = { raw: row.user_agent || '' };
+    }
+
+    const parser = new UAParser(uaData.raw);
+    const browser = parser.getBrowser();
+    const os = parser.getOS();
+    const device = parser.getDevice();
+
+    const deviceType = device.type || 'desktop';
+    let osName = os.name || 'Unknown OS';
+    const platformToMatch = uaData.platform || os.name || '';
+    if (platformToMatch.includes('Windows')) osName = 'Windows';
+    else if (platformToMatch.includes('Android')) osName = 'Android';
+    else if (platformToMatch.includes('Mac OS') || platformToMatch.includes('iOS')) {
+      osName = platformToMatch.includes('iOS') ? 'iOS' : 'macOS';
+    }
+
+    return {
+      id: row.id,
+      ip_address: row.ip_address,
+      deviceType,
+      osName,
+      browserName: browser.name || 'Unknown Browser',
+      created_at: row.created_at,
+      expires_at: row.expires_at,
+      isCurrentSession: row.id === req.sessionId,
+      userName: row.user_name,
+      userEmail: row.user_email,
+      canRevoke: true, // It's their own session
+    };
+  });
+
+  res.json({ sessions });
+}));
+
+router.post('/me/sessions/:sessionId/revoke', requireAdmin, asyncHandler(async (req: Request, res: Response) => {
+  const params = revokeSchema.parse(req.params);
+
+  const sessionResult = await pool.query(
+    `SELECT id, admin_user_id FROM admin_sessions WHERE id = $1`,
+    [params.sessionId]
+  );
+
+  if (sessionResult.rowCount === 0) {
+    throw new HttpError(404, 'Sesión no encontrada.');
+  }
+
+  if (sessionResult.rows[0].admin_user_id !== req.admin?.id) {
+    throw new HttpError(403, 'Privilegios insuficientes. Esta sesión pertenece a otro usuario.');
+  }
+
+  await pool.query(`UPDATE admin_sessions SET revoked_at = NOW() WHERE id = $1`, [params.sessionId]);
+  await auditService.logAdminAction({ userId: req.admin?.id, action: 'revoke_own_session', entityType: 'admin_sessions', entity: params.sessionId, req });
+  
+  res.json({ ok: true, message: 'Sesión revocada exitosamente.' });
+}));
+
 router.get('/sessions', requireAdmin, requirePermission('admin.seguridad.view'), asyncHandler(async (req: Request, res: Response) => {
   const isSuperAdmin = req.admin?.roles.includes('super_admin');
 
