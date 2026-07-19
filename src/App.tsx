@@ -45,6 +45,16 @@ const ScrollToTop = () => {
   const { pathname } = useLocation();
   useEffect(() => {
     window.scrollTo(0, 0);
+
+    // Google Analytics: Track page views manually (excluding admin routes)
+    if (!pathname.startsWith('/admin') && typeof (window as any).gtag === 'function') {
+      setTimeout(() => {
+        (window as any).gtag('event', 'page_view', {
+          page_path: pathname,
+          page_title: document.title,
+        });
+      }, 100);
+    }
   }, [pathname]);
   return null;
 };
