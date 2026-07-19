@@ -203,16 +203,27 @@ router.get('/me', requireAdmin, (req: Request, res: Response) => {
 });
 
 router.get('/sessions', requireAdmin, requirePermission('admin.seguridad.view'), asyncHandler(async (req: Request, res: Response) => {
-  const result = await pool.query(
-    `
-    SELECT s.*, u.email as user_email, u.name as user_name
+  const isSuperAdmin = req.admin?.roles.includes('super_admin');
+
+  const query = `
+    SELECT 
+      s.*, 
+      u.email as user_email, 
+      u.name as user_name,
+      (array_remove(array_agg(r.code), NULL))[1] as target_role
     FROM admin_sessions s
     JOIN admin_users u ON s.admin_user_id = u.id
+    LEFT JOIN admin_user_roles aur ON u.id = aur.admin_user_id
+    LEFT JOIN roles r ON aur.role_id = r.id
     WHERE s.revoked_at IS NULL
       AND s.expires_at > NOW()
+    GROUP BY s.id, u.id
+    ${!isSuperAdmin ? "HAVING (array_remove(array_agg(r.code), NULL))[1] IS DISTINCT FROM 'super_admin' OR s.admin_user_id = $1" : ""}
     ORDER BY s.created_at DESC
-    `
-  );
+  `;
+  const queryParams = !isSuperAdmin ? [req.admin?.id] : [];
+
+  const result = await pool.query(query, queryParams);
 
   const sessions = result.rows.map((row) => {
     let uaData: { raw: string; platform?: string; platformVersion?: string } = { raw: '' };
@@ -257,6 +268,7 @@ router.get('/sessions', requireAdmin, requirePermission('admin.seguridad.view'),
       isCurrentSession: row.id === req.sessionId,
       userName: row.user_name,
       userEmail: row.user_email,
+      canRevoke: isSuperAdmin || row.admin_user_id === req.admin?.id
     };
   });
 
@@ -270,6 +282,39 @@ const revokeSchema = z.object({
 router.post('/sessions/:sessionId/revoke', requireAdmin, requirePermission('admin.seguridad.manage'), asyncHandler(async (req: Request, res: Response) => {
   const params = revokeSchema.parse(req.params);
 
+  const sessionResult = await pool.query(
+    `
+    SELECT s.id, s.admin_user_id, (array_remove(array_agg(r.code), NULL))[1] as target_role
+    FROM admin_sessions s
+    JOIN admin_users u ON s.admin_user_id = u.id
+    LEFT JOIN admin_user_roles aur ON u.id = aur.admin_user_id
+    LEFT JOIN roles r ON aur.role_id = r.id
+    WHERE s.id = $1
+    GROUP BY s.id, s.admin_user_id
+    `,
+    [params.sessionId]
+  );
+
+  if (sessionResult.rowCount === 0) {
+    throw new HttpError(404, 'Sesión no encontrada.');
+  }
+
+  const targetSession = sessionResult.rows[0];
+  const isSelfRevoke = targetSession.admin_user_id === req.admin?.id;
+  const isSuperAdmin = req.admin?.roles.includes('super_admin');
+
+  if (!isSelfRevoke && !isSuperAdmin) {
+    await auditService.logAdminAction({
+      userId: req.admin?.id,
+      action: 'intento_no_autorizado',
+      entityType: 'admin_sessions',
+      entity: params.sessionId,
+      req,
+      previousState: { attempted_action: 'revoke_session', target_role: targetSession.target_role }
+    });
+    throw new HttpError(403, 'Privilegios insuficientes. Solo puedes revocar tus propias sesiones desde otros dispositivos, o bien ser Super Admin para revocar accesos a terceros.');
+  }
+
   const result = await pool.query(
     `
     UPDATE admin_sessions
@@ -279,10 +324,6 @@ router.post('/sessions/:sessionId/revoke', requireAdmin, requirePermission('admi
     `,
     [params.sessionId]
   );
-
-  if (result.rowCount === 0) {
-    throw new HttpError(404, 'Sesión no encontrada.');
-  }
 
   await auditService.logAdminAction({ userId: req.admin?.id, action: 'revoke_session', entityType: 'admin_sessions', entity: params.sessionId, req });
   

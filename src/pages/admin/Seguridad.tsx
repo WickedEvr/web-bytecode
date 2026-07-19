@@ -15,6 +15,7 @@ interface Session {
   isCurrentSession: boolean;
   userName: string;
   userEmail: string;
+  canRevoke: boolean;
 }
 
 const AdminSeguridad: React.FC = () => {
@@ -153,7 +154,7 @@ const AdminSeguridad: React.FC = () => {
                 </div>
               </div>
 
-              {!session.isCurrentSession && (
+              {!session.isCurrentSession && session.canRevoke && (
                 <button
                   onClick={() => handleRevoke(session.id)}
                   className="mt-6 flex items-center justify-center sm:justify-start gap-2 text-red-400/80 hover:text-red-400 hover:bg-red-400/10 px-3 py-2 rounded-lg transition-colors font-medium text-xs self-start border border-transparent hover:border-red-400/20"
