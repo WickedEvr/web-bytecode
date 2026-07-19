@@ -220,7 +220,7 @@ const Servicios: React.FC = () => {
             }
           `}</style>
 
-          <div className="relative w-[90vw] mx-auto overflow-hidden opacity-80 [mask-image:linear-gradient(to_right,transparent_0%,black_10%,black_90%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,transparent_0%,black_10%,black_90%,transparent_100%)]">
+          <div className="relative w-full mx-auto overflow-hidden opacity-80 [mask-image:linear-gradient(to_right,transparent_0%,black_10%,black_90%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,transparent_0%,black_10%,black_90%,transparent_100%)]">
             <div className="logos-track">
               {[0, 1, 2, 3].map(copy => (
                 <React.Fragment key={copy}>

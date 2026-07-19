@@ -353,7 +353,7 @@ const HerramientasSection: React.FC = () => (
         <div className="h-0 flex-1 border-t-2 border-[rgba(60,60,59,0.4)]" />
       </div>
 
-      <div className="relative mx-auto w-[90vw] overflow-hidden opacity-90 [mask-image:linear-gradient(to_right,transparent_0%,black_10%,black_90%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,transparent_0%,black_10%,black_90%,transparent_100%)]">
+      <div className="relative mx-auto w-full overflow-hidden opacity-90 [mask-image:linear-gradient(to_right,transparent_0%,black_10%,black_90%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,transparent_0%,black_10%,black_90%,transparent_100%)]">
         <div className="flex w-max flex-nowrap items-center animate-[marquee-scroll_18s_linear_infinite]">
           {[0, 1, 2, 3].map(copy => (
             <React.Fragment key={copy}>
