@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Edit2, Plus, RefreshCw, Save, UserCheck, UserX, X, MoreVertical } from 'lucide-react';
+import { Edit2, Plus, RefreshCw, Save, UserCheck, UserX, X, MoreVertical, Trash2 } from 'lucide-react';
 import { apiRequest } from '../../lib/api';
 import AdminPanel from '../../components/admin/AdminPanel';
 import CustomDropdown from '../../components/ui/CustomDropdown';
@@ -52,11 +52,12 @@ const Usuarios: React.FC = () => {
   const [actionsMenu, setActionsMenu] = useState<ActionMenuState | null>(null);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
   const roleOptions = roles.map((role) => ({ value: role.code, label: role.name }));
 
   const loadUsers = async () => {
-    const result = await apiRequest<{ data: AdminUserRow[]; total: number }>(`/admin/users?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`);
+    const result = await apiRequest<{ data: AdminUserRow[]; total: number }>(`/admin/users?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}&status=${statusFilter}`);
     if (result.data.length === 0 && result.total > 0 && page > 1) { setPage(page - 1); return; }
     setUsers(result.data);
     setTotal(result.total);
@@ -81,7 +82,21 @@ const Usuarios: React.FC = () => {
 
   useEffect(() => {
     void loadData();
-  }, [page]);
+  }, [page, statusFilter]);
+
+  const handleDelete = async (user: AdminUserRow) => {
+    if (!window.confirm(`¿Estás seguro de eliminar permanentemente a ${user.name}? Esta acción no se puede deshacer.`)) return;
+    setLoading(true);
+    setError('');
+    try {
+      await apiRequest(`/admin/users/${user.id}`, { method: 'DELETE' });
+      await loadUsers();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al eliminar usuario');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = () => setActionsMenu(null);
@@ -190,7 +205,12 @@ const Usuarios: React.FC = () => {
     <div className="flex flex-col gap-6 font-sansation">
       <div className="flex items-center justify-between gap-4 pb-4 border-b border-white/5">
         <h1 className="text-2xl font-semibold tracking-wide text-white/90">Usuarios Administradores</h1>
-        <div className="flex gap-3">
+        <div className="flex gap-3 items-center">
+          <div className="flex gap-1 bg-white/5 p-1 rounded-lg border border-white/10 mr-2">
+            <button onClick={() => { setStatusFilter('all'); setPage(1); }} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${statusFilter === 'all' ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white/80'}`}>Todos</button>
+            <button onClick={() => { setStatusFilter('active'); setPage(1); }} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${statusFilter === 'active' ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white/80'}`}>Activos</button>
+            <button onClick={() => { setStatusFilter('inactive'); setPage(1); }} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${statusFilter === 'inactive' ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white/80'}`}>Inactivos</button>
+          </div>
           <button onClick={loadData} className="flex items-center gap-2 rounded-lg bg-white/5 border border-white/10 px-4 py-2 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white">
             <RefreshCw className="h-4 w-4" /> <span>Actualizar</span>
           </button>
@@ -291,6 +311,18 @@ const Usuarios: React.FC = () => {
                   <><UserCheck className="h-4 w-4" /> Activar</>
                 )}
               </button>
+              {!users.find(u => u.id === actionsMenu.id)?.is_active && (
+                <button
+                  onClick={() => {
+                    const user = users.find(u => u.id === actionsMenu.id);
+                    if (user) handleDelete(user);
+                    setActionsMenu(null);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-red-400 hover:text-red-300 hover:bg-red-400/10 transition-colors mt-1 border-t border-white/5 pt-2"
+                >
+                  <Trash2 className="h-4 w-4" /> Eliminar
+                </button>
+              )}
             </div>
           </motion.div>
         )}

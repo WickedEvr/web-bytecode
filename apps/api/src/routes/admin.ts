@@ -920,6 +920,12 @@ router.get(
   asyncHandler(async (req: Request, res: Response) => {
     try {
       const { limit, offset } = paginationQuerySchema.parse(req.query);
+      const status = req.query.status as string;
+
+      let statusParam: boolean | null = null;
+      if (status === 'active') statusParam = true;
+      else if (status === 'inactive') statusParam = false;
+
       const [result, countResult] = await Promise.all([pool.query(`
         SELECT 
           u.id, 
@@ -933,12 +939,13 @@ router.get(
         FROM admin_users u
         LEFT JOIN admin_user_roles aur ON u.id = aur.admin_user_id
         LEFT JOIN roles r ON aur.role_id = r.id
-        WHERE u.deleted_at IS NULL AND u.is_active = true
+        WHERE u.deleted_at IS NULL AND ($3::boolean IS NULL OR u.is_active = $3::boolean)
         GROUP BY u.id
         ORDER BY u.name ASC
         LIMIT $1 OFFSET $2
-      `, [limit, offset]), pool.query(
-        'SELECT count(*)::int AS total FROM admin_users WHERE deleted_at IS NULL AND is_active = true',
+      `, [limit, offset, statusParam]), pool.query(
+        'SELECT count(*)::int AS total FROM admin_users WHERE deleted_at IS NULL AND ($1::boolean IS NULL OR is_active = $1::boolean)',
+        [statusParam]
       )]);
       res.json({ data: result.rows, total: countResult.rows[0].total });
     } catch (error) {
@@ -1063,6 +1070,44 @@ router.patch(
         req
       });
       res.json({ item: { ...result.rows[0], role: updatedRole } });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }),
+);
+
+router.delete(
+  '/users/:id',
+  requireCsrf,
+  requireSuperAdmin,
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = String(req.params.id);
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+      
+      const currentUser = await client.query('SELECT id, is_active FROM admin_users WHERE id = $1', [id]);
+      if (currentUser.rowCount === 0) throw new HttpError(404, 'Usuario no encontrado.');
+      if (currentUser.rows[0].is_active) throw new HttpError(400, 'Solo se pueden eliminar usuarios inactivos.');
+
+      await client.query('DELETE FROM admin_user_roles WHERE admin_user_id = $1', [id]);
+      await client.query('DELETE FROM admin_users WHERE id = $1', [id]);
+
+      await client.query('COMMIT');
+      
+      await auditService.logAdminAction({
+        userId: req.admin?.id,
+        action: 'delete',
+        entityType: 'admin_user',
+        entity: { id },
+        req
+      });
+
+      res.json({ success: true });
     } catch (err) {
       await client.query('ROLLBACK');
       throw err;
