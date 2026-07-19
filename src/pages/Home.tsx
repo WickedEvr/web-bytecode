@@ -342,7 +342,7 @@ const ServiciosSection: React.FC = () => {
 
 const HerramientasSection: React.FC = () => (
   <section className="relative z-20 bg-white text-[#3C3C3B] px-6 pb-6 md:pb-8 lg:pb-12 pt-0 font-sansation">
-    <div className="relative z-20 mx-auto flex w-full max-w-7xl flex-col items-center pt-6 md:pt-10 lg:pt-12">
+    <div className="relative z-20 mx-auto flex w-full max-w-[85%] flex-col items-center pt-6 md:pt-10 lg:pt-12">
       <div className="mb-8 flex w-full max-w-[358px] items-center justify-center gap-0 md:mb-12 md:max-w-none md:gap-3 lg:mb-10">
         <div className="h-0 flex-1 border-t-2 border-[rgba(60,60,59,0.4)]" />
         <h2
