@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+import { ChevronDown } from 'lucide-react';
 import SEO from '../components/shared/SEO';
 import Stack from '../components/sections/Stack';
 import GalaxyBackground from '../components/effects/GalaxyBackground';
@@ -504,6 +505,119 @@ const TestimonialsSection: React.FC = () => {
 };
 
 /* ==========================================================================
+    SECTION: PREGUNTAS FRECUENTES (FAQ)
+   ========================================================================== */
+
+interface FAQItem {
+  id: string;
+  question: string;
+  answer: string;
+}
+
+const faqData: FAQItem[] = [
+  {
+    id: "servicios-desarrollo",
+    question: "¿Qué tipo de servicios de desarrollo ofrece Bytecode?",
+    answer: "Desarrollamos software a medida, incluyendo aplicaciones web, plataformas móviles y arquitecturas en la nube escalables. Creamos soluciones robustas adaptadas a las necesidades operativas de tu empresa."
+  },
+  {
+    id: "tecnologias-desarrollo",
+    question: "¿Qué tecnologías utilizan en el desarrollo de sus aplicaciones?",
+    answer: "Empleamos un stack tecnológico moderno que incluye React 19, Vite, Tailwind CSS 4, Node.js, TypeScript, PostgreSQL y servicios en la nube (AWS/Google Cloud). Priorizamos herramientas de vanguardia para asegurar el máximo rendimiento y escalabilidad."
+  },
+  {
+    id: "desarrollo-a-medida",
+    question: "¿Bytecode trabaja con plantillas prefabricadas o código propio?",
+    answer: "Desarrollamos código nativo desde cero para cada proyecto, sin utilizar plantillas prefabricadas. Esto nos permite garantizar software 100% personalizable, seguro, con un rendimiento óptimo y libre de dependencias innecesarias."
+  },
+  {
+    id: "seguridad-calidad",
+    question: "¿Cómo garantizan la seguridad y calidad del software desarrollado?",
+    answer: "Implementamos auditorías de seguridad constantes, pruebas unitarias automatizadas y las mejores prácticas de codificación (OWASP). Además, diseñamos arquitecturas desacopladas que reducen vulnerabilidades y permiten un crecimiento seguro del sistema."
+  },
+  {
+    id: "proceso-comunicacion",
+    question: "¿Cuál es el proceso de trabajo y comunicación durante el proyecto?",
+    answer: "Trabajamos con metodologías ágiles (Scrum), realizando entregas parciales y reuniones periódicas de avance. Cada cliente cuenta con acceso a un canal de comunicación directo y tableros en tiempo real para visualizar el progreso."
+  }
+];
+
+const FAQSection: React.FC = () => {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  const toggleFAQ = (index: number) => {
+    setOpenIndex(openIndex === index ? null : index);
+  };
+
+  return (
+    <section className="relative overflow-hidden font-sansation">
+      {/* Línea Separadora superior */}
+      <div className="mx-auto mt-16 mb-7 hidden w-[86.6%] border-t border-white md:block lg:mt-28 lg:mb-10" />
+
+      <div className="relative z-10 py-10 px-6 max-w-4xl mx-auto w-full">
+        {/* Título de la sección */}
+        <div className="text-center mb-12">
+          <h2 className="mb-[1.2rem] text-[clamp(34px,4.5vw,68px)] font-bold leading-[1.15] text-white">
+            PREGUNTAS <span className="text-[#0CA3C6]">FRECUENTES</span>
+          </h2>
+          <p className="text-[clamp(16px,1.9vw,26px)] font-normal leading-[1.6] text-white/75 md:text-[1.2rem]">
+            Resuelve tus dudas sobre nuestro proceso y tecnología.
+          </p>
+        </div>
+
+        {/* Lista de acordeones */}
+        <div className="space-y-4">
+          {faqData.map((item, index) => {
+            const isOpen = openIndex === index;
+            return (
+              <div
+                key={item.id}
+                id={item.id}
+                className="glass-panel overflow-hidden transition-all duration-300 hover:border-[#0CA3C6]/50"
+              >
+                <button
+                  onClick={() => toggleFAQ(index)}
+                  className="w-full flex items-center justify-between p-5 md:p-6 text-left text-white font-bold text-[clamp(16px,1.5vw,22px)] cursor-pointer focus:outline-none transition-colors hover:text-[#06CFD6]"
+                  aria-expanded={isOpen}
+                  aria-controls={`faq-answer-${index}`}
+                >
+                  <span>{item.question}</span>
+                  <motion.div
+                    animate={{ rotate: isOpen ? 180 : 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="text-[#06CFD6] ml-4 shrink-0"
+                  >
+                    <ChevronDown size={24} />
+                  </motion.div>
+                </button>
+
+                <AnimatePresence initial={false}>
+                  {isOpen && (
+                    <motion.div
+                      id={`faq-answer-${index}`}
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                    >
+                      <div className="px-5 pb-5 md:px-6 md:pb-6 pt-2 text-white/75 text-[clamp(14px,1.2vw,18px)] leading-relaxed border-t border-white/5 bg-black/10">
+                        {item.answer}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      {/* Línea Separadora inferior */}
+      <div className="mx-auto mt-7 hidden w-[86.6%] md:block" />
+    </section>
+  );
+};
+
+/* ==========================================================================
     PAGE: HOME (Main Orchestrator)
    ========================================================================== */
 
@@ -541,15 +655,65 @@ const Home: React.FC = () => {
         })}
       </script>
 
+      <script type="application/ld+json">
+        {JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "¿Qué tipo de servicios de desarrollo ofrece Bytecode?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Desarrollamos software a medida, incluyendo aplicaciones web, plataformas móviles y arquitecturas en la nube escalables. Creamos soluciones robustas adaptadas a las necesidades operativas de tu empresa."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "¿Qué tecnologías utilizan en el desarrollo de sus aplicaciones?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Empleamos un stack tecnológico moderno que incluye React 19, Vite, Tailwind CSS 4, Node.js, TypeScript, PostgreSQL y servicios en la nube (AWS/Google Cloud). Priorizamos herramientas de vanguardia para asegurar el máximo rendimiento y escalabilidad."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "¿Bytecode trabaja con plantillas prefabricadas o código propio?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Desarrollamos código nativo desde cero para cada proyecto, sin utilizar plantillas prefabricadas. Esto nos permite garantizar software 100% personalizable, seguro, con un rendimiento óptimo y libre de dependencias innecesarias."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "¿Cómo garantizan la seguridad y calidad del software desarrollado?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Implementamos auditorías de seguridad constantes, pruebas unitarias automatizadas y las mejores prácticas de codificación (OWASP). Además, diseñamos arquitecturas desacopladas que reducen vulnerabilidades y permiten un crecimiento seguro del sistema."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "¿Cuál es el proceso de trabajo y comunicación durante el proyecto?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Trabajamos con metodologías ágiles (Scrum), realizando entregas parciales y reuniones periódicas de avance. Cada cliente cuenta con acceso a un canal de comunicación directo y tableros en tiempo real para visualizar el progreso."
+              }
+            }
+          ]
+        })}
+      </script>
+
       <HeroSection />
       <ServiciosSection />
       <HerramientasSection />
 
-      {/* SECCIONES CON FONDO COMPARTIDO (IA, Testimonials, CTA) */}
+      {/* SECCIONES CON FONDO COMPARTIDO (IA, Testimonials, CTA, FAQ) */}
       <div className="relative z-30">
         <IASection />
         <div className="mx-auto my-1 w-[86.6%] border-t border-white md:hidden" />
         <TestimonialsSection />
+        <FAQSection />
       </div>
     </div>
   );
