@@ -922,13 +922,9 @@ router.get(
       const { limit, offset } = paginationQuerySchema.parse(req.query);
       const status = req.query.status as string;
 
-      let activeCondition = '';
-      if (status === 'active') activeCondition = 'AND u.is_active = true';
-      else if (status === 'inactive') activeCondition = 'AND u.is_active = false';
-
-      let countActiveCondition = '';
-      if (status === 'active') countActiveCondition = 'AND is_active = true';
-      else if (status === 'inactive') countActiveCondition = 'AND is_active = false';
+      let statusParam: boolean | null = null;
+      if (status === 'active') statusParam = true;
+      else if (status === 'inactive') statusParam = false;
 
       const [result, countResult] = await Promise.all([pool.query(`
         SELECT 
@@ -943,12 +939,13 @@ router.get(
         FROM admin_users u
         LEFT JOIN admin_user_roles aur ON u.id = aur.admin_user_id
         LEFT JOIN roles r ON aur.role_id = r.id
-        WHERE u.deleted_at IS NULL ${activeCondition}
+        WHERE u.deleted_at IS NULL AND ($3::boolean IS NULL OR u.is_active = $3::boolean)
         GROUP BY u.id
         ORDER BY u.name ASC
         LIMIT $1 OFFSET $2
-      `, [limit, offset]), pool.query(
-        `SELECT count(*)::int AS total FROM admin_users WHERE deleted_at IS NULL ${countActiveCondition}`
+      `, [limit, offset, statusParam]), pool.query(
+        'SELECT count(*)::int AS total FROM admin_users WHERE deleted_at IS NULL AND ($1::boolean IS NULL OR is_active = $1::boolean)',
+        [statusParam]
       )]);
       res.json({ data: result.rows, total: countResult.rows[0].total });
     } catch (error) {
