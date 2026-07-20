@@ -2784,17 +2784,23 @@ router.get(
       res.json({ data: result.rows, total: result.rowCount ?? 0 });
       return;
     }
+    const isRestrictedPartner = req.admin?.roles.includes('partner_designer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    const restrictCondition = isRestrictedPartner ? ` AND q.created_by = $3` : '';
+    const paramsList = isRestrictedPartner ? [limit, offset, req.admin?.id] : [limit, offset];
+    const countCondition = isRestrictedPartner ? ` AND created_by = $1` : '';
+    const countParams = isRestrictedPartner ? [req.admin?.id] : [];
+
     const [result, countResult] = await Promise.all([pool.query(
       `SELECT q.id, q.quote_code, q.total_amount, sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
               q.created_at, cu.first_name, cu.primary_email
        FROM quotes q
        JOIN status_catalog sc ON q.status_id = sc.id
        LEFT JOIN customers cu ON q.customer_id = cu.id
-       WHERE q.deleted_at IS NULL
+       WHERE q.deleted_at IS NULL${restrictCondition}
        ORDER BY q.created_at DESC
        LIMIT $1 OFFSET $2`,
-      [limit, offset],
-    ), pool.query('SELECT count(*)::int AS total FROM quotes WHERE deleted_at IS NULL')]);
+      paramsList,
+    ), pool.query(`SELECT count(*)::int AS total FROM quotes WHERE deleted_at IS NULL${countCondition}`, countParams)]);
     res.json({ data: result.rows, total: countResult.rows[0].total });
   })
 );
@@ -2804,6 +2810,7 @@ router.get(
   requirePermission('admin.cotizador.manage'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
+    const isRestrictedPartner = req.admin?.roles.includes('partner_designer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
     const quoteResult = await pool.query(
       `SELECT q.id, q.quote_code, q.total_amount, sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
               q.payment_policy, q.created_at,
@@ -2811,8 +2818,8 @@ router.get(
        FROM quotes q
        JOIN status_catalog sc ON q.status_id = sc.id
        LEFT JOIN customers cu ON q.customer_id = cu.id
-       WHERE q.id = $1 AND q.deleted_at IS NULL`,
-      [id],
+       WHERE q.id = $1 AND q.deleted_at IS NULL${isRestrictedPartner ? ' AND q.created_by = $2' : ''}`,
+      isRestrictedPartner ? [id, req.admin?.id] : [id],
     );
     if (!quoteResult.rowCount || quoteResult.rowCount === 0) {
       throw new HttpError(404, 'Cotizacion no encontrada');
@@ -2916,12 +2923,13 @@ router.post(
       let previousQuoteState = null;
       let quoteId: string;
       if (body.editingQuoteId) {
+        const isRestrictedPartner = req.admin?.roles.includes('partner_designer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
         const currentQuote = await client.query(
-          'SELECT * FROM quotes WHERE id = $1 AND deleted_at IS NULL FOR UPDATE',
-          [body.editingQuoteId],
+          `SELECT * FROM quotes WHERE id = $1 AND deleted_at IS NULL${isRestrictedPartner ? ' AND created_by = $2' : ''} FOR UPDATE`,
+          isRestrictedPartner ? [body.editingQuoteId, req.admin?.id] : [body.editingQuoteId],
         );
         if (currentQuote.rowCount && currentQuote.rowCount > 0) previousQuoteState = currentQuote.rows[0];
-        if (!previousQuoteState) throw new HttpError(404, 'Cotizacion no encontrada');
+        if (!previousQuoteState) throw new HttpError(404, 'Cotizacion no encontrada o sin permisos');
 
         let newStatusId: string | undefined;
         if (body.status) {
@@ -3030,8 +3038,12 @@ router.delete(
   requireNonTerminalState('quotes'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
-    const current = await pool.query('SELECT * FROM quotes WHERE id = $1', [id]);
-    if (current.rowCount === 0) throw new HttpError(404, 'Cotizacion no encontrada');
+    const isRestrictedPartner = req.admin?.roles.includes('partner_designer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    const current = await pool.query(
+      `SELECT * FROM quotes WHERE id = $1${isRestrictedPartner ? ' AND created_by = $2' : ''}`, 
+      isRestrictedPartner ? [id, req.admin?.id] : [id]
+    );
+    if (current.rowCount === 0) throw new HttpError(404, 'Cotizacion no encontrada o sin permisos');
 
     const result = await pool.query(
       'DELETE FROM quotes WHERE id = $1 RETURNING id',
