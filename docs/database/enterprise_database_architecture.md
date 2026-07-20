@@ -227,8 +227,7 @@ RBAC agregado:
 
 - Rol `partner_designer` (`Diseñador Socio`) para socios que generan
   cotizaciones.
-- Permisos `quoter:view` y `quoter:manage` para separar consulta y gestion del
-  cotizador.
+- Restringir la vista del cotizador mediante permisos granulares `admin.cotizador.view` y `admin.cotizador.manage`.
 
 Seed de catalogo inicial:
 
