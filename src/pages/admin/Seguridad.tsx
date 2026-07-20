@@ -15,6 +15,7 @@ interface Session {
   isCurrentSession: boolean;
   userName: string;
   userEmail: string;
+  roleName: string;
   canRevoke: boolean;
 }
 
@@ -127,7 +128,10 @@ const AdminSeguridad: React.FC = () => {
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
                       <div>
                         <h3 className="text-base font-medium text-white/90 truncate">{session.osName} - {session.browserName}</h3>
-                        <p className="text-xs text-white/50 mt-0.5">{session.userName} ({session.userEmail})</p>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <p className="text-xs text-white/50">{session.userName} ({session.userEmail})</p>
+                          <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] text-white/40 uppercase tracking-wider">{session.roleName}</span>
+                        </div>
                       </div>
                       {session.isCurrentSession && (
                         <span className="bg-white/10 text-white/90 text-[10px] font-medium px-2 py-1 rounded border border-white/10 shrink-0">

@@ -205,12 +205,19 @@ router.get('/me', requireAdmin, (req: Request, res: Response) => {
 router.get('/me/sessions', requireAdmin, asyncHandler(async (req: Request, res: Response) => {
   const result = await pool.query(
     `
-    SELECT s.*, u.email as user_email, u.name as user_name
+    SELECT 
+      s.*, 
+      u.email as user_email, 
+      u.name as user_name,
+      (array_remove(array_agg(r.code), NULL))[1] as target_role
     FROM admin_sessions s
     JOIN admin_users u ON s.admin_user_id = u.id
+    LEFT JOIN admin_user_roles aur ON u.id = aur.admin_user_id
+    LEFT JOIN roles r ON aur.role_id = r.id
     WHERE s.revoked_at IS NULL
       AND s.expires_at > NOW()
       AND s.admin_user_id = $1
+    GROUP BY s.id, u.id
     ORDER BY s.created_at DESC
     `,
     [req.admin?.id]
@@ -251,6 +258,7 @@ router.get('/me/sessions', requireAdmin, asyncHandler(async (req: Request, res: 
       isCurrentSession: row.id === req.sessionId,
       userName: row.user_name,
       userEmail: row.user_email,
+      roleName: row.target_role || 'No Asignado',
       canRevoke: true, // It's their own session
     };
   });
@@ -346,6 +354,7 @@ router.get('/sessions', requireAdmin, requirePermission('admin.seguridad.view'),
       isCurrentSession: row.id === req.sessionId,
       userName: row.user_name,
       userEmail: row.user_email,
+      roleName: row.target_role || 'No Asignado',
       canRevoke: isSuperAdmin || row.admin_user_id === req.admin?.id
     };
   });
