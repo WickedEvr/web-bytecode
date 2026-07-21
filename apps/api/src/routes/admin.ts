@@ -2030,9 +2030,23 @@ router.get(
   requirePermission('admin.proyectos.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const { limit, offset } = paginationQuerySchema.parse(req.query);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+
+    let querySql = `${projectSelectSql} ORDER BY p.created_at DESC LIMIT $1 OFFSET $2`;
+    let countSql = 'SELECT count(*)::int AS total FROM projects p WHERE p.deleted_at IS NULL';
+    const params: any[] = [limit, offset];
+    const countParams: any[] = [];
+
+    if (isRestrictedDeveloper) {
+      querySql = `${projectSelectSql} AND EXISTS(SELECT 1 FROM project_assignments pa WHERE pa.project_id = p.id AND pa.user_id = $3) ORDER BY p.created_at DESC LIMIT $1 OFFSET $2`;
+      countSql = 'SELECT count(*)::int AS total FROM projects p WHERE p.deleted_at IS NULL AND EXISTS(SELECT 1 FROM project_assignments pa WHERE pa.project_id = p.id AND pa.user_id = $1)';
+      params.push(req.admin!.id);
+      countParams.push(req.admin!.id);
+    }
+
     const [result, countResult] = await Promise.all([
-      pool.query(`${projectSelectSql} ORDER BY p.created_at DESC LIMIT $1 OFFSET $2`, [limit, offset]),
-      pool.query('SELECT count(*)::int AS total FROM projects WHERE deleted_at IS NULL'),
+      pool.query(querySql, params),
+      pool.query(countSql, countParams),
     ]);
     res.json({ data: result.rows, total: countResult.rows[0].total });
   }),
@@ -2188,8 +2202,18 @@ router.get(
   requirePermission('admin.proyectos.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
-    const result = await pool.query(`${projectSelectSql} AND p.id = $1`, [id]);
-    if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    
+    let sql = `${projectSelectSql} AND p.id = $1`;
+    const params: any[] = [id];
+    
+    if (isRestrictedDeveloper) {
+      sql += ' AND EXISTS(SELECT 1 FROM project_assignments pa WHERE pa.project_id = p.id AND pa.user_id = $2)';
+      params.push(req.admin!.id);
+    }
+
+    const result = await pool.query(sql, params);
+    if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado o acceso denegado');
     res.json({ item: result.rows[0] });
   }),
 );
@@ -2198,6 +2222,8 @@ router.get(
   '/projects/:id/vercel-bypass-secret',
   requirePermission('admin.proyectos.manage'),
   asyncHandler(async (req: Request, res: Response) => {
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para acceder a esta informacion.');
     const id = z.string().uuid().parse(req.params.id);
     const result = await pool.query(
       `SELECT vercel_bypass_secret
@@ -2587,6 +2613,11 @@ router.get(
   requirePermission('admin.proyectos.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) {
+      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [projectId, req.admin?.id]);
+      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para ver asignaciones de un proyecto ajeno.');
+    }
     const result = await pool.query(
       `SELECT pa.project_id, pa.user_id, pa.role, pa.assigned_at, u.name, u.email
        FROM project_assignments pa
@@ -2605,6 +2636,11 @@ router.post(
   requirePermission('admin.proyectos.assign'),
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) {
+      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [projectId, req.admin?.id]);
+      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para gestionar asignaciones en un proyecto ajeno.');
+    }
     const body = z.object({
       userId: z.string().uuid(),
       role: z.string().trim().max(120).optional().nullable(),
