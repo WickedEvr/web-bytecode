@@ -50,7 +50,7 @@ export const runEnvironmentAudit = async (
   });
 
   // Intentos de conexión (Retry) para lidiar con el cold-start de los entornos efímeros en el VPS
-  const maxRetries = 3;
+  const maxRetries = 10;
   let health: Response | null = null;
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -66,7 +66,7 @@ export const runEnvironmentAudit = async (
     if (health?.ok) break; // Si respondió bien, salimos del loop de intentos
     
     if (attempt < maxRetries) {
-      await new Promise(r => setTimeout(r, 4000)); // Esperar 4s antes del siguiente intento
+      await new Promise(r => setTimeout(r, 8000)); // Esperar 8s antes del siguiente intento
     }
   }
 
