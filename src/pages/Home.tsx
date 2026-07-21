@@ -6,6 +6,7 @@ import { ChevronDown } from 'lucide-react';
 import SEO from '../components/shared/SEO';
 import Stack from '../components/sections/Stack';
 import GalaxyBackground from '../components/effects/GalaxyBackground';
+import VerticalTestimonialsMarquee from '../components/ui/VerticalTestimonialsMarquee';
 import './Home.css';
 
 /* ==========================================================================
@@ -458,48 +459,44 @@ const IASection: React.FC = () => (
   </section>
 );
 const TestimonialsSection: React.FC = () => {
-  const [activeCard, setActiveCard] = useState(0);
-
-  useEffect(() => {
-    const t = setInterval(() => setActiveCard(p => (p + 1) % testimonials.length), 3500);
-    return () => clearInterval(t);
-  }, []);
-
   return (
-    <section className="relative overflow-hidden font-sansation">
-      <div className="mx-auto mt-16 mb-7 hidden w-[86.6%] border-t border-white md:block lg:mt-28 lg:mb-10" />
+    <section className="relative overflow-hidden font-sansation py-10 lg:py-16">
+      {/* Línea Separadora superior */}
+      <div className="mx-auto mb-10 hidden w-[86.6%] border-t border-white/20 md:block lg:mb-14" />
 
-      <div className="relative z-[1] flex min-h-[clamp(500px,60vw,760px)] w-full flex-col items-center justify-center gap-10 py-10 lg:flex-row lg:justify-between lg:gap-0 lg:py-0 lg:pl-0 lg:pr-0">
+      {/* CONTENEDOR PRINCIPAL ALINEADO AL MARGEN DEL HOME (86.6%) */}
+      <div className="relative z-10 flex w-full md:w-[86.6%] flex-col items-center justify-center gap-10 lg:flex-row lg:justify-between lg:items-center lg:gap-8 mx-auto px-4 md:px-0">
+        
+        {/* LADO IZQUIERDO: CARRUSEL VERTICAL INFINITO DE 3 COLUMNAS */}
+        <div className="relative z-10 order-2 lg:order-1 w-full lg:w-[60%] flex-shrink-0">
+          <VerticalTestimonialsMarquee />
+        </div>
 
-        <div className="relative z-20 order-1 flex w-full flex-col items-center justify-center px-6 text-center md:items-center md:px-0 md:text-center lg:order-2 lg:ml-auto lg:w-[40%] lg:max-w-none lg:items-end lg:text-right">
-          <div className="md:pr-0 lg:pr-[calc(7.5vw+17px)]">
-            <h2 className="mb-[1.2rem] text-[clamp(34px,4.5vw,68px)] font-bold leading-[1.15] text-white">
-              CONSTRUYENDO EL FUTURO,<br></br>{' '}
+        {/* LADO DERECHO: TÍTULO, DESCRIPCIÓN Y VECTOR ILUSTRATIVO DEBAJO */}
+        <div className="relative z-20 order-1 lg:order-2 flex w-full flex-col items-center text-center lg:items-end lg:text-right lg:w-[40%]">
+          <div className="lg:pl-4">
+            <h2 className="mb-4 text-[clamp(30px,3.8vw,58px)] font-bold leading-[1.15] text-white tracking-tight">
+              CONSTRUYENDO EL FUTURO,<br />
               <span className="text-[#0CA3C6]">CASO POR CASO</span>
             </h2>
-            <p className="text-[clamp(16px,1.9vw,26px)] font-normal leading-[1.6] text-white/75 md:text-[1.2rem] md:px-17 lg:px-0">
+            <p className="text-[clamp(14px,1.6vw,20px)] font-normal leading-[1.6] text-white/75 max-w-md lg:max-w-none">
               Testimonios veraces de nuestros primeros usuarios piloto que ya están transformando sus industrias.
             </p>
           </div>
 
-          <img src="/vectors/shapes/grafico-derecha.svg" alt="" aria-hidden="true"
-            className="hidden lg:block w-[clamp(200px,35vw,800px)] opacity-70 mt-8 lg:self-end" />
-        </div>
-
-        <div className="relative z-[2] order-2 flex w-full justify-center lg:order-1 lg:w-7/12">
-          <div className="relative h-[310px] w-[316px] flex-shrink-0 md:h-[420px] md:w-[500px] lg:h-[456px] lg:w-[560px] xl:h-[496px] xl:w-[608px] [@media(max-height:720px)]:lg:h-[350px]">
-            <div className="relative ml-[-48px] h-[310px] w-[380px] origin-top-left overflow-visible md:ml-0 md:scale-[1.25] lg:scale-[1.45] xl:scale-[1.6] [@media(max-height:720px)]:lg:scale-[1.1] [@media(max-height:720px)]:xl:scale-[1.1]">
-              {testimonials.map((t, i) => {
-                const slot = ((i - activeCard + testimonials.length) % testimonials.length) as 0 | 1 | 2;
-                return <TestimonialCard key={i} slot={slot} name={t.name} role={t.role} text={t.text} stars={t.stars} img={t.img} />;
-              })}
-            </div>
-          </div>
+          {/* VECTOR ILUSTRATIVO DEBAJO DEL TEXTO Y PEGADO AL BORDE DERECHO */}
+          <img
+            src="/vectors/shapes/grafico-derecha.svg"
+            alt=""
+            aria-hidden="true"
+            className="hidden lg:block w-[clamp(220px,30vw,650px)] opacity-70 mt-6 lg:self-end -mr-[calc((100vw-86.6vw)/2)] pointer-events-none"
+          />
         </div>
 
       </div>
 
-      <div className="mx-auto mt-7 hidden w-[86.6%] md:block" />
+      {/* Línea Separadora inferior */}
+      <div className="mx-auto mt-12 hidden w-[86.6%] border-t border-white/20 md:block relative z-10" />
     </section>
   );
 };
