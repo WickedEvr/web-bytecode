@@ -1,14 +1,21 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import type { Project } from '../components/sections/Carousel3D';
-import Carousel from '../components/ui/carousel';
 import AltFooter from '../components/layout/AltFooter';
 import SpotlightText from '../components/typography/SpotlightText';
 import SEO from '../components/shared/SEO';
 import { apiRequest, fetchPortfolio } from '../lib/api';
-import Carousel3D from '../components/sections/Carousel3D';
+import BentoMarquee from '../components/ui/BentoMarquee';
+import ProjectModal from '../components/ui/ProjectModal';
 
 const AuroraBackground = lazy(() => import('../components/effects/AuroraBackground'));
+
+export interface Project {
+  id: string | number;
+  name: string;
+  img: string;
+  url?: string;
+  tags?: string[];
+}
 
 type PublishedCmsSection = {
   id: string;
@@ -21,18 +28,9 @@ type PublishedCmsSection = {
 };
 
 const Portafolio: React.FC = () => {
-  const [isDesktop, setIsDesktop] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [cmsSection, setCmsSection] = useState<PublishedCmsSection | null>(null);
-
-  useEffect(() => {
-    const desktopQuery = window.matchMedia('(min-width: 1024px)');
-    const updateDesktop = () => setIsDesktop(desktopQuery.matches);
-
-    updateDesktop();
-    desktopQuery.addEventListener('change', updateDesktop);
-    return () => desktopQuery.removeEventListener('change', updateDesktop);
-  }, []);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -69,7 +67,7 @@ const Portafolio: React.FC = () => {
   }, []);
 
   return (
-    <div className="w-full min-h-screen font-sansation overflow-x-hidden flex flex-col relative bg-[#020611] select-none">
+    <div className="w-full min-h-screen font-sansation flex flex-col relative bg-[#020611] select-none overflow-x-hidden">
       {cmsSection && (
         <SEO
           title={cmsSection.meta_title || cmsSection.title}
@@ -78,24 +76,23 @@ const Portafolio: React.FC = () => {
       )}
 
       {/* FONDO 3D FIJO */}
-      <div className="fixed inset-0 z-0">
+      <div className="fixed inset-0 z-0 pointer-events-none">
         <Suspense fallback={
-          <div className="w-full h-full bg-[#020611] flex items-center justify-center">
-          </div>
+          <div className="w-full h-full bg-[#020611] flex items-center justify-center" />
         }>
           <AuroraBackground />
         </Suspense>
       </div>
 
       {/* CONTENEDOR FRONTAL */}
-      <div className="w-full lg:min-h-[100dvh] flex flex-col relative z-10 pointer-events-none pt-[3rem] [@media(max-height:720px)]:pt-[1.5rem]">
+      <div className="w-full flex flex-col justify-start lg:justify-center lg:min-h-[calc(100dvh-88px)] lg:h-[calc(100dvh-88px)] flex-grow relative z-10 pt-3 sm:pt-4 lg:pt-1 lg:pb-0">
         
         {/* HERO SECTION */}
-        <section className="px-6 text-center text-white relative z-10 pointer-events-none flex-shrink-0">
+        <section className="px-4 text-center text-white relative z-10 pointer-events-none flex-shrink-0 mb-3 sm:mb-4 lg:mb-1 pt-0">
           <motion.h1
-            initial={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: -15 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-6xl lg:text-6xl xl:text-7xl 2xl:text-[85px] font-bold mb-4 md:mb-6 tracking-wide drop-shadow-2xl transition-all"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-3xl xl:text-4xl 2xl:text-5xl font-bold mb-1 tracking-wide drop-shadow-2xl"
           >
             {/* Texto normal para móvil y tablet */}
             <span className="lg:hidden">Portafolio</span>
@@ -110,7 +107,7 @@ const Portafolio: React.FC = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
-            className="text-white/95 text-base md:text-2xl lg:text-xl xl:text-2xl 2xl:text-3xl max-w-[90%] md:max-w-2xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-5xl mx-auto leading-relaxed font-light drop-shadow-lg transition-all"
+            className="text-white/90 text-xs sm:text-sm md:text-lg lg:text-sm xl:text-base 2xl:text-lg max-w-[92%] sm:max-w-md md:max-w-xl lg:max-w-2xl xl:max-w-3xl mx-auto leading-relaxed font-light drop-shadow-lg"
           >
             <SpotlightText>
               Ayudamos a marcas y empresas a consolidar su presencia tecnológica mediante
@@ -119,31 +116,25 @@ const Portafolio: React.FC = () => {
           </motion.div>
         </section>
 
-        {/* CARRUSEL ANIMADO (Móvil y Tablet) */}
+        {/* SECCIÓN BENTO MARQUEE INFINITO */}
         {cmsSection && projects.length > 0 && (
-          <section className="w-full relative z-10 pointer-events-auto mt-6 md:mt-10 lg:hidden">
-            <div className="w-full flex justify-center pb-24 md:pb-28">
-              <Carousel slides={projects} />
-            </div>
-          </section>
-        )}
-
-        {/* CARRUSEL 3D (Solo Escritorio) */}
-        {cmsSection && projects.length > 0 && (
-          <section className="w-full relative z-10 pointer-events-auto flex-grow items-center justify-center xl:-mt-[11vh] 2xl:-mt-[10vh] [@media(max-height:720px)]:-mt-[2vh] hidden lg:flex">
-            <div className="w-full flex justify-center origin-center scale-[0.70] md:scale-[0.80] lg:scale-[0.85] xl:scale-[0.8] 2xl:scale-[1] [@media(max-height:720px)]:scale-[0.60] transition-transform duration-500">
-              {isDesktop && (
-                <Suspense fallback={null}>
-                  <Carousel3D projects={projects} />
-                </Suspense>
-              )}
-            </div>
+          <section className="w-full relative z-10 pointer-events-auto flex flex-col justify-start lg:justify-center my-0 lg:my-1 overflow-hidden px-0 py-0">
+            <BentoMarquee
+              projects={projects}
+              onProjectClick={(project) => setSelectedProject(project)}
+            />
           </section>
         )}
       </div>
 
+      {/* MODAL DE DETALLES DEL PROYECTO */}
+      <ProjectModal
+        project={selectedProject}
+        onClose={() => setSelectedProject(null)}
+      />
+
       {/* EL FOOTER */}
-      <div className="relative z-10 pointer-events-auto mt-10 md:mt-8 lg:-mt-[14vh] xl:-mt-[10vh] [@media(max-height:720px)]:lg:-mt-[6vh]">
+      <div className="relative z-10 pointer-events-auto mt-4 sm:mt-6 lg:mt-2">
         <AltFooter />
       </div>
     </div>
