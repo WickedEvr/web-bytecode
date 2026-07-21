@@ -4,6 +4,8 @@ import type { NextFunction, Request, Response } from 'express';
 import type { PoolClient } from 'pg';
 import multer from 'multer';
 import { z } from 'zod';
+import { paginationQuerySchema, createBusinessCode } from './admin/shared.js';
+
 import bcrypt from 'bcryptjs';
 import { env } from '../config/env.js';
 import { pool } from '../db/pool.js';
@@ -16,6 +18,8 @@ import {
 import { allowedUploadMimeTypeList, validateUpload } from '../lib/validateUpload.js';
 import { requireAdmin, requirePermission, requireSuperAdmin } from '../middleware/auth.js';
 import { requireCsrf } from '../middleware/csrf.js';
+import { requireProjectOwnership, requireQuoteOwnership, blockDeveloperFromProjectSection } from '../middleware/abac.js';
+
 import { requireNonTerminalState } from '../middleware/requireNonTerminalState.js';
 import { auditService } from '../services/audit.js';
 import { triggerEnvironmentVerification } from '../services/environmentVerification.js';
@@ -24,10 +28,7 @@ import { HttpError } from '../utils/httpError.js';
 
 const router = Router();
 
-const paginationQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(100).default(9),
-  offset: z.coerce.number().int().min(0).default(0),
-});
+
 
 router.use(requireAdmin);
 
@@ -437,7 +438,7 @@ const buildWhere = (status?: string, search?: string, fields: string[] = []) => 
   };
 };
 
-const createBusinessCode = (prefix: string) => `${prefix}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+
 
 router.get(
   '/stats',
@@ -2221,9 +2222,8 @@ router.get(
 router.get(
   '/projects/:id/vercel-bypass-secret',
   requirePermission('admin.proyectos.manage'),
+  blockDeveloperFromProjectSection('secretos'),
   asyncHandler(async (req: Request, res: Response) => {
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para acceder a esta informacion.');
     const id = z.string().uuid().parse(req.params.id);
     const result = await pool.query(
       `SELECT vercel_bypass_secret
@@ -2321,10 +2321,10 @@ router.delete(
   '/projects/:id',
   requireCsrf,
   requirePermission('admin.proyectos.manage'),
+  blockDeveloperFromProjectSection('eliminar'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para eliminar proyectos.');
+    
     const result = await pool.query('UPDATE projects SET deleted_at = now(), updated_at = now() WHERE id = $1 AND deleted_at IS NULL RETURNING id', [id]);
     if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
     res.json({ ok: true });
@@ -2341,10 +2341,9 @@ const projectEnvironmentSchema = z.object({
 router.get(
   '/projects/:id/environments',
   requirePermission('admin.proyectos.view'),
+  blockDeveloperFromProjectSection('entornos'),
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para ver los entornos.');
     const result = await pool.query(
       `SELECT id, project_id, type, name, url, api_url, branch_name, commit_sha, status, error_details, audit_report, created_at
        FROM project_environments
@@ -2361,10 +2360,9 @@ router.post(
   '/projects/:id/environments',
   requireCsrf,
   requirePermission('admin.proyectos.manage'),
+  blockDeveloperFromProjectSection('entornos'),
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para gestionar los entornos.');
     const body = projectEnvironmentSchema.parse(req.body);
     const result = await pool.query(
       `INSERT INTO project_environments (project_id, type, name, url, api_url, status)
@@ -2386,10 +2384,9 @@ router.post(
   '/projects/:id/environments/:environment_id/verify',
   requireCsrf,
   requirePermission('admin.proyectos.manage'),
+  blockDeveloperFromProjectSection('entornos'),
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para interactuar con los entornos.');
     const environmentId = z.string().uuid().parse(req.params.environment_id);
     const result = await pool.query(
       `UPDATE project_environments
@@ -2410,10 +2407,9 @@ router.delete(
   '/projects/:id/environments/:environment_id',
   requireCsrf,
   requirePermission('admin.proyectos.manage'),
+  blockDeveloperFromProjectSection('entornos'),
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para interactuar con los entornos.');
     const environmentId = z.string().uuid().parse(req.params.environment_id);
     const result = await pool.query(
       'DELETE FROM project_environments WHERE id = $1 AND project_id = $2 RETURNING id',
@@ -2435,10 +2431,9 @@ router.post(
   '/projects/:id/milestones',
   requireCsrf,
   requirePermission('admin.proyectos.manage'),
+  blockDeveloperFromProjectSection('hitos'),
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para gestionar los hitos.');
     const body = milestoneCreateSchema.parse(req.body);
 
     const client = await pool.connect();
@@ -2473,10 +2468,9 @@ router.post(
 router.get(
   '/projects/:id/milestones',
   requirePermission('admin.proyectos.view'),
+  blockDeveloperFromProjectSection('hitos'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para ver los hitos.');
     const result = await pool.query(
       `SELECT pm.id, pm.project_id, pm.title, pm.due_date, pm.payment_percentage,
               pm.completed_at, pm.created_at, pm.updated_at,
@@ -2521,11 +2515,10 @@ router.post(
   '/projects/:id/milestones/:milestone_id/payments',
   requireCsrf,
   requirePermission('admin.proyectos.manage'),
+  blockDeveloperFromProjectSection('hitos'),
   upload.single('receipt'),
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para gestionar hitos.');
     const milestoneId = z.string().uuid().parse(req.params.milestone_id);
     const body = milestonePaymentSchema.parse(req.body);
     const file = req.file;
@@ -2611,6 +2604,7 @@ router.post(
 router.get(
   '/projects/:id/assignments',
   requirePermission('admin.proyectos.view'),
+  requireProjectOwnership,
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
     const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
@@ -2634,6 +2628,7 @@ router.post(
   '/projects/:id/assignments',
   requireCsrf,
   requirePermission('admin.proyectos.assign'),
+  requireProjectOwnership,
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
     const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
@@ -2666,10 +2661,9 @@ router.patch(
   requireCsrf,
   requirePermission('admin.proyectos.manage'),
   requireNonTerminalState('projects'),
+  blockDeveloperFromProjectSection('hitos'),
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para gestionar hitos.');
     const milestoneId = z.string().uuid().parse(req.params.milestone_id);
     const body = projectStatusSchema.parse(req.body);
     const result = await pool.query(
@@ -2693,8 +2687,6 @@ router.get(
   requirePermission('admin.proyectos.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para ver la actividad de github.');
     const result = await pool.query(
       `SELECT id, project_id, commit_hash, message, author_name, author_email,
               branch, github_url, committed_at, created_at
@@ -2709,9 +2701,8 @@ router.get(
 router.get(
   '/projects/:id/history',
   requirePermission('admin.proyectos.view'),
+  blockDeveloperFromProjectSection('historial'),
   asyncHandler(async (req: Request, res: Response) => {
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para ver el historial de estados.');
     const result = await pool.query(
       statusHistorySelect('project_status_history', 'project_id'),
       [z.string().uuid().parse(req.params.id)],
