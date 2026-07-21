@@ -25,7 +25,7 @@ const repeatItemsToFillWidth = (items: Project[], minCount = 16): Project[] => {
  * - Row 1 (Top / Outer): Moves smoothly to the LEFT
  * - Row 2 (Center): Moves smoothly to the RIGHT
  * - Row 3 (Bottom / Outer): Moves smoothly to the LEFT
- * Zero vertical padding to eliminate empty gaps around carousel.
+ * All cards have a uniform width across all rows.
  */
 export const BentoMarquee: React.FC<BentoMarqueeProps> = ({
   projects,
@@ -43,15 +43,8 @@ export const BentoMarquee: React.FC<BentoMarqueeProps> = ({
   const row2Items = repeatItemsToFillWidth(row2Base);
   const row3Items = repeatItemsToFillWidth(row3Base);
 
-  // Alternating card widths to maintain asymmetric Bento aesthetic
-  const getCardWidthClass = (index: number) => {
-    const widths = [
-      'w-[270px] sm:w-[350px] lg:w-[410px]', // Wide card
-      'w-[200px] sm:w-[250px] lg:w-[285px]', // Compact card
-      'w-[240px] sm:w-[300px] lg:w-[340px]', // Medium card
-    ];
-    return widths[index % widths.length];
-  };
+  // Uniform card width for all carousel cards
+  const CARD_WIDTH_CLASS = 'w-[250px] sm:w-[310px] lg:w-[360px]';
 
   return (
     <div className="w-full flex flex-col gap-2.5 sm:gap-3 lg:gap-4 overflow-hidden py-0 my-0 select-none relative">
@@ -90,7 +83,7 @@ export const BentoMarquee: React.FC<BentoMarqueeProps> = ({
           {row1Items.map((project, idx) => (
             <div
               key={`row1-${project.id}-${idx}`}
-              className={`flex-shrink-0 h-[155px] sm:h-[185px] lg:h-[200px] xl:h-[215px] ${getCardWidthClass(idx)}`}
+              className={`flex-shrink-0 h-[155px] sm:h-[185px] lg:h-[200px] xl:h-[215px] ${CARD_WIDTH_CLASS}`}
             >
               <BentoCard
                 index={idx}
@@ -111,7 +104,7 @@ export const BentoMarquee: React.FC<BentoMarqueeProps> = ({
           {row2Items.map((project, idx) => (
             <div
               key={`row2-${project.id}-${idx}`}
-              className={`flex-shrink-0 h-[155px] sm:h-[185px] lg:h-[200px] xl:h-[215px] ${getCardWidthClass(idx + 1)}`}
+              className={`flex-shrink-0 h-[155px] sm:h-[185px] lg:h-[200px] xl:h-[215px] ${CARD_WIDTH_CLASS}`}
             >
               <BentoCard
                 index={idx + 1}
@@ -132,7 +125,7 @@ export const BentoMarquee: React.FC<BentoMarqueeProps> = ({
           {row3Items.map((project, idx) => (
             <div
               key={`row3-${project.id}-${idx}`}
-              className={`flex-shrink-0 h-[155px] sm:h-[185px] lg:h-[200px] xl:h-[215px] ${getCardWidthClass(idx + 2)}`}
+              className={`flex-shrink-0 h-[155px] sm:h-[185px] lg:h-[200px] xl:h-[215px] ${CARD_WIDTH_CLASS}`}
             >
               <BentoCard
                 index={idx + 2}
