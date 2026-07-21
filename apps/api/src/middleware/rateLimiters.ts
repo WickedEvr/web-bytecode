@@ -1,5 +1,8 @@
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import type { NextFunction, Request, Response } from 'express';
+import { env } from '../config/env.js';
+
+const isDev = !env.isProduction;
 
 export const loginRateLimitKey = (req: Request) => {
   const email = typeof req.body?.email === 'string' ? req.body.email.toLowerCase() : '';
@@ -10,6 +13,7 @@ export const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 5,
   keyGenerator: loginRateLimitKey,
+  skip: () => isDev,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (_req: Request, res: Response, _next: NextFunction) => {
@@ -20,6 +24,7 @@ export const loginLimiter = rateLimit({
 export const publicFormLimiter = rateLimit({
   windowMs: 60 * 1000,
   limit: 10,
+  skip: () => isDev,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (_req: Request, res: Response, _next: NextFunction) => {
@@ -30,6 +35,7 @@ export const publicFormLimiter = rateLimit({
 export const adminLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
   limit: 300,
+  skip: () => isDev,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (_req: Request, res: Response, _next: NextFunction) => {
