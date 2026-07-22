@@ -2152,10 +2152,12 @@ router.get(
   requirePermission('admin.proyectos.assign'),
   asyncHandler(async (_req: Request, res: Response) => {
     const result = await pool.query(
-      `SELECT id, name, email
-       FROM admin_users
-       WHERE deleted_at IS NULL AND is_active = true
-       ORDER BY name ASC, email ASC`,
+      `SELECT DISTINCT u.id, u.name, u.email
+       FROM admin_users u
+       JOIN admin_user_roles aur ON u.id = aur.admin_user_id
+       JOIN roles r ON aur.role_id = r.id
+       WHERE u.deleted_at IS NULL AND u.is_active = true AND r.code = 'developer'
+       ORDER BY u.name ASC, u.email ASC`,
     );
     res.json({ items: result.rows });
   }),
@@ -2638,8 +2640,7 @@ router.post(
     const projectId = z.string().uuid().parse(req.params.id);
     const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
     if (isRestrictedDeveloper) {
-      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [projectId, req.admin?.id]);
-      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para gestionar asignaciones en un proyecto ajeno.');
+      throw new HttpError(403, 'Solo los administradores pueden gestionar las asignaciones de equipo.');
     }
     const body = z.object({
       userId: z.string().uuid(),
