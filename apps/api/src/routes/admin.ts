@@ -2668,6 +2668,26 @@ router.post(
   }),
 );
 
+router.delete(
+  '/projects/:id/assignments/:userId',
+  requireCsrf,
+  requirePermission('admin.proyectos.assign'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const projectId = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) {
+      throw new HttpError(403, 'Solo los administradores pueden gestionar las asignaciones de equipo.');
+    }
+    const userId = z.string().uuid().parse(req.params.userId);
+    const result = await pool.query(
+      'DELETE FROM project_assignments WHERE project_id = $1 AND user_id = $2 RETURNING user_id',
+      [projectId, userId]
+    );
+    if (!result.rowCount) throw new HttpError(404, 'Asignación no encontrada.');
+    res.json({ ok: true });
+  }),
+);
+
 router.patch(
   '/projects/:id/milestones/:milestone_id',
   requireCsrf,
