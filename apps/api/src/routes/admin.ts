@@ -2390,11 +2390,14 @@ router.post(
 router.post(
   '/projects/:id/environments/:environment_id/verify',
   requireCsrf,
-  requirePermission('admin.proyectos.manage'),
+  requirePermission('admin.proyectos.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
     const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para interactuar con los entornos.');
+    if (isRestrictedDeveloper) {
+      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [projectId, req.admin?.id]);
+      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para interactuar con entornos de un proyecto ajeno.');
+    }
     const environmentId = z.string().uuid().parse(req.params.environment_id);
     const result = await pool.query(
       `UPDATE project_environments
