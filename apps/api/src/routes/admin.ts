@@ -2346,7 +2346,10 @@ router.get(
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
     const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para ver los entornos.');
+    if (isRestrictedDeveloper) {
+      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [projectId, req.admin?.id]);
+      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para ver entornos de un proyecto ajeno.');
+    }
     const result = await pool.query(
       `SELECT id, project_id, type, name, url, api_url, branch_name, commit_sha, status, error_details, audit_report, created_at
        FROM project_environments
@@ -2478,7 +2481,10 @@ router.get(
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
     const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para ver los hitos.');
+    if (isRestrictedDeveloper) {
+      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [id, req.admin?.id]);
+      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para ver hitos de un proyecto ajeno.');
+    }
     const result = await pool.query(
       `SELECT pm.id, pm.project_id, pm.title, pm.due_date, pm.payment_percentage,
               pm.completed_at, pm.created_at, pm.updated_at,
@@ -2695,7 +2701,10 @@ router.get(
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
     const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para ver la actividad de github.');
+    if (isRestrictedDeveloper) {
+      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [id, req.admin?.id]);
+      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para ver commits de un proyecto ajeno.');
+    }
     const result = await pool.query(
       `SELECT id, project_id, commit_hash, message, author_name, author_email,
               branch, github_url, committed_at, created_at
@@ -2712,7 +2721,11 @@ router.get(
   requirePermission('admin.proyectos.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para ver el historial de estados.');
+    if (isRestrictedDeveloper) {
+      const parsedId = z.string().uuid().parse(req.params.id);
+      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [parsedId, req.admin?.id]);
+      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para ver el historial de un proyecto ajeno.');
+    }
     const result = await pool.query(
       statusHistorySelect('project_status_history', 'project_id'),
       [z.string().uuid().parse(req.params.id)],
