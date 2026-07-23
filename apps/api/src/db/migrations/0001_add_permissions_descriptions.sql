@@ -1,5 +1,3 @@
-UPDATE permissions SET description = 'Permite acceder y visualizar el cotizador publico o interno' WHERE code = 'quoter:view';
-UPDATE permissions SET description = 'Permite administrar opciones, precios y parametros del cotizador' WHERE code = 'quoter:manage';
 UPDATE permissions SET description = 'Permite ver las metricas y el resumen general del panel de control' WHERE code = 'admin.dashboard.view';
 UPDATE permissions SET description = 'Permite ver el directorio y los detalles de los contactos o clientes' WHERE code = 'admin.contactos.view';
 UPDATE permissions SET description = 'Permite crear, editar y eliminar informacion de contactos' WHERE code = 'admin.contactos.manage';
