@@ -21,15 +21,6 @@ const HERO_BOTTOM_CORNER_POSITION =
 
 const HERO_CORNER_SIZE = 'w-[48%] sm:w-[42%] md:w-[40%] xl:w-[36%] 2xl:w-[34%]';
 
-const TESTIMONIAL_CARD_BASE =
-  'absolute left-0 top-0 h-[305.14px] w-[189.51px] origin-top-left font-sansation drop-shadow-[0px_3px_8px_rgba(178,250,255,0.75)]';
-
-const TESTIMONIAL_CARD_SLOTS = [
-  { x: 111.08, y: 0, scale: 1, opacity: 1, zIndex: 3 },
-  { x: 223, y: 42.06, scale: 0.736, opacity: 0.54, zIndex: 1 },
-  { x: 50, y: 42.06, scale: 0.736, opacity: 0.54, zIndex: 1 },
-] as const;
-
 const services = [
   {
     title: 'Página Web',
@@ -47,51 +38,6 @@ const services = [
     img: '/images/showcase/DesktopApp.webp',
   },
 ];
-
-const testimonials = [
-  { name: 'María García', role: 'Emprendedora', text: 'Excelente servicio, mi negocio creció enormemente. Totalmente conforme.', stars: 5, img: '/images/avatars/cliente2senito.webp' },
-  { name: 'Dante Gallardo', role: 'CEO', text: 'Muy bueno con el trabajo! Totalmente conforme.', stars: 5, img: '/images/avatars/cliente3.webp' },
-  { name: 'Carlos Ruiz', role: 'Director', text: 'Profesionales de primer nivel, los recomiendo.', stars: 5, img: '/images/avatars/cliente1.webp' },
-];
-
-/* ==========================================================================
-    COMPONENTES DE APOYO (HELPERS)
-   ========================================================================== */
-
-const TestimonialCard: React.FC<{ name: string; role: string; text: string; stars: number; slot: 0 | 1 | 2; img?: string }> = ({
-  name, role, text, stars, slot, img
-}) => {
-  return (
-    <motion.div
-      className={TESTIMONIAL_CARD_BASE}
-      initial={false}
-      animate={TESTIMONIAL_CARD_SLOTS[slot]}
-      transition={{ duration: 1.15, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <div className="relative h-full w-full overflow-hidden rounded-[37px] border-4 border-white bg-white/[0.13] backdrop-blur-[9.85px]">
-        <div className="relative h-[76px] bg-[rgba(0,15,35,0.45)]">
-          <div className="absolute bottom-[-44.43px] left-1/2 z-[2] h-[88.86px] w-[88.86px] -translate-x-1/2 overflow-hidden rounded-full border-[6px] border-[#06CFD6] bg-[linear-gradient(135deg,#1a3a5c_0%,#0d1f33_100%)] drop-shadow-[0px_0px_7px_rgba(255,255,255,0.95)]">
-            {img && <img src={img} alt={name} className="h-full w-full object-cover" />}
-          </div>
-        </div>
-
-        <div aria-hidden="true" className="absolute left-0 top-[76px] h-[72px] w-full bg-[rgba(0,15,35,0.45)]" />
-        <div className="relative flex h-[229px] flex-col items-center overflow-hidden [border-radius:177px_177px_37px_37px] bg-white px-[14px] pb-4 pt-[54px] text-center shadow-[0px_-3px_8px_rgba(135,247,255,0.62)]">
-          <p className="mb-px text-base font-bold leading-[1.2] text-[#06CFD6]">{name}</p>
-          <p className="mb-1 text-[10px] font-normal leading-[1.2] text-[#06CFD6]">{role}</p>
-          <p className="mb-2 flex-1 text-[11px] leading-[1.4] text-black">{text}</p>
-          <div className="mb-3 flex gap-[3px]">
-            {Array.from({ length: stars }).map((_, i) => (
-              <svg key={i} width={25.5} height={25.5} viewBox="0 0 24 24" fill="#FF9D00">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-              </svg>
-            ))}
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
 
 /* ==========================================================================
     SECTION: HERO
