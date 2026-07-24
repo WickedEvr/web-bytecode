@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 const adminRoutePath = path.resolve(dirname, '../routes/admin.ts');
+const quotesRoutePath = path.resolve(dirname, '../routes/admin/quotes.ts');
 
 test('admin detail queries do not expose internal attachment paths through SELECT *', async () => {
   const source = await readFile(adminRoutePath, 'utf8');
@@ -17,7 +18,7 @@ test('admin detail queries do not expose internal attachment paths through SELEC
 });
 
 test('quote queries use the enterprise schema column names', async () => {
-  const source = await readFile(adminRoutePath, 'utf8');
+  const source = await readFile(quotesRoutePath, 'utf8');
 
   assert.match(source, /END AS unit_price/);
   assert.match(source, /pricing_catalog_id/);
