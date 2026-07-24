@@ -70,7 +70,6 @@ case "$ACTION" in
         echo "JWT_SECRET=${JWT_SECRET_PR}" >> "$EPHEMERAL_ROOT/.env"
         echo "DATABASE_URL=postgresql://bytecode_user:${DB_PASSWORD}@db-pr:5432/bytecode_pr_${PR_NUMBER}?schema=public" >> "$EPHEMERAL_ROOT/.env"
 
-
         # Si no existen variables de admin seed, definir unas por defecto para el entorno efímero
         if ! grep -q "^ADMIN_1_EMAIL=" "$EPHEMERAL_ROOT/.env"; then
             echo "" >> "$EPHEMERAL_ROOT/.env"
