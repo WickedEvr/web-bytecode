@@ -27,6 +27,9 @@ jobs:
       - name: Run API tests
         run: npm run test -w @bytecode/api
 
+      - name: Run frontend security tests
+        run: npm run test:web-security
+
   deploy:
     needs: validate
     runs-on: ubuntu-latest
