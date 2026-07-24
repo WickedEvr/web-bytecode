@@ -1,5 +1,5 @@
 import express from 'express';
-import cors from 'cors';
+import cors, { type CorsOptionsDelegate } from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
@@ -20,6 +20,24 @@ import crypto from 'node:crypto';
 export const app = express();
 const allowedCorsOrigins = new Set(env.corsOrigins);
 const require = createRequire(import.meta.url);
+
+const corsOptions: CorsOptionsDelegate<Request> = (req, callback) => {
+  const origin = req.get('Origin');
+  const isAllowed = !origin
+    || allowedCorsOrigins.has(origin)
+    || origin.startsWith('http://localhost')
+    || /^https:\/\/pr\d+\.env\.bytecode\.com\.pe$/.test(origin);
+
+  if (!isAllowed) {
+    callback(new Error('CORS origin not allowed.'));
+    return;
+  }
+
+  callback(null, {
+    origin: true,
+    credentials: Boolean(origin),
+  });
+};
 
 const compressionMiddleware = (): RequestHandler => {
   try {
@@ -61,23 +79,7 @@ app.use(helmet({
   xssFilter: true,
 }));
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (
-        !origin || 
-        allowedCorsOrigins.has(origin) || 
-        origin.startsWith('http://localhost') || 
-        origin.match(/^https:\/\/pr\d+\.env\.bytecode\.com\.pe$/)
-      ) {
-        callback(null, true);
-      } else {
-        callback(new Error('CORS origin not allowed.'));
-      }
-    },
-    credentials: true,
-  }),
-);
+app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(compressionMiddleware());
 app.use(express.json({
@@ -94,6 +96,7 @@ app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,
     limit: 300,
+    skip: () => !env.isProduction,
     standardHeaders: true,
     legacyHeaders: false,
   }),

@@ -38,8 +38,15 @@ test('production Zod errors return normalized fields without schema internals', 
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
+      personType: 'individual',
       nombre: 'A',
+      apellido: 'Lovelace',
       email: 'invalid-email',
+      celular: '999999999',
+      servicio: 'Desarrollo web',
+      mensaje: 'Necesito información sobre el servicio.',
+      documentType: 'DNI',
+      documentNumber: '12345678',
     }),
   });
 

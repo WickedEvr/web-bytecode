@@ -5,7 +5,34 @@ on:
     types: [opened, synchronize, closed]
 
 jobs:
+  validate:
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build API
+        run: npm run build -w @bytecode/api
+
+      - name: Run API tests
+        run: npm run test -w @bytecode/api
+
+      - name: Run frontend security tests
+        run: npm run test:web-security
+
   manage_env:
+    needs: validate
+    if: always() && (github.event.action == 'closed' || needs.validate.result == 'success')
     runs-on: ubuntu-latest
     steps:
       - name: Manage Ephemeral Environment via SSH

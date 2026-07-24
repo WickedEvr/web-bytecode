@@ -1,0 +1,795 @@
+import { Router } from 'express';
+import type { Request, Response } from 'express';
+import { z } from 'zod';
+import {
+  deleteCloudinaryAsset,
+  uploadPaymentReceiptToCloudinary,
+  type CloudinaryStoredAsset,
+} from '../../lib/cloudinary.js';
+import { pool } from '../../db/pool.js';
+import { validateUpload } from '../../lib/validateUpload.js';
+import { requirePermission } from '../../middleware/auth.js';
+import { requireCsrf } from '../../middleware/csrf.js';
+import { requireNonTerminalState } from '../../middleware/requireNonTerminalState.js';
+import { triggerEnvironmentVerification } from '../../services/environmentVerification.js';
+import { asyncHandler } from '../../utils/asyncHandler.js';
+import { HttpError } from '../../utils/httpError.js';
+import {
+  createBusinessCode,
+  getProjectStatusInfo,
+  paginationQuerySchema,
+  statusHistorySelect,
+  upload,
+} from './shared.js';
+
+export const projectsRouter = Router();
+// --- Projects Endpoints ---
+
+const projectStatusSchema = z.object({ status: z.string().trim().min(1).max(80) });
+const nullableProjectUrl = z.string().trim().url().max(255).optional().nullable();
+const projectCreateSchema = z.object({
+  customerId: z.string().uuid(),
+  serviceId: z.string().uuid(),
+  organizationId: z.string().uuid().optional().nullable(),
+  quoteId: z.string().uuid().optional().nullable(),
+  name: z.string().trim().min(2).max(180),
+  description: z.string().trim().max(3000).optional().nullable(),
+  status: z.string().trim().min(1).max(80),
+  githubRepo: nullableProjectUrl,
+  githubBranch: z.string().trim().max(160).optional().nullable(),
+  startDate: z.string().date(),
+  estimatedEndDate: z.string().date(),
+  actualEndDate: z.string().date().optional().nullable(),
+  totalBudget: z.coerce.number().min(0),
+  currencyCode: z.string().trim().length(3).transform((value) => value.toUpperCase()).default('PEN'),
+});
+const projectUpdateSchema = projectCreateSchema.partial().extend({
+  vercel_bypass_secret: z.string().trim().max(500).optional().nullable(),
+});
+
+const projectSelectSql = `
+  SELECT p.id, p.project_code, p.customer_id, p.organization_id, p.service_id, p.quote_id,
+         p.name, p.description, p.github_repo, p.github_branch,
+         p.start_date, p.estimated_end_date, p.actual_end_date,
+         p.total_budget, p.currency_code, p.created_at, p.updated_at,
+         sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
+         COALESCE(c.display_name, NULLIF(concat_ws(' ', c.first_name, c.last_name), '')) AS customer_name,
+         c.primary_email AS customer_email, s.name AS service_name
+  FROM projects p
+  JOIN status_catalog sc ON p.status_id = sc.id AND sc.domain = 'project'
+  JOIN customers c ON p.customer_id = c.id
+  JOIN service_catalog s ON p.service_id = s.id
+  WHERE p.deleted_at IS NULL
+`;
+
+projectsRouter.get(
+  '/projects',
+  requirePermission('admin.proyectos.view'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const { limit, offset } = paginationQuerySchema.parse(req.query);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+
+    let querySql = `${projectSelectSql} ORDER BY p.created_at DESC LIMIT $1 OFFSET $2`;
+    let countSql = 'SELECT count(*)::int AS total FROM projects p WHERE p.deleted_at IS NULL';
+    const params: any[] = [limit, offset];
+    const countParams: any[] = [];
+
+    if (isRestrictedDeveloper) {
+      querySql = `${projectSelectSql} AND EXISTS(SELECT 1 FROM project_assignments pa WHERE pa.project_id = p.id AND pa.user_id = $3) ORDER BY p.created_at DESC LIMIT $1 OFFSET $2`;
+      countSql = 'SELECT count(*)::int AS total FROM projects p WHERE p.deleted_at IS NULL AND EXISTS(SELECT 1 FROM project_assignments pa WHERE pa.project_id = p.id AND pa.user_id = $1)';
+      params.push(req.admin!.id);
+      countParams.push(req.admin!.id);
+    }
+
+    const [result, countResult] = await Promise.all([
+      pool.query(querySql, params),
+      pool.query(countSql, countParams),
+    ]);
+    res.json({ data: result.rows, total: countResult.rows[0].total });
+  }),
+);
+
+projectsRouter.get(
+  '/projects/options',
+  requirePermission('admin.proyectos.create'),
+  asyncHandler(async (_req: Request, res: Response) => {
+    const [customers, services] = await Promise.all([
+      pool.query(`
+        WITH source_customers AS (
+          SELECT cc.customer_id, cc.organization_id, cc.created_at AS source_created_at
+          FROM contact_cases cc
+          WHERE cc.deleted_at IS NULL
+          UNION ALL
+          SELECT q.customer_id, NULL::uuid AS organization_id, q.created_at AS source_created_at
+          FROM quotes q
+          WHERE q.deleted_at IS NULL
+        ), enriched AS (
+          SELECT
+            c.id,
+            c.person_type,
+            c.primary_email,
+            c.updated_at,
+            s.source_created_at,
+            NULLIF(trim(concat_ws(' ', c.first_name, c.last_name)), '') AS contact_name,
+            COALESCE(NULLIF(org.trade_name, ''), NULLIF(org.legal_name, '')) AS company_name,
+            NULLIF(doc.document_number, '') AS personal_document
+          FROM source_customers s
+          JOIN customers c ON c.id = s.customer_id AND c.deleted_at IS NULL
+          LEFT JOIN LATERAL (
+            SELECT cd.document_number
+            FROM customer_documents cd
+            WHERE cd.customer_id = c.id AND cd.deleted_at IS NULL
+            ORDER BY cd.is_primary DESC, cd.updated_at DESC, cd.id
+            LIMIT 1
+          ) doc ON true
+          LEFT JOIN LATERAL (
+            SELECT o.trade_name, o.legal_name
+            FROM organizations o
+            LEFT JOIN customer_organizations co
+              ON co.organization_id = o.id
+             AND co.customer_id = c.id
+             AND co.deleted_at IS NULL
+            WHERE o.deleted_at IS NULL
+              AND (o.id = s.organization_id OR (s.organization_id IS NULL AND co.customer_id IS NOT NULL))
+            ORDER BY
+              CASE WHEN o.id = s.organization_id THEN 0 WHEN co.is_primary THEN 1 ELSE 2 END,
+              co.updated_at DESC NULLS LAST,
+              o.updated_at DESC
+            LIMIT 1
+          ) org ON true
+        ), prepared AS (
+          SELECT
+            id,
+            CASE WHEN person_type IN ('company', 'company_contact', 'empresa') THEN 'empresa' ELSE 'independiente' END AS type,
+            CASE
+              WHEN person_type IN ('company', 'company_contact', 'empresa') THEN
+                CASE
+                  WHEN company_name IS NOT NULL AND contact_name IS NOT NULL
+                    THEN contact_name || ' (' || company_name || ')'
+                  ELSE COALESCE(contact_name, company_name, 'Contacto sin nombre')
+                END
+              ELSE COALESCE(contact_name, 'Cliente sin nombre')
+            END AS label,
+            COALESCE(personal_document, '') AS document,
+            COALESCE(lower(trim(primary_email)), '') AS email,
+            CASE
+              WHEN person_type IN ('company', 'company_contact', 'empresa') THEN company_name
+              ELSE NULL
+            END AS company_name,
+            source_created_at,
+            updated_at
+          FROM enriched
+        ), keyed AS (
+          SELECT *,
+            COALESCE(NULLIF(regexp_replace(lower(document), '[^[:alnum:]]', '', 'g'), ''), id::text) AS document_key,
+            COALESCE(NULLIF(email, ''), id::text) AS email_key
+          FROM prepared
+        ), document_deduplicated AS (
+          SELECT DISTINCT ON (document_key) id, label, document, email, type, company_name, email_key, source_created_at, updated_at
+          FROM keyed
+          ORDER BY document_key, source_created_at DESC, updated_at DESC, id
+        ), deduplicated AS (
+          SELECT DISTINCT ON (email_key) id, label, document, email, type, company_name
+          FROM document_deduplicated
+          ORDER BY email_key, source_created_at DESC, updated_at DESC, id
+        )
+        SELECT id, label, email, type, company_name
+        FROM deduplicated
+        ORDER BY label ASC, email ASC
+        LIMIT 500
+      `),
+      pool.query(`SELECT id, code, name FROM service_catalog WHERE is_active = true AND deleted_at IS NULL ORDER BY name ASC`),
+    ]);
+    res.json({ customers: customers.rows, services: services.rows });
+  }),
+);
+
+projectsRouter.get(
+  '/projects/assignment-options',
+  requirePermission('admin.proyectos.assign'),
+  asyncHandler(async (_req: Request, res: Response) => {
+    const result = await pool.query(
+      `SELECT DISTINCT u.id, u.name, u.email
+       FROM admin_users u
+       JOIN admin_user_roles aur ON u.id = aur.admin_user_id
+       JOIN roles r ON aur.role_id = r.id
+       WHERE u.deleted_at IS NULL AND u.is_active = true AND r.code = 'developer'
+       ORDER BY u.name ASC, u.email ASC`,
+    );
+    res.json({ items: result.rows });
+  }),
+);
+
+projectsRouter.post(
+  '/projects',
+  requireCsrf,
+  requirePermission('admin.proyectos.create'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const body = projectCreateSchema.parse(req.body);
+    const { id: statusId } = await getProjectStatusInfo(pool, body.status);
+    if (body.quoteId) {
+      const quote = await pool.query(
+        `SELECT q.id
+         FROM quotes q
+         JOIN customers quote_customer ON quote_customer.id = q.customer_id
+         JOIN customers project_customer ON project_customer.id = $2
+         WHERE q.id = $1 AND q.deleted_at IS NULL
+           AND lower(quote_customer.primary_email) = lower(project_customer.primary_email)`,
+        [body.quoteId, body.customerId],
+      );
+      if (!quote.rowCount) throw new HttpError(400, 'La cotizacion no pertenece al cliente seleccionado.');
+    }
+    const result = await pool.query(
+      `INSERT INTO projects (
+         project_code, customer_id, organization_id, service_id, name, description,
+         status_id, github_repo, github_branch, start_date, estimated_end_date,
+         actual_end_date, total_budget, currency_code, quote_id
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+       RETURNING id`,
+      [createBusinessCode('PRJ'), body.customerId, body.organizationId ?? null, body.serviceId,
+       body.name, body.description ?? null, statusId, body.githubRepo ?? null,
+       body.githubBranch ?? null, body.startDate, body.estimatedEndDate,
+       body.actualEndDate ?? null, body.totalBudget, body.currencyCode, body.quoteId ?? null],
+    );
+    const created = await pool.query(`${projectSelectSql} AND p.id = $1`, [result.rows[0].id]);
+    res.status(201).json({ item: created.rows[0] });
+  }),
+);
+
+projectsRouter.get(
+  '/projects/:id',
+  requirePermission('admin.proyectos.view'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+
+    let sql = `${projectSelectSql} AND p.id = $1`;
+    const params: any[] = [id];
+
+    if (isRestrictedDeveloper) {
+      sql += ' AND EXISTS(SELECT 1 FROM project_assignments pa WHERE pa.project_id = p.id AND pa.user_id = $2)';
+      params.push(req.admin!.id);
+    }
+
+    const result = await pool.query(sql, params);
+    if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado o acceso denegado');
+    res.json({ item: result.rows[0] });
+  }),
+);
+
+projectsRouter.get(
+  '/projects/:id/vercel-bypass-secret',
+  requirePermission('admin.proyectos.manage'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para acceder a esta informacion.');
+    const id = z.string().uuid().parse(req.params.id);
+    const result = await pool.query(
+      `SELECT vercel_bypass_secret
+       FROM projects
+       WHERE id = $1 AND deleted_at IS NULL`,
+      [id],
+    );
+    if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
+    res.json({ vercel_bypass_secret: result.rows[0].vercel_bypass_secret ?? null });
+  }),
+);
+
+projectsRouter.patch(
+  '/projects/:id',
+  requireCsrf,
+  requirePermission('admin.proyectos.manage'),
+  requireNonTerminalState('projects'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const body = projectUpdateSchema.parse(req.body);
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+      if (isRestrictedDeveloper) {
+        const assignmentCheck = await client.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [id, req.admin?.id]);
+        if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para modificar un proyecto no asignado.');
+      }
+      const current = await client.query(
+        `SELECT p.status_id, p.customer_id
+         FROM projects p
+         WHERE p.id = $1 AND p.deleted_at IS NULL
+         FOR UPDATE OF p`,
+        [id],
+      );
+      if (!current.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
+      const oldStatusId = current.rows[0].status_id as string | null;
+      const statusInfo = body.status ? await getProjectStatusInfo(client, body.status) : null;
+      const statusId = statusInfo?.id ?? null;
+      if (body.quoteId) {
+        const customerId = body.customerId ?? current.rows[0].customer_id;
+        const quote = await client.query(
+          `SELECT q.id
+           FROM quotes q
+           JOIN customers quote_customer ON quote_customer.id = q.customer_id
+           JOIN customers project_customer ON project_customer.id = $2
+           WHERE q.id = $1 AND q.deleted_at IS NULL
+             AND lower(quote_customer.primary_email) = lower(project_customer.primary_email)`,
+          [body.quoteId, customerId],
+        );
+        if (!quote.rowCount) throw new HttpError(400, 'La cotizacion no pertenece al cliente seleccionado.');
+      }
+      await client.query(
+        `UPDATE projects SET
+           customer_id = COALESCE($2, customer_id), organization_id = COALESCE($3, organization_id),
+           service_id = COALESCE($4, service_id), name = COALESCE($5, name),
+           description = CASE WHEN $15 THEN $6 ELSE description END, status_id = COALESCE($7, status_id),
+           github_repo = CASE WHEN $16 THEN $8 ELSE github_repo END, github_branch = COALESCE($9, github_branch),
+           start_date = COALESCE($10, start_date), estimated_end_date = COALESCE($11, estimated_end_date),
+           actual_end_date = COALESCE($12, actual_end_date), total_budget = COALESCE($13, total_budget),
+           currency_code = COALESCE($14, currency_code),
+           quote_id = CASE WHEN $18 THEN $17 ELSE quote_id END,
+           vercel_bypass_secret = CASE WHEN $20 THEN $19 ELSE vercel_bypass_secret END,
+           updated_at = now()
+         WHERE id = $1 AND deleted_at IS NULL`,
+        [id, body.customerId ?? null, body.organizationId ?? null, body.serviceId ?? null,
+         body.name ?? null, body.description ?? null, statusId, body.githubRepo ?? null,
+         body.githubBranch ?? null, body.startDate ?? null, body.estimatedEndDate ?? null,
+         body.actualEndDate ?? null, body.totalBudget ?? null, body.currencyCode ?? null,
+         Object.hasOwn(body, 'description'), Object.hasOwn(body, 'githubRepo'),
+         body.quoteId ?? null, Object.hasOwn(body, 'quoteId'),
+         body.vercel_bypass_secret ?? null, Object.hasOwn(body, 'vercel_bypass_secret')],
+      );
+      if (oldStatusId && statusId && oldStatusId !== statusId) {
+        await client.query(
+          `INSERT INTO project_status_history (
+             project_id, old_status_id, new_status_id, changed_by
+           ) VALUES ($1, $2, $3, $4)`,
+          [id, oldStatusId, statusId, req.admin?.id ?? null],
+        );
+      }
+      const updated = await client.query(`${projectSelectSql} AND p.id = $1`, [id]);
+      await client.query('COMMIT');
+      res.json({ item: updated.rows[0] });
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }),
+);
+
+projectsRouter.delete(
+  '/projects/:id',
+  requireCsrf,
+  requirePermission('admin.proyectos.manage'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para eliminar proyectos.');
+    const result = await pool.query('UPDATE projects SET deleted_at = now(), updated_at = now() WHERE id = $1 AND deleted_at IS NULL RETURNING id', [id]);
+    if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
+    res.json({ ok: true });
+  }),
+);
+
+const projectEnvironmentSchema = z.object({
+  type: z.enum(['production', 'staging']),
+  name: z.string().trim().min(2).max(180),
+  url: z.string().trim().url().max(500),
+  apiUrl: z.string().trim().url().max(500).optional().nullable(),
+});
+
+projectsRouter.get(
+  '/projects/:id/environments',
+  requirePermission('admin.proyectos.view'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const projectId = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) {
+      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [projectId, req.admin?.id]);
+      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para ver entornos de un proyecto ajeno.');
+    }
+    const result = await pool.query(
+      `SELECT id, project_id, type, name, url, api_url, branch_name, commit_sha, status, error_details, audit_report, created_at
+       FROM project_environments
+       WHERE project_id = $1
+       ORDER BY CASE type WHEN 'production' THEN 0 WHEN 'staging' THEN 1 ELSE 2 END,
+                created_at DESC`,
+      [projectId],
+    );
+    res.json({ items: result.rows });
+  }),
+);
+
+projectsRouter.post(
+  '/projects/:id/environments',
+  requireCsrf,
+  requirePermission('admin.proyectos.manage'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const projectId = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para gestionar los entornos.');
+    const body = projectEnvironmentSchema.parse(req.body);
+    const result = await pool.query(
+      `INSERT INTO project_environments (project_id, type, name, url, api_url, status)
+       SELECT id, $2, $3, $4, $5, 'verifying'
+       FROM projects
+       WHERE id = $1 AND deleted_at IS NULL
+       ON CONFLICT (project_id, type, name)
+       DO UPDATE SET url = EXCLUDED.url, api_url = EXCLUDED.api_url, status = 'verifying', error_details = NULL
+       RETURNING id, project_id, type, name, url, api_url, status, error_details, created_at`,
+      [projectId, body.type, body.name, body.url, body.apiUrl || null],
+    );
+    if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
+    triggerEnvironmentVerification(result.rows[0].id, projectId);
+    res.status(201).json({ item: result.rows[0] });
+  }),
+);
+
+projectsRouter.post(
+  '/projects/:id/environments/:environment_id/verify',
+  requireCsrf,
+  requirePermission('admin.proyectos.view'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const projectId = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) {
+      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [projectId, req.admin?.id]);
+      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para interactuar con entornos de un proyecto ajeno.');
+    }
+    const environmentId = z.string().uuid().parse(req.params.environment_id);
+    const result = await pool.query(
+      `UPDATE project_environments
+       SET status = 'verifying', error_details = NULL
+       WHERE id = $1 AND project_id = $2
+         AND type IN ('ephemeral', 'staging')
+         AND status IN ('deployed_ui', 'active', 'ready', 'failed')
+       RETURNING id`,
+      [environmentId, projectId],
+    );
+    if (!result.rowCount) throw new HttpError(409, 'El entorno no está listo para iniciar la verificación.');
+    triggerEnvironmentVerification(environmentId, projectId);
+    res.status(202).json({ ok: true });
+  }),
+);
+
+projectsRouter.delete(
+  '/projects/:id/environments/:environment_id',
+  requireCsrf,
+  requirePermission('admin.proyectos.manage'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const projectId = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para interactuar con los entornos.');
+    const environmentId = z.string().uuid().parse(req.params.environment_id);
+    const result = await pool.query(
+      'DELETE FROM project_environments WHERE id = $1 AND project_id = $2 RETURNING id',
+      [environmentId, projectId],
+    );
+    if (!result.rowCount) throw new HttpError(404, 'Entorno no encontrado');
+    res.json({ ok: true });
+  }),
+);
+
+const milestoneCreateSchema = z.object({
+  title: z.string().trim().min(1).max(180),
+  dueDate: z.string().date(),
+  paymentPercentage: z.coerce.number().min(0).max(100),
+  statusId: z.string().uuid(),
+});
+
+projectsRouter.post(
+  '/projects/:id/milestones',
+  requireCsrf,
+  requirePermission('admin.proyectos.manage'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const projectId = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para gestionar los hitos.');
+    const body = milestoneCreateSchema.parse(req.body);
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const sumResult = await client.query(
+        'SELECT COALESCE(SUM(payment_percentage), 0) as total FROM project_milestones WHERE project_id = $1',
+        [projectId]
+      );
+      const currentTotal = parseFloat(sumResult.rows[0].total);
+      if (currentTotal + body.paymentPercentage > 100) {
+        throw new HttpError(400, 'El porcentaje total de los hitos no puede superar el 100%.');
+      }
+
+      const result = await client.query(
+        `INSERT INTO project_milestones (project_id, title, due_date, payment_percentage, status_id)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING id`,
+        [projectId, body.title, body.dueDate, body.paymentPercentage, body.statusId],
+      );
+      await client.query('COMMIT');
+      res.status(201).json({ id: result.rows[0].id });
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
+  }),
+);
+
+projectsRouter.get(
+  '/projects/:id/milestones',
+  requirePermission('admin.proyectos.view'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) {
+      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [id, req.admin?.id]);
+      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para ver hitos de un proyecto ajeno.');
+    }
+    const result = await pool.query(
+      `SELECT pm.id, pm.project_id, pm.title, pm.due_date, pm.payment_percentage,
+              pm.completed_at, pm.created_at, pm.updated_at,
+              sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
+              COALESCE(payments_data.payments, '[]'::json) AS payments
+       FROM project_milestones pm
+       JOIN status_catalog sc ON pm.status_id = sc.id
+       LEFT JOIN LATERAL (
+         SELECT json_agg(json_build_object(
+           'id', mp.id,
+           'milestone_id', mp.milestone_id,
+           'amount_paid', mp.amount_paid,
+           'currency_code', mp.currency_code,
+           'payment_method', mp.payment_method,
+           'reference_number', mp.reference_number,
+           'receipt_file_id', mp.receipt_file_id,
+           'receipt_url', fa.public_url,
+           'paid_at', mp.paid_at,
+           'status', mp.status,
+           'created_at', mp.created_at
+         ) ORDER BY mp.created_at ASC) AS payments
+         FROM milestone_payments mp
+         LEFT JOIN file_assets fa ON mp.receipt_file_id = fa.id
+         WHERE mp.milestone_id = pm.id AND mp.deleted_at IS NULL
+       ) payments_data ON true
+       WHERE pm.project_id = $1 AND sc.domain = 'milestone'
+       ORDER BY pm.due_date ASC, pm.created_at ASC`,
+      [id],
+    );
+    res.json({ items: result.rows });
+  }),
+);
+
+const milestonePaymentSchema = z.object({
+  amountPaid: z.coerce.number().min(0.01),
+  paymentMethod: z.string().min(1).max(80),
+  referenceNumber: z.string().max(180).optional().nullable(),
+  paidAt: z.string().date(),
+});
+
+projectsRouter.post(
+  '/projects/:id/milestones/:milestone_id/payments',
+  requireCsrf,
+  requirePermission('admin.proyectos.manage'),
+  upload.single('receipt'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const projectId = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para gestionar hitos.');
+    const milestoneId = z.string().uuid().parse(req.params.milestone_id);
+    const body = milestonePaymentSchema.parse(req.body);
+    const file = req.file;
+
+    const client = await pool.connect();
+    let cloudinaryAsset: CloudinaryStoredAsset | null = null;
+
+    try {
+      await client.query('BEGIN');
+
+      const projectRes = await client.query(
+        'SELECT project_code, currency_code FROM projects WHERE id = $1 AND deleted_at IS NULL',
+        [projectId]
+      );
+      if (!projectRes.rowCount) throw new HttpError(404, 'Proyecto no encontrado.');
+      const projectCode = projectRes.rows[0].project_code;
+      const currencyCode = projectRes.rows[0].currency_code;
+
+      let fileAssetId: string | null = null;
+
+      if (file) {
+        const validatedFile = await validateUpload(file);
+        cloudinaryAsset = await uploadPaymentReceiptToCloudinary({
+          buffer: file.buffer,
+          projectCode,
+          originalName: validatedFile.originalName,
+          mimeType: validatedFile.mimeType,
+        });
+
+        const fileResult = await client.query(
+          `INSERT INTO file_assets (
+            original_name, storage_provider, storage_key, public_url,
+            mime_type, byte_size, checksum_sha256, uploaded_by, created_by
+          )
+          VALUES ($1, 'cloudinary', $2, $3, $4, $5, $6, $7, $7)
+          RETURNING id`,
+          [
+            validatedFile.originalName,
+            cloudinaryAsset.publicId,
+            cloudinaryAsset.secureUrl,
+            validatedFile.mimeType,
+            cloudinaryAsset.bytes || file.size,
+            validatedFile.checksumSha256,
+            req.admin?.id ?? null,
+          ]
+        );
+        fileAssetId = fileResult.rows[0].id;
+      }
+
+      const result = await client.query(
+        `INSERT INTO milestone_payments (
+          milestone_id, amount_paid, currency_code, payment_method,
+          reference_number, receipt_file_id, paid_at, status, created_by
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, 'valid', $8)
+        RETURNING id`,
+        [
+          milestoneId,
+          body.amountPaid,
+          currencyCode,
+          body.paymentMethod,
+          body.referenceNumber || null,
+          fileAssetId,
+          body.paidAt,
+          req.admin?.id ?? null,
+        ]
+      );
+
+      await client.query('COMMIT');
+      res.status(201).json({ id: result.rows[0].id });
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      if (cloudinaryAsset) {
+        await deleteCloudinaryAsset(cloudinaryAsset.publicId, cloudinaryAsset.resourceType).catch(() => undefined);
+      }
+      throw error;
+    } finally {
+      client.release();
+    }
+  }),
+);
+projectsRouter.get(
+  '/projects/:id/assignments',
+  requirePermission('admin.proyectos.view'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const projectId = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) {
+      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [projectId, req.admin?.id]);
+      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para ver asignaciones de un proyecto ajeno.');
+    }
+    const result = await pool.query(
+      `SELECT pa.project_id, pa.user_id, pa.role, pa.assigned_at, u.name, u.email
+       FROM project_assignments pa
+       JOIN admin_users u ON u.id = pa.user_id
+       WHERE pa.project_id = $1
+       ORDER BY pa.assigned_at DESC, u.name ASC`,
+      [projectId],
+    );
+    res.json({ items: result.rows });
+  }),
+);
+
+projectsRouter.post(
+  '/projects/:id/assignments',
+  requireCsrf,
+  requirePermission('admin.proyectos.assign'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const projectId = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) {
+      throw new HttpError(403, 'Solo los administradores pueden gestionar las asignaciones de equipo.');
+    }
+    const body = z.object({
+      userId: z.string().uuid(),
+      role: z.string().trim().max(120).optional().nullable(),
+    }).parse(req.body);
+    const result = await pool.query(
+      `INSERT INTO project_assignments (project_id, user_id, role, assigned_at)
+       SELECT p.id, u.id, $3, now()
+       FROM projects p
+       JOIN admin_users u ON u.id = $2 AND u.deleted_at IS NULL AND u.is_active = true
+       WHERE p.id = $1 AND p.deleted_at IS NULL
+       ON CONFLICT (project_id, user_id)
+       DO UPDATE SET role = EXCLUDED.role, assigned_at = now()
+       RETURNING project_id, user_id, role, assigned_at`,
+      [projectId, body.userId, body.role || null],
+    );
+    if (!result.rowCount) throw new HttpError(400, 'Proyecto o usuario invalido.');
+    res.status(201).json({ item: result.rows[0] });
+  }),
+);
+
+projectsRouter.delete(
+  '/projects/:id/assignments/:userId',
+  requireCsrf,
+  requirePermission('admin.proyectos.assign'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const projectId = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) {
+      throw new HttpError(403, 'Solo los administradores pueden gestionar las asignaciones de equipo.');
+    }
+    const userId = z.string().uuid().parse(req.params.userId);
+    const result = await pool.query(
+      'DELETE FROM project_assignments WHERE project_id = $1 AND user_id = $2 RETURNING user_id',
+      [projectId, userId]
+    );
+    if (!result.rowCount) throw new HttpError(404, 'Asignación no encontrada.');
+    res.json({ ok: true });
+  }),
+);
+
+projectsRouter.patch(
+  '/projects/:id/milestones/:milestone_id',
+  requireCsrf,
+  requirePermission('admin.proyectos.manage'),
+  requireNonTerminalState('projects'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const projectId = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para gestionar hitos.');
+    const milestoneId = z.string().uuid().parse(req.params.milestone_id);
+    const body = projectStatusSchema.parse(req.body);
+    const result = await pool.query(
+      `UPDATE project_milestones pm
+       SET status_id = sc.id,
+           completed_at = CASE WHEN sc.code = 'completed' THEN COALESCE(pm.completed_at, now()) ELSE NULL END,
+           updated_at = now()
+       FROM status_catalog sc
+       WHERE pm.id = $1 AND pm.project_id = $2
+         AND sc.domain = 'milestone' AND sc.code = $3 AND sc.is_active = true
+       RETURNING pm.id`,
+      [milestoneId, projectId, body.status],
+    );
+    if (!result.rowCount) throw new HttpError(400, 'Hito o estado invalido.');
+    res.json({ ok: true });
+  }),
+);
+
+projectsRouter.get(
+  '/projects/:id/commits',
+  requirePermission('admin.proyectos.view'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) {
+      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [id, req.admin?.id]);
+      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para ver commits de un proyecto ajeno.');
+    }
+    const result = await pool.query(
+      `SELECT id, project_id, commit_hash, message, author_name, author_email,
+              branch, github_url, committed_at, created_at
+       FROM project_commits WHERE project_id = $1
+       ORDER BY COALESCE(committed_at, created_at) DESC LIMIT 100`,
+      [id],
+    );
+    res.json({ items: result.rows });
+  }),
+);
+
+projectsRouter.get(
+  '/projects/:id/history',
+  requirePermission('admin.proyectos.view'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) {
+      const parsedId = z.string().uuid().parse(req.params.id);
+      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [parsedId, req.admin?.id]);
+      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para ver el historial de un proyecto ajeno.');
+    }
+    const result = await pool.query(
+      statusHistorySelect('project_status_history', 'project_id'),
+      [z.string().uuid().parse(req.params.id)],
+    );
+    res.json({ items: result.rows });
+  }),
+);
+

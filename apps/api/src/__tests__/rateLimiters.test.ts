@@ -4,7 +4,13 @@ import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 import express from 'express';
 import type { Request } from 'express';
-import { loginLimiter, loginRateLimitKey } from '../middleware/rateLimiters.js';
+
+process.env.NODE_ENV = 'production';
+process.env.DATABASE_URL ??= 'postgresql://postgres:postgres@localhost:5432/bytecode';
+process.env.JWT_SECRET ??= 'test-secret';
+process.env.CORS_ORIGINS ??= 'https://web.bytecode.test';
+
+const { loginLimiter, loginRateLimitKey } = await import('../middleware/rateLimiters.js');
 
 const app = express();
 app.use(express.json());

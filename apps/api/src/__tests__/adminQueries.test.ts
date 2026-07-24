@@ -5,10 +5,11 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
-const adminRoutePath = path.resolve(dirname, '../routes/admin.ts');
+const quotesRoutePath = path.resolve(dirname, '../routes/admin/quotes.ts');
+const casesRoutePath = path.resolve(dirname, '../routes/admin/cases.ts');
 
 test('admin detail queries do not expose internal attachment paths through SELECT *', async () => {
-  const source = await readFile(adminRoutePath, 'utf8');
+  const source = await readFile(casesRoutePath, 'utf8');
 
   assert.doesNotMatch(source, /SELECT\s+\*\s+FROM\s+contact_submissions/i);
   assert.doesNotMatch(source, /SELECT\s+\*\s+FROM\s+complaints/i);
@@ -17,7 +18,7 @@ test('admin detail queries do not expose internal attachment paths through SELEC
 });
 
 test('quote queries use the enterprise schema column names', async () => {
-  const source = await readFile(adminRoutePath, 'utf8');
+  const source = await readFile(quotesRoutePath, 'utf8');
 
   assert.match(source, /END AS unit_price/);
   assert.match(source, /pricing_catalog_id/);
@@ -29,7 +30,7 @@ test('quote queries use the enterprise schema column names', async () => {
 });
 
 test('contact admin queries return separated company fields', async () => {
-  const source = await readFile(adminRoutePath, 'utf8');
+  const source = await readFile(casesRoutePath, 'utf8');
   const contactColumns = source.match(/const contactColumns = `([\s\S]*?)`;/)?.[1] ?? '';
 
   assert.doesNotMatch(contactColumns, /'' as cargo/);
