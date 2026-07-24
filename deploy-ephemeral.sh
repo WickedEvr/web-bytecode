@@ -59,7 +59,12 @@ case "$ACTION" in
         
         # Sobrescribir con las credenciales locales del PR
         sed -i "s/^DB_PASSWORD=.*/DB_PASSWORD=${DB_PASSWORD}/" "$EPHEMERAL_ROOT/.env"
-        sed -i "s/^JWT_SECRET=.*/JWT_SECRET=${JWT_SECRET_PR}/" "$EPHEMERAL_ROOT/.env"
+        sed -i "s/^DB_NAME=.*/DB_NAME=bytecode_pr_${PR_NUMBER}/" "$EPHEMERAL_ROOT/.env"
+	    sed -i "s/^JWT_SECRET=.*/JWT_SECRET=${JWT_SECRET_PR}/" "$EPHEMERAL_ROOT/.env"
+
+        # Forzar la cadena de conexión para el contenedor efímero
+        sed -i '/^DATABASE_URL=/d' "$EPHEMERAL_ROOT/.env"
+        echo "DATABASE_URL=\"postgresql://bytecode_user:${DB_PASSWORD}@db-pr:5432/bytecode_pr_${PR_NUMBER}?schema=public\"" >> "$EPHEMERAL_ROOT/.env"
 
         # Si no existen variables de admin seed, definir unas por defecto para el entorno efímero
         if ! grep -q "^ADMIN_1_EMAIL=" "$EPHEMERAL_ROOT/.env"; then
@@ -75,36 +80,38 @@ case "$ACTION" in
         set +a
 
         echo "--> Levantando contenedores en Docker..."
-        docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml up -d --build
+        docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml up -d --build db-pr
 
         # Esperar a que la base de datos se inicialice por completo (el primer arranque toma unos segundos)
         echo "--> Esperando a que la base de datos esté lista..."
         sleep 8
+	
+	    echo "--> Clonando datos reales de producción al entorno efímero..."
 
-        echo "--> Inicializando esquema base de datos..."
-        docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T db-pr psql -U bytecode_user -d "bytecode_pr_${PR_NUMBER}" < /var/www/web-bytecode/docs/database/production_schema.sql
+        PROD_DB_PASSWORD=$(grep -E "^DB_PASSWORD=" "$MAIN_ENV_FILE" | cut -d'=' -f2- | tr -d '"' | tr -d "'" | tr -d '\r')
+        PROD_DB_NAME="bytecode_prod"
 
-        if [ -f "/var/www/web-bytecode/docs/database/production_catalog_data.sql" ]; then
-            echo "--> Inicializando datos de catálogos base..."
-            (echo "SET session_replication_role = 'replica';"; cat /var/www/web-bytecode/docs/database/production_catalog_data.sql) | docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T db-pr psql -U bytecode_user -d "bytecode_pr_${PR_NUMBER}"
-        fi
+	    docker exec -e PGPASSWORD="${PROD_DB_PASSWORD}" bytecode-db pg_dump -U bytecode_user -d "${PROD_DB_NAME}" -c -x -O | docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T -e PGPASSWORD="${DB_PASSWORD}" db-pr psql -U bytecode_user -d "bytecode_pr_${PR_NUMBER}"
 
-        echo "--> Corriendo migraciones en la base de datos temporal..."
+        echo "--> Levantando el resto de servicios (Backend y Frontend)..."
+        docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml up -d
+        sleep 5
+
+	    echo "--> Corriendo migraciones en la base de datos temporal..."
         docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T backend-pr node apps/api/dist/db/migrate.js
 
         echo "--> Configurando subdominio dinámico en Caddy..."
         echo "pr${PR_NUMBER}.env.bytecode.com.pe {
-    handle /api/* {
-        reverse_proxy bytecode-backend-pr-${PR_NUMBER}:4000
-    }
-    handle {
-        reverse_proxy bytecode-frontend-pr-${PR_NUMBER}:80
-    }
-}
-api-pr${PR_NUMBER}.env.bytecode.com.pe {
-    reverse_proxy bytecode-backend-pr-${PR_NUMBER}:4000
-}" > "${CADDY_CONF_DIR}/pr-${PR_NUMBER}.conf"
-        chmod 644 "${CADDY_CONF_DIR}/pr-${PR_NUMBER}.conf"
+            handle /api/* {
+                reverse_proxy bytecode-backend-pr-${PR_NUMBER}:4000
+            }
+            handle {
+                reverse_proxy bytecode-frontend-pr-${PR_NUMBER}:80
+            }
+        }
+        api-pr${PR_NUMBER}.env.bytecode.com.pe {
+            reverse_proxy bytecode-backend-pr-${PR_NUMBER}:4000
+        }" > "${CADDY_CONF_DIR}/pr-${PR_NUMBER}.conf"
 
         echo "--> Recargando Caddy..."
         docker exec bytecode-proxy caddy reload --config /etc/caddy/Caddyfile
@@ -126,16 +133,22 @@ api-pr${PR_NUMBER}.env.bytecode.com.pe {
         if [ -d "$EPHEMERAL_ROOT" ]; then
             cd "$EPHEMERAL_ROOT"
             export PR_NUMBER
-            docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml down -v --rmi local
+            echo "--> Deteniendo contenedores con docker compose..."
+            docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml down -v --remove-orphans || true
             cd /var/www
             rm -rf "$EPHEMERAL_ROOT"
         fi
 
+        echo "--> Forzando limpieza de contenedores remanentes del PR #${PR_NUMBER} (si existen)..."
+        docker rm -f "bytecode-backend-pr-${PR_NUMBER}" "bytecode-frontend-pr-${PR_NUMBER}" "bytecode-db-pr-${PR_NUMBER}" 2>/dev/null || true
+
         if [ -f "${CADDY_CONF_DIR}/pr-${PR_NUMBER}.conf" ]; then
-            rm "${CADDY_CONF_DIR}/pr-${PR_NUMBER}.conf"
+            echo "--> Eliminando configuración de Caddy..."
+            rm -f "${CADDY_CONF_DIR}/pr-${PR_NUMBER}.conf"
         fi
 
-        docker exec bytecode-proxy caddy reload --config /etc/caddy/Caddyfile
+        echo "--> Recargando Caddy..."
+        docker exec bytecode-proxy caddy reload --config /etc/caddy/Caddyfile || true
 
         echo "--> Notificando al Backend de la desinstalación..."
         # Leer JWT_SECRET limpiando comillas
@@ -144,7 +157,7 @@ api-pr${PR_NUMBER}.env.bytecode.com.pe {
         curl -s -X POST https://api.bytecode.com.pe/api/webhooks/ephemeral-deploy \
           -H "Authorization: Bearer ${PROD_JWT_SECRET}" \
           -H "Content-Type: application/json" \
-          -d "{\"branchName\": \"$BRANCH_NAME\", \"status\": \"destroyed\"}"
+          -d "{\"branchName\": \"$BRANCH_NAME\", \"status\": \"destroyed\"}" || true
 
         echo "==> Entorno efímero eliminado con éxito."
         ;;
