@@ -19,7 +19,7 @@ type CMSPage = {
   status_name?: string;
   updated_at: string;
 };
- 
+//comentario para desplegar de nuevo
 type CmsStatus = { id: string; code: string; name: string };
 
 type ActionMenuState = {
