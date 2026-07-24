@@ -53,7 +53,7 @@ const testimonials = [
 ];
 
 /* ==========================================================================
-    COMPONENTES DE APOYO (HELPERS)
+    COMPONENTES DE APOYO (HELPERS) CAMBIO
    ========================================================================== */
 
 const TestimonialCard: React.FC<{ name: string; role: string; text: string; stars: number; slot: 0 | 1 | 2; img?: string }> = ({
