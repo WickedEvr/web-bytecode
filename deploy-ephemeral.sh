@@ -110,6 +110,9 @@ case "$ACTION" in
 
 	    docker exec -e PGPASSWORD="${PROD_DB_PASSWORD}" bytecode-db pg_dump -U bytecode_user -d "${PROD_DB_NAME}" -c -x -O | docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T -e PGPASSWORD="${DB_PASSWORD}" db-pr psql -U bytecode_user -d "bytecode_pr_${PR_NUMBER}"
 
+        echo "--> Sincronizando contraseña explícita de Postgres para evadir corrupción de hashes..."
+        docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T db-pr psql -U bytecode_user -d "bytecode_pr_${PR_NUMBER}" -c "ALTER ROLE bytecode_user WITH PASSWORD '${DB_PASSWORD}';"
+
         echo "--> Levantando el resto de servicios (Backend y Frontend)..."
         # CURA 4: --build asegura que el código del PR actual se re-compile (backend/frontend). --no-recreate asegura que no destruya la BD.
         docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml up -d --build --no-recreate
