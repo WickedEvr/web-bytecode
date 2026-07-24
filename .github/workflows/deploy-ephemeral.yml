@@ -27,6 +27,9 @@ jobs:
       - name: Run API tests
         run: npm run test -w @bytecode/api
 
+      - name: Run frontend security tests
+        run: npm run test:web-security
+
   manage_env:
     needs: validate
     if: always() && (github.event.action == 'closed' || needs.validate.result == 'success')
