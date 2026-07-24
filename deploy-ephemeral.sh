@@ -80,6 +80,9 @@ case "$ACTION" in
         set +a
 
         echo "--> Levantando contenedores en Docker..."
+        # CURA 1: Evitar error de password en Re-Runs borrando volúmenes fantasma previamente.
+        docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml down -v 2>/dev/null || true
+        
         docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml up -d --build db-pr
 
         # Esperar a que la base de datos se inicialice por completo (el primer arranque toma unos segundos)
