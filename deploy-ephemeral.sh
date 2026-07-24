@@ -85,11 +85,13 @@ case "$ACTION" in
         # Esperar a que la base de datos se inicialice por completo (el primer arranque toma unos segundos)
         echo "--> Esperando a que la base de datos esté lista..."
         for i in {1..20}; do
-            if docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T db-pr pg_isready -U bytecode_user 2>/dev/null; then
-                echo "Base de datos lista."
-                break
-            fi
-            sleep 2
+             if docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T db-pr pg_isready -U bytecode_user 2>/dev/null; then
+                 echo "Base de datos parcialmente lista (initdb phase)... esperando reinicio final (10s)."
+                 sleep 10
+                 echo "Base de datos lista para tráfico."
+                 break
+             fi
+             sleep 3
         done
 	
 	    echo "--> Clonando datos reales de producción al entorno efímero..."
