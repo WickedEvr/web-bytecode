@@ -57,14 +57,19 @@ case "$ACTION" in
         # Copiar las variables comunes de producción
         cp "$MAIN_ENV_FILE" "$EPHEMERAL_ROOT/.env"
         
-        # Sobrescribir con las credenciales locales del PR
-        sed -i "s/^DB_PASSWORD=.*/DB_PASSWORD=${DB_PASSWORD}/" "$EPHEMERAL_ROOT/.env"
-        sed -i "s/^DB_NAME=.*/DB_NAME=bytecode_pr_${PR_NUMBER}/" "$EPHEMERAL_ROOT/.env"
-	    sed -i "s/^JWT_SECRET=.*/JWT_SECRET=${JWT_SECRET_PR}/" "$EPHEMERAL_ROOT/.env"
-
-        # Forzar la cadena de conexión para el contenedor efímero
+        # 🟢 CURA DEFINITIVA: Purgar y sobreescribir variables efímeras garantizadas.
+        # Eliminamos cualquier rastro de variables antiguas (si existían) para evitar duplicados o fallos de inyección.
+        sed -i '/^DB_PASSWORD=/d' "$EPHEMERAL_ROOT/.env"
+        sed -i '/^DB_NAME=/d' "$EPHEMERAL_ROOT/.env"
+        sed -i '/^JWT_SECRET=/d' "$EPHEMERAL_ROOT/.env"
         sed -i '/^DATABASE_URL=/d' "$EPHEMERAL_ROOT/.env"
-        echo "DATABASE_URL=\"postgresql://bytecode_user:${DB_PASSWORD}@db-pr:5432/bytecode_pr_${PR_NUMBER}?schema=public\"" >> "$EPHEMERAL_ROOT/.env"
+
+        # Inyectamos al final del archivo los valores 100% controlados.
+        echo "DB_PASSWORD=${DB_PASSWORD}" >> "$EPHEMERAL_ROOT/.env"
+        echo "DB_NAME=bytecode_pr_${PR_NUMBER}" >> "$EPHEMERAL_ROOT/.env"
+        echo "JWT_SECRET=${JWT_SECRET_PR}" >> "$EPHEMERAL_ROOT/.env"
+        echo "DATABASE_URL=postgresql://bytecode_user:${DB_PASSWORD}@db-pr:5432/bytecode_pr_${PR_NUMBER}?schema=public" >> "$EPHEMERAL_ROOT/.env"
+
 
         # Si no existen variables de admin seed, definir unas por defecto para el entorno efímero
         if ! grep -q "^ADMIN_1_EMAIL=" "$EPHEMERAL_ROOT/.env"; then
