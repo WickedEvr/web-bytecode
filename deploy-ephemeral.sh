@@ -133,16 +133,22 @@ api-pr${PR_NUMBER}.env.bytecode.com.pe {
         if [ -d "$EPHEMERAL_ROOT" ]; then
             cd "$EPHEMERAL_ROOT"
             export PR_NUMBER
-            docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml down -v --rmi local
+            echo "--> Deteniendo contenedores con docker compose..."
+            docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml down -v --remove-orphans || true
             cd /var/www
             rm -rf "$EPHEMERAL_ROOT"
         fi
 
+        echo "--> Forzando limpieza de contenedores remanentes del PR #${PR_NUMBER} (si existen)..."
+        docker rm -f "bytecode-backend-pr-${PR_NUMBER}" "bytecode-frontend-pr-${PR_NUMBER}" "bytecode-db-pr-${PR_NUMBER}" 2>/dev/null || true
+
         if [ -f "${CADDY_CONF_DIR}/pr-${PR_NUMBER}.conf" ]; then
-            rm "${CADDY_CONF_DIR}/pr-${PR_NUMBER}.conf"
+            echo "--> Eliminando configuración de Caddy..."
+            rm -f "${CADDY_CONF_DIR}/pr-${PR_NUMBER}.conf"
         fi
 
-        docker exec bytecode-proxy caddy reload --config /etc/caddy/Caddyfile
+        echo "--> Recargando Caddy..."
+        docker exec bytecode-proxy caddy reload --config /etc/caddy/Caddyfile || true
 
         echo "--> Notificando al Backend de la desinstalación..."
         # Leer JWT_SECRET limpiando comillas
@@ -151,7 +157,7 @@ api-pr${PR_NUMBER}.env.bytecode.com.pe {
         curl -s -X POST https://api.bytecode.com.pe/api/webhooks/ephemeral-deploy \
           -H "Authorization: Bearer ${PROD_JWT_SECRET}" \
           -H "Content-Type: application/json" \
-          -d "{\"branchName\": \"$BRANCH_NAME\", \"status\": \"destroyed\"}"
+          -d "{\"branchName\": \"$BRANCH_NAME\", \"status\": \"destroyed\"}" || true
 
         echo "==> Entorno efímero eliminado con éxito."
         ;;
