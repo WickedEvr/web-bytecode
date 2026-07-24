@@ -4,7 +4,7 @@ const AUDIT_TIMEOUT_MS = 8000;
 
 export type EnvironmentType = 'production' | 'staging' | 'ephemeral';
 export type AuditLayerKey = 'red' | 'config' | 'aislamiento';
-export type AuditLayer = { ok: boolean; msg: string; suggestion: string };
+export type AuditLayer = { ok: boolean | null; msg: string; suggestion: string };
 export type EnvironmentAuditReport = {
   layers: Record<AuditLayerKey, AuditLayer>;
   errors: string[];
@@ -13,8 +13,8 @@ export type EnvironmentAuditReport = {
 const createReport = (): EnvironmentAuditReport => ({
   layers: {
     red: { ok: false, msg: 'Red/Backend inaccesible', suggestion: 'Verifica logs de Docker/PM2 en el VPS' },
-    config: { ok: false, msg: 'Configuración faltante', suggestion: 'Verificar variables en .env del VPS' },
-    aislamiento: { ok: false, msg: 'Base de datos no aislada', suggestion: 'Clonar esquema localmente o contenedor efímero de BD' },
+    config: { ok: null, msg: 'Configuración faltante', suggestion: 'Verificar variables en .env del VPS' },
+    aislamiento: { ok: null, msg: 'Base de datos no aislada', suggestion: 'Clonar esquema localmente o contenedor efímero de BD' },
   },
   errors: [],
 });
@@ -57,8 +57,11 @@ export const runEnvironmentAudit = async (
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000); // 10 segundos por intento
     
+    let lastError: Error | null = null;
     try {
-      health = await fetch(`${baseUrl}/api/health`, getRequestOptions(controller)).catch(() => null);
+      health = await fetch(`${baseUrl}/api/health`, getRequestOptions(controller));
+    } catch (e) {
+      lastError = e instanceof Error ? e : new Error(String(e));
     } finally {
       clearTimeout(timeout);
     }
@@ -67,6 +70,8 @@ export const runEnvironmentAudit = async (
     
     if (attempt < maxRetries) {
       await new Promise(r => setTimeout(r, 8000)); // Esperar 8s antes del siguiente intento
+    } else if (lastError) {
+      report.layers.red.suggestion = `Causa: ${lastError.message}`;
     }
   }
 

@@ -8,7 +8,7 @@ import PaginationControl from '../../components/ui/PaginationControl';
 import CustomDropdown from '../../components/ui/CustomDropdown';
 
 const PAGE_SIZE = 9;
- 
+
 type CMSPage = {
   id: string;
   slug: string;
@@ -19,7 +19,7 @@ type CMSPage = {
   status_name?: string;
   updated_at: string;
 };
-
+//comentario para desplegar de nuev
 type CmsStatus = { id: string; code: string; name: string };
 
 type ActionMenuState = {

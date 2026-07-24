@@ -57,14 +57,18 @@ case "$ACTION" in
         # Copiar las variables comunes de producción
         cp "$MAIN_ENV_FILE" "$EPHEMERAL_ROOT/.env"
         
-        # Sobrescribir con las credenciales locales del PR
-        sed -i "s/^DB_PASSWORD=.*/DB_PASSWORD=${DB_PASSWORD}/" "$EPHEMERAL_ROOT/.env"
-        sed -i "s/^DB_NAME=.*/DB_NAME=bytecode_pr_${PR_NUMBER}/" "$EPHEMERAL_ROOT/.env"
-	    sed -i "s/^JWT_SECRET=.*/JWT_SECRET=${JWT_SECRET_PR}/" "$EPHEMERAL_ROOT/.env"
-
-        # Forzar la cadena de conexión para el contenedor efímero
+        # 🟢 CURA DEFINITIVA: Purgar y sobreescribir variables efímeras garantizadas.
+        # Eliminamos cualquier rastro de variables antiguas (si existían) para evitar duplicados o fallos de inyección.
+        sed -i '/^DB_PASSWORD=/d' "$EPHEMERAL_ROOT/.env"
+        sed -i '/^DB_NAME=/d' "$EPHEMERAL_ROOT/.env"
+        sed -i '/^JWT_SECRET=/d' "$EPHEMERAL_ROOT/.env"
         sed -i '/^DATABASE_URL=/d' "$EPHEMERAL_ROOT/.env"
-        echo "DATABASE_URL=\"postgresql://bytecode_user:${DB_PASSWORD}@db-pr:5432/bytecode_pr_${PR_NUMBER}?schema=public\"" >> "$EPHEMERAL_ROOT/.env"
+
+        # Inyectamos al final del archivo los valores 100% controlados.
+        echo "DB_PASSWORD=${DB_PASSWORD}" >> "$EPHEMERAL_ROOT/.env"
+        echo "DB_NAME=bytecode_pr_${PR_NUMBER}" >> "$EPHEMERAL_ROOT/.env"
+        echo "JWT_SECRET=${JWT_SECRET_PR}" >> "$EPHEMERAL_ROOT/.env"
+        echo "DATABASE_URL=postgresql://bytecode_user:${DB_PASSWORD}@db-pr:5432/bytecode_pr_${PR_NUMBER}?schema=public" >> "$EPHEMERAL_ROOT/.env"
 
         # Si no existen variables de admin seed, definir unas por defecto para el entorno efímero
         if ! grep -q "^ADMIN_1_EMAIL=" "$EPHEMERAL_ROOT/.env"; then
@@ -80,16 +84,23 @@ case "$ACTION" in
         set +a
 
         echo "--> Levantando contenedores en Docker..."
+        # CURA 1.5: Borrado absoluto y agresivo de contenedores zombies del mismo PR que docker-compose a veces no mata.
+        docker rm -f "bytecode-backend-pr-${PR_NUMBER}" "bytecode-frontend-pr-${PR_NUMBER}" "bytecode-db-pr-${PR_NUMBER}" 2>/dev/null || true
+        # CURA 1: Evitar error de password en Re-Runs borrando volúmenes fantasma previamente.
+        docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml down -v 2>/dev/null || true
+        
         docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml up -d --build db-pr
 
         # Esperar a que la base de datos se inicialice por completo (el primer arranque toma unos segundos)
         echo "--> Esperando a que la base de datos esté lista..."
-        for i in {1..20}; do
-            if docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T db-pr pg_isready -U bytecode_user 2>/dev/null; then
-                echo "Base de datos lista."
+        for i in {1..30}; do
+            # Contamos cuántas veces Postgres dice que está listo (debe decirlo 2 veces para confirmar que pasó el initdb)
+            READY_COUNT=$(docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml logs db-pr 2>&1 | grep -c "database system is ready to accept connections" || true)
+            if [ "$READY_COUNT" -ge 2 ]; then
+                echo "Base de datos completamente lista para tráfico."
                 break
             fi
-            sleep 2
+            sleep 3
         done
 	
 	    echo "--> Clonando datos reales de producción al entorno efímero..."
@@ -99,8 +110,12 @@ case "$ACTION" in
 
 	    docker exec -e PGPASSWORD="${PROD_DB_PASSWORD}" bytecode-db pg_dump -U bytecode_user -d "${PROD_DB_NAME}" -c -x -O | docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T -e PGPASSWORD="${DB_PASSWORD}" db-pr psql -U bytecode_user -d "bytecode_pr_${PR_NUMBER}"
 
+        echo "--> Sincronizando contraseña explícita de Postgres para evadir corrupción de hashes..."
+        docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T db-pr psql -U bytecode_user -d "bytecode_pr_${PR_NUMBER}" -c "ALTER ROLE bytecode_user WITH PASSWORD '${DB_PASSWORD}';"
+
         echo "--> Levantando el resto de servicios (Backend y Frontend)..."
-        docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml up -d
+        # CURA 4: --build asegura que el código del PR actual se re-compile (backend/frontend). --no-recreate asegura que no destruya la BD.
+        docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml up -d --build --no-recreate
         sleep 5
 
 	    echo "--> Corriendo migraciones en la base de datos temporal..."
@@ -108,6 +123,7 @@ case "$ACTION" in
 
         echo "--> Configurando subdominio dinámico en Caddy..."
         echo "pr${PR_NUMBER}.env.bytecode.com.pe {
+            tls internal
             handle /api/* {
                 reverse_proxy bytecode-backend-pr-${PR_NUMBER}:4000
             }
@@ -116,6 +132,7 @@ case "$ACTION" in
             }
         }
         api-pr${PR_NUMBER}.env.bytecode.com.pe {
+            tls internal
             reverse_proxy bytecode-backend-pr-${PR_NUMBER}:4000
         }" > "${CADDY_CONF_DIR}/pr-${PR_NUMBER}.conf"
 
