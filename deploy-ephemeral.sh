@@ -84,14 +84,14 @@ case "$ACTION" in
 
         # Esperar a que la base de datos se inicialice por completo (el primer arranque toma unos segundos)
         echo "--> Esperando a que la base de datos esté lista..."
-        for i in {1..20}; do
-             if docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T db-pr pg_isready -U bytecode_user 2>/dev/null; then
-                 echo "Base de datos parcialmente lista (initdb phase)... esperando reinicio final (10s)."
-                 sleep 10
-                 echo "Base de datos lista para tráfico."
-                 break
-             fi
-             sleep 3
+        for i in {1..30}; do
+                # Contamos cuántas veces Postgres dice que está listo (debe decirlo 2 veces para confirmar que pasó el initdb)
+                READY_COUNT=$(docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml logs db-pr 2>&1 | grep -c "database system is ready to accept connections" || true)
+                if [ "$READY_COUNT" -ge 2 ]; then
+                    echo "Base de datos completamente lista para tráfico."
+                    break
+                fi
+                sleep 3
         done
 	
 	    echo "--> Clonando datos reales de producción al entorno efímero..."
@@ -110,6 +110,7 @@ case "$ACTION" in
 
         echo "--> Configurando subdominio dinámico en Caddy..."
         echo "pr${PR_NUMBER}.env.bytecode.com.pe {
+            tls internal
             handle /api/* {
                 reverse_proxy bytecode-backend-pr-${PR_NUMBER}:4000
             }
@@ -118,6 +119,7 @@ case "$ACTION" in
             }
         }
         api-pr${PR_NUMBER}.env.bytecode.com.pe {
+            tls internal
             reverse_proxy bytecode-backend-pr-${PR_NUMBER}:4000
         }" > "${CADDY_CONF_DIR}/pr-${PR_NUMBER}.conf"
 
