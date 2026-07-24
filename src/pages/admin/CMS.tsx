@@ -8,7 +8,7 @@ import PaginationControl from '../../components/ui/PaginationControl';
 import CustomDropdown from '../../components/ui/CustomDropdown';
 
 const PAGE_SIZE = 9;
- 
+
 type CMSPage = {
   id: string;
   slug: string;
