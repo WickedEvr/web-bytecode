@@ -80,6 +80,8 @@ case "$ACTION" in
         set +a
 
         echo "--> Levantando contenedores en Docker..."
+        # CURA 1.5: Borrado absoluto y agresivo de contenedores zombies del mismo PR que docker-compose a veces no mata.
+        docker rm -f "bytecode-backend-pr-${PR_NUMBER}" "bytecode-frontend-pr-${PR_NUMBER}" "bytecode-db-pr-${PR_NUMBER}" 2>/dev/null || true
         # CURA 1: Evitar error de password en Re-Runs borrando volúmenes fantasma previamente.
         docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml down -v 2>/dev/null || true
         
@@ -88,13 +90,13 @@ case "$ACTION" in
         # Esperar a que la base de datos se inicialice por completo (el primer arranque toma unos segundos)
         echo "--> Esperando a que la base de datos esté lista..."
         for i in {1..30}; do
-                # Contamos cuántas veces Postgres dice que está listo (debe decirlo 2 veces para confirmar que pasó el initdb)
-                READY_COUNT=$(docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml logs db-pr 2>&1 | grep -c "database system is ready to accept connections" || true)
-                if [ "$READY_COUNT" -ge 2 ]; then
-                    echo "Base de datos completamente lista para tráfico."
-                    break
-                fi
-                sleep 3
+            # Contamos cuántas veces Postgres dice que está listo (debe decirlo 2 veces para confirmar que pasó el initdb)
+            READY_COUNT=$(docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml logs db-pr 2>&1 | grep -c "database system is ready to accept connections" || true)
+            if [ "$READY_COUNT" -ge 2 ]; then
+                echo "Base de datos completamente lista para tráfico."
+                break
+            fi
+            sleep 3
         done
 	
 	    echo "--> Clonando datos reales de producción al entorno efímero..."
@@ -105,7 +107,8 @@ case "$ACTION" in
 	    docker exec -e PGPASSWORD="${PROD_DB_PASSWORD}" bytecode-db pg_dump -U bytecode_user -d "${PROD_DB_NAME}" -c -x -O | docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T -e PGPASSWORD="${DB_PASSWORD}" db-pr psql -U bytecode_user -d "bytecode_pr_${PR_NUMBER}"
 
         echo "--> Levantando el resto de servicios (Backend y Frontend)..."
-        docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml up -d
+        # CURA 4: --no-recreate asegura que no destruya la BD ya clonada al levantar los otros servicios.
+        docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml up -d --no-recreate
         sleep 5
 
 	    echo "--> Corriendo migraciones en la base de datos temporal..."
