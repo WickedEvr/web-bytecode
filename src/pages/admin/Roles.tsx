@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Edit2, Plus, RefreshCw, Save, ShieldCheck, X, MoreVertical } from 'lucide-react';
+import { Edit2, Plus, RefreshCw, Save, ShieldCheck, X, MoreVertical, Info } from 'lucide-react';
 import { apiRequest } from '../../lib/api';
 import AdminPanel from '../../components/admin/AdminPanel';
 import PaginationControl from '../../components/ui/PaginationControl';
@@ -354,8 +354,15 @@ const Roles: React.FC = () => {
                                 onChange={() => togglePermission(permission.id)}
                                 className="mt-0.5 h-4 w-4 rounded border-white/20 bg-white/5 text-white focus:ring-white/20 focus:ring-offset-black"
                               />
-                              <span>
-                                <span className="block text-white/80">{permission.name}</span>
+                              <span className="flex-1">
+                                <span className="flex items-center gap-1.5">
+                                  <span className="block text-white/80">{permission.name}</span>
+                                  {permission.description && (
+                                    <span title={permission.description} className="text-white/40 hover:text-white/80 cursor-help transition-colors">
+                                      <Info className="h-3.5 w-3.5" />
+                                    </span>
+                                  )}
+                                </span>
                                 <span className="block text-[11px] font-mono text-white/35">{permission.code}</span>
                               </span>
                             </label>

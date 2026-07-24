@@ -920,6 +920,12 @@ router.get(
   asyncHandler(async (req: Request, res: Response) => {
     try {
       const { limit, offset } = paginationQuerySchema.parse(req.query);
+      const status = req.query.status as string;
+
+      let statusParam: boolean | null = null;
+      if (status === 'active') statusParam = true;
+      else if (status === 'inactive') statusParam = false;
+
       const [result, countResult] = await Promise.all([pool.query(`
         SELECT 
           u.id, 
@@ -933,12 +939,13 @@ router.get(
         FROM admin_users u
         LEFT JOIN admin_user_roles aur ON u.id = aur.admin_user_id
         LEFT JOIN roles r ON aur.role_id = r.id
-        WHERE u.deleted_at IS NULL AND u.is_active = true
+        WHERE u.deleted_at IS NULL AND ($3::boolean IS NULL OR u.is_active = $3::boolean)
         GROUP BY u.id
         ORDER BY u.name ASC
         LIMIT $1 OFFSET $2
-      `, [limit, offset]), pool.query(
-        'SELECT count(*)::int AS total FROM admin_users WHERE deleted_at IS NULL AND is_active = true',
+      `, [limit, offset, statusParam]), pool.query(
+        'SELECT count(*)::int AS total FROM admin_users WHERE deleted_at IS NULL AND ($1::boolean IS NULL OR is_active = $1::boolean)',
+        [statusParam]
       )]);
       res.json({ data: result.rows, total: countResult.rows[0].total });
     } catch (error) {
@@ -1063,6 +1070,44 @@ router.patch(
         req
       });
       res.json({ item: { ...result.rows[0], role: updatedRole } });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }),
+);
+
+router.delete(
+  '/users/:id',
+  requireCsrf,
+  requireSuperAdmin,
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = String(req.params.id);
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+      
+      const currentUser = await client.query('SELECT id, is_active FROM admin_users WHERE id = $1', [id]);
+      if (currentUser.rowCount === 0) throw new HttpError(404, 'Usuario no encontrado.');
+      if (currentUser.rows[0].is_active) throw new HttpError(400, 'Solo se pueden eliminar usuarios inactivos.');
+
+      await client.query('DELETE FROM admin_user_roles WHERE admin_user_id = $1', [id]);
+      await client.query('DELETE FROM admin_users WHERE id = $1', [id]);
+
+      await client.query('COMMIT');
+      
+      await auditService.logAdminAction({
+        userId: req.admin?.id,
+        action: 'delete',
+        entityType: 'admin_user',
+        entity: { id },
+        req
+      });
+
+      res.json({ success: true });
     } catch (err) {
       await client.query('ROLLBACK');
       throw err;
@@ -1985,9 +2030,23 @@ router.get(
   requirePermission('admin.proyectos.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const { limit, offset } = paginationQuerySchema.parse(req.query);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+
+    let querySql = `${projectSelectSql} ORDER BY p.created_at DESC LIMIT $1 OFFSET $2`;
+    let countSql = 'SELECT count(*)::int AS total FROM projects p WHERE p.deleted_at IS NULL';
+    const params: any[] = [limit, offset];
+    const countParams: any[] = [];
+
+    if (isRestrictedDeveloper) {
+      querySql = `${projectSelectSql} AND EXISTS(SELECT 1 FROM project_assignments pa WHERE pa.project_id = p.id AND pa.user_id = $3) ORDER BY p.created_at DESC LIMIT $1 OFFSET $2`;
+      countSql = 'SELECT count(*)::int AS total FROM projects p WHERE p.deleted_at IS NULL AND EXISTS(SELECT 1 FROM project_assignments pa WHERE pa.project_id = p.id AND pa.user_id = $1)';
+      params.push(req.admin!.id);
+      countParams.push(req.admin!.id);
+    }
+
     const [result, countResult] = await Promise.all([
-      pool.query(`${projectSelectSql} ORDER BY p.created_at DESC LIMIT $1 OFFSET $2`, [limit, offset]),
-      pool.query('SELECT count(*)::int AS total FROM projects WHERE deleted_at IS NULL'),
+      pool.query(querySql, params),
+      pool.query(countSql, countParams),
     ]);
     res.json({ data: result.rows, total: countResult.rows[0].total });
   }),
@@ -2093,10 +2152,12 @@ router.get(
   requirePermission('admin.proyectos.assign'),
   asyncHandler(async (_req: Request, res: Response) => {
     const result = await pool.query(
-      `SELECT id, name, email
-       FROM admin_users
-       WHERE deleted_at IS NULL AND is_active = true
-       ORDER BY name ASC, email ASC`,
+      `SELECT DISTINCT u.id, u.name, u.email
+       FROM admin_users u
+       JOIN admin_user_roles aur ON u.id = aur.admin_user_id
+       JOIN roles r ON aur.role_id = r.id
+       WHERE u.deleted_at IS NULL AND u.is_active = true AND r.code = 'developer'
+       ORDER BY u.name ASC, u.email ASC`,
     );
     res.json({ items: result.rows });
   }),
@@ -2143,8 +2204,18 @@ router.get(
   requirePermission('admin.proyectos.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
-    const result = await pool.query(`${projectSelectSql} AND p.id = $1`, [id]);
-    if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    
+    let sql = `${projectSelectSql} AND p.id = $1`;
+    const params: any[] = [id];
+    
+    if (isRestrictedDeveloper) {
+      sql += ' AND EXISTS(SELECT 1 FROM project_assignments pa WHERE pa.project_id = p.id AND pa.user_id = $2)';
+      params.push(req.admin!.id);
+    }
+
+    const result = await pool.query(sql, params);
+    if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado o acceso denegado');
     res.json({ item: result.rows[0] });
   }),
 );
@@ -2153,6 +2224,8 @@ router.get(
   '/projects/:id/vercel-bypass-secret',
   requirePermission('admin.proyectos.manage'),
   asyncHandler(async (req: Request, res: Response) => {
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para acceder a esta informacion.');
     const id = z.string().uuid().parse(req.params.id);
     const result = await pool.query(
       `SELECT vercel_bypass_secret
@@ -2176,6 +2249,11 @@ router.patch(
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
+      const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+      if (isRestrictedDeveloper) {
+        const assignmentCheck = await client.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [id, req.admin?.id]);
+        if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para modificar un proyecto no asignado.');
+      }
       const current = await client.query(
         `SELECT p.status_id, p.customer_id
          FROM projects p
@@ -2247,6 +2325,8 @@ router.delete(
   requirePermission('admin.proyectos.manage'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para eliminar proyectos.');
     const result = await pool.query('UPDATE projects SET deleted_at = now(), updated_at = now() WHERE id = $1 AND deleted_at IS NULL RETURNING id', [id]);
     if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
     res.json({ ok: true });
@@ -2265,6 +2345,11 @@ router.get(
   requirePermission('admin.proyectos.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) {
+      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [projectId, req.admin?.id]);
+      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para ver entornos de un proyecto ajeno.');
+    }
     const result = await pool.query(
       `SELECT id, project_id, type, name, url, api_url, branch_name, commit_sha, status, error_details, audit_report, created_at
        FROM project_environments
@@ -2283,6 +2368,8 @@ router.post(
   requirePermission('admin.proyectos.manage'),
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para gestionar los entornos.');
     const body = projectEnvironmentSchema.parse(req.body);
     const result = await pool.query(
       `INSERT INTO project_environments (project_id, type, name, url, api_url, status)
@@ -2303,9 +2390,14 @@ router.post(
 router.post(
   '/projects/:id/environments/:environment_id/verify',
   requireCsrf,
-  requirePermission('admin.proyectos.manage'),
+  requirePermission('admin.proyectos.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) {
+      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [projectId, req.admin?.id]);
+      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para interactuar con entornos de un proyecto ajeno.');
+    }
     const environmentId = z.string().uuid().parse(req.params.environment_id);
     const result = await pool.query(
       `UPDATE project_environments
@@ -2328,6 +2420,8 @@ router.delete(
   requirePermission('admin.proyectos.manage'),
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para interactuar con los entornos.');
     const environmentId = z.string().uuid().parse(req.params.environment_id);
     const result = await pool.query(
       'DELETE FROM project_environments WHERE id = $1 AND project_id = $2 RETURNING id',
@@ -2351,6 +2445,8 @@ router.post(
   requirePermission('admin.proyectos.manage'),
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para gestionar los hitos.');
     const body = milestoneCreateSchema.parse(req.body);
 
     const client = await pool.connect();
@@ -2387,6 +2483,11 @@ router.get(
   requirePermission('admin.proyectos.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) {
+      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [id, req.admin?.id]);
+      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para ver hitos de un proyecto ajeno.');
+    }
     const result = await pool.query(
       `SELECT pm.id, pm.project_id, pm.title, pm.due_date, pm.payment_percentage,
               pm.completed_at, pm.created_at, pm.updated_at,
@@ -2434,6 +2535,8 @@ router.post(
   upload.single('receipt'),
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para gestionar hitos.');
     const milestoneId = z.string().uuid().parse(req.params.milestone_id);
     const body = milestonePaymentSchema.parse(req.body);
     const file = req.file;
@@ -2521,6 +2624,11 @@ router.get(
   requirePermission('admin.proyectos.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) {
+      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [projectId, req.admin?.id]);
+      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para ver asignaciones de un proyecto ajeno.');
+    }
     const result = await pool.query(
       `SELECT pa.project_id, pa.user_id, pa.role, pa.assigned_at, u.name, u.email
        FROM project_assignments pa
@@ -2539,6 +2647,10 @@ router.post(
   requirePermission('admin.proyectos.assign'),
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) {
+      throw new HttpError(403, 'Solo los administradores pueden gestionar las asignaciones de equipo.');
+    }
     const body = z.object({
       userId: z.string().uuid(),
       role: z.string().trim().max(120).optional().nullable(),
@@ -2559,6 +2671,26 @@ router.post(
   }),
 );
 
+router.delete(
+  '/projects/:id/assignments/:userId',
+  requireCsrf,
+  requirePermission('admin.proyectos.assign'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const projectId = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) {
+      throw new HttpError(403, 'Solo los administradores pueden gestionar las asignaciones de equipo.');
+    }
+    const userId = z.string().uuid().parse(req.params.userId);
+    const result = await pool.query(
+      'DELETE FROM project_assignments WHERE project_id = $1 AND user_id = $2 RETURNING user_id',
+      [projectId, userId]
+    );
+    if (!result.rowCount) throw new HttpError(404, 'Asignación no encontrada.');
+    res.json({ ok: true });
+  }),
+);
+
 router.patch(
   '/projects/:id/milestones/:milestone_id',
   requireCsrf,
@@ -2566,6 +2698,8 @@ router.patch(
   requireNonTerminalState('projects'),
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para gestionar hitos.');
     const milestoneId = z.string().uuid().parse(req.params.milestone_id);
     const body = projectStatusSchema.parse(req.body);
     const result = await pool.query(
@@ -2589,6 +2723,11 @@ router.get(
   requirePermission('admin.proyectos.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) {
+      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [id, req.admin?.id]);
+      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para ver commits de un proyecto ajeno.');
+    }
     const result = await pool.query(
       `SELECT id, project_id, commit_hash, message, author_name, author_email,
               branch, github_url, committed_at, created_at
@@ -2604,6 +2743,12 @@ router.get(
   '/projects/:id/history',
   requirePermission('admin.proyectos.view'),
   asyncHandler(async (req: Request, res: Response) => {
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) {
+      const parsedId = z.string().uuid().parse(req.params.id);
+      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [parsedId, req.admin?.id]);
+      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para ver el historial de un proyecto ajeno.');
+    }
     const result = await pool.query(
       statusHistorySelect('project_status_history', 'project_id'),
       [z.string().uuid().parse(req.params.id)],
@@ -2739,17 +2884,23 @@ router.get(
       res.json({ data: result.rows, total: result.rowCount ?? 0 });
       return;
     }
+    const isRestrictedPartner = req.admin?.roles.includes('partner_designer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    const restrictCondition = isRestrictedPartner ? ` AND q.created_by = $3` : '';
+    const paramsList = isRestrictedPartner ? [limit, offset, req.admin?.id] : [limit, offset];
+    const countCondition = isRestrictedPartner ? ` AND created_by = $1` : '';
+    const countParams = isRestrictedPartner ? [req.admin?.id] : [];
+
     const [result, countResult] = await Promise.all([pool.query(
       `SELECT q.id, q.quote_code, q.total_amount, sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
               q.created_at, cu.first_name, cu.primary_email
        FROM quotes q
        JOIN status_catalog sc ON q.status_id = sc.id
        LEFT JOIN customers cu ON q.customer_id = cu.id
-       WHERE q.deleted_at IS NULL
+       WHERE q.deleted_at IS NULL${restrictCondition}
        ORDER BY q.created_at DESC
        LIMIT $1 OFFSET $2`,
-      [limit, offset],
-    ), pool.query('SELECT count(*)::int AS total FROM quotes WHERE deleted_at IS NULL')]);
+      paramsList,
+    ), pool.query(`SELECT count(*)::int AS total FROM quotes WHERE deleted_at IS NULL${countCondition}`, countParams)]);
     res.json({ data: result.rows, total: countResult.rows[0].total });
   })
 );
@@ -2759,6 +2910,7 @@ router.get(
   requirePermission('admin.cotizador.manage'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
+    const isRestrictedPartner = req.admin?.roles.includes('partner_designer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
     const quoteResult = await pool.query(
       `SELECT q.id, q.quote_code, q.total_amount, sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
               q.payment_policy, q.created_at,
@@ -2766,8 +2918,8 @@ router.get(
        FROM quotes q
        JOIN status_catalog sc ON q.status_id = sc.id
        LEFT JOIN customers cu ON q.customer_id = cu.id
-       WHERE q.id = $1 AND q.deleted_at IS NULL`,
-      [id],
+       WHERE q.id = $1 AND q.deleted_at IS NULL${isRestrictedPartner ? ' AND q.created_by = $2' : ''}`,
+      isRestrictedPartner ? [id, req.admin?.id] : [id],
     );
     if (!quoteResult.rowCount || quoteResult.rowCount === 0) {
       throw new HttpError(404, 'Cotizacion no encontrada');
@@ -2871,12 +3023,13 @@ router.post(
       let previousQuoteState = null;
       let quoteId: string;
       if (body.editingQuoteId) {
+        const isRestrictedPartner = req.admin?.roles.includes('partner_designer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
         const currentQuote = await client.query(
-          'SELECT * FROM quotes WHERE id = $1 AND deleted_at IS NULL FOR UPDATE',
-          [body.editingQuoteId],
+          `SELECT * FROM quotes WHERE id = $1 AND deleted_at IS NULL${isRestrictedPartner ? ' AND created_by = $2' : ''} FOR UPDATE`,
+          isRestrictedPartner ? [body.editingQuoteId, req.admin?.id] : [body.editingQuoteId],
         );
         if (currentQuote.rowCount && currentQuote.rowCount > 0) previousQuoteState = currentQuote.rows[0];
-        if (!previousQuoteState) throw new HttpError(404, 'Cotizacion no encontrada');
+        if (!previousQuoteState) throw new HttpError(404, 'Cotizacion no encontrada o sin permisos');
 
         let newStatusId: string | undefined;
         if (body.status) {
@@ -2985,8 +3138,12 @@ router.delete(
   requireNonTerminalState('quotes'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
-    const current = await pool.query('SELECT * FROM quotes WHERE id = $1', [id]);
-    if (current.rowCount === 0) throw new HttpError(404, 'Cotizacion no encontrada');
+    const isRestrictedPartner = req.admin?.roles.includes('partner_designer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    const current = await pool.query(
+      `SELECT * FROM quotes WHERE id = $1${isRestrictedPartner ? ' AND created_by = $2' : ''}`, 
+      isRestrictedPartner ? [id, req.admin?.id] : [id]
+    );
+    if (current.rowCount === 0) throw new HttpError(404, 'Cotizacion no encontrada o sin permisos');
 
     const result = await pool.query(
       'DELETE FROM quotes WHERE id = $1 RETURNING id',
