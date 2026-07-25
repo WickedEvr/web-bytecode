@@ -1,3 +1,4 @@
+import https from 'node:https';
 import { env } from '../config/env.js';
 
 const AUDIT_TIMEOUT_MS = 8000;
@@ -18,6 +19,28 @@ const createReport = (): EnvironmentAuditReport => ({
   },
   errors: [],
 });
+
+const fetchJsonInsecure = (url: string, controller: AbortController): Promise<{ ok: boolean, data: any }> => {
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, { rejectUnauthorized: false, signal: controller.signal }, (res) => {
+      let rawData = '';
+      res.on('data', chunk => { rawData += chunk; });
+      res.on('end', () => {
+        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+          try {
+            resolve({ ok: true, data: JSON.parse(rawData || '{}') });
+          } catch (e) {
+            resolve({ ok: true, data: {} });
+          }
+        } else {
+          resolve({ ok: false, data: {} });
+        }
+      });
+    });
+    req.on('error', reject);
+    req.end();
+  });
+};
 
 export const runEnvironmentAudit = async (
   _environmentId: string,
@@ -42,40 +65,33 @@ export const runEnvironmentAudit = async (
 
   const baseUrl = parsed.toString().replace(/\/+$/, '');
   
-  const getRequestOptions = (controller: AbortController): RequestInit => ({
-    method: 'GET',
-    redirect: 'follow',
-    signal: controller.signal,
-    headers: { 'user-agent': 'Bytecode-Environment-Audit/1.0', accept: 'application/json' },
-  });
-
-  // Intentos de conexión (Retry) para lidiar con el cold-start de los entornos efímeros en el VPS
   const maxRetries = 10;
-  let health: Response | null = null;
+  let isHealthOk = false;
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000); // 10 segundos por intento
+    const timeout = setTimeout(() => controller.abort(), 10000); 
     
     let lastError: Error | null = null;
     try {
-      health = await fetch(`${baseUrl}/api/health`, getRequestOptions(controller));
+      const result = await fetchJsonInsecure(`${baseUrl}/api/health`, controller);
+      if (result.ok) isHealthOk = true;
     } catch (e) {
       lastError = e instanceof Error ? e : new Error(String(e));
     } finally {
       clearTimeout(timeout);
     }
 
-    if (health?.ok) break; // Si respondió bien, salimos del loop de intentos
+    if (isHealthOk) break;
     
     if (attempt < maxRetries) {
-      await new Promise(r => setTimeout(r, 8000)); // Esperar 8s antes del siguiente intento
+      await new Promise(r => setTimeout(r, 8000));
     } else if (lastError) {
       report.layers.red.suggestion = `Causa: ${lastError.message}`;
     }
   }
 
-  if (!health?.ok) {
+  if (!isHealthOk) {
     report.errors.push(report.layers.red.msg);
     return report;
   }
@@ -88,29 +104,24 @@ export const runEnvironmentAudit = async (
     return report;
   }
 
-  // Comprobación de configuración interna (aislamiento, db, estáticos)
   const configController = new AbortController();
   const configTimeout = setTimeout(() => configController.abort(), 10000);
-  let configResponse: Response | null = null;
+  let configResponse: { ok: boolean, data: any } = { ok: false, data: {} };
 
   try {
-    configResponse = await fetch(`${baseUrl}/api/internal/config`, getRequestOptions(configController)).catch(() => null);
+    configResponse = await fetchJsonInsecure(`${baseUrl}/api/internal/config`, configController);
+  } catch {
+    // ignorar error
   } finally {
     clearTimeout(configTimeout);
   }
 
-  if (!configResponse?.ok) {
+  if (!configResponse.ok) {
     report.errors.push(report.layers.config.msg);
     return report;
   }
 
-  let config: { dbUrl?: unknown; isStaticOnly?: unknown };
-  try {
-    config = (await configResponse.json()) as { dbUrl?: unknown; isStaticOnly?: unknown };
-  } catch {
-    report.errors.push(report.layers.config.msg);
-    return report;
-  }
+  const config = configResponse.data;
   report.layers.config.ok = true;
 
   if (config.isStaticOnly === true) {
