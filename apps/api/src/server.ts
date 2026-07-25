@@ -1,4 +1,5 @@
 import { app } from './app.js';
+import { pool } from './db/pool.js';
 
 const PORT = process.env.PORT || 4000;
 

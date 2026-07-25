@@ -562,8 +562,6 @@ settingsRouter.get(
   asyncHandler(async (req: Request, res: Response) => {
     const result = await pool.query('SELECT setting_key, setting_value, description, is_sensitive FROM system_settings ORDER BY setting_key');
 
-    console.log('1. RAW DB RESULT:', JSON.stringify(result.rows.find((r: any) => r.setting_key === 'cloudinary_config'), null, 2));
-
     const items = result.rows.map((row: any) => {
       let value = row.setting_value ? { ...row.setting_value } : {};
 
@@ -589,8 +587,6 @@ settingsRouter.get(
 
       return { ...row, setting_value: value };
     });
-
-    console.log('2. AFTER MAPPING:', JSON.stringify(items.find((r: any) => r.setting_key === 'cloudinary_config'), null, 2));
 
     res.json({ items });
   })

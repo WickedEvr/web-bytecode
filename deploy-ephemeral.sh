@@ -57,12 +57,9 @@ case "$ACTION" in
         # Copiar las variables comunes de producción
         cp "$MAIN_ENV_FILE" "$EPHEMERAL_ROOT/.env"
         
-        # 🟢 CURA DEFINITIVA: Purgar y sobreescribir variables efímeras garantizadas.
-        # Eliminamos cualquier rastro de variables antiguas (si existían) para evitar duplicados o fallos de inyección.
-        sed -i '/^DB_PASSWORD=/d' "$EPHEMERAL_ROOT/.env"
-        sed -i '/^DB_NAME=/d' "$EPHEMERAL_ROOT/.env"
-        sed -i '/^JWT_SECRET=/d' "$EPHEMERAL_ROOT/.env"
-        sed -i '/^DATABASE_URL=/d' "$EPHEMERAL_ROOT/.env"
+        # 🟢 CURA DEFINITIVA 2.0: Purgar TODO rastro de variables usando Regex agresivo e ignorando formato Windows
+        sed -i 's/\r$//' "$EPHEMERAL_ROOT/.env"
+        sed -i -E '/^[[:space:]]*(DB_PASSWORD|DB_NAME|JWT_SECRET|DATABASE_URL|POSTGRES_PASSWORD)[[:space:]]*=/d' "$EPHEMERAL_ROOT/.env"
 
         # Inyectamos al final del archivo los valores 100% controlados.
         echo "DB_PASSWORD=${DB_PASSWORD}" >> "$EPHEMERAL_ROOT/.env"
