@@ -134,6 +134,15 @@ export const runEnvironmentAudit = async (
   } else {
     report.errors.push(report.layers.aislamiento.msg);
   }
+
+  if (report.errors.length === 0) {
+    console.log('\n--- 🔎 AUDITORÍA DE SALUD DEL ENTORNO EFÍMERO ---');
+    console.log(`✅ Luz verde: El entorno (${apiUrl}) respondió 200 OK.`);
+    console.log('✅ Certificado TLS interno validado correctamente por el analizador.');
+    console.log('--------------------------------------------------\n');
+  } else {
+    console.log(`❌ Auditoría falló con errores: ${report.errors.join(', ')}`);
+  }
   
   return report;
 };
