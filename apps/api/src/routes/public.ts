@@ -35,17 +35,6 @@ router.get('/internal/config', (req: Request, res: Response) => {
 });
 
 router.get('/settings', asyncHandler(async (req: Request, res: Response) => {
-  // 🔍 PRUEBA EFÍMERA: Imprimir esto cuando el usuario navegue a la web
-  try {
-    const adminCheck = await pool.query('SELECT name FROM admin_users LIMIT 1');
-    console.log('\n--- 🔥 NAVEGACIÓN WEB DETECTADA - TEST EFÍMERO 🔥 ---');
-    console.log('✅ Conectado al contenedor BD:', process.env.DATABASE_URL?.split('@')[1] || 'URL no encontrada');
-    console.log('✅ Los datos de producción fluyen. Admin extraído:', adminCheck.rows[0]?.name || 'Ninguno');
-    console.log('-----------------------------------------------------\n');
-  } catch (e: any) {
-    console.error('❌ Error de conexión al cargar settings:', e.message);
-  }
-
   const result = await pool.query('SELECT setting_key, setting_value FROM system_settings WHERE is_sensitive = false');
   const settings = result.rows.reduce((acc: Record<string, unknown>, row) => {
     acc[row.setting_key] = row.setting_value;
