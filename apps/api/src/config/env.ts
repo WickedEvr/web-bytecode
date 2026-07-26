@@ -7,8 +7,8 @@ const repoRoot = path.resolve(apiRoot, '../..');
 
 dotenv.config({ path: path.join(repoRoot, '.env') });
 dotenv.config({ path: path.join(apiRoot, '.env') });
-dotenv.config({ path: path.join(repoRoot, '.env.local'), override: true });
-dotenv.config({ path: path.join(apiRoot, '.env.local'), override: true });
+dotenv.config({ path: path.join(repoRoot, '.env.local') });
+dotenv.config({ path: path.join(apiRoot, '.env.local') });
 
 const parseList = (value?: string) =>
   value
