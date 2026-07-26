@@ -321,7 +321,12 @@ quotesRouter.post(
           }
         }
 
-        const discountAmount = item.discount_amount;
+        let discountAmount = item.discount_amount !== undefined ? Number(item.discount_amount) : 0;
+        if (unitPrice < 0) {
+          discountAmount = Math.max(discountAmount, Math.abs(unitPrice));
+          unitPrice = 0;
+        }
+
         quoteItemsData.push({
           catalog_item_id: item.catalog_item_id,
           quantity: item.quantity,
