@@ -391,7 +391,7 @@ quotesRouter.post(
            SELECT $1, $2, $3, sc.id, 0, current_date + interval '30 days', $4, $5
            FROM status_catalog sc
            WHERE sc.domain = 'quote' AND sc.code = $6 AND sc.is_active = true
-           RETURNING id, sc.id as initial_status_id`,
+           RETURNING id, status_id as initial_status_id`,
           [createBusinessCode('QT'), customerId, organizationId, paymentPolicyParts.join('') || null, req.admin?.id, body.status ?? 'draft']
         );
         if (!quoteRes.rowCount) throw new HttpError(400, 'Estado de cotizacion invalido');
