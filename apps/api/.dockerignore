@@ -1,0 +1,8 @@
+# 🚨 DEVOPS DOCKER IGNORE: Excluir estrictamente variables de entorno locales/host para evitar sobrescribir variables de contenedores
+.env
+.env.*
+!.env.example
+node_modules
+dist
+scratch/
+*.log

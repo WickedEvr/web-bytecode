@@ -42,7 +42,6 @@ services:
       - db-pr
     networks:
       - pr_net
-      - bytecode-network
 
   frontend-pr:
     build:
