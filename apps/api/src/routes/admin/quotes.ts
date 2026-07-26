@@ -107,7 +107,6 @@ quotesRouter.get(
   asyncHandler(async (req: Request, res: Response) => {
     const { limit, offset, email, organizationId } = quoteListQuerySchema.parse(req.query);
     const currentOrgId = organizationId || (typeof req.headers['x-organization-id'] === 'string' ? req.headers['x-organization-id'] : undefined);
-    const orgFilter = currentOrgId ? ' AND q.organization_id = $' : '';
 
     if (email) {
       const emailParams: any[] = [email];
@@ -272,7 +271,20 @@ quotesRouter.post(
       }
 
       let organizationId: string | null = body.organizationId ?? null;
-      if (!organizationId) {
+      if (organizationId) {
+        const orgCheck = await client.query(
+          `SELECT 1 FROM customer_organizations WHERE customer_id = $1 AND organization_id = $2 AND deleted_at IS NULL LIMIT 1`,
+          [customerId, organizationId]
+        );
+        if (!orgCheck.rowCount || orgCheck.rowCount === 0) {
+          await client.query(
+            `INSERT INTO customer_organizations (customer_id, organization_id, is_primary)
+             VALUES ($1, $2, NOT EXISTS (SELECT 1 FROM customer_organizations WHERE customer_id = $1 AND deleted_at IS NULL))
+             ON CONFLICT (customer_id, organization_id) DO UPDATE SET deleted_at = NULL`,
+            [customerId, organizationId]
+          );
+        }
+      } else {
         const orgRes = await client.query(
           `SELECT organization_id FROM customer_organizations WHERE customer_id = $1 AND is_primary = true AND deleted_at IS NULL LIMIT 1`,
           [customerId]
