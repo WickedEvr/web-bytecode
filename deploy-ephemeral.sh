@@ -108,15 +108,27 @@ case "$ACTION" in
 	    docker exec -e PGPASSWORD="${PROD_DB_PASSWORD}" bytecode-db pg_dump -U bytecode_user -d "${PROD_DB_NAME}" -x -O | docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T -e PGPASSWORD="${DB_PASSWORD}" db-pr psql -U bytecode_user -d "bytecode_pr_${PR_NUMBER}"
 
         echo "--> Sincronizando contraseña explícita de Postgres para evadir corrupción de hashes..."
-        docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T db-pr psql -U bytecode_user -d "bytecode_pr_${PR_NUMBER}" -c "ALTER ROLE bytecode_user WITH PASSWORD '${DB_PASSWORD}';"
+        docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T db-pr psql -U bytecode_user -d "bytecode_pr_${PR_NUMBER}" -c "ALTER ROLE bytecode_user WITH PASSWORD '${DB_PASSWORD}'; SELECT pg_reload_conf();"
 
         echo "--> Levantando el resto de servicios (Backend y Frontend)..."
         # CURA 4: --build asegura que el código del PR actual se re-compile (backend/frontend). --no-recreate asegura que no destruya la BD.
         docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml up -d --build --no-recreate
-        sleep 5
+        sleep 6
 
-	    echo "--> Corriendo migraciones en la base de datos temporal..."
-        docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T backend-pr node apps/api/dist/db/migrate.js
+ 	    echo "--> Corriendo migraciones en la base de datos temporal..."
+        for attempt in {1..4}; do
+            if docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T backend-pr node apps/api/dist/db/migrate.js; then
+                echo "✅ Migraciones ejecutadas exitosamente."
+                break
+            else
+                echo "⚠️ Intento $attempt fallido en migraciones (posible estabilización de pool/autenticación), reintentando en 4 segundos..."
+                sleep 4
+                if [ "$attempt" -eq 4 ]; then
+                    echo "❌ Fallo crítico en migraciones tras 4 intentos."
+                    exit 1
+                fi
+            fi
+        done
 
         echo "--> Configurando subdominio dinámico en Caddy..."
         echo "pr${PR_NUMBER}.env.bytecode.com.pe {
