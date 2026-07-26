@@ -88,17 +88,14 @@ case "$ACTION" in
         
         docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml up -d --build db-pr
 
-        echo "--> Esperando a que la base de datos esté lista y estable..."
-        for i in {1..40}; do
-            # Verificar si el contenedor está corriendo y responde a psql en modo estable
-            if docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T -e PGPASSWORD="${DB_PASSWORD}" db-pr psql -U bytecode_user -d "bytecode_pr_${PR_NUMBER}" -c "SELECT 1;" >/dev/null 2>&1; then
-                echo "--> Base de datos respondiendo. Esperando 5 segundos de estabilización post-initdb..."
-                sleep 5
-                # Segunda verificación por si estaba en medio del reinicio del entrypoint
-                if docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T -e PGPASSWORD="${DB_PASSWORD}" db-pr psql -U bytecode_user -d "bytecode_pr_${PR_NUMBER}" -c "SELECT 1;" >/dev/null 2>&1; then
-                    echo "Base de datos completamente lista para tráfico."
-                    break
-                fi
+        # Esperar a que la base de datos se inicialice por completo (el primer arranque toma unos segundos)
+        echo "--> Esperando a que la base de datos esté lista..."
+        for i in {1..30}; do
+            # Contamos cuántas veces Postgres dice que está listo (debe decirlo 2 veces para confirmar que pasó el initdb)
+            READY_COUNT=$(docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml logs db-pr 2>&1 | grep -c "database system is ready to accept connections" || true)
+            if [ "$READY_COUNT" -ge 2 ]; then
+                echo "Base de datos completamente lista para tráfico."
+                break
             fi
             sleep 3
         done
@@ -108,7 +105,7 @@ case "$ACTION" in
         PROD_DB_PASSWORD=$(grep -E "^DB_PASSWORD=" "$MAIN_ENV_FILE" | cut -d'=' -f2- | tr -d '"' | tr -d "'" | tr -d '\r')
         PROD_DB_NAME="bytecode_prod"
 
-	    docker exec -e PGPASSWORD="${PROD_DB_PASSWORD}" bytecode-db pg_dump -U bytecode_user -d "${PROD_DB_NAME}" -c -x -O | docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T -e PGPASSWORD="${DB_PASSWORD}" db-pr psql -U bytecode_user -d "bytecode_pr_${PR_NUMBER}"
+	    docker exec -e PGPASSWORD="${PROD_DB_PASSWORD}" bytecode-db pg_dump -U bytecode_user -d "${PROD_DB_NAME}" -x -O | docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T -e PGPASSWORD="${DB_PASSWORD}" db-pr psql -U bytecode_user -d "bytecode_pr_${PR_NUMBER}"
 
         echo "--> Sincronizando contraseña explícita de Postgres para evadir corrupción de hashes..."
         docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T db-pr psql -U bytecode_user -d "bytecode_pr_${PR_NUMBER}" -c "ALTER ROLE bytecode_user WITH PASSWORD '${DB_PASSWORD}';"
