@@ -376,18 +376,23 @@ quotesRouter.post(
         if (!catRes.rowCount || catRes.rowCount === 0) throw new HttpError(400, 'Item de catálogo inválido');
         
         const catalogRow = catRes.rows[0];
-        const effectiveBase = parseFloat(catalogRow.effective_base) / exchangeRate;
-        const effectiveMax = catalogRow.effective_max !== null && catalogRow.effective_max !== undefined
+        const rawBase = parseFloat(catalogRow.effective_base) / exchangeRate;
+        const rawMax = catalogRow.effective_max !== null && catalogRow.effective_max !== undefined
           ? parseFloat(catalogRow.effective_max) / exchangeRate
           : null;
+        const effectiveBase = Number(rawBase.toFixed(4));
+        const effectiveMax = rawMax !== null ? Number(rawMax.toFixed(4)) : null;
 
         let unitPrice = item.unit_price !== undefined ? Number(item.unit_price) : effectiveBase;
 
         if (catalogRow.pricing_model === 'fixed') {
           unitPrice = effectiveBase;
         } else if (catalogRow.pricing_model === 'range') {
-          if (unitPrice < effectiveBase || (effectiveMax !== null && unitPrice > effectiveMax)) {
-            throw new HttpError(400, `El precio unitario de '${catalogRow.name}' debe estar entre ${effectiveBase} y ${effectiveMax ?? 'sin límite superior'}.`);
+          const EPSILON = 0.0005; // Tolerancia por conversión de divisas y redondeo en coma flotante
+          if (unitPrice < (effectiveBase - EPSILON) || (effectiveMax !== null && unitPrice > (effectiveMax + EPSILON))) {
+            const minFormatted = currencyCode === 'PEN' ? `S/ ${effectiveBase.toFixed(2)}` : currencyCode === 'USD' ? `$ ${effectiveBase.toFixed(2)}` : `€ ${effectiveBase.toFixed(2)}`;
+            const maxFormatted = effectiveMax !== null ? (currencyCode === 'PEN' ? `S/ ${effectiveMax.toFixed(2)}` : currencyCode === 'USD' ? `$ ${effectiveMax.toFixed(2)}` : `€ ${effectiveMax.toFixed(2)}`) : 'sin límite superior';
+            throw new HttpError(400, `El precio unitario de '${item.custom_name ?? catalogRow.name}' debe estar entre ${minFormatted} y ${maxFormatted}.`);
           }
         }
 
