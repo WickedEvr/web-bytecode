@@ -60,6 +60,7 @@ const AdminCotizador: React.FC = () => {
     isTerminal: false,
   });
   const [organizations, setOrganizations] = useState<Array<{ id: string; name: string; ruc?: string }>>([]);
+  const [exchangeRates, setExchangeRates] = useState<{ USD: number; EUR: number; PEN: number }>({ USD: 3.75, EUR: 4.05, PEN: 1 });
   const [statuses, setStatuses] = useState<StatusCatalogItem[]>([]);
   const [statusHistory, setStatusHistory] = useState<StatusHistoryRecord[]>([]);
   const [page, setPage] = useState(1);
@@ -78,7 +79,7 @@ const AdminCotizador: React.FC = () => {
         apiRequest<{ data: Quote[]; total: number }>(`/admin/quotes?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`),
         apiRequest<{ items: PricingCatalogItem[] }>('/admin/catalog/pricing'),
         apiRequest<{ items: StatusCatalogItem[] }>('/catalog/statuses?domain=quote'),
-        apiRequest<{ organizations: Array<{ id: string; name: string; ruc?: string }> }>('/admin/quotes/options'),
+        apiRequest<{ organizations: Array<{ id: string; name: string; ruc?: string }>; exchangeRates?: { USD: number; EUR: number; PEN: number } }>('/admin/quotes/options'),
       ]);
       if (quotesRes.data.length === 0 && quotesRes.total > 0 && page > 1) { setPage(page - 1); return; }
       setQuotes(quotesRes.data);
@@ -86,6 +87,7 @@ const AdminCotizador: React.FC = () => {
       setCatalog(catalogRes.items);
       setStatuses(statusesRes.items);
       setOrganizations(optionsRes.organizations || []);
+      if (optionsRes.exchangeRates) setExchangeRates(optionsRes.exchangeRates);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar cotizaciones');
     } finally {
@@ -143,7 +145,12 @@ const AdminCotizador: React.FC = () => {
         apiRequest<QuoteDetailResponse>(`/admin/quotes/${quoteId}`),
         apiRequest<{ items: StatusHistoryRecord[] }>(`/admin/quotes/${quoteId}/history`),
       ]);
-      loadQuoteForEditing({ id: detail.quote.id }, detail.items);
+      const quoteRate = detail.quote.currency_code === 'USD' ? exchangeRates.USD : detail.quote.currency_code === 'EUR' ? exchangeRates.EUR : 1;
+      const normalizedItems = detail.items.map((item) => ({
+        ...item,
+        unit_price: item.unit_price !== null && item.unit_price !== undefined ? Number(item.unit_price) * quoteRate : item.unit_price,
+      }));
+      loadQuoteForEditing({ id: detail.quote.id }, normalizedItems);
       setFormData({
         customerName: detail.quote.first_name || '',
         customerEmail: detail.quote.primary_email || '',
@@ -193,6 +200,7 @@ const AdminCotizador: React.FC = () => {
     setLoading(true);
     setError('');
     try {
+      const activeRate = formData.currencyCode === 'USD' ? exchangeRates.USD : formData.currencyCode === 'EUR' ? exchangeRates.EUR : 1;
       await apiRequest('/admin/quotes', {
         method: 'POST',
         json: {
@@ -209,8 +217,8 @@ const AdminCotizador: React.FC = () => {
           items: payload.items.map((item) => ({
             catalog_item_id: item.catalog_item_id,
             quantity: item.pricing_model === 'per_unit' ? Math.max(1, item.billable_quantity) : item.quantity,
-            unit_price: Math.abs(item.pricing_model === 'per_unit' && item.billable_quantity === 0 ? 0 : item.unit_price),
-            discount_amount: item.discount_amount ?? 0,
+            unit_price: Number((Math.abs(item.pricing_model === 'per_unit' && item.billable_quantity === 0 ? 0 : item.unit_price) / activeRate).toFixed(4)),
+            discount_amount: Number(((item.discount_amount ?? 0) / activeRate).toFixed(4)),
             recurrence: item.recurrence,
             custom_name: item.pricing_model === 'per_unit' && item.free_included_quantity > 0
               ? `${item.name} (${item.quantity} solicitados, ${item.free_included_quantity} incluidos)`
@@ -413,6 +421,7 @@ const AdminCotizador: React.FC = () => {
               organizationId={formData.organizationId}
               acquisitionChannel={formData.acquisitionChannel}
               currencyCode={formData.currencyCode}
+              exchangeRates={exchangeRates}
               organizations={organizations}
               loading={loading}
               error={isModalOpen ? error : ''}

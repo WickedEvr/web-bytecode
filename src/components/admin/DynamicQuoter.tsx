@@ -45,6 +45,7 @@ type DynamicQuoterProps = {
   organizationId?: string | null;
   acquisitionChannel?: string;
   currencyCode?: string;
+  exchangeRates?: { USD: number; EUR: number; PEN: number };
   organizations?: Array<{ id: string; name: string; ruc?: string }>;
   onOrganizationChange?: (value: string | null) => void;
   onAcquisitionChannelChange?: (value: string) => void;
@@ -204,6 +205,7 @@ const DynamicQuoter = ({
   organizationId,
   acquisitionChannel,
   currencyCode,
+  exchangeRates,
   organizations,
   onOrganizationChange,
   onAcquisitionChannelChange,
@@ -211,7 +213,7 @@ const DynamicQuoter = ({
 }: DynamicQuoterProps) => {
   const currCode = currencyCode || 'PEN';
   const currencySymbol = currCode === 'USD' ? '$' : currCode === 'EUR' ? '€' : 'S/';
-  const exchangeRate = currCode === 'USD' ? 3.75 : currCode === 'EUR' ? 4.05 : 1;
+  const exchangeRate = currCode === 'USD' ? (exchangeRates?.USD ?? 3.75) : currCode === 'EUR' ? (exchangeRates?.EUR ?? 4.05) : 1;
   const formatCurr = (value: number) => `${currencySymbol} ${(value / exchangeRate).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const [activeItem, setActiveItem] = useState<NormalizedPricingCatalogItem | null>(null);
   const setCatalog = useQuoterState((state) => state.setCatalog);
@@ -445,8 +447,8 @@ const DynamicQuoter = ({
                 const canEditQuantity = allowsMultipleQuantity(item);
                 const itemCode = item.item_code;
                 const canEditCustomPrice = Boolean(itemCode) && requiresCustomPrice(item);
-                const minCustomPrice = Number(item.base_price);
-                const maxCustomPrice = item.max_price ? Number(item.max_price) : undefined;
+                const minCustomPrice = Number((Number(item.base_price) / exchangeRate).toFixed(2));
+                const maxCustomPrice = item.max_price ? Number((Number(item.max_price) / exchangeRate).toFixed(2)) : undefined;
                 const inactiveTrigger = item.item_type === 'category_trigger' && !isActiveBaseTrigger;
                 const lockedLine = item.item_type === 'base_canvas' || item.item_type === 'base_included' || Boolean(item.item_code && infrastructureCodes.has(item.item_code));
                 const baseCanvasReplaced = item.item_type === 'base_canvas' && Boolean(totals.activeBaseSource && totals.activeBaseSource.id !== item.id);
@@ -495,13 +497,13 @@ const DynamicQuoter = ({
                               type="number"
                               min={minCustomPrice}
                               max={maxCustomPrice}
-                              step={50}
+                              step={currCode === 'PEN' ? 50 : 10}
                               inputMode="decimal"
-                              value={customPrice ?? ''}
+                              value={customPrice !== undefined ? Number((customPrice / exchangeRate).toFixed(2)) : ''}
                                 disabled={isReadOnly}
                               onChange={(event) => setCustomPrice(
                                 itemCode,
-                                event.target.value === '' ? Number.NaN : Number(event.target.value),
+                                event.target.value === '' ? Number.NaN : Number(event.target.value) * exchangeRate,
                               )}
                               onBlur={() => validateAndClampCustomPrice(itemCode)}
                               onKeyDown={(event) => {
@@ -509,7 +511,7 @@ const DynamicQuoter = ({
                                 event.preventDefault();
                                 validateAndClampCustomPrice(itemCode);
                               }}
-                              placeholder={String(Number(item.base_price) || '')}
+                              placeholder={String(Number((Number(item.base_price) / exchangeRate).toFixed(2)) || '')}
                               className="h-full min-w-0 flex-1 bg-transparent px-2 text-right text-sm text-white/90 outline-none placeholder:text-white/25"
                               aria-label={`Precio personalizado para ${item.name}`}
                             />

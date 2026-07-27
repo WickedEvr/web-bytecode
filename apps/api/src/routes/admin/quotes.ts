@@ -14,6 +14,31 @@ export const quotesRouter = Router();
 
 let pricingCatalogColumns: Record<string, boolean> | null = null;
 
+let cachedRates: { USD: number; EUR: number; PEN: number; timestamp: number } | null = null;
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 horas
+
+export const getLiveExchangeRates = async (): Promise<{ USD: number; EUR: number; PEN: number }> => {
+  const now = Date.now();
+  if (cachedRates && (now - cachedRates.timestamp) < CACHE_TTL_MS) {
+    return { USD: cachedRates.USD, EUR: cachedRates.EUR, PEN: 1 };
+  }
+  try {
+    const res = await fetch('https://open.er-api.com/v6/latest/PEN', { signal: AbortSignal.timeout(3000) });
+    if (res.ok) {
+      const data = await res.json() as { rates?: { USD?: number; EUR?: number } };
+      if (data?.rates?.USD && data?.rates?.EUR && data.rates.USD > 0 && data.rates.EUR > 0) {
+        const usdRate = Number((1 / data.rates.USD).toFixed(4));
+        const eurRate = Number((1 / data.rates.EUR).toFixed(4));
+        cachedRates = { USD: usdRate, EUR: eurRate, PEN: 1, timestamp: now };
+        return { USD: usdRate, EUR: eurRate, PEN: 1 };
+      }
+    }
+  } catch (error) {
+    console.warn('[ExchangeRate] Failed to fetch live exchange rates, falling back to defaults:', error);
+  }
+  return cachedRates ? { USD: cachedRates.USD, EUR: cachedRates.EUR, PEN: 1 } : { USD: 3.75, EUR: 4.05, PEN: 1 };
+};
+
 const getPricingCatalogColumns = async () => {
   if (pricingCatalogColumns !== null) return pricingCatalogColumns;
 
@@ -105,7 +130,7 @@ quotesRouter.get(
   '/quotes/options',
   requirePermission('admin.cotizador.view'),
   asyncHandler(async (_req: Request, res: Response) => {
-    const [organizationsRes, customersRes] = await Promise.all([
+    const [organizationsRes, customersRes, exchangeRates] = await Promise.all([
       pool.query(`
         SELECT id, COALESCE(NULLIF(trade_name, ''), legal_name) AS name, ruc
         FROM organizations
@@ -119,10 +144,12 @@ quotesRouter.get(
         WHERE deleted_at IS NULL
         ORDER BY name ASC
       `),
+      getLiveExchangeRates(),
     ]);
     res.json({
       organizations: organizationsRes.rows,
       customers: customersRes.rows,
+      exchangeRates,
     });
   })
 );
@@ -332,7 +359,8 @@ quotesRouter.post(
 
       const userRole = req.admin?.roles?.[0] || 'guest';
       const currencyCode = body.currencyCode ?? 'PEN';
-      const exchangeRate = currencyCode === 'USD' ? 3.75 : currencyCode === 'EUR' ? 4.05 : 1;
+      const liveRates = await getLiveExchangeRates();
+      const exchangeRate = currencyCode === 'USD' ? liveRates.USD : currencyCode === 'EUR' ? liveRates.EUR : 1;
       const quoteItemsData: Array<{ catalog_item_id: string; quantity: number; name: string; unitPrice: number; discountAmount: number; recurrence: 'none' | 'monthly' | 'yearly' }> = [];
       for (const item of body.items) {
         const catRes = await client.query(
