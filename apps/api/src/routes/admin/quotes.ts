@@ -102,6 +102,32 @@ const quoteListQuerySchema = paginationQuerySchema.extend({
 });
 
 quotesRouter.get(
+  '/quotes/options',
+  requirePermission('admin.cotizador.view'),
+  asyncHandler(async (_req: Request, res: Response) => {
+    const [organizationsRes, customersRes] = await Promise.all([
+      pool.query(`
+        SELECT id, COALESCE(NULLIF(trade_name, ''), legal_name) AS name, ruc
+        FROM organizations
+        WHERE deleted_at IS NULL
+        ORDER BY name ASC
+      `),
+      pool.query(`
+        SELECT id, primary_email AS email,
+               COALESCE(NULLIF(trim(concat_ws(' ', first_name, last_name)), ''), primary_email) AS name
+        FROM customers
+        WHERE deleted_at IS NULL
+        ORDER BY name ASC
+      `),
+    ]);
+    res.json({
+      organizations: organizationsRes.rows,
+      customers: customersRes.rows,
+    });
+  })
+);
+
+quotesRouter.get(
   '/quotes',
   requireQuoteListAccess,
   asyncHandler(async (req: Request, res: Response) => {
@@ -109,14 +135,14 @@ quotesRouter.get(
     const currentOrgId = organizationId || (typeof req.headers['x-organization-id'] === 'string' ? req.headers['x-organization-id'] : undefined);
 
     if (email) {
-      const emailParams: any[] = [email];
+      const emailParams: (string | undefined)[] = [email];
       let emailOrgFilter = '';
       if (currentOrgId) {
         emailParams.push(currentOrgId);
         emailOrgFilter = ` AND q.organization_id = $2`;
       }
       const result = await pool.query(
-        `SELECT q.id, q.quote_code, q.total_amount, q.currency_code, q.valid_until,
+        `SELECT q.id, q.quote_code, q.total_amount, q.currency_code, q.acquisition_channel AS "acquisitionChannel", q.valid_until,
                 q.payment_policy, q.organization_id, sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
                 q.created_at, cu.first_name, cu.last_name, cu.primary_email,
                 COALESCE(items.items, '[]'::json) AS items
@@ -148,10 +174,10 @@ quotesRouter.get(
       return;
     }
     const isRestrictedPartner = req.admin?.roles.includes('partner_designer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    const paramsList: any[] = [limit, offset];
+    const paramsList: (string | number | undefined)[] = [limit, offset];
     let restrictCondition = '';
     let countCondition = '';
-    const countParams: any[] = [];
+    const countParams: (string | undefined)[] = [];
     let paramIndex = 3;
     let countParamIndex = 1;
 
@@ -169,7 +195,7 @@ quotesRouter.get(
     }
 
     const [result, countResult] = await Promise.all([pool.query(
-      `SELECT q.id, q.quote_code, q.total_amount, q.organization_id, sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
+      `SELECT q.id, q.quote_code, q.total_amount, q.currency_code, q.acquisition_channel AS "acquisitionChannel", q.organization_id, sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
               q.created_at, cu.first_name, cu.primary_email
        FROM quotes q
        JOIN status_catalog sc ON q.status_id = sc.id
@@ -190,7 +216,7 @@ quotesRouter.get(
     const id = z.string().uuid().parse(req.params.id);
     const isRestrictedPartner = req.admin?.roles.includes('partner_designer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
     const currentOrgId = (typeof req.query.organizationId === 'string' ? req.query.organizationId : undefined) || (typeof req.headers['x-organization-id'] === 'string' ? req.headers['x-organization-id'] : undefined);
-    const queryParams: any[] = [id];
+    const queryParams: (string | undefined)[] = [id];
     let queryFilters = '';
     if (isRestrictedPartner) {
       queryParams.push(req.admin?.id);
@@ -202,7 +228,7 @@ quotesRouter.get(
     }
 
     const quoteResult = await pool.query(
-      `SELECT q.id, q.quote_code, q.total_amount, q.organization_id, sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
+      `SELECT q.id, q.quote_code, q.total_amount, q.currency_code, q.acquisition_channel AS "acquisitionChannel", q.organization_id, sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
               q.payment_policy, q.created_at,
               cu.first_name, cu.primary_email
        FROM quotes q
@@ -231,9 +257,11 @@ quotesRouter.get(
 
 const createQuoteSchema = z.object({
   editingQuoteId: z.string().uuid().nullable().optional(),
-  organizationId: z.string().uuid().optional(),
+  organizationId: z.string().uuid().nullable().optional(),
   customerName: z.string().min(1),
   customerEmail: z.string().email(),
+  acquisitionChannel: z.enum(['web_form', 'whatsapp', 'linkedin', 'email', 'phone', 'referral', 'other']).default('web_form').optional(),
+  currencyCode: z.enum(['PEN', 'USD', 'EUR']).default('PEN').optional(),
   items: z.array(z.object({
     catalog_item_id: z.string().uuid(),
     quantity: z.number().int().min(1),
@@ -303,6 +331,8 @@ quotesRouter.post(
       }
 
       const userRole = req.admin?.roles?.[0] || 'guest';
+      const currencyCode = body.currencyCode ?? 'PEN';
+      const exchangeRate = currencyCode === 'USD' ? 3.75 : currencyCode === 'EUR' ? 4.05 : 1;
       const quoteItemsData: Array<{ catalog_item_id: string; quantity: number; name: string; unitPrice: number; discountAmount: number; recurrence: 'none' | 'monthly' | 'yearly' }> = [];
       for (const item of body.items) {
         const catRes = await client.query(
@@ -318,9 +348,9 @@ quotesRouter.post(
         if (!catRes.rowCount || catRes.rowCount === 0) throw new HttpError(400, 'Item de catálogo inválido');
         
         const catalogRow = catRes.rows[0];
-        const effectiveBase = parseFloat(catalogRow.effective_base);
+        const effectiveBase = parseFloat(catalogRow.effective_base) / exchangeRate;
         const effectiveMax = catalogRow.effective_max !== null && catalogRow.effective_max !== undefined
-          ? parseFloat(catalogRow.effective_max)
+          ? parseFloat(catalogRow.effective_max) / exchangeRate
           : null;
 
         let unitPrice = item.unit_price !== undefined ? Number(item.unit_price) : effectiveBase;
@@ -386,10 +416,12 @@ quotesRouter.post(
         const quoteRes = await client.query(
           `UPDATE quotes
            SET customer_id = $1, organization_id = $2, payment_policy = $3,
-               status_id = COALESCE($5, status_id), updated_at = now()
+               status_id = COALESCE($5, status_id), updated_at = now(),
+               acquisition_channel = COALESCE($6, acquisition_channel),
+               currency_code = COALESCE($7, currency_code)
            WHERE id = $4 AND deleted_at IS NULL
            RETURNING id`,
-          [customerId, organizationId, paymentPolicyParts.join('') || null, body.editingQuoteId, newStatusId ?? null],
+          [customerId, organizationId, paymentPolicyParts.join('') || null, body.editingQuoteId, newStatusId ?? null, body.acquisitionChannel ?? 'web_form', currencyCode],
         );
         if (!quoteRes.rowCount || quoteRes.rowCount === 0) throw new HttpError(404, 'Cotizacion no encontrada');
         quoteId = quoteRes.rows[0].id;
@@ -404,12 +436,12 @@ quotesRouter.post(
         await client.query('DELETE FROM quote_items WHERE quote_id = $1', [quoteId]);
       } else {
         const quoteRes = await client.query(
-          `INSERT INTO quotes (quote_code, customer_id, organization_id, status_id, total_amount, valid_until, payment_policy, created_by)
-           SELECT $1, $2, $3, sc.id, 0, current_date + interval '30 days', $4, $5
+          `INSERT INTO quotes (quote_code, customer_id, organization_id, status_id, total_amount, valid_until, payment_policy, created_by, acquisition_channel, currency_code)
+           SELECT $1, $2, $3, sc.id, 0, current_date + interval '30 days', $4, $5, $7, $8
            FROM status_catalog sc
            WHERE sc.domain = 'quote' AND sc.code = $6 AND sc.is_active = true
            RETURNING id, status_id as initial_status_id`,
-          [createBusinessCode('QT'), customerId, organizationId, paymentPolicyParts.join('') || null, req.admin?.id, body.status ?? 'draft']
+          [createBusinessCode('QT'), customerId, organizationId, paymentPolicyParts.join('') || null, req.admin?.id, body.status ?? 'draft', body.acquisitionChannel ?? 'web_form', currencyCode]
         );
         if (!quoteRes.rowCount) throw new HttpError(400, 'Estado de cotizacion invalido');
         quoteId = quoteRes.rows[0].id;

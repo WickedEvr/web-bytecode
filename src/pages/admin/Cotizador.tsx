@@ -17,8 +17,11 @@ export interface Quote {
   id: string;
   quote_code: string;
   total_amount: string;
+  currency_code?: string;
+  acquisitionChannel?: string;
+  organization_id?: string | null;
   status: string;
-    isTerminal?: boolean;
+  isTerminal?: boolean;
   status_name?: string;
   created_at: string;
   first_name: string;
@@ -50,9 +53,13 @@ const AdminCotizador: React.FC = () => {
     customerName: '',
     customerEmail: '',
     notes: '',
+    organizationId: null as string | null,
+    acquisitionChannel: 'web_form',
+    currencyCode: 'PEN',
     status: 'draft',
-      isTerminal: false,
+    isTerminal: false,
   });
+  const [organizations, setOrganizations] = useState<Array<{ id: string; name: string; ruc?: string }>>([]);
   const [statuses, setStatuses] = useState<StatusCatalogItem[]>([]);
   const [statusHistory, setStatusHistory] = useState<StatusHistoryRecord[]>([]);
   const [page, setPage] = useState(1);
@@ -67,16 +74,18 @@ const AdminCotizador: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const [quotesRes, catalogRes, statusesRes] = await Promise.all([
+      const [quotesRes, catalogRes, statusesRes, optionsRes] = await Promise.all([
         apiRequest<{ data: Quote[]; total: number }>(`/admin/quotes?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`),
         apiRequest<{ items: PricingCatalogItem[] }>('/admin/catalog/pricing'),
         apiRequest<{ items: StatusCatalogItem[] }>('/catalog/statuses?domain=quote'),
+        apiRequest<{ organizations: Array<{ id: string; name: string; ruc?: string }> }>('/admin/quotes/options'),
       ]);
       if (quotesRes.data.length === 0 && quotesRes.total > 0 && page > 1) { setPage(page - 1); return; }
       setQuotes(quotesRes.data);
       setTotal(quotesRes.total);
       setCatalog(catalogRes.items);
       setStatuses(statusesRes.items);
+      setOrganizations(optionsRes.organizations || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar cotizaciones');
     } finally {
@@ -118,7 +127,7 @@ const AdminCotizador: React.FC = () => {
   const openNewQuote = () => {
     setCatalogInStore(catalog);
     resetQuoter();
-    setFormData({ customerName: '', customerEmail: '', notes: '', status: statuses[0]?.code ?? 'draft' , isTerminal: false });
+    setFormData({ customerName: '', customerEmail: '', notes: '', organizationId: null, acquisitionChannel: 'web_form', currencyCode: 'PEN', status: statuses[0]?.code ?? 'draft', isTerminal: false });
     setStatusHistory([]);
     setError('');
     setIsModalOpen(true);
@@ -139,8 +148,11 @@ const AdminCotizador: React.FC = () => {
         customerName: detail.quote.first_name || '',
         customerEmail: detail.quote.primary_email || '',
         notes: detail.quote.payment_policy || '',
+        organizationId: detail.quote.organization_id ?? null,
+        acquisitionChannel: detail.quote.acquisitionChannel ?? 'web_form',
+        currencyCode: detail.quote.currency_code ?? 'PEN',
         status: detail.quote.status,
-          isTerminal: Boolean(detail.quote.isTerminal),
+        isTerminal: Boolean(detail.quote.isTerminal),
       });
       setStatusHistory(historyResult.items);
       setIsModalOpen(true);
@@ -185,6 +197,9 @@ const AdminCotizador: React.FC = () => {
         method: 'POST',
         json: {
           editingQuoteId: payload.editingQuoteId,
+          organizationId: formData.organizationId || null,
+          acquisitionChannel: formData.acquisitionChannel || 'web_form',
+          currencyCode: formData.currencyCode || 'PEN',
           customerName: formData.customerName,
           customerEmail: formData.customerEmail,
           notes: formData.notes,
@@ -204,7 +219,7 @@ const AdminCotizador: React.FC = () => {
         },
       });
       setIsModalOpen(false);
-      setFormData({ customerName: '', customerEmail: '', notes: '', status: statuses[0]?.code ?? 'draft' , isTerminal: false });
+      setFormData({ customerName: '', customerEmail: '', notes: '', organizationId: null, acquisitionChannel: 'web_form', currencyCode: 'PEN', status: statuses[0]?.code ?? 'draft', isTerminal: false });
       resetQuoter();
       await loadData();
     } catch (err) {
@@ -395,6 +410,10 @@ const AdminCotizador: React.FC = () => {
               customerName={formData.customerName}
               customerEmail={formData.customerEmail}
               notes={formData.notes}
+              organizationId={formData.organizationId}
+              acquisitionChannel={formData.acquisitionChannel}
+              currencyCode={formData.currencyCode}
+              organizations={organizations}
               loading={loading}
               error={isModalOpen ? error : ''}
               primaryFieldsAfter={(
@@ -415,6 +434,9 @@ const AdminCotizador: React.FC = () => {
               onCustomerNameChange={(customerName) => setFormData({ ...formData, customerName })}
               onCustomerEmailChange={(customerEmail) => setFormData({ ...formData, customerEmail })}
               onNotesChange={(nextNotes) => setFormData({ ...formData, notes: nextNotes })}
+              onOrganizationChange={(organizationId) => setFormData({ ...formData, organizationId })}
+              onAcquisitionChannelChange={(acquisitionChannel) => setFormData({ ...formData, acquisitionChannel })}
+              onCurrencyCodeChange={(currencyCode) => setFormData({ ...formData, currencyCode })}
               onCancel={() => {
                 resetQuoter();
                 setIsModalOpen(false);
