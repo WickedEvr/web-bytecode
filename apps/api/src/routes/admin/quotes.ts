@@ -98,17 +98,26 @@ const requireQuoteListAccess = (req: Request, _res: Response, next: NextFunction
 
 const quoteListQuerySchema = paginationQuerySchema.extend({
   email: z.string().trim().email().optional(),
+  organizationId: z.string().uuid().optional(),
 });
 
 quotesRouter.get(
   '/quotes',
   requireQuoteListAccess,
   asyncHandler(async (req: Request, res: Response) => {
-    const { limit, offset, email } = quoteListQuerySchema.parse(req.query);
+    const { limit, offset, email, organizationId } = quoteListQuerySchema.parse(req.query);
+    const currentOrgId = organizationId || (typeof req.headers['x-organization-id'] === 'string' ? req.headers['x-organization-id'] : undefined);
+
     if (email) {
+      const emailParams: any[] = [email];
+      let emailOrgFilter = '';
+      if (currentOrgId) {
+        emailParams.push(currentOrgId);
+        emailOrgFilter = ` AND q.organization_id = $2`;
+      }
       const result = await pool.query(
         `SELECT q.id, q.quote_code, q.total_amount, q.currency_code, q.valid_until,
-                q.payment_policy, sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
+                q.payment_policy, q.organization_id, sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
                 q.created_at, cu.first_name, cu.last_name, cu.primary_email,
                 COALESCE(items.items, '[]'::json) AS items
          FROM quotes q
@@ -123,6 +132,7 @@ quotesRouter.get(
              'custom_name', qi.custom_name,
              'quantity', qi.quantity,
              'unit_price', qi.unit_price,
+             'discount_amount', qi.discount_amount,
              'subtotal', qi.subtotal,
              'recurrence', qi.recurrence
            ) ORDER BY qi.created_at ASC) AS items
@@ -130,21 +140,36 @@ quotesRouter.get(
            JOIN pricing_catalog pc ON pc.id = qi.pricing_catalog_id
            WHERE qi.quote_id = q.id
          ) items ON true
-         WHERE q.deleted_at IS NULL AND lower(cu.primary_email) = lower($1)
+         WHERE q.deleted_at IS NULL AND lower(cu.primary_email) = lower($1)${emailOrgFilter}
          ORDER BY q.created_at DESC`,
-        [email],
+        emailParams,
       );
       res.json({ data: result.rows, total: result.rowCount ?? 0 });
       return;
     }
     const isRestrictedPartner = req.admin?.roles.includes('partner_designer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    const restrictCondition = isRestrictedPartner ? ` AND q.created_by = $3` : '';
-    const paramsList = isRestrictedPartner ? [limit, offset, req.admin?.id] : [limit, offset];
-    const countCondition = isRestrictedPartner ? ` AND created_by = $1` : '';
-    const countParams = isRestrictedPartner ? [req.admin?.id] : [];
+    const paramsList: any[] = [limit, offset];
+    let restrictCondition = '';
+    let countCondition = '';
+    const countParams: any[] = [];
+    let paramIndex = 3;
+    let countParamIndex = 1;
+
+    if (isRestrictedPartner) {
+      restrictCondition += ` AND q.created_by = $${paramIndex++}`;
+      paramsList.push(req.admin?.id);
+      countCondition += ` AND created_by = $${countParamIndex++}`;
+      countParams.push(req.admin?.id);
+    }
+    if (currentOrgId) {
+      restrictCondition += ` AND q.organization_id = $${paramIndex++}`;
+      paramsList.push(currentOrgId);
+      countCondition += ` AND organization_id = $${countParamIndex++}`;
+      countParams.push(currentOrgId);
+    }
 
     const [result, countResult] = await Promise.all([pool.query(
-      `SELECT q.id, q.quote_code, q.total_amount, sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
+      `SELECT q.id, q.quote_code, q.total_amount, q.organization_id, sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
               q.created_at, cu.first_name, cu.primary_email
        FROM quotes q
        JOIN status_catalog sc ON q.status_id = sc.id
@@ -164,15 +189,27 @@ quotesRouter.get(
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
     const isRestrictedPartner = req.admin?.roles.includes('partner_designer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    const currentOrgId = (typeof req.query.organizationId === 'string' ? req.query.organizationId : undefined) || (typeof req.headers['x-organization-id'] === 'string' ? req.headers['x-organization-id'] : undefined);
+    const queryParams: any[] = [id];
+    let queryFilters = '';
+    if (isRestrictedPartner) {
+      queryParams.push(req.admin?.id);
+      queryFilters += ` AND q.created_by = $${queryParams.length}`;
+    }
+    if (currentOrgId) {
+      queryParams.push(currentOrgId);
+      queryFilters += ` AND q.organization_id = $${queryParams.length}`;
+    }
+
     const quoteResult = await pool.query(
-      `SELECT q.id, q.quote_code, q.total_amount, sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
+      `SELECT q.id, q.quote_code, q.total_amount, q.organization_id, sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
               q.payment_policy, q.created_at,
               cu.first_name, cu.primary_email
        FROM quotes q
        JOIN status_catalog sc ON q.status_id = sc.id
        LEFT JOIN customers cu ON q.customer_id = cu.id
-       WHERE q.id = $1 AND q.deleted_at IS NULL${isRestrictedPartner ? ' AND q.created_by = $2' : ''}`,
-      isRestrictedPartner ? [id, req.admin?.id] : [id],
+       WHERE q.id = $1 AND q.deleted_at IS NULL${queryFilters}`,
+      queryParams,
     );
     if (!quoteResult.rowCount || quoteResult.rowCount === 0) {
       throw new HttpError(404, 'Cotizacion no encontrada');
@@ -180,7 +217,7 @@ quotesRouter.get(
 
     const itemsResult = await pool.query(
       `SELECT qi.id, qi.pricing_catalog_id AS catalog_item_id, pc.item_code, qi.custom_name,
-              qi.quantity, qi.unit_price, qi.recurrence, pc.base_price, pc.max_price
+              qi.quantity, qi.unit_price, qi.discount_amount, qi.subtotal, qi.recurrence, pc.base_price, pc.max_price
        FROM quote_items qi
        JOIN pricing_catalog pc ON pc.id = qi.pricing_catalog_id
        WHERE qi.quote_id = $1
@@ -194,19 +231,18 @@ quotesRouter.get(
 
 const createQuoteSchema = z.object({
   editingQuoteId: z.string().uuid().nullable().optional(),
+  organizationId: z.string().uuid().optional(),
   customerName: z.string().min(1),
   customerEmail: z.string().email(),
   items: z.array(z.object({
     catalog_item_id: z.string().uuid(),
     quantity: z.number().int().min(1),
     unit_price: z.number().optional(),
+    discount_amount: z.number().min(0).default(0),
     recurrence: z.enum(['none', 'monthly', 'yearly']).optional(),
     custom_name: z.string().trim().min(1).max(180).optional()
   })).min(1),
   notes: z.string().max(2000).optional(),
-  totalAmount: z.number().min(0).optional(),
-  recurringMonthlyTotal: z.number().min(0).optional(),
-  recurringYearlyTotal: z.number().min(0).optional(),
   projectCategory: z.string().trim().max(180).optional(),
   legalNotes: z.array(z.string().max(1000)).optional(),
   status: z.string().trim().min(1).max(80).optional(),
@@ -234,37 +270,97 @@ quotesRouter.post(
         customerId = newCust.rows[0].id;
       }
 
+      let organizationId: string | null = body.organizationId ?? null;
+      if (organizationId) {
+        const orgCheck = await client.query(
+          `SELECT 1 FROM customer_organizations WHERE customer_id = $1 AND organization_id = $2 AND deleted_at IS NULL LIMIT 1`,
+          [customerId, organizationId]
+        );
+        if (!orgCheck.rowCount || orgCheck.rowCount === 0) {
+          await client.query(
+            `INSERT INTO customer_organizations (customer_id, organization_id, is_primary)
+             VALUES ($1, $2, NOT EXISTS (SELECT 1 FROM customer_organizations WHERE customer_id = $1 AND deleted_at IS NULL))
+             ON CONFLICT (customer_id, organization_id) DO UPDATE SET deleted_at = NULL`,
+            [customerId, organizationId]
+          );
+        }
+      } else {
+        const orgRes = await client.query(
+          `SELECT organization_id FROM customer_organizations WHERE customer_id = $1 AND is_primary = true AND deleted_at IS NULL LIMIT 1`,
+          [customerId]
+        );
+        if (orgRes.rowCount && orgRes.rowCount > 0) {
+          organizationId = orgRes.rows[0].organization_id;
+        } else {
+          const anyOrgRes = await client.query(
+            `SELECT organization_id FROM customer_organizations WHERE customer_id = $1 AND deleted_at IS NULL LIMIT 1`,
+            [customerId]
+          );
+          if (anyOrgRes.rowCount && anyOrgRes.rowCount > 0) {
+            organizationId = anyOrgRes.rows[0].organization_id;
+          }
+        }
+      }
+
+      const userRole = req.admin?.roles?.[0] || 'guest';
       const quoteItemsData: Array<{ catalog_item_id: string; quantity: number; name: string; unitPrice: number; discountAmount: number; recurrence: 'none' | 'monthly' | 'yearly' }> = [];
       for (const item of body.items) {
         const catRes = await client.query(
-          'SELECT id, name, base_price FROM pricing_catalog WHERE id = $1 AND is_active = true AND deleted_at IS NULL',
-          [item.catalog_item_id],
+          `SELECT pc.id, pc.name, pc.pricing_model,
+                  COALESCE(pro.base_price, pc.base_price) AS effective_base,
+                  COALESCE(pro.max_price, pc.max_price) AS effective_max
+           FROM pricing_catalog pc
+           LEFT JOIN pricing_role_overrides pro
+                  ON pc.id = pro.pricing_catalog_id AND pro.role_name = $2
+           WHERE pc.id = $1 AND pc.is_active = true AND pc.deleted_at IS NULL`,
+          [item.catalog_item_id, userRole],
         );
-        if (!catRes.rowCount || catRes.rowCount === 0) throw new HttpError(400, 'Item de catÃ¡logo invÃ¡lido');
-        let unitPrice = item.unit_price ?? parseFloat(catRes.rows[0].base_price);
-        let discountAmount = 0;
+        if (!catRes.rowCount || catRes.rowCount === 0) throw new HttpError(400, 'Item de catálogo inválido');
+        
+        const catalogRow = catRes.rows[0];
+        const effectiveBase = parseFloat(catalogRow.effective_base);
+        const effectiveMax = catalogRow.effective_max !== null && catalogRow.effective_max !== undefined
+          ? parseFloat(catalogRow.effective_max)
+          : null;
+
+        let unitPrice = item.unit_price !== undefined ? Number(item.unit_price) : effectiveBase;
+
+        if (catalogRow.pricing_model === 'fixed') {
+          unitPrice = effectiveBase;
+        } else if (catalogRow.pricing_model === 'range') {
+          if (unitPrice < effectiveBase || (effectiveMax !== null && unitPrice > effectiveMax)) {
+            throw new HttpError(400, `El precio unitario de '${catalogRow.name}' debe estar entre ${effectiveBase} y ${effectiveMax ?? 'sin límite superior'}.`);
+          }
+        }
+
+        let discountAmount = item.discount_amount !== undefined ? Number(item.discount_amount) : 0;
         if (unitPrice < 0) {
-          discountAmount = Math.abs(unitPrice);
+          discountAmount = Math.max(discountAmount, Math.abs(unitPrice));
           unitPrice = 0;
         }
+
         quoteItemsData.push({
           catalog_item_id: item.catalog_item_id,
           quantity: item.quantity,
-          name: item.custom_name ?? catRes.rows[0].name,
+          name: item.custom_name ?? catalogRow.name,
           unitPrice,
           discountAmount,
           recurrence: item.recurrence ?? 'none',
         });
       }
 
-      const totalAmount = body.totalAmount ?? quoteItemsData
-        .filter((item) => item.recurrence === 'none')
-        .reduce((acc, item) => acc + (item.unitPrice - item.discountAmount) * item.quantity, 0);
+      const recurringMonthlyTotal = quoteItemsData
+        .filter((item) => item.recurrence === 'monthly')
+        .reduce((acc, item) => acc + ((item.quantity * item.unitPrice) - item.discountAmount), 0);
+      const recurringYearlyTotal = quoteItemsData
+        .filter((item) => item.recurrence === 'yearly')
+        .reduce((acc, item) => acc + ((item.quantity * item.unitPrice) - item.discountAmount), 0);
+
       const paymentPolicyParts = [
         body.notes,
         body.projectCategory ? `Categoria de proyecto: ${body.projectCategory}` : undefined,
-        body.recurringMonthlyTotal ? `Recurrente mensual: ${body.recurringMonthlyTotal}` : undefined,
-        body.recurringYearlyTotal ? `Recurrente anual: ${body.recurringYearlyTotal}` : undefined,
+        recurringMonthlyTotal > 0 ? `Recurrente mensual: ${recurringMonthlyTotal}` : undefined,
+        recurringYearlyTotal > 0 ? `Recurrente anual: ${recurringYearlyTotal}` : undefined,
         body.legalNotes?.length ? body.legalNotes.join('') : undefined,
       ].filter(Boolean);
 
@@ -289,11 +385,11 @@ quotesRouter.post(
         }
         const quoteRes = await client.query(
           `UPDATE quotes
-           SET customer_id = $1, total_amount = $2, payment_policy = $3,
+           SET customer_id = $1, organization_id = $2, payment_policy = $3,
                status_id = COALESCE($5, status_id), updated_at = now()
            WHERE id = $4 AND deleted_at IS NULL
            RETURNING id`,
-          [customerId, totalAmount, paymentPolicyParts.join('') || null, body.editingQuoteId, newStatusId ?? null],
+          [customerId, organizationId, paymentPolicyParts.join('') || null, body.editingQuoteId, newStatusId ?? null],
         );
         if (!quoteRes.rowCount || quoteRes.rowCount === 0) throw new HttpError(404, 'Cotizacion no encontrada');
         quoteId = quoteRes.rows[0].id;
@@ -308,15 +404,21 @@ quotesRouter.post(
         await client.query('DELETE FROM quote_items WHERE quote_id = $1', [quoteId]);
       } else {
         const quoteRes = await client.query(
-          `INSERT INTO quotes (quote_code, customer_id, status_id, total_amount, valid_until, payment_policy, created_by)
-           SELECT $1, $2, sc.id, $3, current_date + interval '30 days', $4, $5
+          `INSERT INTO quotes (quote_code, customer_id, organization_id, status_id, total_amount, valid_until, payment_policy, created_by)
+           SELECT $1, $2, $3, sc.id, 0, current_date + interval '30 days', $4, $5
            FROM status_catalog sc
            WHERE sc.domain = 'quote' AND sc.code = $6 AND sc.is_active = true
-           RETURNING id`,
-          [createBusinessCode('QT'), customerId, totalAmount, paymentPolicyParts.join('') || null, req.admin?.id, body.status ?? 'draft']
+           RETURNING id, status_id as initial_status_id`,
+          [createBusinessCode('QT'), customerId, organizationId, paymentPolicyParts.join('') || null, req.admin?.id, body.status ?? 'draft']
         );
         if (!quoteRes.rowCount) throw new HttpError(400, 'Estado de cotizacion invalido');
         quoteId = quoteRes.rows[0].id;
+        const initialStatusId = quoteRes.rows[0].initial_status_id;
+        await client.query(
+          `INSERT INTO quote_status_history (quote_id, old_status_id, new_status_id, changed_by)
+           VALUES ($1, NULL, $2, $3)`,
+          [quoteId, initialStatusId, req.admin?.id ?? null],
+        );
       }
 
       for (const qi of quoteItemsData) {
@@ -326,6 +428,20 @@ quotesRouter.post(
           [quoteId, qi.catalog_item_id, qi.name, qi.quantity, qi.unitPrice, qi.discountAmount, qi.recurrence]
         );
       }
+
+      const totalRes = await client.query(
+        `UPDATE quotes
+         SET total_amount = (
+           SELECT COALESCE(SUM(subtotal), 0)
+           FROM quote_items
+           WHERE quote_id = $1 AND recurrence = 'none'
+         )
+         WHERE id = $1
+         RETURNING total_amount`,
+        [quoteId]
+      );
+      const calculatedTotal = parseFloat(totalRes.rows[0].total_amount);
+
       const fullQuote = await client.query('SELECT * FROM quotes WHERE id = $1', [quoteId]);
       await auditService.logAdminAction({
         userId: req.admin?.id,
@@ -336,7 +452,7 @@ quotesRouter.post(
         req
       });
       await client.query('COMMIT');
-      res.status(body.editingQuoteId ? 200 : 201).json({ ok: true, quoteId });
+      res.status(body.editingQuoteId ? 200 : 201).json({ ok: true, quoteId, totalAmount: calculatedTotal });
     } catch (e: unknown) {
       await client.query('ROLLBACK');
       throw e;
