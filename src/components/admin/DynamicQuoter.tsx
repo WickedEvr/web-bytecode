@@ -2,29 +2,54 @@ import { useEffect, useMemo, useState } from 'react';
 import type React from 'react';
 import { DndContext, DragOverlay, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
 import {
+  Bot,
   Boxes,
   BriefcaseBusiness,
-  CalendarClock,
   Calculator,
+  CalendarClock,
   Check,
+  Code,
   CreditCard,
+  Database,
+  FileEdit,
   FileStack,
+  FileText,
+  FormInput,
+  Globe,
   GripVertical,
   LayoutTemplate,
+  MessageSquare,
+  MinusCircle,
   PackagePlus,
+  Pencil,
   Plus,
   Puzzle,
   Save,
+  Search,
+  Server,
+  Settings,
   ShieldCheck,
   ShoppingCart,
+  Smartphone,
   Trash2,
+  TrendingUp,
+  UploadCloud,
   X,
   type LucideIcon,
 } from 'lucide-react';
 import { allowsMultipleQuantity, computeQuoteTotals, formatPen, quoteLegalNotes, requiresCustomPrice, useQuoterState, type NormalizedPricingCatalogItem, type PreparedQuotePayload, type PricingCatalogItem } from '../../hooks/useQuoterState';
+import CustomDropdown from '../ui/CustomDropdown';
 
 type DynamicQuoterProps = {
   isReadOnly?: boolean;
+  organizationId?: string | null;
+  acquisitionChannel?: string;
+  currencyCode?: string;
+  exchangeRates?: { USD: number; EUR: number; PEN: number };
+  organizations?: Array<{ id: string; name: string; ruc?: string }>;
+  onOrganizationChange?: (value: string | null) => void;
+  onAcquisitionChannelChange?: (value: string) => void;
+  onCurrencyCodeChange?: (value: string) => void;
   initialCatalog: PricingCatalogItem[];
   customerName: string;
   customerEmail: string;
@@ -47,40 +72,70 @@ const catalogSections = [
 const infrastructureCodes = new Set(['discount_own_domain', 'fee_domain_setup', 'discount_own_hosting', 'fee_hosting_setup']);
 
 const iconMap: Record<string, LucideIcon> = {
+  bot: Bot,
   boxes: Boxes,
   briefcase: BriefcaseBusiness,
-  calendar: CalendarClock,
+  briefcasebusiness: BriefcaseBusiness,
   calculator: Calculator,
+  calendar: CalendarClock,
+  calendarclock: CalendarClock,
+  code: Code,
   credit_card: CreditCard,
+  creditcard: CreditCard,
+  database: Database,
+  file_edit: FileEdit,
+  fileedit: FileEdit,
   file_stack: FileStack,
+  filestack: FileStack,
+  filetext: FileText,
+  form_input: FormInput,
+  forminput: FormInput,
+  globe: Globe,
   layout: LayoutTemplate,
+  layouttemplate: LayoutTemplate,
+  message_square: MessageSquare,
+  messagesquare: MessageSquare,
+  minus_circle: MinusCircle,
+  minuscircle: MinusCircle,
   package: PackagePlus,
+  packageplus: PackagePlus,
+  pencil: Pencil,
   puzzle: Puzzle,
+  search: Search,
+  server: Server,
+  settings: Settings as LucideIcon,
   shield: ShieldCheck,
+  shieldcheck: ShieldCheck,
   shopping_cart: ShoppingCart,
+  shoppingcart: ShoppingCart,
+  smartphone: Smartphone,
+  trending_up: TrendingUp,
+  trendingup: TrendingUp,
+  upload_cloud: UploadCloud,
+  uploadcloud: UploadCloud,
 };
 
-const priceText = (item: PricingCatalogItem) => {
-  const base = formatPen(Number(item.base_price));
-  if (item.max_price) return `${base} - ${formatPen(Number(item.max_price))}`;
+const priceText = (item: PricingCatalogItem, formatCurr: (val: number) => string = formatPen) => {
+  const base = formatCurr(Number(item.base_price));
+  if (item.max_price) return `${base} - ${formatCurr(Number(item.max_price))}`;
   return base;
 };
 
-const resolveIcon = (item: PricingCatalogItem) => {
+const renderItemIcon = (item: PricingCatalogItem, className: string = "h-5 w-5") => {
   const normalized = item.icon_name?.trim().toLowerCase().replace(/[-\s]+/g, '_') ?? '';
-  return iconMap[normalized] ?? (
+  const IconComponent = iconMap[normalized] ?? (
     item.item_type === 'category_trigger' ? BriefcaseBusiness :
     item.item_type === 'recurring' ? CalendarClock :
     PackagePlus
   );
+  return <IconComponent className={className} />;
 };
 
-const DraggableCatalogCard = ({ item }: { item: NormalizedPricingCatalogItem }) => {
+const DraggableCatalogCard = ({ item, formatCurr = formatPen }: { item: NormalizedPricingCatalogItem; formatCurr?: (val: number) => string }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: item.id,
     data: { item },
   });
-  const Icon = resolveIcon(item);
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined;
 
   return (
@@ -93,12 +148,12 @@ const DraggableCatalogCard = ({ item }: { item: NormalizedPricingCatalogItem }) 
       {...attributes}
     >
       <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-black/30 text-[#06CFD6]">
-        <Icon className="h-5 w-5" />
+        {renderItemIcon(item)}
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-medium text-white/90">{item.name}</span>
         {item.description && <span className="mt-1 line-clamp-2 block text-xs leading-5 text-white/45">{item.description}</span>}
-        <span className="mt-3 block font-mono text-xs text-white/70">{priceText(item)}</span>
+        <span className="mt-3 block font-mono text-xs text-white/70">{priceText(item, formatCurr)}</span>
       </span>
       <GripVertical className="mt-2 h-4 w-4 shrink-0 text-white/25 transition-colors group-hover:text-white/60" />
     </button>
@@ -147,7 +202,19 @@ const DynamicQuoter = ({
   onCancel,
   onGenerate,
   isReadOnly = false,
+  organizationId,
+  acquisitionChannel,
+  currencyCode,
+  exchangeRates,
+  organizations,
+  onOrganizationChange,
+  onAcquisitionChannelChange,
+  onCurrencyCodeChange,
 }: DynamicQuoterProps) => {
+  const currCode = currencyCode || 'PEN';
+  const currencySymbol = currCode === 'USD' ? '$' : currCode === 'EUR' ? '€' : 'S/';
+  const exchangeRate = currCode === 'USD' ? (exchangeRates?.USD ?? 3.75) : currCode === 'EUR' ? (exchangeRates?.EUR ?? 4.05) : 1;
+  const formatCurr = (value: number) => `${currencySymbol} ${(value / exchangeRate).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const [activeItem, setActiveItem] = useState<NormalizedPricingCatalogItem | null>(null);
   const setCatalog = useQuoterState((state) => state.setCatalog);
   const addItem = useQuoterState((state) => state.addItem);
@@ -240,6 +307,54 @@ const DynamicQuoter = ({
             className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition-colors focus:border-[#06CFD6]/70"
           />
         </label>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium uppercase tracking-wider text-white/55">Empresa / B2B</span>
+          <CustomDropdown
+            value={organizationId ?? ''}
+            onChange={(val) => onOrganizationChange?.(val || null)}
+            placeholder="Seleccionar empresa..."
+            disabled={isReadOnly}
+            options={[
+              { value: '', label: 'Cliente Independiente (Sin Empresa)' },
+              ...(organizations?.map((org) => ({
+                value: org.id,
+                label: org.ruc ? `${org.name} (RUC: ${org.ruc})` : org.name,
+              })) ?? []),
+            ]}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium uppercase tracking-wider text-white/55">Canal de Adquisicion</span>
+          <CustomDropdown
+            value={acquisitionChannel ?? 'web_form'}
+            onChange={(val) => onAcquisitionChannelChange?.(val)}
+            placeholder="Seleccionar canal..."
+            disabled={isReadOnly}
+            options={[
+              { value: 'web_form', label: 'Formulario Web / Landing' },
+              { value: 'whatsapp', label: 'WhatsApp Corporativo' },
+              { value: 'linkedin', label: 'LinkedIn Prospeccion' },
+              { value: 'email', label: 'Correo Directo / Outbound' },
+              { value: 'phone', label: 'Llamada Telefonica' },
+              { value: 'referral', label: 'Referido / Alianza' },
+              { value: 'other', label: 'Otro Canal' },
+            ]}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium uppercase tracking-wider text-white/55">Moneda / Divisa</span>
+          <CustomDropdown
+            value={currencyCode ?? 'PEN'}
+            onChange={(val) => onCurrencyCodeChange?.(val)}
+            placeholder="Seleccionar moneda..."
+            disabled={isReadOnly}
+            options={[
+              { value: 'PEN', label: 'Sol Peruano (PEN - S/)' },
+              { value: 'USD', label: 'Dolar Estadounidense (USD - $)' },
+              { value: 'EUR', label: 'Euro (EUR - €)' },
+            ]}
+          />
+        </div>
         <label className="flex flex-col gap-1.5">
           <span className="text-xs font-medium uppercase tracking-wider text-white/55">Observaciones Internas</span>
           <input
@@ -281,7 +396,7 @@ const DynamicQuoter = ({
                   <div key={type}>
                     <h4 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">{label}</h4>
                     <div className="flex flex-col gap-3">
-                      {items.map((item) => <DraggableCatalogCard key={item.id} item={item} />)}
+                      {items.map((item) => <DraggableCatalogCard key={item.id} item={item} formatCurr={formatCurr} />)}
                     </div>
                   </div>
                 );
@@ -332,8 +447,8 @@ const DynamicQuoter = ({
                 const canEditQuantity = allowsMultipleQuantity(item);
                 const itemCode = item.item_code;
                 const canEditCustomPrice = Boolean(itemCode) && requiresCustomPrice(item);
-                const minCustomPrice = Number(item.base_price);
-                const maxCustomPrice = item.max_price ? Number(item.max_price) : undefined;
+                const minCustomPrice = Number((Number(item.base_price) / exchangeRate).toFixed(2));
+                const maxCustomPrice = item.max_price ? Number((Number(item.max_price) / exchangeRate).toFixed(2)) : undefined;
                 const inactiveTrigger = item.item_type === 'category_trigger' && !isActiveBaseTrigger;
                 const lockedLine = item.item_type === 'base_canvas' || item.item_type === 'base_included' || Boolean(item.item_code && infrastructureCodes.has(item.item_code));
                 const baseCanvasReplaced = item.item_type === 'base_canvas' && Boolean(totals.activeBaseSource && totals.activeBaseSource.id !== item.id);
@@ -377,18 +492,18 @@ const DynamicQuoter = ({
                         <span className="block text-xs text-white/35">Unitario</span>
                         {canEditCustomPrice && itemCode ? (
                           <label className="mt-1 flex h-10 w-32 items-center overflow-hidden rounded-lg border border-white/10 bg-white/5 focus-within:border-[#06CFD6]/70">
-                            <span className="flex h-full items-center border-r border-white/10 px-2 font-sansation text-xs text-white/45">S/</span>
+                            <span className="flex h-full items-center border-r border-white/10 px-2 font-sansation text-xs text-white/45">{currencySymbol}</span>
                             <input
                               type="number"
                               min={minCustomPrice}
                               max={maxCustomPrice}
-                              step={50}
+                              step={currCode === 'PEN' ? 50 : 10}
                               inputMode="decimal"
-                              value={customPrice ?? ''}
+                              value={customPrice !== undefined ? Number((customPrice / exchangeRate).toFixed(2)) : ''}
                                 disabled={isReadOnly}
                               onChange={(event) => setCustomPrice(
                                 itemCode,
-                                event.target.value === '' ? Number.NaN : Number(event.target.value),
+                                event.target.value === '' ? Number.NaN : Number(event.target.value) * exchangeRate,
                               )}
                               onBlur={() => validateAndClampCustomPrice(itemCode)}
                               onKeyDown={(event) => {
@@ -396,13 +511,13 @@ const DynamicQuoter = ({
                                 event.preventDefault();
                                 validateAndClampCustomPrice(itemCode);
                               }}
-                              placeholder={String(Number(item.base_price) || '')}
+                              placeholder={String(Number((Number(item.base_price) / exchangeRate).toFixed(2)) || '')}
                               className="h-full min-w-0 flex-1 bg-transparent px-2 text-right text-sm text-white/90 outline-none placeholder:text-white/25"
                               aria-label={`Precio personalizado para ${item.name}`}
                             />
                           </label>
                         ) : (
-                          formatPen(Number(item.base_price))
+                          formatCurr(Number(item.base_price))
                         )}
                         {includedInBase && (
                           <span className="mt-1 inline-flex rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2 py-0.5 font-sansation text-[10px] font-medium text-emerald-200">
@@ -429,7 +544,7 @@ const DynamicQuoter = ({
                       )}
                     </div>
                     <div className="mt-3 flex justify-end border-t border-white/5 pt-3 font-mono text-sm text-white/80">
-                      Subtotal: {formatPen(subtotal)}
+                      Subtotal: {formatCurr(subtotal)}
                     </div>
                   </div>
                 );
@@ -453,9 +568,9 @@ const DynamicQuoter = ({
                   onChange={toggleOwnHosting}
                 />
               </div>
-              {totals.infrastructureSavings.label && (
+              {totals.infrastructureSavings.netSavings > 0 && (
                 <div className="mt-4 inline-flex rounded-full border border-emerald-300/25 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-200">
-                  {totals.infrastructureSavings.label}
+                  {`Ahorro neto (${infrastructure.ownDomain && infrastructure.ownHosting ? 'Infraestructura propia' : infrastructure.ownDomain ? 'Dominio' : 'Hosting'}): -${formatCurr(totals.infrastructureSavings.netSavings)}`}
                 </div>
               )}
             </div>
@@ -463,15 +578,15 @@ const DynamicQuoter = ({
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
                 <p className="text-xs uppercase tracking-wider text-white/40">Costo Total de Desarrollo</p>
-                <p className="mt-2 font-mono text-lg text-white">{formatPen(totals.developmentTotal)}</p>
+                <p className="mt-2 font-mono text-lg text-white">{formatCurr(totals.developmentTotal)}</p>
               </div>
               <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
                 <p className="text-xs uppercase tracking-wider text-white/40">Recurrente Mensual</p>
-                <p className="mt-2 font-mono text-lg text-white">{formatPen(totals.recurringMonthlyTotal)}</p>
+                <p className="mt-2 font-mono text-lg text-white">{formatCurr(totals.recurringMonthlyTotal)}</p>
               </div>
               <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
                 <p className="text-xs uppercase tracking-wider text-white/40">Recurrente Anual</p>
-                <p className="mt-2 font-mono text-lg text-white">{formatPen(totals.recurringYearlyTotal)}</p>
+                <p className="mt-2 font-mono text-lg text-white">{formatCurr(totals.recurringYearlyTotal)}</p>
               </div>
             </div>
 
@@ -485,7 +600,7 @@ const DynamicQuoter = ({
           {activeItem ? (
             <div className="w-80 rounded-lg border border-[#06CFD6]/60 bg-[#061114] p-4 shadow-2xl">
               <p className="text-sm font-medium text-white">{activeItem.name}</p>
-              <p className="mt-2 font-mono text-xs text-white/70">{priceText(activeItem)}</p>
+              <p className="mt-2 font-mono text-xs text-white/70">{priceText(activeItem, formatCurr)}</p>
             </div>
           ) : null}
         </DragOverlay>
