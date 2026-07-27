@@ -9,7 +9,7 @@ import CustomDropdown from '../../components/ui/CustomDropdown';
 import StatusHistoryTimeline from '../../components/admin/StatusHistoryTimeline';
 import type { StatusCatalogItem, StatusHistoryRecord } from '../../types/status';
 import PaginationControl from '../../components/ui/PaginationControl';
-import { useQuoterState, type EditableQuoteItemData, type PreparedQuotePayload, type PricingCatalogItem } from '../../hooks/useQuoterState';
+import { formatCurrencyValue, useQuoterState, type EditableQuoteItemData, type PreparedQuotePayload, type PricingCatalogItem } from '../../hooks/useQuoterState';
 
 const PAGE_SIZE = 9;
 
@@ -317,7 +317,7 @@ const AdminCotizador: React.FC = () => {
                     <p className="truncate font-medium">{quote.first_name || 'Desconocido'}</p>
                     <p className="truncate text-xs text-white/40">{quote.primary_email}</p>
                   </td>
-                  <td className="px-6 py-4 text-right font-mono">S/ {Number(quote.total_amount).toFixed(2)}</td>
+                  <td className="px-6 py-4 text-right font-mono">{formatCurrencyValue(Number(quote.total_amount), quote.currency_code)}</td>
                   <td className="px-6 py-4 text-center">
                     <span className="rounded border border-white/5 bg-white/5 px-2 py-0.5 text-[10px] font-medium uppercase tracking-widest text-white/60">
                       {quote.status_name || quote.status}

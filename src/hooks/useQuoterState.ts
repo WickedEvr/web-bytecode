@@ -701,3 +701,8 @@ export const useQuoterState = create<QuoterState>((set, get) => ({
 
 export const quoteLegalNotes = LEGAL_NOTES;
 export const formatPen = (value: number) => `S/ ${value.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+export const formatCurrencyValue = (value: number, currencyCode?: string) => {
+  const code = currencyCode || 'PEN';
+  const symbol = code === 'USD' ? '$' : code === 'EUR' ? '€' : 'S/';
+  return `${symbol} ${value.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
