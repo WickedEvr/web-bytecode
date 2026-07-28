@@ -45,8 +45,7 @@ export const statusHistorySelect = (historyTable: string, entityColumn: string) 
          old_sc.code AS old_status,
          old_sc.name AS old_status_name,
          new_sc.code AS new_status,
-         new_sc.name AS new_status_name,
-         h.reason
+         new_sc.name AS new_status_name
   FROM ${historyTable} h
   LEFT JOIN status_catalog old_sc ON h.old_status_id = old_sc.id
   LEFT JOIN status_catalog new_sc ON h.new_status_id = new_sc.id
@@ -57,9 +56,9 @@ export const statusHistorySelect = (historyTable: string, entityColumn: string) 
 
 export const getProjectStatusInfo = async (client: Queryable, code: string) => {
   const result = await client.query(
-    "SELECT id, name FROM status_catalog WHERE domain = 'project' AND code = $1 AND is_active = true LIMIT 1",
+    "SELECT id, name, is_terminal FROM status_catalog WHERE domain = 'project' AND code = $1 AND is_active = true LIMIT 1",
     [code],
   );
   if (!result.rowCount) throw new HttpError(400, 'Estado de proyecto invalido.');
-  return { id: result.rows[0].id as string, name: result.rows[0].name as string };
+  return { id: result.rows[0].id as string, name: result.rows[0].name as string, is_terminal: result.rows[0].is_terminal as boolean };
 };
