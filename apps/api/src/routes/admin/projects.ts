@@ -21,6 +21,7 @@ import {
   statusHistorySelect,
   upload,
 } from './shared.js';
+import { auditService } from '../../services/audit.js';
 
 export const projectsRouter = Router();
 // --- Projects Endpoints ---
@@ -229,6 +230,7 @@ projectsRouter.post(
        body.actualEndDate ?? null, body.totalBudget, body.currencyCode, body.quoteId ?? null],
     );
     const created = await pool.query(`${projectSelectSql} AND p.id = $1`, [result.rows[0].id]);
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'create_project', entityType: 'project', entity: result.rows[0].id, req });
     res.status(201).json({ item: created.rows[0] });
   }),
 );
@@ -333,6 +335,7 @@ projectsRouter.patch(
         );
       }
       const updated = await client.query(`${projectSelectSql} AND p.id = $1`, [id]);
+      await auditService.logAdminAction({ userId: req.admin?.id, action: 'update_project', entityType: 'project', entity: id, req });
       await client.query('COMMIT');
       res.json({ item: updated.rows[0] });
     } catch (error) {
@@ -354,6 +357,7 @@ projectsRouter.delete(
     if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para eliminar proyectos.');
     const result = await pool.query('UPDATE projects SET deleted_at = now(), updated_at = now() WHERE id = $1 AND deleted_at IS NULL RETURNING id', [id]);
     if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'delete_project', entityType: 'project', entity: id, req });
     res.json({ ok: true });
   }),
 );
@@ -408,6 +412,7 @@ projectsRouter.post(
     );
     if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
     triggerEnvironmentVerification(result.rows[0].id, projectId);
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'create_environment', entityType: 'project_environments', entity: result.rows[0].id, req });
     res.status(201).json({ item: result.rows[0] });
   }),
 );
@@ -435,6 +440,7 @@ projectsRouter.post(
     );
     if (!result.rowCount) throw new HttpError(409, 'El entorno no está listo para iniciar la verificación.');
     triggerEnvironmentVerification(environmentId, projectId);
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'verify_environment', entityType: 'project_environments', entity: environmentId, req });
     res.status(202).json({ ok: true });
   }),
 );
@@ -453,6 +459,7 @@ projectsRouter.delete(
       [environmentId, projectId],
     );
     if (!result.rowCount) throw new HttpError(404, 'Entorno no encontrado');
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'delete_environment', entityType: 'project_environments', entity: environmentId, req });
     res.json({ ok: true });
   }),
 );
@@ -493,6 +500,7 @@ projectsRouter.post(
         [projectId, body.title, body.dueDate, body.paymentPercentage, body.statusId],
       );
       await client.query('COMMIT');
+      await auditService.logAdminAction({ userId: req.admin?.id, action: 'create_milestone', entityType: 'project_milestones', entity: result.rows[0].id, req });
       res.status(201).json({ id: result.rows[0].id });
     } catch (e) {
       await client.query('ROLLBACK');
@@ -631,6 +639,7 @@ projectsRouter.post(
       );
 
       await client.query('COMMIT');
+      await auditService.logAdminAction({ userId: req.admin?.id, action: 'create_milestone_payment', entityType: 'milestone_payments', entity: result.rows[0].id, req });
       res.status(201).json({ id: result.rows[0].id });
     } catch (error) {
       await client.query('ROLLBACK').catch(() => undefined);
@@ -691,6 +700,7 @@ projectsRouter.post(
       [projectId, body.userId, body.role || null],
     );
     if (!result.rowCount) throw new HttpError(400, 'Proyecto o usuario invalido.');
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'assign_project_user', entityType: 'project_assignments', entity: projectId, req });
     res.status(201).json({ item: result.rows[0] });
   }),
 );
@@ -711,6 +721,7 @@ projectsRouter.delete(
       [projectId, userId]
     );
     if (!result.rowCount) throw new HttpError(404, 'Asignación no encontrada.');
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'remove_project_user', entityType: 'project_assignments', entity: projectId, req });
     res.json({ ok: true });
   }),
 );
@@ -738,6 +749,7 @@ projectsRouter.patch(
       [milestoneId, projectId, body.status],
     );
     if (!result.rowCount) throw new HttpError(400, 'Hito o estado invalido.');
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'update_milestone_status', entityType: 'project_milestones', entity: milestoneId, req });
     res.json({ ok: true });
   }),
 );
