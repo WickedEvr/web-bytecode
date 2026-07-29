@@ -55,7 +55,14 @@ export function computeGitGraph(
   // Iteramos desde el más reciente (i=0) al más antiguo (i=N-1).
   // Visualmente, el más antiguo estará a la izquierda (x = 0).
   for (let i = 0; i < commits.length; i++) {
-    const commit = commits[i];
+    const commit = { ...commits[i] };
+    
+    // Fallback de Degradación Elegante:
+    // Si la base de datos no tiene los padres de este commit (porque es histórico o falló la API),
+    // asumimos por defecto que su padre es el commit inmediatamente más antiguo en la lista.
+    if (commit.parents.length === 0 && i < commits.length - 1) {
+      commit.parents = [commits[i + 1].sha];
+    }
     
     // Determinamos el carril. ¿Estábamos esperando este commit en algún carril activo?
     let lane = activeLanes.indexOf(commit.sha);
