@@ -46,7 +46,7 @@ const projectCreateSchema = z.object({
 const projectUpdateSchema = projectCreateSchema.partial();
 
 const projectSelectSql = `
-  SELECT p.id, p.project_code, p.customer_id, p.organization_id, p.service_id, p.quote_id,
+  SELECT p.id, p.project_code, p.customer_id, p.organization_id, p.service_id, p.quote_id, p.status_id,
          p.name, p.description, p.github_repo,
          p.start_date, p.estimated_end_date, p.actual_end_date,
          p.total_budget, p.currency_code, p.created_at, p.updated_at,
@@ -275,10 +275,7 @@ projectsRouter.patch(
         if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para modificar un proyecto no asignado.');
       }
       const current = await client.query(
-        `SELECT p.status_id, p.customer_id
-         FROM projects p
-         WHERE p.id = $1 AND p.deleted_at IS NULL
-         FOR UPDATE OF p`,
+        `${projectSelectSql} AND p.id = $1 FOR UPDATE OF p`,
         [id],
       );
       if (!current.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
