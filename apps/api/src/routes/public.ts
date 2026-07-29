@@ -159,7 +159,7 @@ router.get('/catalog/complaint-types', asyncHandler(async (_req: Request, res: R
 
 router.get('/catalog/statuses', asyncHandler(async (req: Request, res: Response) => {
   const domain = req.query.domain ? String(req.query.domain) : 'case';
-  const result = await pool.query('SELECT id, code, name FROM status_catalog WHERE domain = $1 AND is_active = true ORDER BY sort_order ASC', [domain]);
+  const result = await pool.query('SELECT id, code, name, is_terminal as "isTerminal" FROM status_catalog WHERE domain = $1 AND is_active = true ORDER BY sort_order ASC', [domain]);
   res.json({ items: result.rows });
 }));
 
