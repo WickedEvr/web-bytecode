@@ -132,6 +132,24 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
       }
     }
 
+    if (insertedCount > 0) {
+      try {
+        await pool.query(
+          `DELETE FROM project_commits
+           WHERE project_id = $1
+             AND id NOT IN (
+               SELECT id FROM project_commits
+               WHERE project_id = $1
+               ORDER BY committed_at DESC
+               LIMIT 250
+             )`,
+          [projectId]
+        );
+      } catch (err) {
+        console.error('[GitHub Webhook] SQL Error cleaning up old commits:', err);
+      }
+    }
+
     return res.status(200).json({ message: `Processed ${commits.length} commits, inserted ${insertedCount}`, projectId });
   }
 
