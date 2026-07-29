@@ -34,7 +34,7 @@ export const publicFormLimiter = rateLimit({
 
 export const adminLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
-  limit: 300,
+  limit: 2000,
   skip: () => isDev,
   standardHeaders: true,
   legacyHeaders: false,

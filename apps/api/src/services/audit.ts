@@ -32,6 +32,8 @@ export const auditService = {
     if (entityId === undefined || entityId === null) {
       if (entity && typeof entity === 'object') {
         entityId = entity.id || null;
+      } else if (typeof entity === 'string') {
+        entityId = entity;
       } else {
         entityId = null;
       }
@@ -39,7 +41,7 @@ export const auditService = {
 
     const details = {
       before: previousState || null,
-      after: (typeof entity === 'string') ? null : (entity || null),
+      after: typeof entity === 'string' ? { id: entity } : (entity || null),
     };
 
     await pool.query(

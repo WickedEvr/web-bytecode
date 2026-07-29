@@ -21,6 +21,7 @@ import {
   statusHistorySelect,
   upload,
 } from './shared.js';
+import { auditService } from '../../services/audit.js';
 
 export const projectsRouter = Router();
 // --- Projects Endpoints ---
@@ -36,20 +37,17 @@ const projectCreateSchema = z.object({
   description: z.string().trim().max(3000).optional().nullable(),
   status: z.string().trim().min(1).max(80),
   githubRepo: nullableProjectUrl,
-  githubBranch: z.string().trim().max(160).optional().nullable(),
   startDate: z.string().date(),
   estimatedEndDate: z.string().date(),
   actualEndDate: z.string().date().optional().nullable(),
   totalBudget: z.coerce.number().min(0),
   currencyCode: z.string().trim().length(3).transform((value) => value.toUpperCase()).default('PEN'),
 });
-const projectUpdateSchema = projectCreateSchema.partial().extend({
-  vercel_bypass_secret: z.string().trim().max(500).optional().nullable(),
-});
+const projectUpdateSchema = projectCreateSchema.partial();
 
 const projectSelectSql = `
-  SELECT p.id, p.project_code, p.customer_id, p.organization_id, p.service_id, p.quote_id,
-         p.name, p.description, p.github_repo, p.github_branch,
+  SELECT p.id, p.project_code, p.customer_id, p.organization_id, p.service_id, p.quote_id, p.status_id,
+         p.name, p.description, p.github_repo,
          p.start_date, p.estimated_end_date, p.actual_end_date,
          p.total_budget, p.currency_code, p.created_at, p.updated_at,
          sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
@@ -222,16 +220,17 @@ projectsRouter.post(
     const result = await pool.query(
       `INSERT INTO projects (
          project_code, customer_id, organization_id, service_id, name, description,
-         status_id, github_repo, github_branch, start_date, estimated_end_date,
+         status_id, github_repo, start_date, estimated_end_date,
          actual_end_date, total_budget, currency_code, quote_id
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
        RETURNING id`,
       [createBusinessCode('PRJ'), body.customerId, body.organizationId ?? null, body.serviceId,
        body.name, body.description ?? null, statusId, body.githubRepo ?? null,
-       body.githubBranch ?? null, body.startDate, body.estimatedEndDate,
+       body.startDate, body.estimatedEndDate,
        body.actualEndDate ?? null, body.totalBudget, body.currencyCode, body.quoteId ?? null],
     );
     const created = await pool.query(`${projectSelectSql} AND p.id = $1`, [result.rows[0].id]);
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'create_project', entityType: 'project', entity: created.rows[0], req });
     res.status(201).json({ item: created.rows[0] });
   }),
 );
@@ -257,23 +256,7 @@ projectsRouter.get(
   }),
 );
 
-projectsRouter.get(
-  '/projects/:id/vercel-bypass-secret',
-  requirePermission('admin.proyectos.manage'),
-  asyncHandler(async (req: Request, res: Response) => {
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para acceder a esta informacion.');
-    const id = z.string().uuid().parse(req.params.id);
-    const result = await pool.query(
-      `SELECT vercel_bypass_secret
-       FROM projects
-       WHERE id = $1 AND deleted_at IS NULL`,
-      [id],
-    );
-    if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
-    res.json({ vercel_bypass_secret: result.rows[0].vercel_bypass_secret ?? null });
-  }),
-);
+
 
 projectsRouter.patch(
   '/projects/:id',
@@ -292,10 +275,7 @@ projectsRouter.patch(
         if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para modificar un proyecto no asignado.');
       }
       const current = await client.query(
-        `SELECT p.status_id, p.customer_id
-         FROM projects p
-         WHERE p.id = $1 AND p.deleted_at IS NULL
-         FOR UPDATE OF p`,
+        `${projectSelectSql} AND p.id = $1 FOR UPDATE OF p`,
         [id],
       );
       if (!current.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
@@ -315,26 +295,33 @@ projectsRouter.patch(
         );
         if (!quote.rowCount) throw new HttpError(400, 'La cotizacion no pertenece al cliente seleccionado.');
       }
+      let finalActualEndDate = body.actualEndDate ?? current.rows[0].actual_end_date;
+      if (oldStatusId && statusId && oldStatusId !== statusId) {
+        if (statusInfo?.is_terminal) {
+          finalActualEndDate = new Date().toISOString().split('T')[0];
+        } else {
+          finalActualEndDate = null;
+        }
+      }
+
       await client.query(
         `UPDATE projects SET
            customer_id = COALESCE($2, customer_id), organization_id = COALESCE($3, organization_id),
            service_id = COALESCE($4, service_id), name = COALESCE($5, name),
-           description = CASE WHEN $15 THEN $6 ELSE description END, status_id = COALESCE($7, status_id),
-           github_repo = CASE WHEN $16 THEN $8 ELSE github_repo END, github_branch = COALESCE($9, github_branch),
-           start_date = COALESCE($10, start_date), estimated_end_date = COALESCE($11, estimated_end_date),
-           actual_end_date = COALESCE($12, actual_end_date), total_budget = COALESCE($13, total_budget),
-           currency_code = COALESCE($14, currency_code),
-           quote_id = CASE WHEN $18 THEN $17 ELSE quote_id END,
-           vercel_bypass_secret = CASE WHEN $20 THEN $19 ELSE vercel_bypass_secret END,
+           description = CASE WHEN $13 THEN $6 ELSE description END, status_id = COALESCE($7, status_id),
+           github_repo = CASE WHEN $14 THEN $8 ELSE github_repo END,
+           start_date = COALESCE($9, start_date), estimated_end_date = COALESCE($10, estimated_end_date),
+           actual_end_date = $11, total_budget = COALESCE($12, total_budget),
+           currency_code = COALESCE($16, currency_code),
+           quote_id = CASE WHEN $15 THEN $17 ELSE quote_id END,
            updated_at = now()
          WHERE id = $1 AND deleted_at IS NULL`,
         [id, body.customerId ?? null, body.organizationId ?? null, body.serviceId ?? null,
          body.name ?? null, body.description ?? null, statusId, body.githubRepo ?? null,
-         body.githubBranch ?? null, body.startDate ?? null, body.estimatedEndDate ?? null,
-         body.actualEndDate ?? null, body.totalBudget ?? null, body.currencyCode ?? null,
+         body.startDate ?? null, body.estimatedEndDate ?? null,
+         finalActualEndDate, body.totalBudget ?? null,
          Object.hasOwn(body, 'description'), Object.hasOwn(body, 'githubRepo'),
-         body.quoteId ?? null, Object.hasOwn(body, 'quoteId'),
-         body.vercel_bypass_secret ?? null, Object.hasOwn(body, 'vercel_bypass_secret')],
+         Object.hasOwn(body, 'quoteId'), body.currencyCode ?? null, body.quoteId ?? null],
       );
       if (oldStatusId && statusId && oldStatusId !== statusId) {
         await client.query(
@@ -345,6 +332,7 @@ projectsRouter.patch(
         );
       }
       const updated = await client.query(`${projectSelectSql} AND p.id = $1`, [id]);
+      await auditService.logAdminAction({ userId: req.admin?.id, action: 'update_project', entityType: 'project', entity: updated.rows[0], previousState: current.rows[0], req });
       await client.query('COMMIT');
       res.json({ item: updated.rows[0] });
     } catch (error) {
@@ -364,8 +352,9 @@ projectsRouter.delete(
     const id = z.string().uuid().parse(req.params.id);
     const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
     if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para eliminar proyectos.');
-    const result = await pool.query('UPDATE projects SET deleted_at = now(), updated_at = now() WHERE id = $1 AND deleted_at IS NULL RETURNING id', [id]);
+    const result = await pool.query('UPDATE projects SET deleted_at = now(), updated_at = now() WHERE id = $1 AND deleted_at IS NULL RETURNING *', [id]);
     if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'delete_project', entityType: 'project', entity: result.rows[0], req });
     res.json({ ok: true });
   }),
 );
@@ -420,6 +409,7 @@ projectsRouter.post(
     );
     if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
     triggerEnvironmentVerification(result.rows[0].id, projectId);
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'create_environment', entityType: 'project_environments', entity: result.rows[0], req });
     res.status(201).json({ item: result.rows[0] });
   }),
 );
@@ -447,6 +437,7 @@ projectsRouter.post(
     );
     if (!result.rowCount) throw new HttpError(409, 'El entorno no está listo para iniciar la verificación.');
     triggerEnvironmentVerification(environmentId, projectId);
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'verify_environment', entityType: 'project_environments', entity: environmentId, req });
     res.status(202).json({ ok: true });
   }),
 );
@@ -465,6 +456,7 @@ projectsRouter.delete(
       [environmentId, projectId],
     );
     if (!result.rowCount) throw new HttpError(404, 'Entorno no encontrado');
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'delete_environment', entityType: 'project_environments', entity: environmentId, req });
     res.json({ ok: true });
   }),
 );
@@ -505,6 +497,7 @@ projectsRouter.post(
         [projectId, body.title, body.dueDate, body.paymentPercentage, body.statusId],
       );
       await client.query('COMMIT');
+      await auditService.logAdminAction({ userId: req.admin?.id, action: 'create_milestone', entityType: 'project_milestones', entity: result.rows[0].id, req });
       res.status(201).json({ id: result.rows[0].id });
     } catch (e) {
       await client.query('ROLLBACK');
@@ -643,6 +636,7 @@ projectsRouter.post(
       );
 
       await client.query('COMMIT');
+      await auditService.logAdminAction({ userId: req.admin?.id, action: 'create_milestone_payment', entityType: 'milestone_payments', entity: result.rows[0].id, req });
       res.status(201).json({ id: result.rows[0].id });
     } catch (error) {
       await client.query('ROLLBACK').catch(() => undefined);
@@ -703,6 +697,7 @@ projectsRouter.post(
       [projectId, body.userId, body.role || null],
     );
     if (!result.rowCount) throw new HttpError(400, 'Proyecto o usuario invalido.');
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'assign_project_user', entityType: 'project_assignments', entity: projectId, req });
     res.status(201).json({ item: result.rows[0] });
   }),
 );
@@ -723,6 +718,7 @@ projectsRouter.delete(
       [projectId, userId]
     );
     if (!result.rowCount) throw new HttpError(404, 'Asignación no encontrada.');
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'remove_project_user', entityType: 'project_assignments', entity: projectId, req });
     res.json({ ok: true });
   }),
 );
@@ -750,6 +746,7 @@ projectsRouter.patch(
       [milestoneId, projectId, body.status],
     );
     if (!result.rowCount) throw new HttpError(400, 'Hito o estado invalido.');
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'update_milestone_status', entityType: 'project_milestones', entity: milestoneId, req });
     res.json({ ok: true });
   }),
 );
