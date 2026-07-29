@@ -25,6 +25,7 @@ type GithubPushPayload = {
     url: string;
     author: { name: string; email: string };
   }>;
+  head_commit?: { id: string };
 };
 
 type GithubPullRequestPayload = {
@@ -108,13 +109,33 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
     let insertedCount = 0;
 
     for (const commit of commits) {
+      let parents: string[] = [];
+      try {
+        const headers: Record<string, string> = { 'User-Agent': 'NodeJS/Webhook' };
+        if (process.env.GITHUB_TOKEN) headers['Authorization'] = `Bearer ${process.env.GITHUB_TOKEN}`;
+        const res = await fetch(`https://api.github.com/repos/${repoName}/commits/${commit.id}`, { headers });
+        if (res.ok) {
+          const data = (await res.json()) as any;
+          parents = (data.parents || []).map((p: any) => p.sha);
+        }
+      } catch (err) {
+        console.error('[GitHub Webhook] Failed to fetch parents:', err);
+      }
+
+      const refs: string[] = [];
+      if (commit.id === payload.head_commit?.id && branchName) {
+         refs.push(`HEAD -> ${branchName}`);
+         refs.push(`origin/${branchName}`);
+      }
+
       try {
         await pool.query(
           `INSERT INTO project_commits (
             project_id, commit_hash, message, author_name, author_email, 
-            branch, github_url, committed_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-           ON CONFLICT (project_id, commit_hash) DO NOTHING`,
+            branch, github_url, committed_at, parents, refs
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+           ON CONFLICT (project_id, commit_hash) DO UPDATE SET 
+             parents = EXCLUDED.parents, refs = EXCLUDED.refs, branch = EXCLUDED.branch`,
           [
             projectId,
             commit.id,
@@ -124,6 +145,8 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
             branchName,
             commit.url || '',
             commit.timestamp ? new Date(commit.timestamp) : new Date(),
+            JSON.stringify(parents),
+            JSON.stringify(refs),
           ],
         );
         insertedCount++;
