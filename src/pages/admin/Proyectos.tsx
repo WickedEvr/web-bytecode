@@ -21,11 +21,7 @@ type CustomerOption = { id: string; label: string; email: string; type: string; 
 type ServiceOption = { id: string; code: string; name: string };
 
 const today = () => new Date().toISOString().slice(0, 10);
-const inThirtyDays = () => {
-  const date = new Date();
-  date.setDate(date.getDate() + 30);
-  return date.toISOString().slice(0, 10);
-};
+
 
 const emptyForm = (): ProjectInput => ({
   customerId: '',
