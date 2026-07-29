@@ -12,4 +12,5 @@ export interface StatusCatalogItem {
   id: string;
   code: string;
   name: string;
+  isTerminal?: boolean;
 }
