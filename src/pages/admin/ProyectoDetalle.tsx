@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTerminalState } from '../../hooks/useTerminalState';
-import { ArrowLeft, ExternalLink, GitCommitHorizontal, Pencil, Trash2, UserPlus, X, DollarSign, Plus } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Pencil, Trash2, UserPlus, X, DollarSign, Plus } from 'lucide-react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import AdminPanel from '../../components/admin/AdminPanel';
 import type { AdminUser } from '../../components/admin/AdminLayout';
@@ -9,7 +9,7 @@ import ProjectQuoteSelector from '../../components/admin/ProjectQuoteSelector';
 import ProjectEnvironmentsHub from '../../components/admin/ProjectEnvironmentsHub';
 import StatusHistoryTimeline from '../../components/admin/StatusHistoryTimeline';
 import CustomDropdown from '../../components/ui/CustomDropdown';
-import Timeline from '../../components/ui/Timeline';
+import { GitGraphTimeline } from '../../components/ui/GitGraphTimeline';
 import {
   apiRequest,
   assignProjectUser,
@@ -272,7 +272,7 @@ const ProyectoDetalle: React.FC = () => {
 
       {tab === 'environments' && <ProjectEnvironmentsHub projectId={id} isAdmin={admin.roles.includes('super_admin') || admin.roles.includes('admin')} />}
 
-      {tab === 'activity' && <AdminPanel className="p-6 lg:p-8"><Timeline heading="Actividad de GitHub" emptyMessage="No hay commits registrados." items={commits.map((commit) => ({ date: commit.committed_at || commit.created_at || new Date(0).toISOString(), icon: <GitCommitHorizontal className="h-4 w-4" />, title: <><span className="font-medium text-white/90">{commit.author_name || commit.author_email || 'GitHub'}</span><span className="block text-white/65">{commit.message}</span><span className="mt-1 block font-mono text-[10px] text-white/35">{commit.branch || 'branch'} · {commit.commit_hash.slice(0, 7)}</span>{commit.github_url && <a href={commit.github_url} target="_blank" rel="noreferrer" className="pointer-events-auto mt-2 block text-cyan-300">Ver commit</a>}</> }))} /></AdminPanel>}
+      {tab === 'activity' && <div className="mt-4"><GitGraphTimeline commits={commits as any} /></div>}
 
       {tab === 'history' && <AdminPanel className="p-6 lg:p-8"><StatusHistoryTimeline records={statusHistory} /></AdminPanel>}
 

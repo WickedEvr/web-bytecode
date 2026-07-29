@@ -108,20 +108,23 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
     const commits = payload.commits || [];
     let insertedCount = 0;
 
-    for (const commit of commits) {
-      let parents: string[] = [];
+    const parentsMap = new Map<string, string[]>();
+    await Promise.all(commits.map(async (c) => {
       try {
         const headers: Record<string, string> = { 'User-Agent': 'NodeJS/Webhook' };
         if (process.env.GITHUB_TOKEN) headers['Authorization'] = `Bearer ${process.env.GITHUB_TOKEN}`;
-        const res = await fetch(`https://api.github.com/repos/${repoName}/commits/${commit.id}`, { headers });
+        const res = await fetch(`https://api.github.com/repos/${repoName}/commits/${c.id}`, { headers });
         if (res.ok) {
           const data = (await res.json()) as any;
-          parents = (data.parents || []).map((p: any) => p.sha);
+          parentsMap.set(c.id, (data.parents || []).map((p: any) => p.sha));
         }
       } catch (err) {
         console.error('[GitHub Webhook] Failed to fetch parents:', err);
       }
+    }));
 
+    for (const commit of commits) {
+      const parents = parentsMap.get(commit.id) || [];
       const refs: string[] = [];
       if (commit.id === payload.head_commit?.id && branchName) {
          refs.push(`HEAD -> ${branchName}`);
@@ -135,7 +138,8 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
             branch, github_url, committed_at, parents, refs
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
            ON CONFLICT (project_id, commit_hash) DO UPDATE SET 
-             parents = EXCLUDED.parents, refs = EXCLUDED.refs, branch = EXCLUDED.branch`,
+             parents = COALESCE(NULLIF(EXCLUDED.parents, '[]'::jsonb), project_commits.parents),
+             refs = COALESCE(NULLIF(EXCLUDED.refs, '[]'::jsonb), project_commits.refs)`,
           [
             projectId,
             commit.id,
