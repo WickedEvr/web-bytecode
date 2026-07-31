@@ -60,5 +60,5 @@ export const getProjectStatusInfo = async (client: Queryable, code: string) => {
     [code],
   );
   if (!result.rowCount) throw new HttpError(400, 'Estado de proyecto invalido.');
-  return { id: result.rows[0].id as string, name: result.rows[0].name as string, is_terminal: result.rows[0].is_terminal as boolean };
+  return { id: result.rows[0].id as string, name: result.rows[0].name as string, is_terminal: result.rows[0].is_terminal ?? false };
 };
