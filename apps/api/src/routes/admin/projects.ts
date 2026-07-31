@@ -763,12 +763,20 @@ projectsRouter.get(
     }
     const result = await pool.query(
       `SELECT id, project_id, commit_hash, message, author_name, author_email,
-              branch, github_url, committed_at, created_at
+              branch, github_url, committed_at, created_at, parents, refs
        FROM project_commits WHERE project_id = $1
        ORDER BY COALESCE(committed_at, created_at) DESC LIMIT 100`,
       [id],
     );
-    res.json({ items: result.rows });
+    const mapped = result.rows.map((r: any) => ({
+      ...r,
+      sha: r.commit_hash,
+      parents: r.parents || [],
+      author: r.author_name,
+      date: (r.committed_at || r.created_at).toISOString(),
+      refs: r.refs || []
+    }));
+    res.json({ items: mapped });
   }),
 );
 

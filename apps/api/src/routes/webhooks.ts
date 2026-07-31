@@ -25,6 +25,7 @@ type GithubPushPayload = {
     url: string;
     author: { name: string; email: string };
   }>;
+  head_commit?: { id: string };
 };
 
 type GithubPullRequestPayload = {
@@ -107,14 +108,38 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
     const commits = payload.commits || [];
     let insertedCount = 0;
 
+    const parentsMap = new Map<string, string[]>();
+    await Promise.all(commits.map(async (c) => {
+      try {
+        const headers: Record<string, string> = { 'User-Agent': 'NodeJS/Webhook' };
+        if (process.env.GITHUB_TOKEN) headers['Authorization'] = `Bearer ${process.env.GITHUB_TOKEN}`;
+        const res = await fetch(`https://api.github.com/repos/${repoName}/commits/${c.id}`, { headers });
+        if (res.ok) {
+          const data = (await res.json()) as any;
+          parentsMap.set(c.id, (data.parents || []).map((p: any) => p.sha));
+        }
+      } catch (err) {
+        console.error('[GitHub Webhook] Failed to fetch parents:', err);
+      }
+    }));
+
     for (const commit of commits) {
+      const parents = parentsMap.get(commit.id) || [];
+      const refs: string[] = [];
+      if (commit.id === payload.head_commit?.id && branchName) {
+         refs.push(`HEAD -> ${branchName}`);
+         refs.push(`origin/${branchName}`);
+      }
+
       try {
         await pool.query(
           `INSERT INTO project_commits (
             project_id, commit_hash, message, author_name, author_email, 
-            branch, github_url, committed_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-           ON CONFLICT (project_id, commit_hash) DO NOTHING`,
+            branch, github_url, committed_at, parents, refs
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+           ON CONFLICT (project_id, commit_hash) DO UPDATE SET 
+             parents = COALESCE(NULLIF(EXCLUDED.parents, '[]'::jsonb), project_commits.parents),
+             refs = COALESCE(NULLIF(EXCLUDED.refs, '[]'::jsonb), project_commits.refs)`,
           [
             projectId,
             commit.id,
@@ -124,6 +149,8 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
             branchName,
             commit.url || '',
             commit.timestamp ? new Date(commit.timestamp) : new Date(),
+            JSON.stringify(parents),
+            JSON.stringify(refs),
           ],
         );
         insertedCount++;
