@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { apiRequest } from '../../lib/api';
@@ -16,6 +16,12 @@ const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
   const [admin, setAdmin] = useState<AdminUser | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const lastActivityRef = useRef<number>(Date.now());
+
+  const handleLogout = async () => {
+    await apiRequest('/auth/logout', { method: 'POST' }).catch(() => null);
+    navigate('/admin/login');
+  };
 
   useEffect(() => {
     apiRequest<{ admin: AdminUser }>('/auth/me')
@@ -23,10 +29,28 @@ const AdminLayout: React.FC = () => {
       .catch(() => navigate('/admin/login'));
   }, [navigate]);
 
-  const handleLogout = async () => {
-    await apiRequest('/auth/logout', { method: 'POST' }).catch(() => null);
-    navigate('/admin/login');
-  };
+  // Detector de inactividad (1 hora)
+  useEffect(() => {
+    const handleActivity = () => {
+      lastActivityRef.current = Date.now();
+    };
+
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove'];
+    events.forEach((evt) => document.addEventListener(evt, handleActivity, { passive: true }));
+
+    const intervalId = setInterval(() => {
+      const now = Date.now();
+      const MAX_IDLE_TIME = 60 * 60 * 1000; // 1 hora
+      if (now - lastActivityRef.current > MAX_IDLE_TIME) {
+        void handleLogout();
+      }
+    }, 60000); // Comprobar cada minuto
+
+    return () => {
+      events.forEach((evt) => document.removeEventListener(evt, handleActivity));
+      clearInterval(intervalId);
+    };
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-black font-sansation text-white/90">

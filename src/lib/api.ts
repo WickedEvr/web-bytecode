@@ -394,7 +394,7 @@ export const fetchProjectQuotesByEmail = (email: string) =>
 export const fetchProjectMilestones = (projectId: string) =>
   apiRequest<{ items: ProjectMilestone[] }>(`/admin/projects/${projectId}/milestones`).then((response) => response.items);
 
-export const createProjectMilestone = (projectId: string, data: { title: string; dueDate: string; paymentPercentage: number; statusId: string }) =>
+export const createProjectMilestone = (projectId: string, data: { title: string; dueDate: string; paymentPercentage: number; statusId: string; quoteId?: string }) =>
   apiRequest<{ id: string }>(`/admin/projects/${projectId}/milestones`, {
     method: 'POST',
     json: data,

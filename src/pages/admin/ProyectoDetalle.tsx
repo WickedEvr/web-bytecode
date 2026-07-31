@@ -61,11 +61,12 @@ const ProyectoDetalle: React.FC = () => {
   const [deleting, setDeleting] = useState(false);
   const [editForm, setEditForm] = useState<ProjectEditForm>({ name: '', description: '', githubRepo: '', quoteId: '', totalBudget: 0, currencyCode: 'PEN' });
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [activeMilestoneId, setActiveMilestoneId] = useState('');
-  const [paymentForm, setPaymentForm] = useState<{ amount: number; method: string; reference: string; date: string; receipt: File | null }>({ amount: 0, method: 'transfer', reference: '', date: new Date().toISOString().split('T')[0], receipt: null });
+  const [paymentForm, setPaymentForm] = useState<{ amount: number; method: string; reference: string; date: string; receipt: File | null; splitRemaining: boolean }>({ amount: 0, method: 'transfer', reference: '', date: new Date().toISOString().split('T')[0], receipt: null, splitRemaining: false });
   const [savingPayment, setSavingPayment] = useState(false);
   const [addMilestoneOpen, setAddMilestoneOpen] = useState(false);
-  const [addMilestoneForm, setAddMilestoneForm] = useState({ title: '', due_date: '', payment_percentage: 0, status_id: '' });
+  const [addMilestoneForm, setAddMilestoneForm] = useState({ title: '', due_date: '', payment_percentage: 0, status_id: '', quote_id: '' });
   const [savingMilestone, setSavingMilestone] = useState(false);
 
   const loadMilestones = async () => setMilestones(await fetchProjectMilestones(id));
@@ -116,18 +117,26 @@ const ProyectoDetalle: React.FC = () => {
     }
   };
 
-  const changeProjectStatus = async (status: string) => {
-    if (!project || status === project.status) return;
+  const changeProjectStatus = async (status: string, applyKillFee = false) => {
+    if (status === 'cancelled' && !applyKillFee && !cancelModalOpen) {
+       setCancelModalOpen(true);
+       return;
+    }
     setUpdatingProjectStatus(true);
     setError('');
     try {
-      const updated = await updateProject(id, { status });
-      setProject(updated);
+      await apiRequest(`/admin/projects/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status, applyKillFee }),
+      });
+      setProject(prev => prev ? ({ ...prev, status }) : null);
+      if (applyKillFee) await loadMilestones();
       setStatusHistory(await fetchProjectStatusHistory<StatusHistoryRecord>(id));
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudo actualizar el estado del proyecto.');
+      setError(requestError instanceof Error ? requestError.message : 'No se pudo actualizar el estado.');
     } finally {
       setUpdatingProjectStatus(false);
+      setCancelModalOpen(false);
     }
   };
 
@@ -170,12 +179,13 @@ const ProyectoDetalle: React.FC = () => {
       formData.append('paidAt', paymentForm.date);
       if (paymentForm.reference) formData.append('referenceNumber', paymentForm.reference);
       if (paymentForm.receipt) formData.append('receipt', paymentForm.receipt);
+      if (paymentForm.splitRemaining) formData.append('splitRemaining', 'true');
 
       await createMilestonePayment(id, activeMilestoneId, formData);
       await loadMilestones();
       setPaymentModalOpen(false);
       setActiveMilestoneId('');
-      setPaymentForm({ amount: 0, method: 'transfer', reference: '', date: new Date().toISOString().split('T')[0], receipt: null });
+      setPaymentForm({ amount: 0, method: 'transfer', reference: '', date: new Date().toISOString().split('T')[0], receipt: null, splitRemaining: false });
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'No se pudo registrar el pago.');
     } finally {
@@ -193,10 +203,11 @@ const ProyectoDetalle: React.FC = () => {
         dueDate: addMilestoneForm.due_date,
         paymentPercentage: addMilestoneForm.payment_percentage,
         statusId: addMilestoneForm.status_id,
+        quoteId: addMilestoneForm.quote_id || undefined,
       });
       await loadMilestones();
       setAddMilestoneOpen(false);
-      setAddMilestoneForm({ title: '', due_date: '', payment_percentage: 0, status_id: statuses[0]?.id || '' });
+      setAddMilestoneForm({ title: '', due_date: '', payment_percentage: 0, status_id: statuses[0]?.id || '', quote_id: '' });
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'No se pudo crear el hito.');
     } finally {
@@ -268,7 +279,7 @@ const ProyectoDetalle: React.FC = () => {
 
       {tab === 'general' && <div className="grid gap-6"><AdminPanel className="p-6 lg:p-8"><div className="grid gap-5 md:grid-cols-2"><div><p className="text-xs uppercase tracking-wider text-white/35">Cliente</p><p className="mt-2 text-white/80">{project.customer_name}</p></div><div><p className="text-xs uppercase tracking-wider text-white/35">Servicio</p><p className="mt-2 text-white/80">{project.service_name}</p></div><div><p className="text-xs uppercase tracking-wider text-white/35">Fecha Inicio</p><p className="mt-2 text-white/80">{project.start_date ? new Date(project.start_date).toISOString().slice(0, 10) : '-'}</p></div><div><p className="text-xs uppercase tracking-wider text-white/35">Fin Estimado</p><p className="mt-2 text-white/80">{project.estimated_end_date ? new Date(project.estimated_end_date).toISOString().slice(0, 10) : '-'}</p></div><div><p className="text-xs uppercase tracking-wider text-white/35">Fin Real (Auto)</p><p className="mt-2 text-white/80">{project.actual_end_date ? new Date(project.actual_end_date).toISOString().slice(0, 10) : '-'}</p></div><div><p className="mb-1.5 text-xs uppercase tracking-wider text-white/35">Estado del Proyecto</p><RoleGuard requiredPermission="admin.proyectos.manage" fallback={<div className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white/55">{project.status_name || project.status}</div>}>{(admin.roles.includes('super_admin') || admin.roles.includes('admin')) ? <CustomDropdown value={project.status} onChange={(status) => void changeProjectStatus(status)} placeholder="Seleccionar estado..." disabled={updatingProjectStatus || isReadOnly} options={projectStatuses.map((status) => ({ value: status.code, label: status.name }))} /> : <div className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white/55">{project.status_name || project.status}</div>}</RoleGuard></div><div className="md:col-span-2"><p className="text-xs uppercase tracking-wider text-white/35">Descripción</p><p className="mt-2 text-sm leading-6 text-white/60">{project.description || 'Sin descripción.'}</p></div>{link('Repositorio GitHub', project.github_repo)}</div></AdminPanel><AdminPanel className="p-6 lg:p-8"><div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-sm font-semibold uppercase tracking-wider text-white/75">Equipo asignado</h2><p className="mt-1 text-xs text-white/35">Integrantes con acceso operativo al proyecto.</p></div>{(admin.roles.includes('super_admin') || admin.roles.includes('admin')) && <div className="flex flex-wrap items-end gap-2"><div className="min-w-52"><CustomDropdown disabled={isReadOnly} value={selectedUserId} onChange={setSelectedUserId} placeholder="Seleccionar integrante..." options={assignmentOptions.map((user) => ({ value: user.id, label: `${user.name} · ${user.email}` }))} /></div><input value={assignmentRole} disabled={isReadOnly} onChange={(event) => setAssignmentRole(event.target.value)} placeholder="Rol en el proyecto" className="rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white" />{!isReadOnly && <button type="button" disabled={!selectedUserId || assigning} onClick={() => void handleAssign()} className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-black disabled:opacity-40"><UserPlus className="h-4 w-4" />{assigning ? 'Asignando...' : 'Asignar'}</button>}</div>}</div><div className="mt-5 grid gap-2">{assignments.length ? assignments.map((assignment) => <div key={assignment.user_id} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.02] px-4 py-3"><div><p className="text-sm text-white/80">{assignment.name}</p><p className="text-xs text-white/35">{assignment.email}</p></div><div className="flex items-center gap-3"><span className="text-xs text-white/50">{assignment.role || 'Integrante'}</span>{(admin.roles.includes('super_admin') || admin.roles.includes('admin')) && !isReadOnly && (<div className="flex items-center gap-1"><button type="button" onClick={() => { setSelectedUserId(assignment.user_id); setAssignmentRole(assignment.role || ''); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="p-1.5 text-white/40 hover:text-white" title="Editar Rol"><Pencil className="h-3.5 w-3.5" /></button><button type="button" onClick={() => void handleRemoveAssignment(assignment.user_id)} className="p-1.5 text-white/40 hover:text-red-400" title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button></div>)}</div></div>) : <p className="py-3 text-sm text-white/30">No hay integrantes asignados.</p>}</div></AdminPanel></div>}
 
-      {tab === 'milestones' && <AdminPanel className="divide-y divide-white/5 overflow-hidden"><div className="flex items-center justify-between p-5 border-b border-white/5 bg-white/[0.02]"><div><h2 className="text-sm font-semibold uppercase tracking-wider text-white/75">Hitos del Proyecto</h2></div><RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>{(admin.roles.includes('super_admin') || admin.roles.includes('admin')) && !isReadOnly && <button type="button" onClick={() => { setAddMilestoneForm(prev => ({ ...prev, status_id: statuses[0]?.id || '' })); setAddMilestoneOpen(true); }} className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black hover:bg-white/90"><Plus className="h-4 w-4" />Añadir Hito</button>}</RoleGuard></div>{milestones.length ? milestones.map((milestone) => <div key={milestone.id} className="grid gap-4 p-5 md:grid-cols-[1fr_180px_auto] md:items-center"><div><h3 className="font-medium text-white/85">{milestone.title}</h3><p className="mt-1 text-xs text-white/35">Vence {new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium' }).format(new Date(milestone.due_date))} · {milestone.payment_percentage}%</p>{milestone.payments && milestone.payments.length > 0 && (<div className="mt-2 flex flex-col gap-1">{milestone.payments.map((p) => (<p key={p.id} className="text-xs text-green-400">Pago: {p.currency_code} {Number(p.amount_paid).toFixed(2)} ({p.payment_method}) {p.receipt_url && <a href={p.receipt_url} target="_blank" rel="noreferrer" className="underline hover:text-green-300">Ver recibo</a>}</p>))}</div>)}</div><RoleGuard requiredPermission="admin.proyectos.manage" fallback={<div className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white/55" aria-label="Estado de solo lectura">{milestone.status_name || milestone.status}</div>}><CustomDropdown value={milestone.status} onChange={(status) => void changeMilestoneStatus(milestone.id, status)} disabled={isReadOnly} placeholder="Estado..." options={statuses.map((status) => ({ value: status.code, label: status.name }))} /></RoleGuard><RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>{(admin.roles.includes('super_admin') || admin.roles.includes('admin')) && !isReadOnly && <button type="button" onClick={() => { setActiveMilestoneId(milestone.id); setPaymentModalOpen(true); }} className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white" title="Registrar Pago"><DollarSign className="h-4 w-4" /></button>}</RoleGuard></div>) : <p className="p-8 text-center text-sm text-white/30">No hay hitos registrados.</p>}</AdminPanel>}
+      {tab === 'milestones' && <AdminPanel className="divide-y divide-white/5"><div className="flex items-center justify-between p-5 border-b border-white/5 bg-white/[0.02]"><div><h2 className="text-sm font-semibold uppercase tracking-wider text-white/75">Hitos del Proyecto</h2></div><RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>{(admin.roles.includes('super_admin') || admin.roles.includes('admin')) && !isReadOnly && <button type="button" onClick={() => { setAddMilestoneForm(prev => ({ ...prev, status_id: statuses[0]?.id || '' })); setAddMilestoneOpen(true); }} className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black hover:bg-white/90"><Plus className="h-4 w-4" />Añadir Hito</button>}</RoleGuard></div>{milestones.length ? milestones.map((milestone) => <div key={milestone.id} className="grid gap-4 p-5 md:grid-cols-[1fr_180px_auto] md:items-center"><div><h3 className="font-medium text-white/85">{milestone.title}</h3><p className="mt-1 text-xs text-white/35">Vence {new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium' }).format(new Date(milestone.due_date))} · {milestone.payment_percentage}%</p>{milestone.payments && milestone.payments.length > 0 && (<div className="mt-2 flex flex-col gap-1">{milestone.payments.map((p) => (<p key={p.id} className="text-xs text-green-400">Pago: {p.currency_code} {Number(p.amount_paid).toFixed(2)} ({p.payment_method}) {p.receipt_url && <a href={p.receipt_url} target="_blank" rel="noreferrer" className="underline hover:text-green-300">Ver recibo</a>}</p>))}</div>)}</div><RoleGuard requiredPermission="admin.proyectos.manage" fallback={<div className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white/55" aria-label="Estado de solo lectura">{milestone.status_name || milestone.status}</div>}><CustomDropdown value={milestone.status} onChange={(status) => void changeMilestoneStatus(milestone.id, status)} disabled={isReadOnly} placeholder="Estado..." options={statuses.map((status) => ({ value: status.code, label: status.name }))} /></RoleGuard><RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>{(admin.roles.includes('super_admin') || admin.roles.includes('admin')) && !isReadOnly && <button type="button" onClick={() => { setActiveMilestoneId(milestone.id); setPaymentModalOpen(true); }} className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white" title="Registrar Pago"><DollarSign className="h-4 w-4" /></button>}</RoleGuard></div>) : <p className="p-8 text-center text-sm text-white/30">No hay hitos registrados.</p>}</AdminPanel>}
 
       {tab === 'environments' && <ProjectEnvironmentsHub projectId={id} isAdmin={admin.roles.includes('super_admin') || admin.roles.includes('admin')} />}
 
@@ -324,6 +335,7 @@ const ProyectoDetalle: React.FC = () => {
                 <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Referencia (Opcional)</span><input type="text" value={paymentForm.reference} onChange={(event) => setPaymentForm({ ...paymentForm, reference: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>
                 <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Fecha de pago</span><input type="date" required value={paymentForm.date} onChange={(event) => setPaymentForm({ ...paymentForm, date: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>
                 <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Comprobante (Opcional)</span><input type="file" accept="image/*,.pdf" onChange={(event) => setPaymentForm({ ...paymentForm, receipt: event.target.files?.[0] || null })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white text-sm" /></label>
+                <label className="flex items-center gap-3 mt-2"><input type="checkbox" checked={paymentForm.splitRemaining} onChange={(e) => setPaymentForm({ ...paymentForm, splitRemaining: e.target.checked })} className="h-4 w-4 rounded border-white/20 bg-white/5 text-blue-600 focus:ring-blue-600 focus:ring-offset-gray-900" /><span className="text-sm text-white/70">Pago incompleto. Cerrar este hito y generar uno nuevo por el saldo restante.</span></label>
               </div>
               <div className="mt-6 flex justify-end gap-3 border-t border-white/5 pt-5"><button type="button" onClick={() => setPaymentModalOpen(false)} className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-white/65">Cancelar</button><button disabled={savingPayment} className="rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black disabled:opacity-40">{savingPayment ? 'Registrando...' : 'Registrar'}</button></div>
             </form>
@@ -338,7 +350,14 @@ const ProyectoDetalle: React.FC = () => {
                 <div><h2 className="text-lg font-semibold text-white/90">Añadir Hito</h2></div>
                 <button type="button" onClick={() => setAddMilestoneOpen(false)} className="rounded-lg p-2 text-white/50 hover:bg-white/5"><X className="h-5 w-5" /></button>
               </div>
+              <div className="mb-4 flex flex-wrap gap-2">
+                <button type="button" onClick={() => setAddMilestoneForm({ ...addMilestoneForm, title: 'Anticipo (50%)', payment_percentage: 50 })} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 hover:bg-white/10 hover:text-white">50% Inicial</button>
+                <button type="button" onClick={() => setAddMilestoneForm({ ...addMilestoneForm, title: 'Aprobación de Diseño (30%)', payment_percentage: 30 })} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 hover:bg-white/10 hover:text-white">30% Diseño</button>
+                <button type="button" onClick={() => setAddMilestoneForm({ ...addMilestoneForm, title: 'Entrega Final (20%)', payment_percentage: 20 })} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 hover:bg-white/10 hover:text-white">20% Entrega</button>
+                <button type="button" onClick={() => setAddMilestoneForm({ ...addMilestoneForm, title: 'Compensación por Cancelación', payment_percentage: 20 })} className="rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-xs text-red-400 hover:bg-red-500/20 hover:text-red-300">Kill Fee (20%)</button>
+              </div>
               <div className="grid gap-5">
+                <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Cotización UUID (Adendas - Opcional)</span><input placeholder="Dejar en blanco para usar la del proyecto..." value={addMilestoneForm.quote_id} onChange={(event) => setAddMilestoneForm({ ...addMilestoneForm, quote_id: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>
                 <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Título</span><input required minLength={2} value={addMilestoneForm.title} onChange={(event) => setAddMilestoneForm({ ...addMilestoneForm, title: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>
                 <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Fecha de vencimiento</span><input type="date" required value={addMilestoneForm.due_date} onChange={(event) => setAddMilestoneForm({ ...addMilestoneForm, due_date: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>
                 <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Porcentaje de pago (%)</span><input type="number" min={0} max={100} step="0.01" required value={addMilestoneForm.payment_percentage} onChange={(event) => setAddMilestoneForm({ ...addMilestoneForm, payment_percentage: Number(event.target.value) })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>
@@ -355,6 +374,21 @@ const ProyectoDetalle: React.FC = () => {
               </div>
               <div className="mt-6 flex justify-end gap-3 border-t border-white/5 pt-5"><button type="button" onClick={() => setAddMilestoneOpen(false)} className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-white/65">Cancelar</button><button disabled={savingMilestone} className="rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black disabled:opacity-40">{savingMilestone ? 'Guardando...' : 'Crear Hito'}</button></div>
             </form>
+          </div>
+        )}
+      </RoleGuard>
+      <RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>
+        {cancelModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-sm rounded-2xl border border-red-500/20 bg-[#0a0a0a] p-6 shadow-2xl">
+              <h2 className="mb-2 text-lg font-semibold text-white/90">Proyecto Cancelado</h2>
+              <p className="mb-6 text-sm text-white/60">Has marcado el proyecto como cancelado. ¿Deseas liberar los hitos pendientes y generar automáticamente el hito de Compensación por Cancelación (Kill Fee)?</p>
+              <div className="flex flex-col gap-3">
+                <button onClick={() => void changeProjectStatus('cancelled', true)} className="rounded-lg bg-red-500/10 px-4 py-2.5 text-sm font-medium text-red-400 hover:bg-red-500/20">Sí, aplicar Kill Fee y cancelar</button>
+                <button onClick={() => void changeProjectStatus('cancelled', false)} className="rounded-lg border border-white/10 px-4 py-2.5 text-sm text-white/60 hover:bg-white/5">No, solo cancelar proyecto</button>
+                <button onClick={() => setCancelModalOpen(false)} className="rounded-lg px-4 py-2 text-sm text-white/40 hover:text-white/60">Cancelar acción</button>
+              </div>
+            </div>
           </div>
         )}
       </RoleGuard>

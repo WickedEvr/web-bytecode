@@ -43,7 +43,9 @@ const projectCreateSchema = z.object({
   totalBudget: z.coerce.number().min(0),
   currencyCode: z.string().trim().length(3).transform((value) => value.toUpperCase()).default('PEN'),
 });
-const projectUpdateSchema = projectCreateSchema.partial();
+const projectUpdateSchema = projectCreateSchema.partial().extend({
+  applyKillFee: z.boolean().optional(),
+});
 
 const projectSelectSql = `
   SELECT p.id, p.project_code, p.customer_id, p.organization_id, p.service_id, p.quote_id, p.status_id,
@@ -302,6 +304,44 @@ projectsRouter.patch(
         } else {
           finalActualEndDate = null;
         }
+
+        if (statusInfo?.code === 'cancelled' && body.applyKillFee) {
+          const statusCatRes = await client.query(`SELECT code, id FROM status_catalog WHERE domain = 'milestone' AND code IN ('cancelled', 'pending', 'completed')`);
+          const statusCat = Object.fromEntries(statusCatRes.rows.map(r => [r.code, r.id]));
+          const milestoneCancelledId = statusCat['cancelled'];
+          const milestonePendingId = statusCat['pending'];
+          const milestoneCompletedId = statusCat['completed'];
+          const activeQuoteId = current.rows[0].quote_id;
+
+          if (activeQuoteId) {
+            const pendingMilestonesRes = await client.query(`
+              SELECT pm.id, pm.payment_percentage, COALESCE(SUM(mp.amount_paid), 0) as total_paid, q.total_amount
+              FROM project_milestones pm
+              JOIN quotes q ON q.id = pm.quote_id
+              LEFT JOIN milestone_payments mp ON mp.milestone_id = pm.id AND mp.status = 'valid' AND mp.deleted_at IS NULL
+              WHERE pm.project_id = $1 AND pm.quote_id = $2 AND pm.status_id != $3
+              GROUP BY pm.id, pm.payment_percentage, q.total_amount
+            `, [id, activeQuoteId, milestoneCompletedId]);
+
+            let freedPercentage = 0;
+            for (const row of pendingMilestonesRes.rows) {
+               const paidPercentage = (Number(row.total_paid) / Number(row.total_amount)) * 100;
+               const diff = Number(row.payment_percentage) - paidPercentage;
+               if (diff > 0) {
+                 freedPercentage += diff;
+                 await client.query(`UPDATE project_milestones SET payment_percentage = $1, status_id = $2 WHERE id = $3`, [paidPercentage, milestoneCancelledId, row.id]);
+               }
+            }
+
+            if (freedPercentage > 0) {
+               const killFeePercentage = Math.min(20, freedPercentage);
+               await client.query(`
+                 INSERT INTO project_milestones (project_id, title, due_date, payment_percentage, status_id, quote_id)
+                 VALUES ($1, 'Compensación por Cancelación', CURRENT_DATE, $2, $3, $4)
+               `, [id, killFeePercentage, milestonePendingId, activeQuoteId]);
+            }
+          }
+        }
       }
 
       await client.query(
@@ -466,6 +506,7 @@ const milestoneCreateSchema = z.object({
   dueDate: z.string().date(),
   paymentPercentage: z.coerce.number().min(0).max(100),
   statusId: z.string().uuid(),
+  quoteId: z.string().uuid().optional().nullable(),
 });
 
 projectsRouter.post(
@@ -481,23 +522,28 @@ projectsRouter.post(
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
+      
+      const projectData = await client.query('SELECT quote_id FROM projects WHERE id = $1', [projectId]);
+      const activeQuoteId = body.quoteId || projectData.rows[0]?.quote_id;
+      if (!activeQuoteId) throw new HttpError(400, 'El proyecto no tiene una cotización asignada para calcular hitos.');
+
       const sumResult = await client.query(
-        'SELECT COALESCE(SUM(payment_percentage), 0) as total FROM project_milestones WHERE project_id = $1',
-        [projectId]
+        'SELECT COALESCE(SUM(payment_percentage), 0) as total FROM project_milestones WHERE project_id = $1 AND quote_id = $2',
+        [projectId, activeQuoteId]
       );
       const currentTotal = parseFloat(sumResult.rows[0].total);
       if (currentTotal + body.paymentPercentage > 100) {
-        throw new HttpError(400, 'El porcentaje total de los hitos no puede superar el 100%.');
+        throw new HttpError(400, 'El porcentaje total de los hitos para esta cotización no puede superar el 100%.');
       }
 
       const result = await client.query(
-        `INSERT INTO project_milestones (project_id, title, due_date, payment_percentage, status_id)
-         VALUES ($1, $2, $3, $4, $5)
-         RETURNING id`,
-        [projectId, body.title, body.dueDate, body.paymentPercentage, body.statusId],
+        `INSERT INTO project_milestones (project_id, title, due_date, payment_percentage, status_id, quote_id)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING *`,
+        [projectId, body.title, body.dueDate, body.paymentPercentage, body.statusId, activeQuoteId],
       );
       await client.query('COMMIT');
-      await auditService.logAdminAction({ userId: req.admin?.id, action: 'create_milestone', entityType: 'project_milestones', entity: result.rows[0].id, req });
+      await auditService.logAdminAction({ userId: req.admin?.id, action: 'create_milestone', entityType: 'project_milestones', entity: result.rows[0], req });
       res.status(201).json({ id: result.rows[0].id });
     } catch (e) {
       await client.query('ROLLBACK');
@@ -556,6 +602,7 @@ const milestonePaymentSchema = z.object({
   paymentMethod: z.string().min(1).max(80),
   referenceNumber: z.string().max(180).optional().nullable(),
   paidAt: z.string().date(),
+  splitRemaining: z.boolean().optional(),
 });
 
 projectsRouter.post(
@@ -616,13 +663,36 @@ projectsRouter.post(
         fileAssetId = fileResult.rows[0].id;
       }
 
+      const milestoneRes = await client.query(`
+        SELECT pm.payment_percentage, pm.quote_id, pm.title, pm.due_date, pm.status_id,
+               q.total_amount, COALESCE(SUM(mp.amount_paid), 0) as total_paid,
+               sc.id as completed_status_id
+        FROM project_milestones pm
+        LEFT JOIN quotes q ON q.id = pm.quote_id
+        LEFT JOIN milestone_payments mp ON mp.milestone_id = pm.id AND mp.status = 'valid' AND mp.deleted_at IS NULL
+        LEFT JOIN status_catalog sc ON sc.domain = 'milestone' AND sc.code = 'completed'
+        WHERE pm.id = $1
+        GROUP BY pm.payment_percentage, pm.quote_id, pm.title, pm.due_date, pm.status_id, q.total_amount, sc.id
+      `, [milestoneId]);
+
+      if (!milestoneRes.rowCount) throw new HttpError(404, 'Hito no encontrado.');
+      const { payment_percentage, total_amount, total_paid, title, due_date, status_id: original_status_id, completed_status_id, quote_id } = milestoneRes.rows[0];
+      
+      const amountExpected = Number(total_amount) * (Number(payment_percentage) / 100);
+      const amountPaidCurrently = Number(total_paid);
+      const maxPaymentAllowed = amountExpected - amountPaidCurrently;
+
+      if (body.amountPaid > maxPaymentAllowed + 0.01) {
+        throw new HttpError(400, `El pago excede el saldo restante del hito. Máximo permitido: ${maxPaymentAllowed.toFixed(2)}`);
+      }
+
       const result = await client.query(
         `INSERT INTO milestone_payments (
           milestone_id, amount_paid, currency_code, payment_method,
           reference_number, receipt_file_id, paid_at, status, created_by
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, 'valid', $8)
-        RETURNING id`,
+        RETURNING *`,
         [
           milestoneId,
           body.amountPaid,
@@ -634,10 +704,29 @@ projectsRouter.post(
           req.admin?.id ?? null,
         ]
       );
+      const paymentRow = result.rows[0];
+
+      const isFullPayment = (body.amountPaid >= maxPaymentAllowed - 0.01);
+      if (isFullPayment && completed_status_id) {
+         await client.query(`UPDATE project_milestones SET status_id = $1, completed_at = NOW() WHERE id = $2`, [completed_status_id, milestoneId]);
+         await auditService.logAdminAction({ userId: req.admin?.id, action: 'update_milestone_status_auto', entityType: 'project_milestones', entity: milestoneId, req });
+      } else if (body.splitRemaining && !isFullPayment) {
+         const paidPercentage = ((amountPaidCurrently + body.amountPaid) / Number(total_amount)) * 100;
+         const remainingPercentage = Number(payment_percentage) - paidPercentage;
+         
+         await client.query(`UPDATE project_milestones SET payment_percentage = $1, status_id = $2, completed_at = NOW() WHERE id = $3`, [paidPercentage, completed_status_id, milestoneId]);
+         
+         await client.query(
+           `INSERT INTO project_milestones (project_id, quote_id, title, due_date, payment_percentage, status_id)
+            VALUES ($1, $2, $3, $4, $5, $6)`,
+           [projectId, quote_id, `Restante del pago de ${title}`, due_date, remainingPercentage, original_status_id]
+         );
+         await auditService.logAdminAction({ userId: req.admin?.id, action: 'split_milestone_auto', entityType: 'project_milestones', entity: milestoneId, req });
+      }
 
       await client.query('COMMIT');
-      await auditService.logAdminAction({ userId: req.admin?.id, action: 'create_milestone_payment', entityType: 'milestone_payments', entity: result.rows[0].id, req });
-      res.status(201).json({ id: result.rows[0].id });
+      await auditService.logAdminAction({ userId: req.admin?.id, action: 'create_milestone_payment', entityType: 'milestone_payments', entity: paymentRow, req });
+      res.status(201).json({ id: paymentRow.id });
     } catch (error) {
       await client.query('ROLLBACK').catch(() => undefined);
       if (cloudinaryAsset) {
