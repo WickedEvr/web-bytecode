@@ -193,90 +193,98 @@ router.post('/github', asyncHandler(async (req: Request, res: Response) => {
       const url = `https://pr${prNumber}.env.bytecode.com.pe`;
       const dbName = `pr_${prNumber}`;
 
-      try {
-        await pool.query(
-          `INSERT INTO project_environments (project_id, type, name, branch_name, commit_sha, status, url)
-           VALUES ($1, 'ephemeral', $2, $3, $4, 'verifying', NULL)
-           ON CONFLICT (project_id, type, name)
-           DO UPDATE SET commit_sha = EXCLUDED.commit_sha, branch_name = EXCLUDED.branch_name,
-                         status = 'verifying', error_details = NULL`,
-          [projectId, envName, branchName, sha],
-        );
+      // Respondemos a GitHub inmediatamente para evitar su estricto timeout de 10 segundos
+      res.status(202).json({ message: 'Preview environment provisioning started in background', branchName, sha });
 
+      // Ejecutamos las operaciones pesadas de aprovisionamiento docker/db en segundo plano
+      void (async () => {
         try {
-          // 1. Levantar el entorno efímero sincronizando la rama correcta y forzando el build
-          const ephemeralDir = `/var/www/ephemeral/pr-${prNumber}`;
-          await execAsync(`
-            mkdir -p /var/www/ephemeral &&
-            if [ ! -d "${ephemeralDir}" ]; then git clone --shared /var/www/web-bytecode ${ephemeralDir}; fi &&
-            cd ${ephemeralDir} &&
-            git remote set-url origin https://github.com/bytecode-web/web-bytecode.git &&
-            git fetch origin ${branchName} &&
-            git checkout -B ${branchName} origin/${branchName} &&
-            git reset --hard origin/${branchName} &&
-            cp /var/www/web-bytecode/.env .env &&
-            PR_NUMBER=${prNumber} docker compose --env-file .env -f docker-compose.ephemeral.yml -p pr-${prNumber} up -d --build
-          `);
-
-          // 2. Esperar 20 segundos para que Postgres inicialice
-          await new Promise(resolve => setTimeout(resolve, 20000));
-
-          // 3. Detener el backend efímero temporalmente para evitar bloqueos
-          await execAsync(`docker stop bytecode-backend-pr-${prNumber}`).catch(() => {});
-
-          // 4. Crear la base de datos EXACTA que el backend va a buscar
-          await execAsync(`docker exec bytecode-db-pr-${prNumber} createdb -U bytecode_user bytecode_pr_${prNumber}`).catch(() => {});
-
-          // 5. Cruzar los datos: Volcar desde Prod y meter a bytecode_pr_${prNumber}, limpiando antes
-          await execAsync(`docker exec bytecode-db pg_dump -U bytecode_user -c --if-exists bytecode_prod | docker exec -i bytecode-db-pr-${prNumber} psql -U bytecode_user -d bytecode_pr_${prNumber}`);
-
-          // 6. Volver a encender el backend efímero
-          await execAsync(`docker start bytecode-backend-pr-${prNumber}`).catch(() => {});
-
-          await execAsync(`docker image prune -f`).catch(() => {});
-
           await pool.query(
-            `UPDATE project_environments
-             SET status = 'active', url = $1
-             WHERE project_id = $2 AND name = $3`,
-            [url, projectId, envName],
+            `INSERT INTO project_environments (project_id, type, name, branch_name, commit_sha, status, url)
+             VALUES ($1, 'ephemeral', $2, $3, $4, 'verifying', NULL)
+             ON CONFLICT (project_id, type, name)
+             DO UPDATE SET commit_sha = EXCLUDED.commit_sha, branch_name = EXCLUDED.branch_name,
+                           status = 'verifying', error_details = NULL`,
+            [projectId, envName, branchName, sha],
           );
-        } catch (dockerError: any) {
-          console.error('[GitHub Webhook] Docker/DB provisioning failed:', dockerError);
-          await pool.query(
-            `UPDATE project_environments
-             SET status = 'failed', error_details = $1
-             WHERE project_id = $2 AND name = $3`,
-            [String(dockerError.message || dockerError), projectId, envName],
-          );
+
+          try {
+            // 1. Levantar el entorno efímero
+            const ephemeralDir = `/var/www/ephemeral/pr-${prNumber}`;
+            await execAsync(`
+              mkdir -p /var/www/ephemeral &&
+              if [ ! -d "${ephemeralDir}" ]; then git clone --shared /var/www/web-bytecode ${ephemeralDir}; fi &&
+              cd ${ephemeralDir} &&
+              git remote set-url origin https://github.com/bytecode-web/web-bytecode.git &&
+              git fetch origin ${branchName} &&
+              git checkout -B ${branchName} origin/${branchName} &&
+              git reset --hard origin/${branchName} &&
+              cp /var/www/web-bytecode/.env .env &&
+              PR_NUMBER=${prNumber} docker compose --env-file .env -f docker-compose.ephemeral.yml -p pr-${prNumber} up -d --build
+            `);
+
+            // 2. Esperar 20 segundos para inicialización de Postgres
+            await new Promise(resolve => setTimeout(resolve, 20000));
+
+            // 3. Detener backend
+            await execAsync(`docker stop bytecode-backend-pr-${prNumber}`).catch(() => {});
+
+            // 4. Crear BD
+            await execAsync(`docker exec bytecode-db-pr-${prNumber} createdb -U bytecode_user bytecode_pr_${prNumber}`).catch(() => {});
+
+            // 5. Clonar datos de prod
+            await execAsync(`docker exec bytecode-db pg_dump -U bytecode_user -c --if-exists bytecode_prod | docker exec -i bytecode-db-pr-${prNumber} psql -U bytecode_user -d bytecode_pr_${prNumber}`);
+
+            // 6. Reiniciar backend y limpiar
+            await execAsync(`docker start bytecode-backend-pr-${prNumber}`).catch(() => {});
+            await execAsync(`docker image prune -f`).catch(() => {});
+
+            await pool.query(
+              `UPDATE project_environments
+               SET status = 'active', url = $1
+               WHERE project_id = $2 AND name = $3`,
+              [url, projectId, envName],
+            );
+          } catch (dockerError: any) {
+            console.error('[GitHub Webhook] Docker/DB provisioning failed:', dockerError);
+            await pool.query(
+              `UPDATE project_environments
+               SET status = 'failed', error_details = $1
+               WHERE project_id = $2 AND name = $3`,
+              [String(dockerError.message || dockerError), projectId, envName],
+            );
+          }
+        } catch (err) {
+          console.error('[GitHub Webhook] SQL Error in background PR task:', err);
         }
-      } catch (err) {
-        console.error('[GitHub Webhook] SQL Error:', err);
-        return res.status(200).json({ message: 'SQL Error occurred, but we caught it' });
-      }
-      return res.status(200).json({ message: 'Preview environment initialized/updated', branchName, sha });
+      })();
+      return;
     }
 
     if (action === 'closed') {
-      const dbName = `pr_${prNumber}`;
-      try {
-        const ephemeralDir = `/var/www/ephemeral/pr-${prNumber}`;
-        await execAsync(`cd ${ephemeralDir} && PR_NUMBER=${prNumber} docker compose --env-file .env -f docker-compose.ephemeral.yml -p pr-${prNumber} down -v && cd /var/www/ephemeral && rm -rf pr-${prNumber}`);
-      } catch (cleanupError: any) {
-        console.error('[GitHub Webhook] Cleanup Error:', cleanupError);
-      }
+      res.status(202).json({ message: 'Preview environment cleanup started in background', branchName });
 
-      try {
-        await pool.query(
-          `UPDATE project_environments
-           SET status = 'inactive', url = NULL, error_details = NULL, audit_report = NULL
-           WHERE project_id = $1 AND branch_name = $2 AND type = 'ephemeral'`,
-          [projectId, branchName],
-        );
-      } catch (err) {
-        console.error('[GitHub Webhook] SQL Error on PR close:', err);
-      }
-      return res.status(200).json({ message: 'Preview environment marked as inactive', branchName });
+      void (async () => {
+        const dbName = `pr_${prNumber}`;
+        try {
+          const ephemeralDir = `/var/www/ephemeral/pr-${prNumber}`;
+          await execAsync(`cd ${ephemeralDir} && PR_NUMBER=${prNumber} docker compose --env-file .env -f docker-compose.ephemeral.yml -p pr-${prNumber} down -v && cd /var/www/ephemeral && rm -rf pr-${prNumber}`);
+        } catch (cleanupError: any) {
+          console.error('[GitHub Webhook] Cleanup Error:', cleanupError);
+        }
+
+        try {
+          await pool.query(
+            `UPDATE project_environments
+             SET status = 'inactive', url = NULL, error_details = NULL, audit_report = NULL
+             WHERE project_id = $1 AND branch_name = $2 AND type = 'ephemeral'`,
+            [projectId, branchName],
+          );
+        } catch (err) {
+          console.error('[GitHub Webhook] SQL Error on PR close:', err);
+        }
+      })();
+      return;
     }
 
     return res.status(200).json({ message: `Action ${action} ignored` });
