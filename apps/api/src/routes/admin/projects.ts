@@ -682,7 +682,7 @@ projectsRouter.post(
       const amountPaidCurrently = Number(total_paid);
       const maxPaymentAllowed = amountExpected - amountPaidCurrently;
 
-      if (body.amountPaid > maxPaymentAllowed + 0.01) {
+      if (Math.round(body.amountPaid * 100) > Math.round(maxPaymentAllowed * 100)) {
         throw new HttpError(400, `El pago excede el saldo restante del hito. Máximo permitido: ${maxPaymentAllowed.toFixed(2)}`);
       }
 
@@ -706,7 +706,7 @@ projectsRouter.post(
       );
       const paymentRow = result.rows[0];
 
-      const isFullPayment = (body.amountPaid >= maxPaymentAllowed - 0.01);
+      const isFullPayment = Math.round(body.amountPaid * 100) >= Math.round(maxPaymentAllowed * 100);
       if (isFullPayment && completed_status_id) {
          await client.query(`UPDATE project_milestones SET status_id = $1, completed_at = NOW() WHERE id = $2`, [completed_status_id, milestoneId]);
          await auditService.logAdminAction({ userId: req.admin?.id, action: 'update_milestone_status_auto', entityType: 'project_milestones', entity: milestoneId, req });

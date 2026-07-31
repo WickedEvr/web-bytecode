@@ -16,6 +16,7 @@ const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
   const [admin, setAdmin] = useState<AdminUser | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showIdleWarning, setShowIdleWarning] = useState(false);
   const lastActivityRef = useRef<number>(Date.now());
 
   const handleLogout = async () => {
@@ -29,10 +30,11 @@ const AdminLayout: React.FC = () => {
       .catch(() => navigate('/admin/login'));
   }, [navigate]);
 
-  // Detector de inactividad (1 hora)
+  // Detector de inactividad (60 mins max, advierte a los 55)
   useEffect(() => {
     const handleActivity = () => {
       lastActivityRef.current = Date.now();
+      if (showIdleWarning) setShowIdleWarning(false);
     };
 
     const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove'];
@@ -40,17 +42,24 @@ const AdminLayout: React.FC = () => {
 
     const intervalId = setInterval(() => {
       const now = Date.now();
-      const MAX_IDLE_TIME = 60 * 60 * 1000; // 1 hora
-      if (now - lastActivityRef.current > MAX_IDLE_TIME) {
+      const idleTime = now - lastActivityRef.current;
+      const MAX_IDLE_TIME = 60 * 60 * 1000; // 60 minutos
+      const WARNING_TIME = 55 * 60 * 1000; // 55 minutos
+      
+      if (idleTime > MAX_IDLE_TIME) {
         void handleLogout();
+      } else if (idleTime > WARNING_TIME) {
+        setShowIdleWarning(true);
+      } else {
+        setShowIdleWarning(false);
       }
-    }, 60000); // Comprobar cada minuto
+    }, 10000); // Comprobar cada 10 segundos para mayor precisión
 
     return () => {
       events.forEach((evt) => document.removeEventListener(evt, handleActivity));
       clearInterval(intervalId);
     };
-  }, []);
+  }, [showIdleWarning]);
 
   return (
     <div className="flex min-h-screen bg-black font-sansation text-white/90">
@@ -99,6 +108,27 @@ const AdminLayout: React.FC = () => {
           {admin ? <Outlet context={{ admin }} /> : <div className="flex h-full items-center justify-center text-white/30 text-sm tracking-widest uppercase">Cargando Sistema...</div>}
         </main>
       </div>
+
+      {showIdleWarning && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 backdrop-blur-md">
+          <div className="w-full max-w-sm rounded-2xl border border-amber-500/20 bg-[#0a0a0a] p-6 shadow-2xl text-center">
+            <h2 className="mb-2 text-lg font-semibold text-amber-500">Inactividad Detectada</h2>
+            <p className="mb-6 text-sm text-white/70">Tu sesión expirará en menos de 5 minutos por seguridad. ¿Deseas mantener tu sesión iniciada?</p>
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={() => {
+                  lastActivityRef.current = Date.now();
+                  setShowIdleWarning(false);
+                }} 
+                className="rounded-lg bg-amber-500/10 px-4 py-2.5 text-sm font-medium text-amber-400 hover:bg-amber-500/20"
+              >
+                Sí, mantenerme conectado
+              </button>
+              <button onClick={() => void handleLogout()} className="rounded-lg px-4 py-2 text-sm text-white/40 hover:text-white/60">Cerrar sesión ahora</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
