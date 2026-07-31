@@ -45,6 +45,7 @@ const ProyectoDetalle: React.FC = () => {
   const [commits, setCommits] = useState<ProjectCommit[]>([]);
   const [assignments, setAssignments] = useState<ProjectAssignment[]>([]);
   const [assignmentOptions, setAssignmentOptions] = useState<ProjectAssignmentOption[]>([]);
+  const [adendas, setAdendas] = useState<{ id: string; quote_code: string; title?: string }[]>([]);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [assignmentRole, setAssignmentRole] = useState('');
   const [assigning, setAssigning] = useState(false);
@@ -75,11 +76,12 @@ const ProyectoDetalle: React.FC = () => {
     if (!id) return;
     setLoading(true);
     try {
-      const [projectResult, milestoneResult, commitResult, assignmentResult, statusResult, projectStatusResult, historyResult] = await Promise.all([
+      const [projectResult, milestoneResult, commitResult, assignmentResult, adendasResult, statusResult, projectStatusResult, historyResult] = await Promise.all([
         fetchProject(id),
         fetchProjectMilestones(id),
         fetchProjectCommits(id),
         fetchProjectAssignments(id),
+        apiRequest<{ items: { id: string; quote_code: string; title?: string }[] }>(`/projects/${id}/adendas`),
         apiRequest<{ items: StatusCatalogItem[] }>('/catalog/statuses?domain=milestone'),
         apiRequest<{ items: StatusCatalogItem[] }>('/catalog/statuses?domain=project'),
         fetchProjectStatusHistory<StatusHistoryRecord>(id),
@@ -88,6 +90,7 @@ const ProyectoDetalle: React.FC = () => {
       setMilestones(milestoneResult);
       setCommits(commitResult);
       setAssignments(assignmentResult);
+      setAdendas(adendasResult.items);
       setStatuses(statusResult.items);
       setProjectStatuses(projectStatusResult.items);
       setStatusHistory(historyResult);
@@ -357,7 +360,18 @@ const ProyectoDetalle: React.FC = () => {
                 <button type="button" onClick={() => setAddMilestoneForm({ ...addMilestoneForm, title: 'Compensación por Cancelación', payment_percentage: 20 })} className="rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-xs text-red-400 hover:bg-red-500/20 hover:text-red-300">Kill Fee (20%)</button>
               </div>
               <div className="grid gap-5">
-                <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Cotización UUID (Adendas - Opcional)</span><input placeholder="Dejar en blanco para usar la del proyecto..." value={addMilestoneForm.quote_id} onChange={(event) => setAddMilestoneForm({ ...addMilestoneForm, quote_id: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>
+                <label className="grid gap-1.5">
+                  <span className="text-xs uppercase tracking-wider text-white/45">Cotización (Adendas - Opcional)</span>
+                  <CustomDropdown
+                    options={[
+                      { value: '', label: 'Dejar en blanco para usar la original' },
+                      ...adendas.map((a) => ({ value: a.id, label: `${a.quote_code}` }))
+                    ]}
+                    value={addMilestoneForm.quote_id}
+                    onChange={(val) => setAddMilestoneForm({ ...addMilestoneForm, quote_id: val })}
+                    placeholder="Seleccionar Adenda..."
+                  />
+                </label>
                 <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Título</span><input required minLength={2} value={addMilestoneForm.title} onChange={(event) => setAddMilestoneForm({ ...addMilestoneForm, title: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>
                 <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Fecha de vencimiento</span><input type="date" required value={addMilestoneForm.due_date} onChange={(event) => setAddMilestoneForm({ ...addMilestoneForm, due_date: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>
                 <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Porcentaje de pago (%)</span><input type="number" min={0} max={100} step="0.01" required value={addMilestoneForm.payment_percentage} onChange={(event) => setAddMilestoneForm({ ...addMilestoneForm, payment_percentage: Number(event.target.value) })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>
