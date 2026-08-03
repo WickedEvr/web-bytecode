@@ -24,7 +24,16 @@ const ProjectQuoteSelector: React.FC<Props> = ({ email, value, onChange }) => {
     if (!email) return () => { active = false; };
     setLoading(true);
     fetchProjectQuotesByEmail(email)
-      .then((items) => { if (active) setQuotes(items.filter((q: any) => !['expired', 'rejected'].includes(q.status))); })
+      .then((items) => {
+        if (active) {
+          const validQuotes = items.filter((q: any) => {
+            const isInvalidStatus = ['expired', 'rejected'].includes(q.status);
+            const isAdenda = q.items?.some((item: any) => ['revision_basic', 'revision_custom', 'revision_mid'].includes(item.item_code));
+            return !isInvalidStatus && !isAdenda;
+          });
+          setQuotes(validQuotes);
+        }
+      })
       .catch(() => { if (active) setQuotes([]); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTerminalState } from '../../hooks/useTerminalState';
+import { formatCurrencyValue } from '../../hooks/useQuoterState';
 import { ArrowLeft, ExternalLink, Pencil, Trash2, UserPlus, X, DollarSign, Plus, GitCommitHorizontal } from 'lucide-react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import AdminPanel from '../../components/admin/AdminPanel';
@@ -45,7 +46,7 @@ const ProyectoDetalle: React.FC = () => {
   const [commits, setCommits] = useState<ProjectCommit[]>([]);
   const [assignments, setAssignments] = useState<ProjectAssignment[]>([]);
   const [assignmentOptions, setAssignmentOptions] = useState<ProjectAssignmentOption[]>([]);
-  const [adendas, setAdendas] = useState<{ id: string; quote_code: string; title?: string }[]>([]);
+  const [adendas, setAdendas] = useState<{ id: string; quote_code: string; title?: string; total_amount: string; currency_code: string }[]>([]);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [assignmentRole, setAssignmentRole] = useState('');
   const [assigning, setAssigning] = useState(false);
@@ -81,7 +82,7 @@ const ProyectoDetalle: React.FC = () => {
         fetchProjectMilestones(id),
         fetchProjectCommits(id),
         fetchProjectAssignments(id),
-        apiRequest<{ items: { id: string; quote_code: string; title?: string }[] }>(`/admin/projects/${id}/adendas`),
+        apiRequest<{ items: { id: string; quote_code: string; title?: string; total_amount: string; currency_code: string }[] }>(`/admin/projects/${id}/adendas`),
         apiRequest<{ items: StatusCatalogItem[] }>('/catalog/statuses?domain=milestone'),
         apiRequest<{ items: StatusCatalogItem[] }>('/catalog/statuses?domain=project'),
         fetchProjectStatusHistory<StatusHistoryRecord>(id),
@@ -365,7 +366,7 @@ const ProyectoDetalle: React.FC = () => {
                   <CustomDropdown
                     options={[
                       { value: '', label: 'Dejar en blanco para usar la original' },
-                      ...adendas.map((a) => ({ value: a.id, label: `${a.quote_code}` }))
+                      ...adendas.map((a) => ({ value: a.id, label: `${a.quote_code} - ${formatCurrencyValue(Number(a.total_amount), a.currency_code)}` }))
                     ]}
                     value={addMilestoneForm.quote_id}
                     onChange={(val) => setAddMilestoneForm({ ...addMilestoneForm, quote_id: val })}
