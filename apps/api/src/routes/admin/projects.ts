@@ -507,6 +507,7 @@ const milestoneCreateSchema = z.object({
   paymentPercentage: z.coerce.number().min(0).max(100),
   statusId: z.string().uuid(),
   quoteId: z.string().uuid().optional().nullable(),
+  cancelPending: z.boolean().optional(),
 });
 
 projectsRouter.post(
@@ -527,8 +528,20 @@ projectsRouter.post(
       const activeQuoteId = body.quoteId || projectData.rows[0]?.quote_id;
       if (!activeQuoteId) throw new HttpError(400, 'El proyecto no tiene una cotización asignada para calcular hitos.');
 
+      if (body.cancelPending) {
+        await client.query(`
+          UPDATE project_milestones
+          SET status_id = (SELECT id FROM status_catalog WHERE code = 'canceled' AND domain = 'milestone')
+          WHERE project_id = $1 AND quote_id = $2 
+            AND status_id IN (SELECT id FROM status_catalog WHERE domain = 'milestone' AND code NOT IN ('completed', 'canceled'))
+        `, [projectId, activeQuoteId]);
+      }
+
       const sumResult = await client.query(
-        'SELECT COALESCE(SUM(payment_percentage), 0) as total FROM project_milestones WHERE project_id = $1 AND quote_id = $2',
+        `SELECT COALESCE(SUM(pm.payment_percentage), 0) as total 
+         FROM project_milestones pm 
+         JOIN status_catalog sc ON pm.status_id = sc.id 
+         WHERE pm.project_id = $1 AND pm.quote_id = $2 AND sc.code != 'canceled'`,
         [projectId, activeQuoteId]
       );
       const currentTotal = parseFloat(sumResult.rows[0].total);

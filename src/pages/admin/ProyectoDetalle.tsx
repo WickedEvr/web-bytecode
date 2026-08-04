@@ -221,6 +221,17 @@ const ProyectoDetalle: React.FC = () => {
 
   const handleAddMilestoneSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+
+    const isKillFee = addMilestoneForm.title.toLowerCase().includes('kill fee') || addMilestoneForm.title.toLowerCase().includes('compensación');
+    let cancelPending = false;
+    
+    if (isKillFee) {
+      if (!window.confirm("¿Seguro que deseas añadir un Kill Fee?\nEsto cancelará automáticamente todos los hitos pendientes asociados a esta cotización.")) {
+        return;
+      }
+      cancelPending = true;
+    }
+
     setSavingMilestone(true);
     setError('');
     try {
@@ -230,6 +241,7 @@ const ProyectoDetalle: React.FC = () => {
         paymentPercentage: addMilestoneForm.payment_percentage,
         statusId: addMilestoneForm.status_id,
         quoteId: addMilestoneForm.quote_id || undefined,
+        cancelPending,
       });
       await loadMilestones();
       setAddMilestoneOpen(false);
