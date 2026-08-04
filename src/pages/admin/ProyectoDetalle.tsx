@@ -389,7 +389,10 @@ const ProyectoDetalle: React.FC = () => {
                 <button type="button" onClick={() => setAddMilestoneOpen(false)} className="rounded-lg p-2 text-white/50 hover:bg-white/5"><X className="h-5 w-5" /></button>
               </div>
               {(() => {
-                const currentQuoteMilestones = milestones.filter(m => (m.quote_id || '') === addMilestoneForm.quote_id);
+                const currentQuoteMilestones = milestones.filter(m => {
+                  if (addMilestoneForm.quote_id) return m.quote_id === addMilestoneForm.quote_id;
+                  return m.quote_id === project?.quote_id || !m.quote_id;
+                });
                 const hasAnticipo = currentQuoteMilestones.some(m => m.title.includes('Anticipo (50%)'));
                 const hasDiseno = currentQuoteMilestones.some(m => m.title.includes('Aprobación de Diseño'));
                 const hasEntrega = currentQuoteMilestones.some(m => m.title.includes('Entrega Final (20%)'));
