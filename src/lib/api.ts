@@ -264,6 +264,7 @@ export interface ProjectMilestone {
   id: string;
   project_id: string;
   title: string;
+  quote_id?: string;
   due_date: string;
   payment_percentage: string;
   completed_at: string | null;

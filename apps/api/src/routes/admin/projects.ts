@@ -565,7 +565,7 @@ projectsRouter.get(
       if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para ver hitos de un proyecto ajeno.');
     }
     const result = await pool.query(
-      `SELECT pm.id, pm.project_id, pm.title, pm.due_date, pm.payment_percentage,
+      `SELECT pm.id, pm.project_id, pm.title, pm.due_date, pm.payment_percentage, pm.quote_id,
               pm.completed_at, pm.created_at, pm.updated_at,
               sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
               COALESCE(payments_data.payments, '[]'::json) AS payments
@@ -602,7 +602,7 @@ const milestonePaymentSchema = z.object({
   paymentMethod: z.string().min(1).max(80),
   referenceNumber: z.string().max(180).optional().nullable(),
   paidAt: z.string().date(),
-  splitRemaining: z.boolean().optional(),
+  splitRemaining: z.string().optional().transform(v => v === 'true'),
 });
 
 projectsRouter.post(
