@@ -94,7 +94,16 @@ const ProyectoDetalle: React.FC = () => {
     
     if (!amount) return { amount: 0, currency };
     const rawAmount = (amount * Number(milestone.payment_percentage)) / 100;
-    return { amount: Math.round(rawAmount * 100) / 100, currency };
+    let expected = Math.round(rawAmount * 100) / 100;
+
+    const totalPaid = (milestone.payments || []).reduce((sum, p) => sum + Number(p.amount_paid), 0);
+    if (totalPaid > 0 && Math.abs(totalPaid - expected) < 1.00) {
+      if (milestone.status === 'completed' || totalPaid >= expected) {
+        expected = totalPaid;
+      }
+    }
+
+    return { amount: expected, currency };
   };
 
   const getMilestoneAmountString = (milestone: ProjectMilestone) => {
