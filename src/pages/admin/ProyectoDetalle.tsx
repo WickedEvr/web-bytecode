@@ -4,6 +4,7 @@ import { formatCurrencyValue } from '../../hooks/useQuoterState';
 import { ArrowLeft, ExternalLink, Pencil, Trash2, UserPlus, X, DollarSign, Plus, GitCommitHorizontal, AlertTriangle } from 'lucide-react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import AdminPanel from '../../components/admin/AdminPanel';
+import ShineBorder from '../../components/ui/shine-border';
 import type { AdminUser } from '../../components/admin/AdminLayout';
 import RoleGuard from '../../components/admin/RoleGuard';
 import ProjectQuoteSelector from '../../components/admin/ProjectQuoteSelector';
@@ -485,25 +486,27 @@ const ProyectoDetalle: React.FC = () => {
       <RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>
         {killFeeConfirmOpen && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 text-center shadow-2xl">
-              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
-                <AlertTriangle className="h-7 w-7 text-red-500" />
+            <ShineBorder borderRadius={16} borderWidth={1.5} duration={3} color={["#ef4444", "#991b1b", "#ef4444"]} className="w-full max-w-md bg-[#0a0a0a] shadow-[0_0_50px_-12px_rgba(239,68,68,0.25)]">
+              <div className="p-6 text-center">
+                <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
+                  <AlertTriangle className="h-7 w-7 text-red-500" />
+                </div>
+                <h3 className="mb-2 text-lg font-semibold text-white">¿Añadir Kill Fee?</h3>
+                <p className="mb-6 text-sm text-white/60">
+                  Esto cancelará automáticamente todos los hitos pendientes asociados a esta cotización. 
+                  Si esta es la cotización principal del proyecto, el <strong>proyecto entero será cancelado</strong>.
+                  ¿Deseas continuar?
+                </p>
+                <div className="flex justify-center gap-3">
+                  <button type="button" onClick={() => setKillFeeConfirmOpen(false)} className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-white/65 hover:bg-white/5 transition-colors">
+                    Cancelar
+                  </button>
+                  <button type="button" onClick={() => { setKillFeeConfirmOpen(false); void submitMilestone(true); }} className="rounded-lg bg-red-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-red-600 transition-colors">
+                    Sí, proceder y cancelar
+                  </button>
+                </div>
               </div>
-              <h3 className="mb-2 text-lg font-semibold text-white">¿Añadir Kill Fee?</h3>
-              <p className="mb-6 text-sm text-white/60">
-                Esto cancelará automáticamente todos los hitos pendientes asociados a esta cotización. 
-                Si esta es la cotización principal del proyecto, el <strong>proyecto entero será cancelado</strong>.
-                ¿Deseas continuar?
-              </p>
-              <div className="flex justify-center gap-3">
-                <button type="button" onClick={() => setKillFeeConfirmOpen(false)} className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-white/65 hover:bg-white/5 transition-colors">
-                  Cancelar
-                </button>
-                <button type="button" onClick={() => { setKillFeeConfirmOpen(false); void submitMilestone(true); }} className="rounded-lg bg-red-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-red-600 transition-colors">
-                  Sí, proceder y cancelar
-                </button>
-              </div>
-            </div>
+            </ShineBorder>
           </div>
         )}
       </RoleGuard>
