@@ -536,7 +536,7 @@ projectsRouter.post(
             AND status_id IN (SELECT id FROM status_catalog WHERE domain = 'milestone' AND code NOT IN ('completed', 'canceled'))
         `, [projectId, activeQuoteId]);
         
-        await client.query(`UPDATE projects SET status = 'cancelled', updated_at = now() WHERE id = $1`, [projectId]);
+        await client.query(`UPDATE projects SET status_id = (SELECT id FROM status_catalog WHERE code = 'cancelled' AND domain = 'project'), updated_at = now() WHERE id = $1`, [projectId]);
       }
 
       const sumResult = await client.query(
