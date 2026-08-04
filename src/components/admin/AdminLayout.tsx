@@ -3,6 +3,7 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { apiRequest } from '../../lib/api';
 import { LogOut, Menu, UserCircle } from 'lucide-react';
+import ShineBorder from '../ui/shine-border';
 
 export type AdminUser = {
   id: string;
@@ -111,22 +112,24 @@ const AdminLayout: React.FC = () => {
 
       {showIdleWarning && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 backdrop-blur-md">
-          <div className="w-full max-w-sm rounded-2xl border border-amber-500/20 bg-[#0a0a0a] p-6 shadow-2xl text-center">
-            <h2 className="mb-2 text-lg font-semibold text-amber-500">Inactividad Detectada</h2>
-            <p className="mb-6 text-sm text-white/70">Tu sesión expirará en menos de 5 minutos por seguridad. ¿Deseas mantener tu sesión iniciada?</p>
-            <div className="flex flex-col gap-3">
-              <button 
-                onClick={() => {
-                  lastActivityRef.current = Date.now();
-                  setShowIdleWarning(false);
-                }} 
-                className="rounded-lg bg-amber-500/10 px-4 py-2.5 text-sm font-medium text-amber-400 hover:bg-amber-500/20"
-              >
-                Sí, mantenerme conectado
-              </button>
-              <button onClick={() => void handleLogout()} className="rounded-lg px-4 py-2 text-sm text-white/40 hover:text-white/60">Cerrar sesión ahora</button>
+          <ShineBorder borderRadius={16} borderWidth={1.5} duration={3} color={["#f59e0b", "#b45309", "#f59e0b"]} className="w-full max-w-sm bg-[#0a0a0a] shadow-[0_0_50px_-12px_rgba(245,158,11,0.25)]">
+            <div className="p-6 text-center">
+              <h2 className="mb-2 text-lg font-semibold text-amber-500">Inactividad Detectada</h2>
+              <p className="mb-6 text-sm text-white/70">Tu sesión expirará en menos de 5 minutos por seguridad. ¿Deseas mantener tu sesión iniciada?</p>
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={() => {
+                    lastActivityRef.current = Date.now();
+                    setShowIdleWarning(false);
+                  }} 
+                  className="rounded-lg bg-amber-500/10 px-4 py-2.5 text-sm font-medium text-amber-400 hover:bg-amber-500/20 transition-colors"
+                >
+                  Sí, mantenerme conectado
+                </button>
+                <button onClick={() => void handleLogout()} className="rounded-lg px-4 py-2 text-sm text-white/40 hover:text-white/60 transition-colors">Cerrar sesión ahora</button>
+              </div>
             </div>
-          </div>
+          </ShineBorder>
         </div>
       )}
     </div>
