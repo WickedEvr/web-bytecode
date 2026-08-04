@@ -93,7 +93,8 @@ const ProyectoDetalle: React.FC = () => {
     }
     
     if (!amount) return { amount: 0, currency };
-    return { amount: (amount * Number(milestone.payment_percentage)) / 100, currency };
+    const rawAmount = (amount * Number(milestone.payment_percentage)) / 100;
+    return { amount: Math.round(rawAmount * 100) / 100, currency };
   };
 
   const getMilestoneAmountString = (milestone: ProjectMilestone) => {
