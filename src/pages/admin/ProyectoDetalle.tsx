@@ -401,7 +401,7 @@ const ProyectoDetalle: React.FC = () => {
             <form onSubmit={handleAddMilestoneSubmit} className="max-h-[92vh] w-full max-w-md overflow-visible rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 shadow-2xl md:p-8">
               <div className="mb-6 flex items-center justify-between border-b border-white/5 pb-4">
                 <div><h2 className="text-lg font-semibold text-white/90">Añadir Hito</h2></div>
-                <button type="button" onClick={() => setAddMilestoneOpen(false)} className="rounded-lg p-2 text-white/50 hover:bg-white/5"><X className="h-5 w-5" /></button>
+                <button type="button" onClick={() => { setAddMilestoneOpen(false); setAddMilestoneForm({ title: '', due_date: '', payment_percentage: 0, status_id: statuses[0]?.id || '', quote_id: '' }); }} className="rounded-lg p-2 text-white/50 hover:bg-white/5"><X className="h-5 w-5" /></button>
               </div>
               {(() => {
                 const currentQuoteMilestones = milestones.filter(m => {
@@ -462,7 +462,7 @@ const ProyectoDetalle: React.FC = () => {
                     </div>
                 </label>
               </div>
-              <div className="mt-6 flex justify-end gap-3 border-t border-white/5 pt-5"><button type="button" onClick={() => setAddMilestoneOpen(false)} className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-white/65">Cancelar</button><button disabled={savingMilestone} className="rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black disabled:opacity-40">{savingMilestone ? 'Guardando...' : 'Crear Hito'}</button></div>
+              <div className="mt-6 flex justify-end gap-3 border-t border-white/5 pt-5"><button type="button" onClick={() => { setAddMilestoneOpen(false); setAddMilestoneForm({ title: '', due_date: '', payment_percentage: 0, status_id: statuses[0]?.id || '', quote_id: '' }); }} className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-white/65">Cancelar</button><button disabled={savingMilestone} className="rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black disabled:opacity-40">{savingMilestone ? 'Guardando...' : 'Crear Hito'}</button></div>
             </form>
           </div>
         )}
