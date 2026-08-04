@@ -31,7 +31,7 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChang
 
   return (
     <div className="relative w-full" ref={dropdownRef}>
-      <input type="text" value={value} onChange={() => {}} required={required} disabled={disabled} className="absolute opacity-0 w-full h-full -z-10 pointer-events-none" tabIndex={-1} aria-hidden="true" />
+      <input type="text" value={value} onChange={() => {}} required={required} disabled={disabled} className="absolute opacity-0 w-full h-full -z-10 pointer-events-none" tabIndex={-1} />
       <div onClick={() => { if (!disabled) setIsOpen(!isOpen); }} aria-disabled={disabled} className={`flex items-center justify-between w-full bg-white rounded-full px-6 py-[0.6rem] shadow-sm transition-all ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${isOpen ? 'ring-2 ring-[#06CFD6]' : ''}`}>
         <span className={`${triggerTextSize} ${value ? 'text-[#333]' : 'text-gray-400'}`}>{selectedLabel}</span>
         <svg className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
