@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTerminalState } from '../../hooks/useTerminalState';
 import { formatCurrencyValue } from '../../hooks/useQuoterState';
-import { ArrowLeft, ExternalLink, Pencil, Trash2, UserPlus, X, DollarSign, Plus, GitCommitHorizontal } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Pencil, Trash2, UserPlus, X, DollarSign, Plus, GitCommitHorizontal, AlertTriangle } from 'lucide-react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import AdminPanel from '../../components/admin/AdminPanel';
 import type { AdminUser } from '../../components/admin/AdminLayout';
@@ -55,6 +55,7 @@ const ProyectoDetalle: React.FC = () => {
   const [projectStatuses, setProjectStatuses] = useState<StatusCatalogItem[]>([]);
   const [statusHistory, setStatusHistory] = useState<StatusHistoryRecord[]>([]);
   const [updatingProjectStatus, setUpdatingProjectStatus] = useState(false);
+  const [killFeeConfirmOpen, setKillFeeConfirmOpen] = useState(false);
   const [tab, setTab] = useState<Tab>('general');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -224,19 +225,7 @@ const ProyectoDetalle: React.FC = () => {
     }
   };
 
-  const handleAddMilestoneSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-
-    const isKillFee = addMilestoneForm.title.toLowerCase().includes('kill fee') || addMilestoneForm.title.toLowerCase().includes('compensación');
-    let cancelPending = false;
-    
-    if (isKillFee) {
-      if (!window.confirm("¿Seguro que deseas añadir un Kill Fee?\nEsto cancelará automáticamente todos los hitos pendientes asociados a esta cotización.")) {
-        return;
-      }
-      cancelPending = true;
-    }
-
+  const submitMilestone = async (cancelPending: boolean = false) => {
     setSavingMilestone(true);
     setError('');
     try {
@@ -248,7 +237,7 @@ const ProyectoDetalle: React.FC = () => {
         quoteId: addMilestoneForm.quote_id || undefined,
         cancelPending,
       });
-      await loadMilestones();
+      await Promise.all([loadMilestones(), loadData()]);
       setAddMilestoneOpen(false);
       setAddMilestoneForm({ title: '', due_date: '', payment_percentage: 0, status_id: statuses[0]?.id || '', quote_id: '' });
     } catch (requestError) {
@@ -256,6 +245,18 @@ const ProyectoDetalle: React.FC = () => {
     } finally {
       setSavingMilestone(false);
     }
+  };
+
+  const handleAddMilestoneSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const isKillFee = addMilestoneForm.title.toLowerCase().includes('kill fee') || addMilestoneForm.title.toLowerCase().includes('compensación');
+    
+    if (isKillFee) {
+      setKillFeeConfirmOpen(true);
+      return;
+    }
+    
+    await submitMilestone(false);
   };
 
   const openEdit = () => {
@@ -322,7 +323,7 @@ const ProyectoDetalle: React.FC = () => {
 
       {tab === 'general' && <div className="grid gap-6"><AdminPanel className="p-6 lg:p-8"><div className="grid gap-5 md:grid-cols-2"><div><p className="text-xs uppercase tracking-wider text-white/35">Cliente</p><p className="mt-2 text-white/80">{project.customer_name}</p></div><div><p className="text-xs uppercase tracking-wider text-white/35">Servicio</p><p className="mt-2 text-white/80">{project.service_name}</p></div><div><p className="text-xs uppercase tracking-wider text-white/35">Fecha Inicio</p><p className="mt-2 text-white/80">{project.start_date ? new Date(project.start_date).toISOString().slice(0, 10) : '-'}</p></div><div><p className="text-xs uppercase tracking-wider text-white/35">Fin Estimado</p><p className="mt-2 text-white/80">{project.estimated_end_date ? new Date(project.estimated_end_date).toISOString().slice(0, 10) : '-'}</p></div><div><p className="text-xs uppercase tracking-wider text-white/35">Fin Real (Auto)</p><p className="mt-2 text-white/80">{project.actual_end_date ? new Date(project.actual_end_date).toISOString().slice(0, 10) : '-'}</p></div><div><p className="mb-1.5 text-xs uppercase tracking-wider text-white/35">Estado del Proyecto</p><RoleGuard requiredPermission="admin.proyectos.manage" fallback={<div className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white/55">{project.status_name || project.status}</div>}>{(admin.roles.includes('super_admin') || admin.roles.includes('admin')) ? <CustomDropdown value={project.status} onChange={(status) => void changeProjectStatus(status)} placeholder="Seleccionar estado..." disabled={updatingProjectStatus || isReadOnly} options={projectStatuses.map((status) => ({ value: status.code, label: status.name }))} /> : <div className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white/55">{project.status_name || project.status}</div>}</RoleGuard></div><div className="md:col-span-2"><p className="text-xs uppercase tracking-wider text-white/35">Descripción</p><p className="mt-2 text-sm leading-6 text-white/60">{project.description || 'Sin descripción.'}</p></div>{link('Repositorio GitHub', project.github_repo)}</div></AdminPanel><AdminPanel className="p-6 lg:p-8"><div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-sm font-semibold uppercase tracking-wider text-white/75">Equipo asignado</h2><p className="mt-1 text-xs text-white/35">Integrantes con acceso operativo al proyecto.</p></div>{(admin.roles.includes('super_admin') || admin.roles.includes('admin')) && <div className="flex flex-wrap items-end gap-2"><div className="min-w-52"><CustomDropdown disabled={isReadOnly} value={selectedUserId} onChange={setSelectedUserId} placeholder="Seleccionar integrante..." options={assignmentOptions.map((user) => ({ value: user.id, label: `${user.name} · ${user.email}` }))} /></div><input value={assignmentRole} disabled={isReadOnly} onChange={(event) => setAssignmentRole(event.target.value)} placeholder="Rol en el proyecto" className="rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white" />{!isReadOnly && <button type="button" disabled={!selectedUserId || assigning} onClick={() => void handleAssign()} className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-black disabled:opacity-40"><UserPlus className="h-4 w-4" />{assigning ? 'Asignando...' : 'Asignar'}</button>}</div>}</div><div className="mt-5 grid gap-2">{assignments.length ? assignments.map((assignment) => <div key={assignment.user_id} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.02] px-4 py-3"><div><p className="text-sm text-white/80">{assignment.name}</p><p className="text-xs text-white/35">{assignment.email}</p></div><div className="flex items-center gap-3"><span className="text-xs text-white/50">{assignment.role || 'Integrante'}</span>{(admin.roles.includes('super_admin') || admin.roles.includes('admin')) && !isReadOnly && (<div className="flex items-center gap-1"><button type="button" onClick={() => { setSelectedUserId(assignment.user_id); setAssignmentRole(assignment.role || ''); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="p-1.5 text-white/40 hover:text-white" title="Editar Rol"><Pencil className="h-3.5 w-3.5" /></button><button type="button" onClick={() => void handleRemoveAssignment(assignment.user_id)} className="p-1.5 text-white/40 hover:text-red-400" title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button></div>)}</div></div>) : <p className="py-3 text-sm text-white/30">No hay integrantes asignados.</p>}</div></AdminPanel></div>}
 
-      {tab === 'milestones' && <AdminPanel className="divide-y divide-white/5"><div className="flex items-center justify-between p-5 border-b border-white/5 bg-white/[0.02]"><div><h2 className="text-sm font-semibold uppercase tracking-wider text-white/75">Hitos del Proyecto</h2></div><RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>{(admin.roles.includes('super_admin') || admin.roles.includes('admin')) && !isReadOnly && <button type="button" onClick={() => { setAddMilestoneForm(prev => ({ ...prev, status_id: statuses[0]?.id || '' })); setAddMilestoneOpen(true); }} className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black hover:bg-white/90"><Plus className="h-4 w-4" />Añadir Hito</button>}</RoleGuard></div>{milestones.length ? milestones.map((milestone) => {
+      {tab === 'milestones' && <AdminPanel className="divide-y divide-white/5"><div className="flex items-center justify-between p-5 border-b border-white/5 bg-white/[0.02]"><div><h2 className="text-sm font-semibold uppercase tracking-wider text-white/75">Hitos del Proyecto</h2></div><RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>{(admin.roles.includes('super_admin') || admin.roles.includes('admin')) && !isReadOnly && project?.status !== 'cancelled' && <button type="button" onClick={() => { setAddMilestoneForm(prev => ({ ...prev, status_id: statuses[0]?.id || '' })); setAddMilestoneOpen(true); }} className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black hover:bg-white/90"><Plus className="h-4 w-4" />Añadir Hito</button>}</RoleGuard></div>{milestones.length ? milestones.map((milestone) => {
         const totalPaid = (milestone.payments || []).reduce((sum, p) => sum + Number(p.amount_paid), 0);
         const { amount: expectedAmount, currency } = getMilestoneRawAmount(milestone);
         const remaining = expectedAmount - totalPaid;
@@ -476,6 +477,31 @@ const ProyectoDetalle: React.FC = () => {
                 <button onClick={() => void changeProjectStatus('cancelled', true)} className="rounded-lg bg-red-500/10 px-4 py-2.5 text-sm font-medium text-red-400 hover:bg-red-500/20">Sí, aplicar Kill Fee y cancelar</button>
                 <button onClick={() => void changeProjectStatus('cancelled', false)} className="rounded-lg border border-white/10 px-4 py-2.5 text-sm text-white/60 hover:bg-white/5">No, solo cancelar proyecto</button>
                 <button onClick={() => setCancelModalOpen(false)} className="rounded-lg px-4 py-2 text-sm text-white/40 hover:text-white/60">Cancelar acción</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </RoleGuard>
+      <RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>
+        {killFeeConfirmOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 text-center shadow-2xl">
+              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
+                <AlertTriangle className="h-7 w-7 text-red-500" />
+              </div>
+              <h3 className="mb-2 text-lg font-semibold text-white">¿Añadir Kill Fee?</h3>
+              <p className="mb-6 text-sm text-white/60">
+                Esto cancelará automáticamente todos los hitos pendientes asociados a esta cotización. 
+                Si esta es la cotización principal del proyecto, el <strong>proyecto entero será cancelado</strong>.
+                ¿Deseas continuar?
+              </p>
+              <div className="flex justify-center gap-3">
+                <button type="button" onClick={() => setKillFeeConfirmOpen(false)} className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-white/65 hover:bg-white/5 transition-colors">
+                  Cancelar
+                </button>
+                <button type="button" onClick={() => { setKillFeeConfirmOpen(false); void submitMilestone(true); }} className="rounded-lg bg-red-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-red-600 transition-colors">
+                  Sí, proceder y cancelar
+                </button>
               </div>
             </div>
           </div>
