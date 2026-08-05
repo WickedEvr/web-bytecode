@@ -173,7 +173,7 @@ const ProyectoDetalle: React.FC = () => {
     try {
       await apiRequest(`/admin/projects/${id}`, {
         method: 'PATCH',
-        body: JSON.stringify({ status, applyKillFee }),
+        json: { status, applyKillFee },
       });
       setProject(prev => prev ? ({ ...prev, status }) : null);
       if (applyKillFee) await loadMilestones();
