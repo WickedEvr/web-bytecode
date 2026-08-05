@@ -340,7 +340,7 @@ projectsRouter.patch(
                const diff = Number(row.payment_percentage) - paidPercentage;
                if (diff > 0) {
                  freedPercentage += diff;
-                 await client.query(`UPDATE project_milestones SET payment_percentage = $1, status_id = $2 WHERE id = $3`, [paidPercentage, milestoneCancelledId, row.id]);
+                 await client.query(`UPDATE project_milestones SET status_id = $1 WHERE id = $2`, [milestoneCancelledId, row.id]);
                }
             }
 
