@@ -318,11 +318,10 @@ projectsRouter.patch(
         }
 
         if (statusInfo?.code === 'cancelled' && body.applyKillFee) {
-          const statusCatRes = await client.query(`SELECT code, id FROM status_catalog WHERE domain = 'milestone' AND code IN ('cancelled', 'pending', 'completed')`);
-          const statusCat = Object.fromEntries(statusCatRes.rows.map(r => [r.code, r.id]));
-          const milestoneCancelledId = statusCat['cancelled'];
-          const milestonePendingId = statusCat['pending'];
-          const milestoneCompletedId = statusCat['completed'];
+          const statusCatRes = await client.query(`SELECT code, id FROM status_catalog WHERE domain = 'milestone'`);
+          const milestoneCancelledId = statusCatRes.rows.find(r => r.code === 'cancelled' || r.code === 'canceled')?.id;
+          const milestoneCompletedId = statusCatRes.rows.find(r => r.code === 'completed')?.id;
+          const milestonePendingId = statusCatRes.rows.find(r => r.code !== 'cancelled' && r.code !== 'canceled' && r.code !== 'completed')?.id;
           const activeQuoteId = current.rows[0].quote_id;
 
           if (activeQuoteId) {
@@ -543,12 +542,14 @@ projectsRouter.post(
       if (body.cancelPending) {
         await client.query(`
           UPDATE project_milestones
-          SET status_id = (SELECT id FROM status_catalog WHERE code = 'canceled' AND domain = 'milestone')
+          SET status_id = (SELECT id FROM status_catalog WHERE code IN ('canceled', 'cancelled') AND domain = 'milestone' LIMIT 1)
           WHERE project_id = $1 AND quote_id = $2 
-            AND status_id IN (SELECT id FROM status_catalog WHERE domain = 'milestone' AND code NOT IN ('completed', 'canceled'))
+            AND status_id IN (SELECT id FROM status_catalog WHERE domain = 'milestone' AND code NOT IN ('completed', 'canceled', 'cancelled'))
         `, [projectId, activeQuoteId]);
         
-        await client.query(`UPDATE projects SET status_id = (SELECT id FROM status_catalog WHERE code = 'cancelled' AND domain = 'project'), updated_at = now() WHERE id = $1`, [projectId]);
+        if (activeQuoteId === projectData.rows[0]?.quote_id) {
+          await client.query(`UPDATE projects SET status_id = (SELECT id FROM status_catalog WHERE code = 'cancelled' AND domain = 'project'), updated_at = now() WHERE id = $1`, [projectId]);
+        }
       }
 
       const sumResult = await client.query(

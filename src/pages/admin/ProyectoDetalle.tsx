@@ -486,15 +486,20 @@ const ProyectoDetalle: React.FC = () => {
       <RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>
         {cancelModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-sm rounded-2xl border border-red-500/20 bg-[#0a0a0a] p-6 shadow-2xl">
-              <h2 className="mb-2 text-lg font-semibold text-white/90">Proyecto Cancelado</h2>
-              <p className="mb-6 text-sm text-white/60">Has marcado el proyecto como cancelado. ¿Deseas liberar los hitos pendientes y generar automáticamente el hito de Compensación por Cancelación (Kill Fee)?</p>
-              <div className="flex flex-col gap-3">
-                <button onClick={() => void changeProjectStatus('cancelled', true)} className="rounded-lg bg-red-500/10 px-4 py-2.5 text-sm font-medium text-red-400 hover:bg-red-500/20">Sí, aplicar Kill Fee y cancelar</button>
-                <button onClick={() => void changeProjectStatus('cancelled', false)} className="rounded-lg border border-white/10 px-4 py-2.5 text-sm text-white/60 hover:bg-white/5">No, solo cancelar proyecto</button>
-                <button onClick={() => setCancelModalOpen(false)} className="rounded-lg px-4 py-2 text-sm text-white/40 hover:text-white/60">Cancelar acción</button>
+            <ShineBorder borderRadius={16} borderWidth={1.5} color={["#ef4444", "#991b1b", "#ef4444"]} className="w-full max-w-sm bg-[#0a0a0a] shadow-[0_0_50px_-12px_rgba(239,68,68,0.25)]">
+              <div className="p-6 text-center">
+                <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
+                  <AlertTriangle className="h-7 w-7 text-red-500" />
+                </div>
+                <h2 className="mb-2 text-lg font-semibold text-white/90">Proyecto Cancelado</h2>
+                <p className="mb-6 text-sm text-white/60">Has marcado el proyecto como cancelado. ¿Deseas liberar los hitos pendientes y generar automáticamente el hito de Compensación por Cancelación (Kill Fee)?</p>
+                <div className="flex flex-col gap-3">
+                  <button onClick={() => void changeProjectStatus('cancelled', true)} className="rounded-lg bg-red-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-600 transition-colors">Sí, aplicar Kill Fee y cancelar</button>
+                  <button onClick={() => void changeProjectStatus('cancelled', false)} className="rounded-lg border border-white/10 px-4 py-2.5 text-sm text-white/60 hover:bg-white/5 transition-colors">No, solo cancelar proyecto</button>
+                  <button onClick={() => setCancelModalOpen(false)} className="rounded-lg px-4 py-2 text-sm text-white/40 hover:text-white/60 transition-colors">Cancelar acción</button>
+                </div>
               </div>
-            </div>
+            </ShineBorder>
           </div>
         )}
       </RoleGuard>
