@@ -162,6 +162,16 @@ const ProyectoDetalle: React.FC = () => {
     }
   };
 
+  const deleteMilestone = async (milestoneId: string) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este hito?')) return;
+    try {
+      await apiRequest(`/admin/projects/${id}/milestones/${milestoneId}`, { method: 'DELETE' });
+      await Promise.all([loadMilestones(), loadData()]);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'No se pudo eliminar el hito.');
+    }
+  };
+
   const changeProjectStatus = async (status: string, applyKillFee = false) => {
     const isFullyPaid = milestones.reduce((sum, m) => sum + Number(m.payment_percentage), 0) >= 100 && milestones.every(m => ['completed', 'cancelled'].includes(m.status));
     if (status === 'cancelled' && !applyKillFee && !cancelModalOpen && !isFullyPaid) {
@@ -344,7 +354,43 @@ const ProyectoDetalle: React.FC = () => {
         const canPay = !['completed', 'canceled'].includes(milestone.status) && Math.round(remaining * 100) > 0;
         
         return (
-          <div key={milestone.id} className="grid gap-4 p-5 md:grid-cols-[1fr_180px_auto] md:items-center"><div><h3 className="font-medium text-white/85">{milestone.title} <span className="text-white/45 font-normal ml-1">{getMilestoneAmountString(milestone)}</span></h3><p className="mt-1 text-xs text-white/35">Vence {new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium' }).format(new Date(milestone.due_date))} · {parseFloat(Number(milestone.payment_percentage).toFixed(2))}%</p>{milestone.payments && milestone.payments.length > 0 && (<div className="mt-2 flex flex-col gap-1"><button type="button" onClick={() => setMilestoneDetailsOpen(milestone)} className="mt-1 w-fit rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-300 transition-colors">Ver detalle de {milestone.payments.length === 1 ? 'pago' : `pagos (${milestone.payments.length})`}</button></div>)}{Math.round(remaining * 100) > 0 && !['canceled', 'completed'].includes(milestone.status) && (<p className="text-xs text-yellow-300/80 mt-1.5 font-medium">Saldo pendiente: {currency} {Math.max(0, remaining).toFixed(2)}</p>)}</div><RoleGuard requiredPermission="admin.proyectos.manage" fallback={<div className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white/55" aria-label="Estado de solo lectura">{milestone.status_name || milestone.status}</div>}><CustomDropdown value={milestone.status} onChange={(status) => void changeMilestoneStatus(milestone.id, status)} disabled={isReadOnly} placeholder="Estado..." options={statuses.map((status) => ({ value: status.code, label: status.name }))} /></RoleGuard><RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>{(admin.roles.includes('super_admin') || admin.roles.includes('admin')) && !isReadOnly && canPay && <button type="button" onClick={() => { setActiveMilestoneId(milestone.id); setPaymentModalOpen(true); }} className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white" title="Registrar Pago"><DollarSign className="h-4 w-4" /></button>}</RoleGuard></div>
+          <div key={milestone.id} className="grid gap-4 p-5 md:grid-cols-[1fr_180px_auto] md:items-center">
+            <div>
+              <h3 className="font-medium text-white/85">{milestone.title} <span className="text-white/45 font-normal ml-1">{getMilestoneAmountString(milestone)}</span></h3>
+              <p className="mt-1 text-xs text-white/35">Vence {new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium' }).format(new Date(milestone.due_date))} · {parseFloat(Number(milestone.payment_percentage).toFixed(2))}%</p>
+              {milestone.payments && milestone.payments.length > 0 && (
+                <div className="mt-2 flex flex-col gap-1">
+                  <button type="button" onClick={() => setMilestoneDetailsOpen(milestone)} className="mt-1 w-fit rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-300 transition-colors">Ver detalle de {milestone.payments.length === 1 ? 'pago' : `pagos (${milestone.payments.length})`}</button>
+                </div>
+              )}
+              {Math.round(remaining * 100) > 0 && !['canceled', 'completed'].includes(milestone.status) && (
+                <p className="text-xs text-yellow-300/80 mt-1.5 font-medium">Saldo pendiente: {currency} {Math.max(0, remaining).toFixed(2)}</p>
+              )}
+            </div>
+
+            {(admin.roles.includes('super_admin') || admin.roles.includes('admin')) && !isReadOnly ? (
+              <>
+                <CustomDropdown value={milestone.status} onChange={(status) => void changeMilestoneStatus(milestone.id, status)} disabled={false} placeholder="Estado..." options={statuses.map((status) => ({ value: status.code, label: status.name }))} />
+                <div className="flex gap-2">
+                  {canPay && (
+                    <button type="button" onClick={() => { setActiveMilestoneId(milestone.id); setPaymentModalOpen(true); }} className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-emerald-400 transition-colors" title="Registrar Pago">
+                      <DollarSign className="h-4 w-4" />
+                    </button>
+                  )}
+                  {(milestone.payments?.length ?? 0) === 0 && (
+                    <button type="button" onClick={() => void deleteMilestone(milestone.id)} className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-red-400 transition-colors" title="Eliminar Hito">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white/55" aria-label="Estado de solo lectura">{milestone.status_name || milestone.status}</div>
+                <div></div>
+              </>
+            )}
+          </div>
         );
       }) : <p className="p-8 text-center text-sm text-white/30">No hay hitos registrados.</p>}</AdminPanel>}
 

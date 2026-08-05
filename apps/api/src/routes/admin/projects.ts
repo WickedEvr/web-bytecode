@@ -940,3 +940,27 @@ projectsRouter.get(
   }),
 );
 
+
+projectsRouter.delete(
+  '/projects/:id/milestones/:milestone_id',
+  requireCsrf,
+  requirePermission('admin.proyectos.manage'),
+  requireNonTerminalState('projects'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const projectId = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para eliminar hitos.');
+    const milestoneId = z.string().uuid().parse(req.params.milestone_id);
+    
+    const checkRes = await pool.query('SELECT COUNT(*) as count FROM milestone_payments WHERE milestone_id = $1 AND status != \'rejected\'', [milestoneId]);
+    if (Number(checkRes.rows[0].count) > 0) {
+      throw new HttpError(400, 'No se puede eliminar un hito que ya tiene pagos registrados.');
+    }
+    
+    const result = await pool.query('DELETE FROM project_milestones WHERE id = $1 AND project_id = $2 RETURNING id', [milestoneId, projectId]);
+    if (result.rowCount === 0) throw new HttpError(404, 'Hito no encontrado.');
+    
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'delete_milestone', entityType: 'project_milestones', entity: milestoneId, req });
+    res.status(200).json({ success: true });
+  })
+);
