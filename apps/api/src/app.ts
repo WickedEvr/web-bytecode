@@ -169,7 +169,9 @@ app.use((error: unknown, req: Request, res: Response, _next: NextFunction) => {
   if (error instanceof ZodError) {
     if (env.isProduction) {
       const fields = [...new Set(error.issues.map((issue) => issue.path.join('.')).filter(Boolean))];
+      const errorMsg = error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
       res.status(400).json({
+        message: `Datos inválidos. Detalles: ${errorMsg}`,
         error: 'Datos inválidos',
         fields,
         correlationId,
