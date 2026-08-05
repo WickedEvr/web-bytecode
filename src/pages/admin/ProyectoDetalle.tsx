@@ -524,7 +524,7 @@ const ProyectoDetalle: React.FC = () => {
                       ...adendas.map((a) => ({ value: a.id, label: `${a.quote_code} - ${formatCurrencyValue(Number(a.total_amount), a.currency_code)}` }))
                     ]}
                     value={addMilestoneForm.quote_id}
-                    onChange={(val) => setAddMilestoneForm({ ...addMilestoneForm, quote_id: val })}
+                    onChange={(val) => setAddMilestoneForm({ ...addMilestoneForm, quote_id: val, title: '', payment_percentage: 0 })}
                     placeholder="Seleccionar Adenda..."
                   />
                 </label>
