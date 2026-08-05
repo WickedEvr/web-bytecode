@@ -76,7 +76,14 @@ const ProyectoDetalle: React.FC = () => {
   const [addMilestoneForm, setAddMilestoneForm] = useState({ title: '', due_date: '', payment_percentage: 0, status_id: '', quote_id: '' });
   const [savingMilestone, setSavingMilestone] = useState(false);
 
-  const loadMilestones = async () => setMilestones(await fetchProjectMilestones(id).catch(() => []));
+  const loadMilestones = async () => {
+    const isRestrictedDeveloper = admin.roles.includes('developer') && !admin.roles.includes('super_admin') && !admin.roles.includes('admin');
+    if (isRestrictedDeveloper) {
+      setMilestones([]);
+      return;
+    }
+    setMilestones(await fetchProjectMilestones(id).catch(() => []));
+  };
 
   const getMilestoneRawAmount = (milestone: ProjectMilestone) => {
     let amount = 0;
@@ -119,12 +126,13 @@ const ProyectoDetalle: React.FC = () => {
     if (!id) return;
     setLoading(true);
     try {
+      const isRestrictedDeveloper = admin.roles.includes('developer') && !admin.roles.includes('super_admin') && !admin.roles.includes('admin');
       const [projectResult, milestoneResult, commitResult, assignmentResult, adendasResult, statusResult, projectStatusResult, historyResult] = await Promise.all([
         fetchProject(id),
-        fetchProjectMilestones(id).catch(() => []),
+        isRestrictedDeveloper ? Promise.resolve([]) : fetchProjectMilestones(id).catch(() => []),
         fetchProjectCommits(id).catch(() => []),
         fetchProjectAssignments(id),
-        apiRequest<{ items: { id: string; quote_code: string; title?: string; total_amount: string; currency_code: string }[] }>(`/admin/projects/${id}/adendas`).catch(() => ({ items: [] })),
+        isRestrictedDeveloper ? Promise.resolve({ items: [] }) : apiRequest<{ items: { id: string; quote_code: string; title?: string; total_amount: string; currency_code: string }[] }>(`/admin/projects/${id}/adendas`).catch(() => ({ items: [] })),
         apiRequest<{ items: StatusCatalogItem[] }>('/catalog/statuses?domain=milestone'),
         apiRequest<{ items: StatusCatalogItem[] }>('/catalog/statuses?domain=project'),
         fetchProjectStatusHistory<StatusHistoryRecord>(id).catch(() => []),
