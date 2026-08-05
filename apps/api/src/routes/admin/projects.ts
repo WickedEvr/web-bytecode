@@ -290,7 +290,7 @@ projectsRouter.patch(
       const oldStatusId = current.rows[0].status_id as string | null;
       const statusInfo = body.status ? await getProjectStatusInfo(client, body.status) : null;
       const statusId = statusInfo?.id ?? null;
-      if (body.quoteId) {
+      if (body.quoteId && body.quoteId !== current.rows[0].quote_id) {
         const customerId = body.customerId ?? current.rows[0].customer_id;
         const quote = await client.query(
           `SELECT q.id
@@ -303,13 +303,11 @@ projectsRouter.patch(
         );
         if (!quote.rowCount) throw new HttpError(400, 'La cotizacion no pertenece al cliente seleccionado.');
         
-        if (body.quoteId !== current.rows[0].quote_id) {
-          const existingProject = await client.query(
-            `SELECT id FROM projects WHERE quote_id = $1 AND id != $2 AND deleted_at IS NULL`,
-            [body.quoteId, id]
-          );
-          if (existingProject.rowCount) throw new HttpError(400, 'Esta cotización ya se encuentra asignada a otro proyecto.');
-        }
+        const existingProject = await client.query(
+          `SELECT id FROM projects WHERE quote_id = $1 AND id != $2 AND deleted_at IS NULL`,
+          [body.quoteId, id]
+        );
+        if (existingProject.rowCount) throw new HttpError(400, 'Esta cotización ya se encuentra asignada a otro proyecto.');
       }
       let finalActualEndDate = body.actualEndDate ?? current.rows[0].actual_end_date;
       if (oldStatusId && statusId && oldStatusId !== statusId) {
