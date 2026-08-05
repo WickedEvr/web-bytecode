@@ -589,8 +589,7 @@ projectsRouter.get(
     const id = z.string().uuid().parse(req.params.id);
     const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
     if (isRestrictedDeveloper) {
-      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [id, req.admin?.id]);
-      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para ver hitos de un proyecto ajeno.');
+      throw new HttpError(403, 'No tienes permiso para visualizar hitos del proyecto.');
     }
     const result = await pool.query(
       `SELECT pm.id, pm.project_id, pm.title, pm.due_date, pm.payment_percentage, pm.quote_id,
@@ -964,3 +963,4 @@ projectsRouter.delete(
     res.status(200).json({ success: true });
   })
 );
+
