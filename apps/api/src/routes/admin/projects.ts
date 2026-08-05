@@ -290,25 +290,7 @@ projectsRouter.patch(
       const oldStatusId = current.rows[0].status_id as string | null;
       const statusInfo = body.status ? await getProjectStatusInfo(client, body.status) : null;
       const statusId = statusInfo?.id ?? null;
-      if (body.quoteId && body.quoteId !== current.rows[0].quote_id) {
-        const customerId = body.customerId ?? current.rows[0].customer_id;
-        const quote = await client.query(
-          `SELECT q.id
-           FROM quotes q
-           JOIN customers quote_customer ON quote_customer.id = q.customer_id
-           JOIN customers project_customer ON project_customer.id = $2
-           WHERE q.id = $1 AND q.deleted_at IS NULL
-             AND lower(quote_customer.primary_email) = lower(project_customer.primary_email)`,
-          [body.quoteId, customerId],
-        );
-        if (!quote.rowCount) throw new HttpError(400, 'La cotizacion no pertenece al cliente seleccionado.');
-        
-        const existingProject = await client.query(
-          `SELECT id FROM projects WHERE quote_id = $1 AND id != $2 AND deleted_at IS NULL`,
-          [body.quoteId, id]
-        );
-        if (existingProject.rowCount) throw new HttpError(400, 'Esta cotización ya se encuentra asignada a otro proyecto.');
-      }
+
       let finalActualEndDate = body.actualEndDate ?? current.rows[0].actual_end_date;
       if (oldStatusId && statusId && oldStatusId !== statusId) {
         if (statusInfo?.is_terminal) {
