@@ -76,7 +76,7 @@ const ProyectoDetalle: React.FC = () => {
   const [addMilestoneForm, setAddMilestoneForm] = useState({ title: '', due_date: '', payment_percentage: 0, status_id: '', quote_id: '' });
   const [savingMilestone, setSavingMilestone] = useState(false);
 
-  const loadMilestones = async () => setMilestones(await fetchProjectMilestones(id));
+  const loadMilestones = async () => setMilestones(await fetchProjectMilestones(id).catch(() => []));
 
   const getMilestoneRawAmount = (milestone: ProjectMilestone) => {
     let amount = 0;
@@ -121,13 +121,13 @@ const ProyectoDetalle: React.FC = () => {
     try {
       const [projectResult, milestoneResult, commitResult, assignmentResult, adendasResult, statusResult, projectStatusResult, historyResult] = await Promise.all([
         fetchProject(id),
-        fetchProjectMilestones(id),
-        fetchProjectCommits(id),
+        fetchProjectMilestones(id).catch(() => []),
+        fetchProjectCommits(id).catch(() => []),
         fetchProjectAssignments(id),
-        apiRequest<{ items: { id: string; quote_code: string; title?: string; total_amount: string; currency_code: string }[] }>(`/admin/projects/${id}/adendas`),
+        apiRequest<{ items: { id: string; quote_code: string; title?: string; total_amount: string; currency_code: string }[] }>(`/admin/projects/${id}/adendas`).catch(() => ({ items: [] })),
         apiRequest<{ items: StatusCatalogItem[] }>('/catalog/statuses?domain=milestone'),
         apiRequest<{ items: StatusCatalogItem[] }>('/catalog/statuses?domain=project'),
-        fetchProjectStatusHistory<StatusHistoryRecord>(id),
+        fetchProjectStatusHistory<StatusHistoryRecord>(id).catch(() => []),
       ]);
       setProject(projectResult);
       setMilestones(milestoneResult);
