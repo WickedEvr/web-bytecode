@@ -57,6 +57,7 @@ const ProyectoDetalle: React.FC = () => {
   const [statusHistory, setStatusHistory] = useState<StatusHistoryRecord[]>([]);
   const [updatingProjectStatus, setUpdatingProjectStatus] = useState(false);
   const [killFeeConfirmOpen, setKillFeeConfirmOpen] = useState(false);
+  const [milestoneDetailsOpen, setMilestoneDetailsOpen] = useState<ProjectMilestone | null>(null);
   const [tab, setTab] = useState<Tab>('general');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -341,7 +342,7 @@ const ProyectoDetalle: React.FC = () => {
         const canPay = !['completed', 'canceled'].includes(milestone.status) && Math.round(remaining * 100) > 0;
         
         return (
-          <div key={milestone.id} className="grid gap-4 p-5 md:grid-cols-[1fr_180px_auto] md:items-center"><div><h3 className="font-medium text-white/85">{milestone.title} <span className="text-white/45 font-normal ml-1">{getMilestoneAmountString(milestone)}</span></h3><p className="mt-1 text-xs text-white/35">Vence {new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium' }).format(new Date(milestone.due_date))} · {parseFloat(Number(milestone.payment_percentage).toFixed(2))}%</p>{milestone.payments && milestone.payments.length > 0 && (<div className="mt-2 flex flex-col gap-1">{milestone.payments.map((p) => (<p key={p.id} className="text-xs text-green-400">Pago: {p.currency_code} {Number(p.amount_paid).toFixed(2)} ({p.payment_method}) {p.receipt_url && <a href={p.receipt_url} target="_blank" rel="noreferrer" className="underline hover:text-green-300">Ver recibo</a>}</p>))}</div>)}{Math.round(remaining * 100) > 0 && !['canceled', 'completed'].includes(milestone.status) && (<p className="text-xs text-yellow-300/80 mt-1.5 font-medium">Saldo pendiente: {currency} {Math.max(0, remaining).toFixed(2)}</p>)}</div><RoleGuard requiredPermission="admin.proyectos.manage" fallback={<div className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white/55" aria-label="Estado de solo lectura">{milestone.status_name || milestone.status}</div>}><CustomDropdown value={milestone.status} onChange={(status) => void changeMilestoneStatus(milestone.id, status)} disabled={isReadOnly} placeholder="Estado..." options={statuses.map((status) => ({ value: status.code, label: status.name }))} /></RoleGuard><RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>{(admin.roles.includes('super_admin') || admin.roles.includes('admin')) && !isReadOnly && canPay && <button type="button" onClick={() => { setActiveMilestoneId(milestone.id); setPaymentModalOpen(true); }} className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white" title="Registrar Pago"><DollarSign className="h-4 w-4" /></button>}</RoleGuard></div>
+          <div key={milestone.id} className="grid gap-4 p-5 md:grid-cols-[1fr_180px_auto] md:items-center"><div><h3 className="font-medium text-white/85">{milestone.title} <span className="text-white/45 font-normal ml-1">{getMilestoneAmountString(milestone)}</span></h3><p className="mt-1 text-xs text-white/35">Vence {new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium' }).format(new Date(milestone.due_date))} · {parseFloat(Number(milestone.payment_percentage).toFixed(2))}%</p>{milestone.payments && milestone.payments.length > 0 && (<div className="mt-2 flex flex-col gap-1"><button type="button" onClick={() => setMilestoneDetailsOpen(milestone)} className="mt-1 w-fit rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60 hover:bg-white/10 hover:text-white transition-colors">Ver detalle de {milestone.payments.length === 1 ? 'pago' : `pagos (${milestone.payments.length})`}</button></div>)}{Math.round(remaining * 100) > 0 && !['canceled', 'completed'].includes(milestone.status) && (<p className="text-xs text-yellow-300/80 mt-1.5 font-medium">Saldo pendiente: {currency} {Math.max(0, remaining).toFixed(2)}</p>)}</div><RoleGuard requiredPermission="admin.proyectos.manage" fallback={<div className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white/55" aria-label="Estado de solo lectura">{milestone.status_name || milestone.status}</div>}><CustomDropdown value={milestone.status} onChange={(status) => void changeMilestoneStatus(milestone.id, status)} disabled={isReadOnly} placeholder="Estado..." options={statuses.map((status) => ({ value: status.code, label: status.name }))} /></RoleGuard><RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>{(admin.roles.includes('super_admin') || admin.roles.includes('admin')) && !isReadOnly && canPay && <button type="button" onClick={() => { setActiveMilestoneId(milestone.id); setPaymentModalOpen(true); }} className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white" title="Registrar Pago"><DollarSign className="h-4 w-4" /></button>}</RoleGuard></div>
         );
       }) : <p className="p-8 text-center text-sm text-white/30">No hay hitos registrados.</p>}</AdminPanel>}
 
@@ -517,6 +518,55 @@ const ProyectoDetalle: React.FC = () => {
                 </div>
               </div>
             </ShineBorder>
+          </div>
+        )}
+      </RoleGuard>
+      <RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>
+        {milestoneDetailsOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 shadow-2xl md:p-8">
+              <div className="mb-6 flex items-center justify-between border-b border-white/5 pb-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-white/90">Desglose de Pagos</h2>
+                  <p className="mt-1 text-xs text-white/40">{milestoneDetailsOpen.title}</p>
+                </div>
+                <button type="button" onClick={() => setMilestoneDetailsOpen(null)} className="rounded-lg p-2 text-white/50 hover:bg-white/5 transition-colors"><X className="h-5 w-5" /></button>
+              </div>
+              <div className="max-h-[50vh] overflow-y-auto pr-1">
+                <div className="grid gap-3">
+                  {milestoneDetailsOpen.payments?.map((payment, index) => (
+                    <div key={payment.id} className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <p className="text-sm font-medium text-white/80">Pago #{index + 1}</p>
+                          <p className="text-xs text-white/40">{new Date(payment.created_at || Date.now()).toLocaleString('es-PE')}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-medium text-green-400">{payment.currency_code} {Number(payment.amount_paid).toFixed(2)}</p>
+                          <p className="text-xs text-white/40 capitalize">{payment.payment_method}</p>
+                        </div>
+                      </div>
+                      
+                      {payment.receipt_url ? (
+                        <div className="mt-3 border-t border-white/5 pt-3">
+                          <a href={payment.receipt_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-xs text-cyan-400 hover:text-cyan-300">
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            Ver comprobante adjunto
+                          </a>
+                        </div>
+                      ) : (
+                        <div className="mt-3 border-t border-white/5 pt-3">
+                          <p className="text-xs text-white/30">Sin comprobante adjunto</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end border-t border-white/5 pt-5">
+                <button type="button" onClick={() => setMilestoneDetailsOpen(null)} className="rounded-lg bg-white/10 px-5 py-2.5 text-sm font-medium text-white hover:bg-white/20 transition-colors">Cerrar</button>
+              </div>
+            </div>
           </div>
         )}
       </RoleGuard>
