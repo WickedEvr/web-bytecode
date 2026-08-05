@@ -163,7 +163,8 @@ const ProyectoDetalle: React.FC = () => {
   };
 
   const changeProjectStatus = async (status: string, applyKillFee = false) => {
-    if (status === 'cancelled' && !applyKillFee && !cancelModalOpen) {
+    const isFullyBilled = milestones.reduce((sum, m) => sum + Number(m.payment_percentage), 0) >= 100;
+    if (status === 'cancelled' && !applyKillFee && !cancelModalOpen && !isFullyBilled) {
        setCancelModalOpen(true);
        return;
     }
@@ -425,6 +426,7 @@ const ProyectoDetalle: React.FC = () => {
                 const hasDiseno = currentQuoteMilestones.some(m => m.title.includes('Aprobación de Diseño'));
                 const hasEntrega = currentQuoteMilestones.some(m => m.title.includes('Entrega Final (20%)'));
                 const hasKillFee = currentQuoteMilestones.some(m => m.title.includes('Compensación') || m.title.includes('Kill Fee') || m.title.includes('Cancelación'));
+                const isFullyBilled = currentQuoteMilestones.reduce((sum, m) => sum + Number(m.payment_percentage), 0) >= 100;
                 
                 const hasAnticipoAdenda = currentQuoteMilestones.some(m => m.title.includes('Anticipo Adenda'));
                 const hasFinalAdenda = currentQuoteMilestones.some(m => m.title.includes('Entrega Final Adenda'));
@@ -433,16 +435,16 @@ const ProyectoDetalle: React.FC = () => {
                   <div className="mb-4 flex flex-wrap gap-2">
                     {!addMilestoneForm.quote_id ? (
                       <>
-                        <button type="button" disabled={hasAnticipo || hasKillFee} onClick={() => setAddMilestoneForm({ ...addMilestoneForm, title: 'Anticipo (50%)', payment_percentage: 50 })} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none">50% Inicial</button>
-                        <button type="button" disabled={!hasAnticipo || hasDiseno || hasKillFee} onClick={() => setAddMilestoneForm({ ...addMilestoneForm, title: 'Aprobación de Diseño (30%)', payment_percentage: 30 })} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none">30% Diseño</button>
-                        <button type="button" disabled={!hasAnticipo || !hasDiseno || hasEntrega || hasKillFee} onClick={() => setAddMilestoneForm({ ...addMilestoneForm, title: 'Entrega Final (20%)', payment_percentage: 20 })} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none">20% Entrega</button>
-                        <button type="button" disabled={hasKillFee} onClick={() => setAddMilestoneForm({ ...addMilestoneForm, title: 'Compensación por Cancelación', payment_percentage: 20 })} className="rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-xs text-red-400 hover:bg-red-500/20 hover:text-red-300 disabled:opacity-30 disabled:pointer-events-none">Kill Fee (20%)</button>
+                        <button type="button" disabled={hasAnticipo || hasKillFee || isFullyBilled} onClick={() => setAddMilestoneForm({ ...addMilestoneForm, title: 'Anticipo (50%)', payment_percentage: 50 })} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none">50% Inicial</button>
+                        <button type="button" disabled={!hasAnticipo || hasDiseno || hasKillFee || isFullyBilled} onClick={() => setAddMilestoneForm({ ...addMilestoneForm, title: 'Aprobación de Diseño (30%)', payment_percentage: 30 })} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none">30% Diseño</button>
+                        <button type="button" disabled={!hasAnticipo || !hasDiseno || hasEntrega || hasKillFee || isFullyBilled} onClick={() => setAddMilestoneForm({ ...addMilestoneForm, title: 'Entrega Final (20%)', payment_percentage: 20 })} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none">20% Entrega</button>
+                        <button type="button" disabled={hasKillFee || isFullyBilled} onClick={() => setAddMilestoneForm({ ...addMilestoneForm, title: 'Compensación por Cancelación', payment_percentage: 20 })} className="rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-xs text-red-400 hover:bg-red-500/20 hover:text-red-300 disabled:opacity-30 disabled:pointer-events-none">Kill Fee (20%)</button>
                       </>
                     ) : (
                       <>
-                        <button type="button" disabled={hasAnticipoAdenda || hasKillFee} onClick={() => setAddMilestoneForm({ ...addMilestoneForm, title: 'Anticipo Adenda (50%)', payment_percentage: 50 })} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none">50% Inicial Adenda</button>
-                        <button type="button" disabled={!hasAnticipoAdenda || hasFinalAdenda || hasKillFee} onClick={() => setAddMilestoneForm({ ...addMilestoneForm, title: 'Entrega Final Adenda (50%)', payment_percentage: 50 })} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none">50% Final Adenda</button>
-                        <button type="button" disabled={hasKillFee} onClick={() => setAddMilestoneForm({ ...addMilestoneForm, title: 'Kill Fee Cancelación Adenda', payment_percentage: 50 })} className="rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-xs text-red-400 hover:bg-red-500/20 hover:text-red-300 disabled:opacity-30 disabled:pointer-events-none">Kill Fee (50%)</button>
+                        <button type="button" disabled={hasAnticipoAdenda || hasKillFee || isFullyBilled} onClick={() => setAddMilestoneForm({ ...addMilestoneForm, title: 'Anticipo Adenda (50%)', payment_percentage: 50 })} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none">50% Inicial Adenda</button>
+                        <button type="button" disabled={!hasAnticipoAdenda || hasFinalAdenda || hasKillFee || isFullyBilled} onClick={() => setAddMilestoneForm({ ...addMilestoneForm, title: 'Entrega Final Adenda (50%)', payment_percentage: 50 })} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none">50% Final Adenda</button>
+                        <button type="button" disabled={hasKillFee || isFullyBilled} onClick={() => setAddMilestoneForm({ ...addMilestoneForm, title: 'Kill Fee Cancelación Adenda', payment_percentage: 50 })} className="rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-xs text-red-400 hover:bg-red-500/20 hover:text-red-300 disabled:opacity-30 disabled:pointer-events-none">Kill Fee (50%)</button>
                       </>
                     )}
                   </div>
