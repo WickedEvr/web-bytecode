@@ -574,7 +574,7 @@ const ProyectoDetalle: React.FC = () => {
       <RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>
         {deleteConfirmOpen && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-            <ShineBorder borderRadius={16} borderWidth={1.5} duration={3} color={["#ef4444", "#991b1b", "#ef4444"]} className="w-full max-w-md bg-[#0a0a0a] shadow-[0_0_50px_-12px_rgba(239,68,68,0.25)]">
+            <ShineBorder borderRadius={16} borderWidth={1.5} color={["#ef4444", "#991b1b", "#ef4444"]} className="w-full max-w-md bg-[#0a0a0a] shadow-[0_0_50px_-12px_rgba(239,68,68,0.25)]">
               <div className="p-6 text-center">
                 <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
                   <Trash2 className="h-7 w-7 text-red-500" />
