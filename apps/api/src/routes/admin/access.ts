@@ -626,17 +626,18 @@ settingsRouter.patch(
       }
 
       const updateRes = await pool.query(
-        `INSERT INTO system_settings (setting_key, setting_value, description, is_sensitive, updated_by)
-         VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (setting_key) DO UPDATE
-         SET setting_value = EXCLUDED.setting_value,
-             description = COALESCE(EXCLUDED.description, system_settings.description),
-             is_sensitive = COALESCE(EXCLUDED.is_sensitive, system_settings.is_sensitive),
+        `UPDATE system_settings
+         SET setting_value = $2,
              updated_at = now(),
-             updated_by = EXCLUDED.updated_by
+             updated_by = $3
+         WHERE setting_key = $1
          RETURNING *`,
-        [setting.setting_key, JSON.stringify(valueToSave), setting.description ?? '', setting.is_sensitive ?? false, req.admin?.id]
+        [setting.setting_key, JSON.stringify(valueToSave), req.admin?.id]
       );
+
+      if (!updateRes.rowCount) {
+        throw new HttpError(400, `La clave de configuracin '${setting.setting_key}' es invlida o no existe.`);
+      }
 
       const rawUpdatedRow = updateRes.rows[0];
       const rawOldRow = previousState.find((s: any) => s.setting_key === setting.setting_key);
