@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiRequest } from '../../lib/api';
-import { Monitor, Smartphone, Tablet, Trash2, ShieldCheck, Clock } from 'lucide-react';
+import { Monitor, Smartphone, Tablet, Trash2, UserCircle, Clock } from 'lucide-react';
 import AdminPanel from '../../components/admin/AdminPanel';
 
 interface Session {
@@ -19,7 +19,7 @@ interface Session {
   canRevoke: boolean;
 }
 
-const AdminSeguridad: React.FC = () => {
+const AdminPerfil: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -28,7 +28,7 @@ const AdminSeguridad: React.FC = () => {
   const fetchSessions = useCallback(async (showSpinner = false) => {
     if (showSpinner) setIsRefreshing(true);
     try {
-      const data = await apiRequest<{ sessions: Session[] }>('/auth/sessions');
+      const data = await apiRequest<{ sessions: Session[] }>('/auth/me/sessions');
       setSessions(data.sessions);
       if (error) setError('');
     } catch (err) {
@@ -54,7 +54,7 @@ const AdminSeguridad: React.FC = () => {
     setSessions(sessions.filter((s) => s.id !== sessionId));
 
     try {
-      await apiRequest(`/auth/sessions/${sessionId}/revoke`, { method: 'POST' });
+      await apiRequest(`/auth/me/sessions/${sessionId}/revoke`, { method: 'POST' });
     } catch (err) {
       // Revert if failed
       setSessions(previousSessions);
@@ -90,10 +90,10 @@ const AdminSeguridad: React.FC = () => {
     <div className="flex flex-col gap-6 font-sansation">
       <div className="flex items-center justify-between pb-4 border-b border-white/5">
         <div className="flex items-center gap-3">
-          <ShieldCheck className="h-6 w-6 text-white/50" />
+          <UserCircle className="h-6 w-6 text-white/50" />
           <div>
-            <h1 className="text-2xl font-semibold tracking-wide text-white/90">Seguridad</h1>
-            <p className="text-white/40 text-xs mt-1 uppercase tracking-widest">Dispositivos y sesiones activas</p>
+            <h1 className="text-2xl font-semibold tracking-wide text-white/90">Mi Perfil</h1>
+            <p className="text-white/40 text-xs mt-1 uppercase tracking-widest">Mis Dispositivos y Sesiones</p>
           </div>
         </div>
         <button
@@ -176,4 +176,4 @@ const AdminSeguridad: React.FC = () => {
   );
 };
 
-export default AdminSeguridad;
+export default AdminPerfil;

@@ -10,7 +10,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
-      - pr-network-${PR_NUMBER}
+      - pr_net
 
   backend-pr:
     build:
@@ -41,7 +41,7 @@ services:
     depends_on:
       - db-pr
     networks:
-      - pr-network-${PR_NUMBER}
+      - pr_net
       - bytecode-network
 
   frontend-pr:
@@ -53,11 +53,12 @@ services:
     container_name: bytecode-frontend-pr-${PR_NUMBER}
     restart: always
     networks:
-      - pr-network-${PR_NUMBER}
+      - pr_net
       - bytecode-network
 
 networks:
-  pr-network-${PR_NUMBER}:
+  pr_net:
+    name: pr-network-${PR_NUMBER}
     driver: bridge
   bytecode-network:
     # Se conecta a la red compartida del Caddy de producción

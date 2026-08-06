@@ -17,3 +17,5 @@ jobs:
           git reset --hard origin/main
           docker compose build --no-cache
           docker compose up -d
+          sleep 5
+          docker compose exec -T backend node apps/api/dist/db/migrate.js

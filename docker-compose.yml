@@ -29,7 +29,11 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile
     container_name: bytecode-backend
+    user: "root"
     restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/www/web-bytecode:/var/www/web-bytecode
     environment:
       NODE_ENV: production
       PORT: 4000

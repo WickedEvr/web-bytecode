@@ -55,8 +55,7 @@ const Contacto: React.FC = () => {
         setAllCountries(countriesData);
         setAllDocumentTypes(docTypesData);
         
-        const filteredServices = servicesData.filter(s => s.code !== 'custom_software');
-        setAllServices(filteredServices.map(s => ({ value: s.code, label: s.name })));
+        setAllServices(servicesData.map(s => ({ value: s.code, label: s.name })));
       } catch (error) {
         console.error('Error fetching catalogs:', error);
       } finally {

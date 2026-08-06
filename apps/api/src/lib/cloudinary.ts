@@ -146,6 +146,60 @@ export async function uploadPortfolioImageToCloudinary(input: {
   });
 }
 
+export async function uploadPaymentReceiptToCloudinary(input: {
+  buffer: Buffer;
+  projectCode: string;
+  originalName: string;
+  mimeType: string;
+}): Promise<CloudinaryStoredAsset> {
+  await configureCloudinary();
+  const resourceType = resourceTypeForMime(input.mimeType);
+
+  return new Promise((resolve, reject) => {
+    let isSettled = false;
+    const fail = (error: unknown) => {
+      if (isSettled) return;
+      isSettled = true;
+      clearTimeout(timeout);
+      reject(error);
+    };
+    const timeout = setTimeout(() => {
+      stream.destroy(new Error('Cloudinary upload timed out.'));
+      fail(new Error('Cloudinary upload timed out.'));
+    }, CLOUDINARY_UPLOAD_TIMEOUT_MS);
+
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: 'bytecode/payments',
+        public_id: createPublicId(input.projectCode),
+        resource_type: resourceType,
+        overwrite: false,
+        use_filename: false,
+        unique_filename: false,
+        filename_override: input.originalName,
+      },
+      (error, result?: UploadApiResponse) => {
+        if (error || !result) {
+          fail(error ?? new Error('Cloudinary upload did not return a result.'));
+          return;
+        }
+
+        if (isSettled) return;
+        isSettled = true;
+        clearTimeout(timeout);
+        resolve({
+          publicId: result.public_id,
+          secureUrl: result.secure_url,
+          bytes: result.bytes,
+          resourceType,
+        });
+      },
+    );
+
+    stream.end(input.buffer);
+  });
+}
+
 export async function deleteCloudinaryAsset(publicId: string, resourceType: CloudinaryResourceType) {
   await configureCloudinary();
   await cloudinary.uploader.destroy(publicId, {

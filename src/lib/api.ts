@@ -206,6 +206,7 @@ export interface AdminPortfolioItemData {
   is_featured: boolean;
   status: string;
   status_name?: string;
+  isTerminal?: boolean;
   image_url: string | null;
   alt_text: string | null;
   technologies: Array<{ id: string; name: string }>;
@@ -238,11 +239,26 @@ export interface Project {
   currency_code: string;
   status: string;
   status_name?: string;
+  isTerminal?: boolean;
   customer_name: string | null;
   customer_email: string | null;
   service_name: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface MilestonePayment {
+  id: string;
+  milestone_id: string;
+  amount_paid: string | number;
+  currency_code: string;
+  payment_method: string;
+  reference_number: string | null;
+  receipt_file_id: string | null;
+  receipt_url?: string | null;
+  paid_at: string;
+  status: string;
+  created_at: string;
 }
 
 export interface ProjectMilestone {
@@ -254,8 +270,10 @@ export interface ProjectMilestone {
   completed_at: string | null;
   status: string;
   status_name?: string;
+  isTerminal?: boolean;
   created_at: string;
   updated_at: string;
+  payments?: MilestonePayment[];
 }
 
 export interface ProjectCommit {
@@ -380,8 +398,20 @@ export const fetchProjectQuotesByEmail = (email: string) =>
 export const fetchProjectMilestones = (projectId: string) =>
   apiRequest<{ items: ProjectMilestone[] }>(`/admin/projects/${projectId}/milestones`).then((response) => response.items);
 
+export const createProjectMilestone = (projectId: string, data: { title: string; dueDate: string; paymentPercentage: number; statusId: string }) =>
+  apiRequest<{ id: string }>(`/admin/projects/${projectId}/milestones`, {
+    method: 'POST',
+    json: data,
+  });
+
 export const updateProjectMilestone = (projectId: string, milestoneId: string, status: string) =>
   apiRequest(`/admin/projects/${projectId}/milestones/${milestoneId}`, { method: 'PATCH', json: { status } });
+
+export const createMilestonePayment = (projectId: string, milestoneId: string, data: FormData) =>
+  apiRequest<{ id: string }>(`/admin/projects/${projectId}/milestones/${milestoneId}/payments`, {
+    method: 'POST',
+    body: data,
+  });
 
 export const fetchProjectCommits = (projectId: string) =>
   apiRequest<{ items: ProjectCommit[] }>(`/admin/projects/${projectId}/commits`).then((response) => response.items);

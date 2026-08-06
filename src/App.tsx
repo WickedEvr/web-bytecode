@@ -38,6 +38,7 @@ const AdminConfiguracion = lazy(() => import('./pages/admin/Configuracion'));
 const AdminSeguridad = lazy(() => import('./pages/admin/Seguridad'));
 const AdminCMS = lazy(() => import('./pages/admin/CMS'));
 const AdminAuditoria = lazy(() => import('./pages/admin/Auditoria'));
+const AdminPerfil = lazy(() => import('./pages/admin/Perfil'));
 
 const NotFound = lazy(() => import('./pages/NotFound'));
 
@@ -45,6 +46,16 @@ const ScrollToTop = () => {
   const { pathname } = useLocation();
   useEffect(() => {
     window.scrollTo(0, 0);
+
+    // Google Analytics: Track page views manually (excluding admin routes)
+    if (!pathname.startsWith('/admin') && typeof (window as any).gtag === 'function') {
+      setTimeout(() => {
+        (window as any).gtag('event', 'page_view', {
+          page_path: pathname,
+          page_title: document.title,
+        });
+      }, 100);
+    }
   }, [pathname]);
   return null;
 };
@@ -105,6 +116,7 @@ const App: React.FC = () => {
             <Route path="seguridad" element={<RoleGuard requiredPermission="admin.seguridad.view"><AdminSeguridad /></RoleGuard>} />
             <Route path="cms" element={<RoleGuard requiredPermission="admin.cms.view"><AdminCMS /></RoleGuard>} />
             <Route path="auditoria" element={<RoleGuard requiredPermission="admin.auditoria.view"><AdminAuditoria /></RoleGuard>} />
+            <Route path="perfil" element={<AdminPerfil />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

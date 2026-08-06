@@ -24,6 +24,7 @@ import {
 import { allowsMultipleQuantity, computeQuoteTotals, formatPen, quoteLegalNotes, requiresCustomPrice, useQuoterState, type NormalizedPricingCatalogItem, type PreparedQuotePayload, type PricingCatalogItem } from '../../hooks/useQuoterState';
 
 type DynamicQuoterProps = {
+  isReadOnly?: boolean;
   initialCatalog: PricingCatalogItem[];
   customerName: string;
   customerEmail: string;
@@ -145,6 +146,7 @@ const DynamicQuoter = ({
   onNotesChange,
   onCancel,
   onGenerate,
+  isReadOnly = false,
 }: DynamicQuoterProps) => {
   const [activeItem, setActiveItem] = useState<NormalizedPricingCatalogItem | null>(null);
   const setCatalog = useQuoterState((state) => state.setCatalog);
@@ -223,6 +225,7 @@ const DynamicQuoter = ({
             required
             value={customerName}
             onChange={(event) => onCustomerNameChange(event.target.value)}
+            disabled={isReadOnly}
             className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition-colors focus:border-[#06CFD6]/70"
           />
         </label>
@@ -233,6 +236,7 @@ const DynamicQuoter = ({
             required
             value={customerEmail}
             onChange={(event) => onCustomerEmailChange(event.target.value)}
+            disabled={isReadOnly}
             className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition-colors focus:border-[#06CFD6]/70"
           />
         </label>
@@ -242,6 +246,7 @@ const DynamicQuoter = ({
             type="text"
             value={notes}
             onChange={(event) => onNotesChange(event.target.value)}
+            disabled={isReadOnly}
             className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition-colors focus:border-[#06CFD6]/70"
           />
         </label>
@@ -250,7 +255,8 @@ const DynamicQuoter = ({
       {primaryFieldsAfter}
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => setActiveItem(null)}>
-        <div className="grid gap-6 xl:grid-cols-[minmax(300px,0.92fr)_minmax(420px,1.08fr)]">
+        <div className={`grid gap-6 ${isReadOnly ? "xl:grid-cols-1" : "xl:grid-cols-[minmax(300px,0.92fr)_minmax(420px,1.08fr)]"}`}>
+            {!isReadOnly && (
           <section className="rounded-xl border border-white/10 bg-black/20 p-5">
             <div className="mb-5 flex items-center justify-between gap-3">
               <div>
@@ -282,8 +288,14 @@ const DynamicQuoter = ({
               })}
             </div>
           </section>
+            )}
 
-          <Dropzone>
+            <Dropzone>
+              {isReadOnly && (
+                <p className="mb-4 text-center text-sm font-bold text-red-400 bg-red-400/10 p-3 rounded-lg border border-red-400/20">
+                  Esta cotización está cerrada y no admite modificaciones.
+                </p>
+              )}
             <div className="mb-5 flex flex-col gap-3 border-b border-white/10 pb-5 md:flex-row md:items-start md:justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-white/90">{totals.title}</h3>
@@ -354,6 +366,7 @@ const DynamicQuoter = ({
                             min={1}
                             value={quantity}
                             onChange={(event) => updateQuantity(item.id, Number(event.target.value))}
+                              disabled={isReadOnly}
                             className="h-10 w-24 rounded-lg border border-white/10 bg-white/5 px-3 text-center text-sm text-white/90 outline-none focus:border-[#06CFD6]/70"
                           />
                         ) : (
@@ -372,6 +385,7 @@ const DynamicQuoter = ({
                               step={50}
                               inputMode="decimal"
                               value={customPrice ?? ''}
+                                disabled={isReadOnly}
                               onChange={(event) => setCustomPrice(
                                 itemCode,
                                 event.target.value === '' ? Number.NaN : Number(event.target.value),
@@ -404,14 +418,14 @@ const DynamicQuoter = ({
                       {lockedLine ? (
                         <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 text-white/25">-</span>
                       ) : (
-                        <button
+                        !isReadOnly ? (<button
                           type="button"
                           onClick={() => removeItem(item.id)}
                           className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 text-white/45 transition-colors hover:border-red-400/40 hover:bg-red-500/10 hover:text-red-200"
                           aria-label={`Eliminar ${item.name}`}
                         >
                           <Trash2 className="h-4 w-4" />
-                        </button>
+                        </button>) : null
                       )}
                     </div>
                     <div className="mt-3 flex justify-end border-t border-white/5 pt-3 font-mono text-sm text-white/80">
@@ -486,14 +500,14 @@ const DynamicQuoter = ({
           <X className="h-4 w-4" />
           Cancelar
         </button>
-        <button
+        {!isReadOnly && (<button
           type="submit"
           disabled={loading || !totals.activeBaseSource}
           className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black transition-colors hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Save className="h-4 w-4" />
           {loading ? 'Guardando...' : editingQuoteId ? 'Actualizar Cotizacion' : 'Guardar Cotizacion'}
-        </button>
+        </button>)}
       </div>
     </form>
   );

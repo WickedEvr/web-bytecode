@@ -1,244 +1,188 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useRef } from 'react';
+import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
+import { ArrowUpRight, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import AltFooter from '../components/layout/AltFooter';
 import SEO from '../components/shared/SEO';
 
-const services = [
+type Service = {
+  title: string;
+  eyebrow: string;
+  description: string;
+  benefits: string[];
+  image: string;
+  imageAlt: string;
+};
+
+const services: Service[] = [
   {
-    label: 'Servicios',
-    title: 'Página Web',
+    eyebrow: 'Experiencias web',
+    title: 'Páginas web que convierten visitas en oportunidades',
     description:
-      'Creamos soluciones digitales multiplataforma que fusionan estética de vanguardia con arquitectura técnica robusta y escalable.',
-    img: 'https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?auto=format&fit=crop&w=2560&q=90',
-    imgMobile: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&h=1200&q=90&crop=top',
+      'Diseñamos y desarrollamos experiencias digitales rápidas, claras y memorables, pensadas para comunicar el valor de tu marca y acompañar cada decisión del usuario.',
+    benefits: [
+      'Diseño estratégico alineado a tu marca',
+      'Experiencia responsive y accesible',
+      'Arquitectura preparada para crecer',
+    ],
+    image:
+      'https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?auto=format&fit=crop&w=1600&q=88',
+    imageAlt: 'Equipo analizando una experiencia web en pantallas',
   },
   {
-    label: 'Servicios',
-    title: 'App Móvil',
+    eyebrow: 'Aplicaciones móviles',
+    title: 'Productos móviles que las personas disfrutan usar',
     description:
-      'Desarrollamos aplicaciones nativas e híbridas con experiencias de usuario excepcionales para iOS y Android.',
-    img: 'https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=2560&q=90',
-    imgMobile: 'https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=800&h=1200&q=90&crop=top',
+      'Creamos aplicaciones nativas e híbridas para iOS y Android con flujos intuitivos, una interfaz cuidada y una base técnica sólida para evolucionar junto a tu negocio.',
+    benefits: [
+      'Experiencias fluidas y centradas en el usuario',
+      'Integraciones seguras con tus sistemas',
+      'Rendimiento optimizado en cada dispositivo',
+    ],
+    image:
+      'https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=1600&q=88',
+    imageAlt: 'Aplicación móvil presentada en un smartphone',
   },
   {
-    label: 'Servicios',
-    title: 'App de Escritorio',
+    eyebrow: 'Software de escritorio',
+    title: 'Herramientas robustas para operaciones más eficientes',
     description:
-      'Desarrollamos aplicaciones de escritorio con interfaces intuitivas y funcionalidades avanzadas.',
-    img: '/images/showcase/DesktopApp.webp',
-    imgMobile: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&h=1200&q=90&crop=top',
+      'Desarrollamos software de escritorio a medida para simplificar procesos complejos, centralizar información y darle a tu equipo el control que necesita para avanzar.',
+    benefits: [
+      'Flujos adaptados a tu operación real',
+      'Interfaces intuitivas y fáciles de adoptar',
+      'Seguridad, estabilidad y soporte evolutivo',
+    ],
+    image: '/images/showcase/DesktopApp.webp',
+    imageAlt: 'Panel de una aplicación de escritorio desarrollada a medida',
   },
 ];
 
-const Servicios: React.FC = () => {
-  const [current, setCurrent] = useState(0);
-  const total = services.length;
+const revealTransition = {
+  duration: 0.65,
+  ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+};
 
-  const prev = () => setCurrent((c) => (c - 1 + total) % total);
-  const next = React.useCallback(() => setCurrent((c) => (c + 1) % total), [total]);
-
-  useEffect(() => {
-    const autoplayTimer = setInterval(() => {
-      next();
-    }, 5000); 
-    return () => clearInterval(autoplayTimer);
-  }, [current, next]);
-
-  const titleSizes = {
-    'Página Web': 'text-[2.3rem] md:text-[3.6rem] sm:text-[2.8rem] lg:text-5xl xl:text-[5rem]'
-  };
-
-  const title = services[current].title;
-  const sizeClass = titleSizes[title as keyof typeof titleSizes] || 'text-[2.6rem] sm:text-[3.2rem] md:text-[3.6rem] lg:text-6xl xl:text-[5rem]';
+const ServiceBlock: React.FC<{ service: Service; index: number }> = ({ service, index }) => {
+  const imageRef = useRef<HTMLDivElement>(null);
+  const reduceMotion = useReducedMotion();
+  const isReversed = index % 2 === 1;
+  const { scrollYProgress } = useScroll({
+    target: imageRef,
+    offset: ['start end', 'end start'],
+  });
+  const imageY = useTransform(scrollYProgress, [0, 1], [-18, 18]);
 
   return (
-    <div className="w-full bg-white font-sansation overflow-x-hidden flex flex-col select-none">
-      <SEO 
-        title="Servicios" 
-        description="Descubre nuestros servicios de desarrollo de páginas web, aplicaciones móviles y software de escritorio a medida."
+    <article className="relative overflow-hidden">
+      <div className="pointer-events-none absolute -top-32 right-[-10rem] h-80 w-80 rounded-full bg-[#06CFD6]/10 blur-3xl" />
+
+      <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 px-5 py-20 sm:px-8 sm:py-24 md:gap-14 md:px-10 lg:min-h-[720px] lg:grid-cols-2 lg:gap-20 lg:px-12 lg:py-28 xl:px-8">
+        <motion.div
+          initial={reduceMotion ? false : { opacity: 0, x: isReversed ? 36 : -36, y: 12 }}
+          whileInView={{ opacity: 1, x: 0, y: 0 }}
+          viewport={{ once: true, amount: 0.25 }}
+          transition={revealTransition}
+          className={isReversed ? 'lg:order-2' : 'lg:order-1'}
+        >
+          <div className="mb-5 flex items-center gap-3">
+            <span className="h-px w-9 bg-[#0CA3C6]" aria-hidden="true" />
+            <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#0CA3C6] sm:text-base">
+              {service.eyebrow}
+            </p>
+          </div>
+
+          <h2 className="max-w-xl text-[clamp(2.15rem,5vw,4.25rem)] font-bold leading-[1.02] tracking-[-0.035em] text-white">
+            {service.title}
+          </h2>
+
+          <p className="mt-6 max-w-xl text-base font-light leading-8 text-white/70 sm:text-lg sm:leading-8">
+            {service.description}
+          </p>
+
+          <ul className="mt-8 grid gap-4" aria-label={`Beneficios de ${service.eyebrow}`}>
+            {service.benefits.map((benefit, benefitIndex) => (
+              <motion.li
+                key={benefit}
+                initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ ...revealTransition, delay: 0.08 * benefitIndex }}
+                className="flex items-start gap-3 text-base text-white/85 sm:text-lg"
+              >
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#06CFD6]/15 text-[#06CFD6] ring-1 ring-[#06CFD6]/20">
+                  <Check size={15} strokeWidth={3} aria-hidden="true" />
+                </span>
+                <span>{benefit}</span>
+              </motion.li>
+            ))}
+          </ul>
+
+          <Link
+            to="/contacto"
+            aria-label={`Conversemos sobre ${service.eyebrow}`}
+            className="group mt-10 inline-flex min-h-13 w-full items-center justify-center gap-2 rounded-[22px] bg-[#06CFD6] px-7 py-3.5 text-base font-bold text-white shadow-[0_10px_30px_rgba(6,207,214,0.24)] outline-none transition-all duration-300 hover:-translate-y-1 hover:bg-[#0CA3C6] hover:shadow-[0_16px_36px_rgba(12,163,198,0.3)] focus-visible:ring-4 focus-visible:ring-[#06CFD6]/30 active:translate-y-0 sm:w-auto sm:text-lg"
+          >
+            Hablemos de tu proyecto
+            <ArrowUpRight
+              size={20}
+              aria-hidden="true"
+              className="transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+            />
+          </Link>
+        </motion.div>
+
+        <motion.div
+          ref={imageRef}
+          initial={reduceMotion ? false : { opacity: 0, x: isReversed ? -36 : 36, y: 18 }}
+          whileInView={{ opacity: 1, x: 0, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ ...revealTransition, delay: 0.08 }}
+          className={`relative order-first ${isReversed ? 'lg:order-1' : 'lg:order-2'}`}
+        >
+          <div className="absolute -inset-4 rounded-[2.4rem] bg-[linear-gradient(145deg,rgba(6,207,214,0.24),rgba(12,163,198,0.03))] blur-xl" />
+          <div className="relative aspect-[4/3] overflow-hidden rounded-[2rem] bg-[#071426] shadow-[0_28px_70px_rgba(0,0,0,0.38)] sm:rounded-[2.5rem] lg:aspect-[5/4]">
+            <motion.img
+              src={service.image}
+              alt={service.imageAlt}
+              loading={index === 0 ? 'eager' : 'lazy'}
+              fetchPriority={index === 0 ? 'high' : 'auto'}
+              decoding="async"
+              draggable={false}
+              style={reduceMotion ? undefined : { y: imageY }}
+              className="h-[calc(100%+36px)] w-full -translate-y-[18px] object-cover transition-transform duration-700 ease-out hover:scale-[1.025]"
+            />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-[#020611]/30 via-transparent to-[#06CFD6]/10" />
+            <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/20" />
+          </div>
+          <div className={`absolute -bottom-5 ${isReversed ? '-left-3' : '-right-3'} h-20 w-20 rounded-[1.5rem] bg-[#0CA3C6] shadow-[0_14px_30px_rgba(12,163,198,0.28)] sm:h-24 sm:w-24`} aria-hidden="true">
+            <div className="absolute inset-4 rounded-full border border-white/45" />
+            <div className="absolute left-1/2 top-1/2 h-px w-8 -translate-x-1/2 -translate-y-1/2 bg-white/70" />
+          </div>
+        </motion.div>
+      </div>
+    </article>
+  );
+};
+
+const Servicios: React.FC = () => {
+  return (
+    <div className="w-full overflow-x-hidden bg-[#020611] font-sansation">
+      <SEO
+        title="Servicios"
+        description="Diseño y desarrollo de páginas web, aplicaciones móviles y software de escritorio a medida."
       />
 
-      <div className="flex-grow flex flex-col">
-
-        {/* ── SECCIÓN PRINCIPAL UNIFICADA (Mobile-First) ── */}
-        <section className="relative flex flex-col h-[calc(100vh-3rem)] lg:h-[calc(100vh-5.5rem)] bg-[#020611] overflow-hidden">
-          
-          {/* CAPA 1: Imágenes de fondo dinámicas */}
-          <div className="absolute inset-0 z-0">
-            <AnimatePresence>
-              <motion.div
-                key={current}
-                initial={{ opacity: 0, scale: 1.04 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.97 }}
-                transition={{ duration: 0.7, ease: 'easeInOut' }}
-                className="absolute inset-0"
-              >
-                {/* Imagen Móvil */}
-                <img
-                  src={services[current].imgMobile} 
-                  alt={services[current].title}
-                  draggable={false}
-                  className="w-full h-full object-cover opacity-70 lg:hidden"
-                />
-                {/* Imagen Escritorio */}
-                <img
-                  src={services[current].img}
-                  alt={services[current].title}
-                  draggable={false}
-                  className="hidden lg:block w-full h-full object-cover"
-                />
-              </motion.div>
-            </AnimatePresence>
-            
-            {/* Degradados protectores unificados */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent lg:hidden" />
-            <div className="hidden lg:block absolute inset-0 bg-black/10" />
-            <div className="hidden lg:block absolute bottom-0 left-0 right-0 h-3/4 bg-gradient-to-t from-[#020611] via-[#020611]/80 to-transparent" />
-          </div>
-
-          {/* Flechas Laterales (Solo Escritorio) */}
-          <button onClick={prev} className="hidden lg:block absolute left-10 top-1/2 -translate-y-1/2 [@media(max-height:720px)]:top-[40%] z-20 text-white/70 transition-all duration-300 group outline-none lg:hover:text-[#06CFD6] lg:hover:scale-110 lg:hover:drop-shadow-[0_0_18px_rgba(6,207,214,0.8)]" aria-label="Anterior">
-            <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}>
-              <svg viewBox="7 4 10 16" className="w-16 h-28" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
-            </motion.div>
-          </button>
-          <button onClick={next} className="hidden lg:block absolute right-10 top-1/2 -translate-y-1/2 [@media(max-height:720px)]:top-[40%] z-20 text-white/70 transition-all duration-300 group outline-none lg:hover:text-[#06CFD6] lg:hover:scale-110 lg:hover:drop-shadow-[0_0_18px_rgba(6,207,214,0.8)]" aria-label="Siguiente">
-            <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}>
-              <svg viewBox="7 4 10 16" className="w-16 h-28" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
-            </motion.div>
-          </button>
-
-          {/* CAPA 3: Contenido e Interacción */}
-          <div className="relative z-10 flex-1 flex flex-col lg:justify-end px-6 lg:px-8 xl:px-16 pt-[clamp(4rem,10vh,7rem)] lg:pt-0 pb-[clamp(2rem,6vh,4rem)] lg:pb-20 [@media(max-height:720px)]:lg:pb-10">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={`content-${current}`}
-                initial={{ opacity: 0, y: 24, x: 0 }}
-                animate={{ opacity: 1, y: 0, x: 0 }}
-                exit={{ opacity: 0, y: -12, x: 0 }}
-                transition={{ duration: 0.5, ease: 'easeInOut' }}
-                className="mt-auto lg:mt-0 flex flex-col lg:flex-row items-center lg:items-end justify-between w-full lg:max-w-7xl lg:mx-auto gap-6 lg:gap-16 [@media(max-height:720px)]:lg:gap-8"
-              >
-                {/* IZQUIERDA — Info del servicio */}
-                <div className="flex flex-col items-center lg:items-start text-center lg:text-left w-full lg:flex-1 lg:max-w-2xl -mt-50 [@media(max-height:720px)]:-mt-10">
-                  <p className="text-white/90 lg:text-white text-[1.5rem] md:text-[1.8rem] lg:text-2xl xl:text-3xl font-light tracking-wide mb-1 lg:mb-2">
-                    {services[current].label}
-                  </p>
-
-                  {/* Contenedor Título + Flechas Móviles */}
-                  <div className="flex items-center justify-between w-full lg:w-auto mb-5 lg:mb-6">
-                    <button onClick={prev} className="lg:hidden -ml-3 p-2 text-gray-300 active:scale-90 transition-all outline-none lg:hover:text-white" aria-label="Anterior">
-                      <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}>
-                        <svg viewBox="0 0 24 24" className="w-11 h-11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
-                      </motion.div>
-                    </button>
-                      
-                    <h2
-                      className={`px-2 lg:px-0 font-bold text-[#06CFD6] lg:text-[#0CA3C6] leading-tight lg:leading-none tracking-tight drop-shadow-lg lg:drop-shadow-none ${sizeClass}`}
-                    >
-                      {services[current].title}
-                    </h2>
-                    
-                    <button onClick={next} className="lg:hidden -mr-3 p-2 text-gray-300 active:scale-90 transition-all outline-none lg:hover:text-white" aria-label="Siguiente">
-                      <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}>
-                        <svg viewBox="0 0 24 24" className="w-11 h-11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
-                      </motion.div>
-                    </button>
-                  </div>
-
-                  <p className="text-white/90 text-[1rem] sm:text-[1.1rem] md:text-[1.5rem] lg:text-lg xl:text-xl leading-relaxed font-light text-justify lg:text-left mb-5 lg:mb-0 w-full px-2 lg:px-0 drop-shadow-md lg:drop-shadow-none">
-                    {services[current].description}
-                  </p>
-                </div>
-
-                {/* CENTRO — Línea separadora vertical (Solo Escritorio) */}
-                <div className="hidden lg:block w-[1.5px] self-stretch bg-white/50 mx-4"></div>
-
-                {/* DERECHA — Call to Action */}
-                <div className="w-full lg:w-auto lg:shrink-0 flex flex-col items-center justify-center text-center lg:min-w-[300px] -mt-5">
-                  <p className="text-white font-bold text-[clamp(1rem,4.5vw,1.25rem)] md:text-[clamp(1.2rem,5vw,1.5rem)] lg:text-2xl xl:text-3xl mb-3 min-[400px]:mb-4 lg:mb-6 leading-tight drop-shadow-md lg:drop-shadow-none">
-                    Obtén mucha más <br className="hidden lg:block" />
-                    información
-                  </p>
-                  <Link
-                    to="/contacto"
-                    className="w-full lg:w-auto inline-block text-center bg-[#06CFD6] text-white font-bold text-[1.5rem] md:text-[2rem] min-[400px]:text-[1.35rem] lg:text-2xl xl:text-3xl px-8 lg:px-24 py-3 min-[400px]:py-4 lg:py-5 rounded-[1.5rem] lg:rounded-[20px] shadow-[0_4px_15px_rgba(6,207,214,0.3)] lg:shadow-[0_4px_15px_rgba(6,207,214,0.4)] lg:hover:bg-[#0CA3C6] lg:hover:shadow-[0_8px_25px_rgba(6,207,214,0.6)] lg:hover:-translate-y-1 active:scale-95 lg:active:translate-y-0 lg:active:scale-100 transition-all duration-300 outline-none"
-                  >
-                    Conectar
-                  </Link>
-                </div>
-              </motion.div>
-            </AnimatePresence>
-          </div>
+      <main>
+        <section className="bg-[#020611]" aria-label="Nuestros servicios">
+          {services.map((service, index) => (
+            <ServiceBlock key={service.title} service={service} index={index} />
+          ))}
         </section>
+      </main>
 
-        {/* ── HERRAMIENTAS ── */}
-        <section className="bg-white pb-12 px-6" style={{ position: 'relative', zIndex: 20, paddingTop: '3rem' }}>
-          <div className="w-full md:w-[85%] mx-auto flex flex-col items-center">
-            {/* Mobile exact group */}
-            <div className="md:hidden relative w-[358px] flex items-center justify-center mb-8">
-              <div className="absolute left-0 w-[93px]" style={{ height: 0, border: '2px solid rgba(60, 60, 59, 0.69)' }} />
-              <h2
-                className="w-[178px]"
-                style={{ fontFamily: 'Sansation', fontStyle: 'normal', fontWeight: 700, fontSize: '24px', lineHeight: '27px', textAlign: 'center', color: '#3C3C3B', flexShrink: 0, zIndex: 1 }}
-              >
-                Nuestras Herramientas
-              </h2>
-              <div className="absolute right-0 w-[93px]" style={{ height: 0, border: '2px solid rgba(60, 60, 59, 0.69)' }} />
-            </div>
-
-            {/* Desktop fluid group */}
-            <div className="hidden md:flex items-center gap-3 mb-16 w-full">
-              <div className="flex-1 h-0 border-t-[2px] border-[#3C3C3B]" />
-              <h2
-                style={{ fontFamily: 'Sansation', fontWeight: 700, fontSize: 'clamp(1.2rem, 3.5vw, 2.5rem)', lineHeight: 1.2, textAlign: 'center', color: '#3C3C3B', flexShrink: 0, padding: '0 0.5rem' }}
-              >
-                Nuestras Herramientas
-              </h2>
-              <div className="flex-1 h-0 border-t-[2px] border-[#3C3C3B]" />
-            </div>
-          </div>
-
-          {/* TODO(CSP): Move this embedded <style> block to a static stylesheet before enforcing CSP. */}
-          <style>{`
-            @keyframes marquee-scroll {
-              0%   { transform: translateX(0); }
-              100% { transform: translateX(-25%); }
-            }
-            .logos-track {
-              display: flex;
-              flex-wrap: nowrap;
-              align-items: center;
-              width: max-content;
-              animation: marquee-scroll 18s linear infinite;
-            }
-            .logos-track img {
-              margin: 0 clamp(1.2rem, 3vw, 2.5rem);
-              flex-shrink: 0;
-            }
-          `}</style>
-
-          <div className="relative w-[90vw] mx-auto overflow-hidden opacity-80 [mask-image:linear-gradient(to_right,transparent_0%,black_10%,black_90%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,transparent_0%,black_10%,black_90%,transparent_100%)]">
-            <div className="logos-track">
-              {[0, 1, 2, 3].map(copy => (
-                <React.Fragment key={copy}>
-                  <img src="/vectors/logos/brands/laravel.svg" alt={copy === 0 ? 'Laravel' : ''} aria-hidden={copy !== 0} draggable={false} className="h-[clamp(28px,4.7vw,54px)] w-auto grayscale" />
-                  <img src="/vectors/logos/brands/github.svg"  alt={copy === 0 ? 'GitHub' : ''}  aria-hidden={copy !== 0} draggable={false} className="h-[clamp(30px,4.9vw,56px)] w-auto grayscale" />
-                  <img src="/vectors/logos/brands/php.svg"     alt={copy === 0 ? 'PHP' : ''}     aria-hidden={copy !== 0} draggable={false} className="h-[clamp(36px,6.6vw,76px)] w-auto grayscale" />
-                  <img src="/vectors/logos/brands/JAVA.svg"    alt={copy === 0 ? 'Java' : ''}    aria-hidden={copy !== 0} draggable={false} className="h-[clamp(40px,7.5vw,86px)] w-auto grayscale" />
-                  <img src="/vectors/logos/brands/mongodb.svg" alt={copy === 0 ? 'MongoDB' : ''} aria-hidden={copy !== 0} draggable={false} className="h-[clamp(44px,8vw,92px)] w-auto grayscale" />
-                </React.Fragment>
-              ))}
-            </div>
-          </div>
-        </section>
-      </div>
-
-      {/* Footer con degradado blanco → oscuro */}
       <div className="relative w-full">
-        <div className="absolute inset-0 bg-gradient-to-b from-white from-50% to-[#020611] z-0" aria-hidden="true"></div>
+        <div className="absolute inset-0 z-0 bg-[#020611]" aria-hidden="true" />
         <div className="relative z-10">
           <AltFooter />
         </div>

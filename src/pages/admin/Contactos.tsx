@@ -5,6 +5,7 @@ import { apiRequest } from '../../lib/api';
 import StatusHistoryTimeline from '../../components/admin/StatusHistoryTimeline';
 import Timeline from '../../components/ui/Timeline';
 import PaginationControl from '../../components/ui/PaginationControl';
+import { useTerminalState } from '../../hooks/useTerminalState';
 import type { StatusHistoryRecord } from '../../types/status';
 
 export interface ContactCase {
@@ -85,6 +86,7 @@ const Contactos: React.FC = () => {
   const [contacts, setContacts] = useState<ContactItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<DetailItem | null>(null);
+  const { isReadOnly, formProps } = useTerminalState({ isTerminal: Boolean(detail?.isTerminal) });
   const [notes, setNotes] = useState('');
   const [status, setStatus] = useState('new');
   const [listLoading, setListLoading] = useState(false);
@@ -231,27 +233,30 @@ const Contactos: React.FC = () => {
                   <div className="w-full rounded-lg bg-white/5 border border-white/5 px-3 py-2.5 text-sm text-white/40 text-center animate-pulse">Asignando...</div>
                 ) : (
                   <CustomDropdown
-                    value={String(detail.assigned_to ?? '')}
-                    placeholder="Seleccionar..."
-                    onChange={handleAssignCase}
-                    options={adminsList}
-                  />
+                            value={String(detail.assigned_to ?? "")}
+                            placeholder="Seleccionar..."
+                            onChange={handleAssignCase}
+                            options={adminsList}
+                            disabled={isReadOnly}
+                          />
                 )}
               </div>
               <div>
                 <label className="mb-1.5 block text-[10px] uppercase tracking-wider text-white/40">Estado</label>
                 <CustomDropdown
-                  value={status}
-                  placeholder="Seleccionar estado..."
-                  onChange={(val) => setStatus(val)}
-                  options={statuses}
-                />
+                          value={status}
+                          placeholder="Seleccionar estado..."
+                          onChange={(val) => setStatus(val)}
+                          options={statuses}
+                          disabled={isReadOnly}
+                        />
               </div>
             </div>
             <div>
               <label className="mb-1.5 block text-[10px] uppercase tracking-wider text-white/40">Notas</label>
               <textarea
-                value={notes}
+                        {...formProps}
+                        value={notes}
                 onChange={(event) => setNotes(event.target.value)}
                 rows={2}
                 placeholder="Observaciones..."
@@ -272,9 +277,13 @@ const Contactos: React.FC = () => {
             ) : (
               <div />
             )}
-            <button onClick={handleSave} className="flex items-center justify-center gap-2 rounded-lg bg-white text-black py-2.5 text-sm font-medium transition hover:bg-white/90">
+            {isReadOnly ? (
+              <p className="text-red-400 font-bold text-xs flex items-center justify-center">El caso está cerrado.</p>
+            ) : (
+              <button onClick={handleSave} className="flex items-center justify-center gap-2 rounded-lg bg-white text-black py-2.5 text-sm font-medium transition hover:bg-white/90">
               Guardar
             </button>
+            )}
           </div>
         </div>
       </div>
