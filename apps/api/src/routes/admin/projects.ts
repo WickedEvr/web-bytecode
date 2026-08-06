@@ -207,9 +207,11 @@ projectsRouter.post(
   asyncHandler(async (req: Request, res: Response) => {
     const body = projectCreateSchema.parse(req.body);
     const { id: statusId } = await getProjectStatusInfo(pool, body.status);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    
     if (body.quoteId) {
       const quote = await pool.query(
-        `SELECT q.id
+        `SELECT q.id, q.total_amount, q.currency_code
          FROM quotes q
          JOIN customers quote_customer ON quote_customer.id = q.customer_id
          JOIN customers project_customer ON project_customer.id = $2
@@ -219,11 +221,16 @@ projectsRouter.post(
       );
       if (!quote.rowCount) throw new HttpError(400, 'La cotizacion no pertenece al cliente seleccionado.');
       
+      body.totalBudget = Number(quote.rows[0].total_amount);
+      body.currencyCode = quote.rows[0].currency_code;
+      
       const existingProject = await pool.query(
         `SELECT id FROM projects WHERE quote_id = $1 AND deleted_at IS NULL`,
         [body.quoteId]
       );
       if (existingProject.rowCount) throw new HttpError(400, 'Esta cotización ya se encuentra asignada a un proyecto registrado.');
+    } else if (isRestrictedDeveloper) {
+      body.totalBudget = 0;
     }
     const result = await pool.query(
       `INSERT INTO projects (
@@ -279,8 +286,7 @@ projectsRouter.patch(
       await client.query('BEGIN');
       const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
       if (isRestrictedDeveloper) {
-        const assignmentCheck = await client.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [id, req.admin?.id]);
-        if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para modificar un proyecto no asignado.');
+        throw new HttpError(403, 'No tienes permiso para modificar la información del proyecto.');
       }
       const current = await client.query(
         `${projectSelectSql} AND p.id = $1 FOR UPDATE OF p`,
