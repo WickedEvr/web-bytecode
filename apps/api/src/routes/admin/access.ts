@@ -562,6 +562,7 @@ settingsRouter.get(
   asyncHandler(async (req: Request, res: Response) => {
     const result = await pool.query('SELECT setting_key, setting_value, description, is_sensitive FROM system_settings ORDER BY setting_key');
 
+
     const items = result.rows.map((row: any) => {
       let value = row.setting_value ? { ...row.setting_value } : {};
 
@@ -587,6 +588,7 @@ settingsRouter.get(
 
       return { ...row, setting_value: value };
     });
+
 
     res.json({ items });
   })

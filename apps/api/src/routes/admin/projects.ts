@@ -37,17 +37,20 @@ const projectCreateSchema = z.object({
   description: z.string().trim().max(3000).optional().nullable(),
   status: z.string().trim().min(1).max(80),
   githubRepo: nullableProjectUrl,
+  githubBranch: z.string().trim().max(160).optional().nullable(),
   startDate: z.string().date(),
   estimatedEndDate: z.string().date(),
   actualEndDate: z.string().date().optional().nullable(),
   totalBudget: z.coerce.number().min(0),
   currencyCode: z.string().trim().length(3).transform((value) => value.toUpperCase()).default('PEN'),
 });
-const projectUpdateSchema = projectCreateSchema.partial();
+const projectUpdateSchema = projectCreateSchema.partial().extend({
+  vercel_bypass_secret: z.string().trim().max(500).optional().nullable(),
+});
 
 const projectSelectSql = `
   SELECT p.id, p.project_code, p.customer_id, p.organization_id, p.service_id, p.quote_id, p.status_id,
-         p.name, p.description, p.github_repo,
+         p.name, p.description, p.github_repo, p.github_branch,
          p.start_date, p.estimated_end_date, p.actual_end_date,
          p.total_budget, p.currency_code, p.created_at, p.updated_at,
          sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
@@ -220,13 +223,13 @@ projectsRouter.post(
     const result = await pool.query(
       `INSERT INTO projects (
          project_code, customer_id, organization_id, service_id, name, description,
-         status_id, github_repo, start_date, estimated_end_date,
+         status_id, github_repo, github_branch, start_date, estimated_end_date,
          actual_end_date, total_budget, currency_code, quote_id
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
        RETURNING id`,
       [createBusinessCode('PRJ'), body.customerId, body.organizationId ?? null, body.serviceId,
        body.name, body.description ?? null, statusId, body.githubRepo ?? null,
-       body.startDate, body.estimatedEndDate,
+       body.githubBranch ?? null, body.startDate, body.estimatedEndDate,
        body.actualEndDate ?? null, body.totalBudget, body.currencyCode, body.quoteId ?? null],
     );
     const created = await pool.query(`${projectSelectSql} AND p.id = $1`, [result.rows[0].id]);
@@ -256,7 +259,23 @@ projectsRouter.get(
   }),
 );
 
-
+projectsRouter.get(
+  '/projects/:id/vercel-bypass-secret',
+  requirePermission('admin.proyectos.manage'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para acceder a esta informacion.');
+    const id = z.string().uuid().parse(req.params.id);
+    const result = await pool.query(
+      `SELECT vercel_bypass_secret
+       FROM projects
+       WHERE id = $1 AND deleted_at IS NULL`,
+      [id],
+    );
+    if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
+    res.json({ vercel_bypass_secret: result.rows[0].vercel_bypass_secret ?? null });
+  }),
+);
 
 projectsRouter.patch(
   '/projects/:id',
@@ -308,20 +327,22 @@ projectsRouter.patch(
         `UPDATE projects SET
            customer_id = COALESCE($2, customer_id), organization_id = COALESCE($3, organization_id),
            service_id = COALESCE($4, service_id), name = COALESCE($5, name),
-           description = CASE WHEN $13 THEN $6 ELSE description END, status_id = COALESCE($7, status_id),
-           github_repo = CASE WHEN $14 THEN $8 ELSE github_repo END,
-           start_date = COALESCE($9, start_date), estimated_end_date = COALESCE($10, estimated_end_date),
-           actual_end_date = $11, total_budget = COALESCE($12, total_budget),
-           currency_code = COALESCE($16, currency_code),
-           quote_id = CASE WHEN $15 THEN $17 ELSE quote_id END,
+           description = CASE WHEN $15 THEN $6 ELSE description END, status_id = COALESCE($7, status_id),
+           github_repo = CASE WHEN $16 THEN $8 ELSE github_repo END, github_branch = COALESCE($9, github_branch),
+           start_date = COALESCE($10, start_date), estimated_end_date = COALESCE($11, estimated_end_date),
+           actual_end_date = COALESCE($12, actual_end_date), total_budget = COALESCE($13, total_budget),
+           currency_code = COALESCE($14, currency_code),
+           quote_id = CASE WHEN $18 THEN $17 ELSE quote_id END,
+           vercel_bypass_secret = CASE WHEN $20 THEN $19 ELSE vercel_bypass_secret END,
            updated_at = now()
          WHERE id = $1 AND deleted_at IS NULL`,
         [id, body.customerId ?? null, body.organizationId ?? null, body.serviceId ?? null,
          body.name ?? null, body.description ?? null, statusId, body.githubRepo ?? null,
-         body.startDate ?? null, body.estimatedEndDate ?? null,
-         finalActualEndDate, body.totalBudget ?? null,
+         body.githubBranch ?? null, body.startDate ?? null, body.estimatedEndDate ?? null,
+         finalActualEndDate, body.totalBudget ?? null, body.currencyCode ?? null,
          Object.hasOwn(body, 'description'), Object.hasOwn(body, 'githubRepo'),
-         Object.hasOwn(body, 'quoteId'), body.currencyCode ?? null, body.quoteId ?? null],
+         body.quoteId ?? null, Object.hasOwn(body, 'quoteId'),
+         body.vercel_bypass_secret ?? null, Object.hasOwn(body, 'vercel_bypass_secret')],
       );
       if (oldStatusId && statusId && oldStatusId !== statusId) {
         await client.query(

@@ -98,7 +98,7 @@ const hasNormalizedContactSchema = async () => {
 };
 
 const complaintColumns = `
-  c.id, c.case_code as code, cu.first_name as nombres, cu.last_name as apellidos, 
+  c.id, c.complaint_code as code, cu.first_name as nombres, cu.last_name as apellidos, 
   '' as domicilio, '' as tipo_doc, '' as numero_doc, '' as prefijo_telefono, 
   cu.primary_phone as telefono, cu.primary_email as email, '' as person_type, 
   cg.good_type, cg.claimed_amount as monto_cuantificable, cg.description as descripcion, 
@@ -358,7 +358,7 @@ casesRouter.get(
   asyncHandler(async (req: Request, res: Response) => {
     const query = listQuerySchema.parse(req.query);
     const { whereSql, params } = buildWhere(query.status, query.search, [
-      'c.case_code',
+      'c.complaint_code',
       'cu.first_name',
       'cu.last_name',
       'cu.primary_email',
@@ -366,7 +366,7 @@ casesRouter.get(
     ]);
     const [result, countResult] = await Promise.all([pool.query(
       `
-      SELECT c.id, c.case_code as code, cu.first_name as nombres, cu.last_name as apellidos, cu.primary_email as email, cu.primary_phone as telefono, ct.name as claim_type, cg.category as tipo_reclamo, sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal", fa.original_name as attachment_original_name, c.created_at, c.updated_at
+      SELECT c.id, c.complaint_code as code, cu.first_name as nombres, cu.last_name as apellidos, cu.primary_email as email, cu.primary_phone as telefono, ct.name as claim_type, cg.category as tipo_reclamo, sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal", fa.original_name as attachment_original_name, c.created_at, c.updated_at
       FROM complaints c
       JOIN customers cu ON c.customer_id = cu.id
       JOIN status_catalog sc ON c.status_id = sc.id
