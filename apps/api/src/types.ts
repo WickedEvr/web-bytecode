@@ -18,7 +18,7 @@ export interface Country {
 }
 
 declare global {
-// eslint-disable-next-line @typescript-eslint/no-namespace ddd
+// eslint-disable-next-line @typescript-eslint/no-namespace PROBANDO DESPLIEGUE1
   namespace Express {
     interface Request {
       admin?: AdminUser;
