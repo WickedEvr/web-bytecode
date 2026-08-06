@@ -21,7 +21,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4000
-      DATABASE_URL: postgresql://bytecode_user:${DB_PASSWORD}@bytecode-db-pr-${PR_NUMBER}:5432/bytecode_pr_${PR_NUMBER}?sslmode=disable
+      DATABASE_URL: postgresql://bytecode_user:${DB_PASSWORD}@db-pr:5432/bytecode_pr_${PR_NUMBER}?schema=public
       DATABASE_SSL: "false"
       JWT_SECRET: ${JWT_SECRET}
       GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET}

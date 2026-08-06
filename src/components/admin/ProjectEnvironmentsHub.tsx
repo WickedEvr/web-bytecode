@@ -17,7 +17,7 @@ const EnvironmentAuditReport: React.FC<{
 }> = ({ report, onFix }) => (
   <div className="space-y-2 rounded-lg border border-red-500/30 bg-red-950/20 p-4 text-left">
     <h4 className="text-sm font-bold text-red-400">Reporte de Auditoría</h4>
-    {Object.entries(report.layers).map(([key, layer]) => !layer.ok && (
+    {Object.entries(report.layers).map(([key, layer]) => layer.ok === false && (
       <div key={key} className="flex items-center justify-between gap-3 text-xs">
         <span className="text-red-200">{layer.msg}</span>
         <button type="button" onClick={() => onFix(key as 'red' | 'config' | 'aislamiento')} className="text-blue-400 underline hover:text-blue-300">

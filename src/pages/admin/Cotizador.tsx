@@ -9,7 +9,7 @@ import CustomDropdown from '../../components/ui/CustomDropdown';
 import StatusHistoryTimeline from '../../components/admin/StatusHistoryTimeline';
 import type { StatusCatalogItem, StatusHistoryRecord } from '../../types/status';
 import PaginationControl from '../../components/ui/PaginationControl';
-import { useQuoterState, type EditableQuoteItemData, type PreparedQuotePayload, type PricingCatalogItem } from '../../hooks/useQuoterState';
+import { formatCurrencyValue, useQuoterState, type EditableQuoteItemData, type PreparedQuotePayload, type PricingCatalogItem } from '../../hooks/useQuoterState';
 
 const PAGE_SIZE = 9;
 
@@ -17,8 +17,11 @@ export interface Quote {
   id: string;
   quote_code: string;
   total_amount: string;
+  currency_code?: string;
+  acquisitionChannel?: string;
+  organization_id?: string | null;
   status: string;
-    isTerminal?: boolean;
+  isTerminal?: boolean;
   status_name?: string;
   created_at: string;
   first_name: string;
@@ -50,9 +53,14 @@ const AdminCotizador: React.FC = () => {
     customerName: '',
     customerEmail: '',
     notes: '',
+    organizationId: null as string | null,
+    acquisitionChannel: 'web_form',
+    currencyCode: 'PEN',
     status: 'draft',
-      isTerminal: false,
+    isTerminal: false,
   });
+  const [organizations, setOrganizations] = useState<Array<{ id: string; name: string; ruc?: string }>>([]);
+  const [exchangeRates, setExchangeRates] = useState<{ USD: number; EUR: number; PEN: number }>({ USD: 3.75, EUR: 4.05, PEN: 1 });
   const [statuses, setStatuses] = useState<StatusCatalogItem[]>([]);
   const [statusHistory, setStatusHistory] = useState<StatusHistoryRecord[]>([]);
   const [page, setPage] = useState(1);
@@ -67,16 +75,19 @@ const AdminCotizador: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const [quotesRes, catalogRes, statusesRes] = await Promise.all([
+      const [quotesRes, catalogRes, statusesRes, optionsRes] = await Promise.all([
         apiRequest<{ data: Quote[]; total: number }>(`/admin/quotes?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`),
         apiRequest<{ items: PricingCatalogItem[] }>('/admin/catalog/pricing'),
         apiRequest<{ items: StatusCatalogItem[] }>('/catalog/statuses?domain=quote'),
+        apiRequest<{ organizations: Array<{ id: string; name: string; ruc?: string }>; exchangeRates?: { USD: number; EUR: number; PEN: number } }>('/admin/quotes/options'),
       ]);
       if (quotesRes.data.length === 0 && quotesRes.total > 0 && page > 1) { setPage(page - 1); return; }
       setQuotes(quotesRes.data);
       setTotal(quotesRes.total);
       setCatalog(catalogRes.items);
       setStatuses(statusesRes.items);
+      setOrganizations(optionsRes.organizations || []);
+      if (optionsRes.exchangeRates) setExchangeRates(optionsRes.exchangeRates);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar cotizaciones');
     } finally {
@@ -118,7 +129,7 @@ const AdminCotizador: React.FC = () => {
   const openNewQuote = () => {
     setCatalogInStore(catalog);
     resetQuoter();
-    setFormData({ customerName: '', customerEmail: '', notes: '', status: statuses[0]?.code ?? 'draft' , isTerminal: false });
+    setFormData({ customerName: '', customerEmail: '', notes: '', organizationId: null, acquisitionChannel: 'web_form', currencyCode: 'PEN', status: statuses[0]?.code ?? 'draft', isTerminal: false });
     setStatusHistory([]);
     setError('');
     setIsModalOpen(true);
@@ -134,13 +145,21 @@ const AdminCotizador: React.FC = () => {
         apiRequest<QuoteDetailResponse>(`/admin/quotes/${quoteId}`),
         apiRequest<{ items: StatusHistoryRecord[] }>(`/admin/quotes/${quoteId}/history`),
       ]);
-      loadQuoteForEditing({ id: detail.quote.id }, detail.items);
+      const quoteRate = detail.quote.currency_code === 'USD' ? exchangeRates.USD : detail.quote.currency_code === 'EUR' ? exchangeRates.EUR : 1;
+      const normalizedItems = detail.items.map((item) => ({
+        ...item,
+        unit_price: item.unit_price !== null && item.unit_price !== undefined ? Number(item.unit_price) * quoteRate : item.unit_price,
+      }));
+      loadQuoteForEditing({ id: detail.quote.id }, normalizedItems);
       setFormData({
         customerName: detail.quote.first_name || '',
         customerEmail: detail.quote.primary_email || '',
         notes: detail.quote.payment_policy || '',
+        organizationId: detail.quote.organization_id ?? null,
+        acquisitionChannel: detail.quote.acquisitionChannel ?? 'web_form',
+        currencyCode: detail.quote.currency_code ?? 'PEN',
         status: detail.quote.status,
-          isTerminal: Boolean(detail.quote.isTerminal),
+        isTerminal: Boolean(detail.quote.isTerminal),
       });
       setStatusHistory(historyResult.items);
       setIsModalOpen(true);
@@ -181,23 +200,25 @@ const AdminCotizador: React.FC = () => {
     setLoading(true);
     setError('');
     try {
+      const activeRate = formData.currencyCode === 'USD' ? exchangeRates.USD : formData.currencyCode === 'EUR' ? exchangeRates.EUR : 1;
       await apiRequest('/admin/quotes', {
         method: 'POST',
         json: {
           editingQuoteId: payload.editingQuoteId,
+          organizationId: formData.organizationId || null,
+          acquisitionChannel: formData.acquisitionChannel || 'web_form',
+          currencyCode: formData.currencyCode || 'PEN',
           customerName: formData.customerName,
           customerEmail: formData.customerEmail,
           notes: formData.notes,
           status: formData.status,
-          totalAmount: payload.developmentTotal,
-          recurringMonthlyTotal: payload.recurringMonthlyTotal,
-          recurringYearlyTotal: payload.recurringYearlyTotal,
           projectCategory: payload.projectCategory,
           legalNotes: payload.legalNotes,
           items: payload.items.map((item) => ({
             catalog_item_id: item.catalog_item_id,
             quantity: item.pricing_model === 'per_unit' ? Math.max(1, item.billable_quantity) : item.quantity,
-            unit_price: item.pricing_model === 'per_unit' && item.billable_quantity === 0 ? 0 : item.unit_price,
+            unit_price: Number((Math.abs(item.pricing_model === 'per_unit' && item.billable_quantity === 0 ? 0 : item.unit_price) / activeRate).toFixed(4)),
+            discount_amount: Number(((item.discount_amount ?? 0) / activeRate).toFixed(4)),
             recurrence: item.recurrence,
             custom_name: item.pricing_model === 'per_unit' && item.free_included_quantity > 0
               ? `${item.name} (${item.quantity} solicitados, ${item.free_included_quantity} incluidos)`
@@ -206,7 +227,7 @@ const AdminCotizador: React.FC = () => {
         },
       });
       setIsModalOpen(false);
-      setFormData({ customerName: '', customerEmail: '', notes: '', status: statuses[0]?.code ?? 'draft' , isTerminal: false });
+      setFormData({ customerName: '', customerEmail: '', notes: '', organizationId: null, acquisitionChannel: 'web_form', currencyCode: 'PEN', status: statuses[0]?.code ?? 'draft', isTerminal: false });
       resetQuoter();
       await loadData();
     } catch (err) {
@@ -296,7 +317,7 @@ const AdminCotizador: React.FC = () => {
                     <p className="truncate font-medium">{quote.first_name || 'Desconocido'}</p>
                     <p className="truncate text-xs text-white/40">{quote.primary_email}</p>
                   </td>
-                  <td className="px-6 py-4 text-right font-mono">S/ {Number(quote.total_amount).toFixed(2)}</td>
+                  <td className="px-6 py-4 text-right font-mono">{formatCurrencyValue(Number(quote.total_amount), quote.currency_code)}</td>
                   <td className="px-6 py-4 text-center">
                     <span className="rounded border border-white/5 bg-white/5 px-2 py-0.5 text-[10px] font-medium uppercase tracking-widest text-white/60">
                       {quote.status_name || quote.status}
@@ -397,6 +418,11 @@ const AdminCotizador: React.FC = () => {
               customerName={formData.customerName}
               customerEmail={formData.customerEmail}
               notes={formData.notes}
+              organizationId={formData.organizationId}
+              acquisitionChannel={formData.acquisitionChannel}
+              currencyCode={formData.currencyCode}
+              exchangeRates={exchangeRates}
+              organizations={organizations}
               loading={loading}
               error={isModalOpen ? error : ''}
               primaryFieldsAfter={(
@@ -417,6 +443,9 @@ const AdminCotizador: React.FC = () => {
               onCustomerNameChange={(customerName) => setFormData({ ...formData, customerName })}
               onCustomerEmailChange={(customerEmail) => setFormData({ ...formData, customerEmail })}
               onNotesChange={(nextNotes) => setFormData({ ...formData, notes: nextNotes })}
+              onOrganizationChange={(organizationId) => setFormData({ ...formData, organizationId })}
+              onAcquisitionChannelChange={(acquisitionChannel) => setFormData({ ...formData, acquisitionChannel })}
+              onCurrencyCodeChange={(currencyCode) => setFormData({ ...formData, currencyCode })}
               onCancel={() => {
                 resetQuoter();
                 setIsModalOpen(false);

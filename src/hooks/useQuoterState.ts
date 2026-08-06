@@ -41,6 +41,7 @@ export type QuotePreparedItem = {
   billable_quantity: number;
   free_included_quantity: number;
   unit_price: number;
+  discount_amount: number;
   subtotal: number;
   recurrence: 'none' | 'monthly' | 'yearly';
 };
@@ -262,10 +263,14 @@ const preparedItem = (
   quantity: number,
   unitPrice = moneyValue(item.base_price),
   subtotal?: number,
+  discountAmount = 0,
 ): QuotePreparedItem => {
   const normalizedQuantity = lineQuantity(item, quantity);
   const billableQuantity = billableQuantityFor(item, normalizedQuantity);
   const freeIncludedQuantity = freeQuantityFor(item);
+  const isDiscountItem = unitPrice < 0 || (item.item_code ? item.item_code.startsWith('discount_') : false);
+  const effectiveDiscount = isDiscountItem && unitPrice < 0 ? Math.abs(unitPrice) : discountAmount;
+  const effectiveUnitPrice = isDiscountItem && unitPrice < 0 ? 0 : Math.abs(unitPrice);
   return {
     catalog_item_id: item.id,
     name: item.name,
@@ -274,8 +279,9 @@ const preparedItem = (
     quantity: normalizedQuantity,
     billable_quantity: billableQuantity,
     free_included_quantity: freeIncludedQuantity,
-    unit_price: unitPrice,
-    subtotal: subtotal ?? unitPrice * billableQuantity,
+    unit_price: effectiveUnitPrice,
+    discount_amount: effectiveDiscount,
+    subtotal: subtotal ?? (effectiveUnitPrice * billableQuantity) - effectiveDiscount,
     recurrence: recurrenceFor(item),
   };
 };
@@ -695,3 +701,8 @@ export const useQuoterState = create<QuoterState>((set, get) => ({
 
 export const quoteLegalNotes = LEGAL_NOTES;
 export const formatPen = (value: number) => `S/ ${value.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+export const formatCurrencyValue = (value: number, currencyCode?: string) => {
+  const code = currencyCode || 'PEN';
+  const symbol = code === 'USD' ? '$' : code === 'EUR' ? '€' : 'S/';
+  return `${symbol} ${value.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};

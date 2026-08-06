@@ -65,7 +65,7 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "res.cloudinary.com"],
-      connectSrc: ["'self'"],
+      connectSrc: ["'self'", "https://api.bytecode.com.pe", "https://*.bytecode.com.pe"],
     },
   },
   crossOriginResourcePolicy: { policy: "cross-origin" },

@@ -21,6 +21,7 @@ import {
   statusHistorySelect,
   upload,
 } from './shared.js';
+import { auditService } from '../../services/audit.js';
 
 export const projectsRouter = Router();
 // --- Projects Endpoints ---
@@ -48,7 +49,7 @@ const projectUpdateSchema = projectCreateSchema.partial().extend({
 });
 
 const projectSelectSql = `
-  SELECT p.id, p.project_code, p.customer_id, p.organization_id, p.service_id, p.quote_id,
+  SELECT p.id, p.project_code, p.customer_id, p.organization_id, p.service_id, p.quote_id, p.status_id,
          p.name, p.description, p.github_repo, p.github_branch,
          p.start_date, p.estimated_end_date, p.actual_end_date,
          p.total_budget, p.currency_code, p.created_at, p.updated_at,
@@ -232,6 +233,7 @@ projectsRouter.post(
        body.actualEndDate ?? null, body.totalBudget, body.currencyCode, body.quoteId ?? null],
     );
     const created = await pool.query(`${projectSelectSql} AND p.id = $1`, [result.rows[0].id]);
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'create_project', entityType: 'project', entity: created.rows[0], req });
     res.status(201).json({ item: created.rows[0] });
   }),
 );
@@ -292,10 +294,7 @@ projectsRouter.patch(
         if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para modificar un proyecto no asignado.');
       }
       const current = await client.query(
-        `SELECT p.status_id, p.customer_id
-         FROM projects p
-         WHERE p.id = $1 AND p.deleted_at IS NULL
-         FOR UPDATE OF p`,
+        `${projectSelectSql} AND p.id = $1 FOR UPDATE OF p`,
         [id],
       );
       if (!current.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
@@ -315,6 +314,15 @@ projectsRouter.patch(
         );
         if (!quote.rowCount) throw new HttpError(400, 'La cotizacion no pertenece al cliente seleccionado.');
       }
+      let finalActualEndDate = body.actualEndDate ?? current.rows[0].actual_end_date;
+      if (oldStatusId && statusId && oldStatusId !== statusId) {
+        if (statusInfo?.is_terminal) {
+          finalActualEndDate = new Date().toISOString().split('T')[0];
+        } else {
+          finalActualEndDate = null;
+        }
+      }
+
       await client.query(
         `UPDATE projects SET
            customer_id = COALESCE($2, customer_id), organization_id = COALESCE($3, organization_id),
@@ -331,7 +339,7 @@ projectsRouter.patch(
         [id, body.customerId ?? null, body.organizationId ?? null, body.serviceId ?? null,
          body.name ?? null, body.description ?? null, statusId, body.githubRepo ?? null,
          body.githubBranch ?? null, body.startDate ?? null, body.estimatedEndDate ?? null,
-         body.actualEndDate ?? null, body.totalBudget ?? null, body.currencyCode ?? null,
+         finalActualEndDate, body.totalBudget ?? null, body.currencyCode ?? null,
          Object.hasOwn(body, 'description'), Object.hasOwn(body, 'githubRepo'),
          body.quoteId ?? null, Object.hasOwn(body, 'quoteId'),
          body.vercel_bypass_secret ?? null, Object.hasOwn(body, 'vercel_bypass_secret')],
@@ -345,6 +353,7 @@ projectsRouter.patch(
         );
       }
       const updated = await client.query(`${projectSelectSql} AND p.id = $1`, [id]);
+      await auditService.logAdminAction({ userId: req.admin?.id, action: 'update_project', entityType: 'project', entity: updated.rows[0], previousState: current.rows[0], req });
       await client.query('COMMIT');
       res.json({ item: updated.rows[0] });
     } catch (error) {
@@ -364,8 +373,9 @@ projectsRouter.delete(
     const id = z.string().uuid().parse(req.params.id);
     const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
     if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para eliminar proyectos.');
-    const result = await pool.query('UPDATE projects SET deleted_at = now(), updated_at = now() WHERE id = $1 AND deleted_at IS NULL RETURNING id', [id]);
+    const result = await pool.query('UPDATE projects SET deleted_at = now(), updated_at = now() WHERE id = $1 AND deleted_at IS NULL RETURNING *', [id]);
     if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'delete_project', entityType: 'project', entity: result.rows[0], req });
     res.json({ ok: true });
   }),
 );
@@ -420,6 +430,7 @@ projectsRouter.post(
     );
     if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
     triggerEnvironmentVerification(result.rows[0].id, projectId);
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'create_environment', entityType: 'project_environments', entity: result.rows[0], req });
     res.status(201).json({ item: result.rows[0] });
   }),
 );
@@ -447,6 +458,7 @@ projectsRouter.post(
     );
     if (!result.rowCount) throw new HttpError(409, 'El entorno no está listo para iniciar la verificación.');
     triggerEnvironmentVerification(environmentId, projectId);
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'verify_environment', entityType: 'project_environments', entity: environmentId, req });
     res.status(202).json({ ok: true });
   }),
 );
@@ -465,6 +477,7 @@ projectsRouter.delete(
       [environmentId, projectId],
     );
     if (!result.rowCount) throw new HttpError(404, 'Entorno no encontrado');
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'delete_environment', entityType: 'project_environments', entity: environmentId, req });
     res.json({ ok: true });
   }),
 );
@@ -505,6 +518,7 @@ projectsRouter.post(
         [projectId, body.title, body.dueDate, body.paymentPercentage, body.statusId],
       );
       await client.query('COMMIT');
+      await auditService.logAdminAction({ userId: req.admin?.id, action: 'create_milestone', entityType: 'project_milestones', entity: result.rows[0].id, req });
       res.status(201).json({ id: result.rows[0].id });
     } catch (e) {
       await client.query('ROLLBACK');
@@ -643,6 +657,7 @@ projectsRouter.post(
       );
 
       await client.query('COMMIT');
+      await auditService.logAdminAction({ userId: req.admin?.id, action: 'create_milestone_payment', entityType: 'milestone_payments', entity: result.rows[0].id, req });
       res.status(201).json({ id: result.rows[0].id });
     } catch (error) {
       await client.query('ROLLBACK').catch(() => undefined);
@@ -703,6 +718,7 @@ projectsRouter.post(
       [projectId, body.userId, body.role || null],
     );
     if (!result.rowCount) throw new HttpError(400, 'Proyecto o usuario invalido.');
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'assign_project_user', entityType: 'project_assignments', entity: projectId, req });
     res.status(201).json({ item: result.rows[0] });
   }),
 );
@@ -723,6 +739,7 @@ projectsRouter.delete(
       [projectId, userId]
     );
     if (!result.rowCount) throw new HttpError(404, 'Asignación no encontrada.');
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'remove_project_user', entityType: 'project_assignments', entity: projectId, req });
     res.json({ ok: true });
   }),
 );
@@ -750,6 +767,7 @@ projectsRouter.patch(
       [milestoneId, projectId, body.status],
     );
     if (!result.rowCount) throw new HttpError(400, 'Hito o estado invalido.');
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'update_milestone_status', entityType: 'project_milestones', entity: milestoneId, req });
     res.json({ ok: true });
   }),
 );

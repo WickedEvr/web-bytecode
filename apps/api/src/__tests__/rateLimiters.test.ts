@@ -6,6 +6,9 @@ import express from 'express';
 import type { Request } from 'express';
 
 process.env.NODE_ENV = 'production';
+process.env.DATABASE_URL ??= 'postgresql://postgres:postgres@localhost:5432/bytecode';
+process.env.JWT_SECRET ??= 'test-secret';
+process.env.CORS_ORIGINS ??= 'https://web.bytecode.test';
 
 const { loginLimiter, loginRateLimitKey } = await import('../middleware/rateLimiters.js');
 

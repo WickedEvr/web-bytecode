@@ -29,6 +29,9 @@ export const requireNonTerminalState = (tableName: string, idParam: string = 'id
       }
 
       if (result.rows[0].is_terminal) {
+        if (req.admin?.roles?.includes('super_admin')) {
+          return next();
+        }
         return next(new HttpError(403, 'Acción denegada: El registro se encuentra en un estado terminal y es de solo lectura.'));
       }
 
