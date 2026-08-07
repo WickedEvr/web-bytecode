@@ -348,7 +348,14 @@ projectsRouter.patch(
           const activeQuoteId = current.rows[0].quote_id;
 
           if (activeQuoteId) {
-            // 1. Obtener todas las cotizaciones involucradas (Raíz + Adendas usadas en hitos)
+            // 1. Cancelar de golpe todos los hitos técnicos que estaban en progreso o pendientes ANTES de inyectar el Kill Fee
+            await client.query(`
+              UPDATE project_milestones 
+              SET status_id = $1 
+              WHERE project_id = $2 AND status_id != $3 AND status_id != $1
+            `, [milestoneCancelledId, id, milestoneCompletedId]);
+
+            // 2. Obtener todas las cotizaciones involucradas (Raíz + Adendas usadas en hitos)
             const quotesToEvaluateRes = await client.query(`
               SELECT DISTINCT q.id as quote_id, q.total_amount
               FROM quotes q
@@ -356,12 +363,12 @@ projectsRouter.patch(
                  OR q.id IN (SELECT quote_id FROM project_milestones WHERE project_id = $2 AND quote_id IS NOT NULL)
             `, [activeQuoteId, id]);
 
-            // 2. Iterar sobre cada cotización para inyectar su respectivo Kill Fee si no está 100% pagada
+            // 3. Iterar sobre cada cotización para inyectar su respectivo Kill Fee si no está 100% pagada
             for (const qRow of quotesToEvaluateRes.rows) {
               const currentQuoteId = qRow.quote_id;
               const totalQuoteAmount = Number(qRow.total_amount);
 
-              // 2.1. Calcular el dinero real validado pagado para ESTA cotización en ESTE proyecto
+              // 3.1. Calcular el dinero real validado pagado para ESTA cotización en ESTE proyecto
               const paidMoneyRes = await client.query(`
                 SELECT COALESCE(SUM(mp.amount_paid), 0) as total_paid_money
                 FROM project_milestones pm
@@ -374,7 +381,7 @@ projectsRouter.patch(
               const actualPaidPercentage = Math.min(100, paidPercentage);
               const pendingPercentage = 100 - actualPaidPercentage;
 
-              // 2.2. Si queda porcentaje por cobrar, inyectar el Kill Fee
+              // 3.2. Si queda porcentaje por cobrar, inyectar el Kill Fee
               if (pendingPercentage > 0) {
                 // El tope del Kill Fee es 20%, o lo que reste si es menor a 20%
                 const killFeePercentage = Math.min(20, pendingPercentage);
@@ -384,13 +391,6 @@ projectsRouter.patch(
                 `, [id, killFeePercentage, milestonePendingId, currentQuoteId]);
               }
             }
-
-            // 3. Cancelar de golpe todos los hitos técnicos que estaban en progreso o pendientes
-            await client.query(`
-              UPDATE project_milestones 
-              SET status_id = $1 
-              WHERE project_id = $2 AND status_id != $3 AND status_id != $1
-            `, [milestoneCancelledId, id, milestoneCompletedId]);
           }
         }
       }
