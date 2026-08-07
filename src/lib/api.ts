@@ -271,6 +271,7 @@ export interface ProjectMilestone {
   status: string;
   status_name?: string;
   isTerminal?: boolean;
+  currency_code?: string;
   created_at: string;
   updated_at: string;
   payments?: MilestonePayment[];

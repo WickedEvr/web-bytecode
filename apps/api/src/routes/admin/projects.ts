@@ -382,12 +382,20 @@ projectsRouter.patch(
 
               // 3.2. Si queda porcentaje por cobrar, inyectar el Kill Fee
               if (pendingPercentage > 0) {
-                // El tope del Kill Fee es 20%, o lo que reste si es menor a 20%
-                const killFeePercentage = Math.min(20, pendingPercentage);
-                await client.query(`
-                  INSERT INTO project_milestones (project_id, title, due_date, payment_percentage, status_id, quote_id)
-                  VALUES ($1, 'Compensación por Cancelación', CURRENT_DATE, $2, $3, $4)
-                `, [id, killFeePercentage, milestonePendingId, currentQuoteId]);
+                // Verificar que no exista ya un Kill Fee para esta cotización
+                const existingKillFee = await client.query(`
+                  SELECT id FROM project_milestones 
+                  WHERE project_id = $1 AND quote_id = $2 AND title = 'Compensación por Cancelación'
+                `, [id, currentQuoteId]);
+
+                if (existingKillFee.rowCount === 0) {
+                  // El tope del Kill Fee es 20%, o lo que reste si es menor a 20%
+                  const killFeePercentage = Math.min(20, pendingPercentage);
+                  await client.query(`
+                    INSERT INTO project_milestones (project_id, title, due_date, payment_percentage, status_id, quote_id)
+                    VALUES ($1, 'Compensación por Cancelación', CURRENT_DATE, $2, $3, $4)
+                  `, [id, killFeePercentage, milestonePendingId, currentQuoteId]);
+                }
               }
             }
           }

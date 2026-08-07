@@ -87,19 +87,19 @@ const ProyectoDetalle: React.FC = () => {
 
   const getMilestoneRawAmount = (milestone: ProjectMilestone) => {
     let amount = 0;
-    let currency = 'USD';
+    let currency = milestone.currency_code || 'USD';
     
     if (milestone.quote_id && project && milestone.quote_id !== project.quote_id) {
       const adenda = adendas.find((a) => a.id === milestone.quote_id);
       if (adenda) {
         amount = Number(adenda.total_amount);
-        currency = adenda.currency_code;
+        currency = milestone.currency_code || adenda.currency_code;
       }
     }
     
     if (!amount && project) {
       amount = Number(project.total_budget);
-      currency = project.currency_code;
+      currency = milestone.currency_code || project.currency_code;
     }
     
     if (!amount) return { amount: 0, currency };
