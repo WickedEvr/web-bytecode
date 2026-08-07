@@ -348,32 +348,49 @@ projectsRouter.patch(
           const activeQuoteId = current.rows[0].quote_id;
 
           if (activeQuoteId) {
-            const pendingMilestonesRes = await client.query(`
-              SELECT pm.id, pm.payment_percentage, COALESCE(SUM(mp.amount_paid), 0) as total_paid, q.total_amount
-              FROM project_milestones pm
-              JOIN quotes q ON q.id = pm.quote_id
-              LEFT JOIN milestone_payments mp ON mp.milestone_id = pm.id AND mp.status = 'valid' AND mp.deleted_at IS NULL
-              WHERE pm.project_id = $1 AND pm.quote_id = $2 AND pm.status_id != $3
-              GROUP BY pm.id, pm.payment_percentage, q.total_amount
-            `, [id, activeQuoteId, milestoneCompletedId]);
+            // 1. Obtener todas las cotizaciones involucradas (Raíz + Adendas usadas en hitos)
+            const quotesToEvaluateRes = await client.query(`
+              SELECT DISTINCT q.id as quote_id, q.total_amount
+              FROM quotes q
+              WHERE q.id = $1
+                 OR q.id IN (SELECT quote_id FROM project_milestones WHERE project_id = $2 AND quote_id IS NOT NULL)
+            `, [activeQuoteId, id]);
 
-            let freedPercentage = 0;
-            for (const row of pendingMilestonesRes.rows) {
-               const paidPercentage = (Number(row.total_paid) / Number(row.total_amount)) * 100;
-               const diff = Number(row.payment_percentage) - paidPercentage;
-               if (diff > 0) {
-                 freedPercentage += diff;
-                 await client.query(`UPDATE project_milestones SET status_id = $1 WHERE id = $2`, [milestoneCancelledId, row.id]);
-               }
+            // 2. Iterar sobre cada cotización para inyectar su respectivo Kill Fee si no está 100% pagada
+            for (const qRow of quotesToEvaluateRes.rows) {
+              const currentQuoteId = qRow.quote_id;
+              const totalQuoteAmount = Number(qRow.total_amount);
+
+              // 2.1. Calcular el dinero real validado pagado para ESTA cotización en ESTE proyecto
+              const paidMoneyRes = await client.query(`
+                SELECT COALESCE(SUM(mp.amount_paid), 0) as total_paid_money
+                FROM project_milestones pm
+                JOIN milestone_payments mp ON mp.milestone_id = pm.id AND mp.status = 'valid' AND mp.deleted_at IS NULL
+                WHERE pm.project_id = $1 AND pm.quote_id = $2
+              `, [id, currentQuoteId]);
+
+              const totalPaidMoney = Number(paidMoneyRes.rows[0].total_paid_money);
+              const paidPercentage = totalQuoteAmount > 0 ? (totalPaidMoney / totalQuoteAmount) * 100 : 0;
+              const actualPaidPercentage = Math.min(100, paidPercentage);
+              const pendingPercentage = 100 - actualPaidPercentage;
+
+              // 2.2. Si queda porcentaje por cobrar, inyectar el Kill Fee
+              if (pendingPercentage > 0) {
+                // El tope del Kill Fee es 20%, o lo que reste si es menor a 20%
+                const killFeePercentage = Math.min(20, pendingPercentage);
+                await client.query(`
+                  INSERT INTO project_milestones (project_id, title, due_date, payment_percentage, status_id, quote_id)
+                  VALUES ($1, 'Compensación por Cancelación', CURRENT_DATE, $2, $3, $4)
+                `, [id, killFeePercentage, milestonePendingId, currentQuoteId]);
+              }
             }
 
-            if (freedPercentage > 0) {
-               const killFeePercentage = Math.min(20, freedPercentage);
-               await client.query(`
-                 INSERT INTO project_milestones (project_id, title, due_date, payment_percentage, status_id, quote_id)
-                 VALUES ($1, 'Compensación por Cancelación', CURRENT_DATE, $2, $3, $4)
-               `, [id, killFeePercentage, milestonePendingId, activeQuoteId]);
-            }
+            // 3. Cancelar de golpe todos los hitos técnicos que estaban en progreso o pendientes
+            await client.query(`
+              UPDATE project_milestones 
+              SET status_id = $1 
+              WHERE project_id = $2 AND status_id != $3 AND status_id != $1
+            `, [milestoneCancelledId, id, milestoneCompletedId]);
           }
         }
       }
