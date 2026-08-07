@@ -742,19 +742,23 @@ projectsRouter.post(
       }
 
       const milestoneRes = await client.query(`
-        SELECT pm.payment_percentage, pm.quote_id, pm.title, pm.due_date, pm.status_id,
+        SELECT pm.*,
                q.total_amount, COALESCE(SUM(mp.amount_paid), 0) as total_paid,
-               sc.id as completed_status_id
+               sc.id as completed_status_id,
+               q.currency_code as quote_currency_code
         FROM project_milestones pm
         LEFT JOIN quotes q ON q.id = pm.quote_id
         LEFT JOIN milestone_payments mp ON mp.milestone_id = pm.id AND mp.status = 'valid' AND mp.deleted_at IS NULL
         LEFT JOIN status_catalog sc ON sc.domain = 'milestone' AND sc.code = 'completed'
         WHERE pm.id = $1
-        GROUP BY pm.payment_percentage, pm.quote_id, pm.title, pm.due_date, pm.status_id, q.total_amount, sc.id
+        GROUP BY pm.id, q.total_amount, sc.id, q.currency_code
       `, [milestoneId]);
 
       if (!milestoneRes.rowCount) throw new HttpError(404, 'Hito no encontrado.');
-      const { payment_percentage, total_amount, total_paid, title, due_date, status_id: original_status_id, completed_status_id, quote_id } = milestoneRes.rows[0];
+      const oldMilestoneState = milestoneRes.rows[0];
+      const { payment_percentage, total_amount, total_paid, title, due_date, status_id: original_status_id, completed_status_id, quote_id, quote_currency_code } = oldMilestoneState;
+      
+      const realCurrencyCode = quote_currency_code || currencyCode;
       
       const amountExpected = Number(total_amount) * (Number(payment_percentage) / 100);
       const amountPaidCurrently = Number(total_paid);
@@ -774,7 +778,7 @@ projectsRouter.post(
         [
           milestoneId,
           body.amountPaid,
-          currencyCode,
+          realCurrencyCode,
           body.paymentMethod,
           body.referenceNumber || null,
           fileAssetId,
@@ -787,7 +791,7 @@ projectsRouter.post(
       const isFullPayment = Math.round(body.amountPaid * 100) >= Math.round(maxPaymentAllowed * 100);
       if (isFullPayment && completed_status_id) {
          const updRes = await client.query(`UPDATE project_milestones SET status_id = $1, completed_at = NOW() WHERE id = $2 RETURNING *`, [completed_status_id, milestoneId]);
-         await auditService.logAdminAction({ userId: req.admin?.id, action: 'update_milestone_status_auto', entityType: 'project_milestones', entity: updRes.rows[0], req });
+         await auditService.logAdminAction({ userId: req.admin?.id, action: 'update_milestone_status_auto', entityType: 'project_milestones', entity: updRes.rows[0], previousState: oldMilestoneState, req });
       } else if (body.splitRemaining && !isFullPayment) {
          const paidPercentage = ((amountPaidCurrently + body.amountPaid) / Number(total_amount)) * 100;
          const remainingPercentage = Number(payment_percentage) - paidPercentage;
@@ -902,6 +906,9 @@ projectsRouter.patch(
     if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para gestionar hitos.');
     const milestoneId = z.string().uuid().parse(req.params.milestone_id);
     const body = projectStatusSchema.parse(req.body);
+    const oldStateRes = await pool.query('SELECT * FROM project_milestones WHERE id = $1', [milestoneId]);
+    if (!oldStateRes.rowCount) throw new HttpError(404, 'Hito no encontrado.');
+
     const result = await pool.query(
       `UPDATE project_milestones pm
        SET status_id = sc.id,
@@ -913,8 +920,8 @@ projectsRouter.patch(
        RETURNING pm.*`,
       [milestoneId, projectId, body.status],
     );
-    if (!result.rowCount) throw new HttpError(400, 'Hito o estado invalido.');
-    await auditService.logAdminAction({ userId: req.admin?.id, action: 'update_milestone_status', entityType: 'project_milestones', entity: result.rows[0], req });
+    if (!result.rowCount) throw new HttpError(400, 'Estado invalido.');
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'update_milestone_status', entityType: 'project_milestones', entity: result.rows[0], previousState: oldStateRes.rows[0], req });
     res.json({ ok: true });
   }),
 );
