@@ -44,6 +44,7 @@ const projectCreateSchema = z.object({
   currencyCode: z.string().trim().length(3).transform((value) => value.toUpperCase()).default('PEN'),
 });
 const projectUpdateSchema = projectCreateSchema.partial().extend({
+  currencyCode: z.string().trim().length(3).transform((value) => value.toUpperCase()).optional(),
   applyKillFee: z.boolean().optional(),
 });
 
@@ -785,8 +786,8 @@ projectsRouter.post(
 
       const isFullPayment = Math.round(body.amountPaid * 100) >= Math.round(maxPaymentAllowed * 100);
       if (isFullPayment && completed_status_id) {
-         await client.query(`UPDATE project_milestones SET status_id = $1, completed_at = NOW() WHERE id = $2`, [completed_status_id, milestoneId]);
-         await auditService.logAdminAction({ userId: req.admin?.id, action: 'update_milestone_status_auto', entityType: 'project_milestones', entity: milestoneId, req });
+         const updRes = await client.query(`UPDATE project_milestones SET status_id = $1, completed_at = NOW() WHERE id = $2 RETURNING *`, [completed_status_id, milestoneId]);
+         await auditService.logAdminAction({ userId: req.admin?.id, action: 'update_milestone_status_auto', entityType: 'project_milestones', entity: updRes.rows[0], req });
       } else if (body.splitRemaining && !isFullPayment) {
          const paidPercentage = ((amountPaidCurrently + body.amountPaid) / Number(total_amount)) * 100;
          const remainingPercentage = Number(payment_percentage) - paidPercentage;
@@ -909,11 +910,11 @@ projectsRouter.patch(
        FROM status_catalog sc
        WHERE pm.id = $1 AND pm.project_id = $2
          AND sc.domain = 'milestone' AND sc.code = $3 AND sc.is_active = true
-       RETURNING pm.id`,
+       RETURNING pm.*`,
       [milestoneId, projectId, body.status],
     );
     if (!result.rowCount) throw new HttpError(400, 'Hito o estado invalido.');
-    await auditService.logAdminAction({ userId: req.admin?.id, action: 'update_milestone_status', entityType: 'project_milestones', entity: milestoneId, req });
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'update_milestone_status', entityType: 'project_milestones', entity: result.rows[0], req });
     res.json({ ok: true });
   }),
 );
@@ -990,7 +991,6 @@ projectsRouter.get(
   }),
 );
 
-
 projectsRouter.delete(
   '/projects/:id/milestones/:milestone_id',
   requireCsrf,
@@ -1019,4 +1019,3 @@ projectsRouter.delete(
     res.status(200).json({ success: true });
   })
 );
-
