@@ -35,10 +35,13 @@ import {
   TrendingUp,
   UploadCloud,
   X,
+  AlertTriangle,
+  Info,
   type LucideIcon,
 } from 'lucide-react';
 import { allowsMultipleQuantity, computeQuoteTotals, formatPen, quoteLegalNotes, requiresCustomPrice, useQuoterState, type NormalizedPricingCatalogItem, type PreparedQuotePayload, type PricingCatalogItem } from '../../hooks/useQuoterState';
 import CustomDropdown from '../ui/CustomDropdown';
+import ShineBorder from '../ui/shine-border';
 
 type DynamicQuoterProps = {
   isReadOnly?: boolean;
@@ -230,6 +233,8 @@ const DynamicQuoter = ({
   const toggleOwnHosting = useQuoterState((state) => state.toggleOwnHosting);
   const editingQuoteId = useQuoterState((state) => state.editingQuoteId);
   const buildPayload = useQuoterState((state) => state.buildPayload);
+  const alertModal = useQuoterState((state) => state.alertModal);
+  const setAlertModal = useQuoterState((state) => state.setAlertModal);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const totals = useMemo(() => computeQuoteTotals(storeCatalog, cart, infrastructure), [storeCatalog, cart, infrastructure]);
   const activeIncludedFeatures = Array.isArray(totals.activeBaseSource?.included_features)
@@ -624,6 +629,56 @@ const DynamicQuoter = ({
           {loading ? 'Guardando...' : editingQuoteId ? 'Actualizar Cotizacion' : 'Guardar Cotizacion'}
         </button>)}
       </div>
+
+      {alertModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <ShineBorder 
+            borderRadius={16} 
+            borderWidth={1.5} 
+            color={
+              alertModal.type === 'error' ? ["#ef4444", "#991b1b", "#ef4444"] :
+              alertModal.type === 'info' ? ["#3b82f6", "#1d4ed8", "#3b82f6"] :
+              ["#f59e0b", "#b45309", "#f59e0b"]
+            } 
+            className={`w-full max-w-sm bg-[#0a0a0a] shadow-[0_0_50px_-12px_${
+              alertModal.type === 'error' ? 'rgba(239,68,68,0.25)' :
+              alertModal.type === 'info' ? 'rgba(59,130,246,0.25)' :
+              'rgba(245,158,11,0.25)'
+            }]`}
+          >
+            <div className="p-6 text-center">
+              <div className={`mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full ${
+                alertModal.type === 'error' ? 'bg-red-500/10' :
+                alertModal.type === 'info' ? 'bg-blue-500/10' :
+                'bg-amber-500/10'
+              }`}>
+                {alertModal.type === 'info' ? (
+                  <Info className="h-7 w-7 text-blue-500" />
+                ) : alertModal.type === 'error' ? (
+                  <AlertTriangle className="h-7 w-7 text-red-500" />
+                ) : (
+                  <AlertTriangle className="h-7 w-7 text-amber-500" />
+                )}
+              </div>
+              <h2 className="mb-2 text-lg font-semibold text-white/90">{alertModal.title || 'Aviso'}</h2>
+              <p className="mb-6 text-sm text-white/60">{alertModal.message}</p>
+              <div className="flex flex-col gap-3">
+                <button 
+                  type="button"
+                  onClick={() => setAlertModal(null)} 
+                  className={`rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-colors ${
+                    alertModal.type === 'error' ? 'bg-red-500 hover:bg-red-600' :
+                    alertModal.type === 'info' ? 'bg-blue-500 hover:bg-blue-600' :
+                    'bg-amber-500 hover:bg-amber-600'
+                  }`}
+                >
+                  Entendido
+                </button>
+              </div>
+            </div>
+          </ShineBorder>
+        </div>
+      )}
     </form>
   );
 };

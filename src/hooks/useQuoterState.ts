@@ -106,7 +106,11 @@ type QuoteTotals = {
   };
 };
 
+export type QuoterAlert = { message: string, title?: string, type?: 'warning' | 'info' | 'error' };
+
 type QuoterState = {
+  alertModal: QuoterAlert | null;
+  setAlertModal: (alert: QuoterAlert | null) => void;
   catalog: NormalizedPricingCatalogItem[];
   cart: QuoteCartLine[];
   infrastructure: InfrastructureState;
@@ -128,7 +132,7 @@ type QuoterState = {
 
 const DEFAULT_PROJECT_CATEGORY = 'Landing Page';
 const LEGAL_NOTES = [
-  'Nota Legal: Retrasos mayores a 60 dias tendran un recargo del 20%. Cancelaciones requieren un abono del 30% por tiempo invertido.',
+  'Nota Legal: Retrasos mayores a 60 dias tendran un recargo del 20%. Cancelaciones requieren un abono del 20% por tiempo invertido.',
 ];
 const DOMAIN_INFRA_CODES = ['discount_own_domain', 'fee_domain_setup'];
 const HOSTING_INFRA_CODES = ['discount_own_hosting', 'fee_hosting_setup'];
@@ -214,20 +218,20 @@ export const allowsMultipleQuantity = (item: NormalizedPricingCatalogItem) =>
 
 const showMaintenanceDowngradeWarning = (includedBy: string) => {
   if (typeof window !== 'undefined') {
-    window.alert(`El ${includedBy} ya incluye las caracteristicas de este plan.`);
+    useQuoterState.getState().setAlertModal({ title: 'Aviso de Mantenimiento', message: `El ${includedBy} ya incluye las caracteristicas de este plan.`, type: 'warning' });
   }
 };
 
 const showRevisionDowngradeWarning = () => {
   if (typeof window !== 'undefined') {
-    window.alert('El nivel actual de revisión ya cubre los cambios básicos. No es necesario agregarlo.');
+    useQuoterState.getState().setAlertModal({ title: 'Aviso de Revisión', message: 'El nivel actual de revisión ya cubre los cambios básicos. No es necesario agregarlo.', type: 'info' });
   }
 };
 
 const showCustomPriceClampWarning = (basePrice: number, maxPrice: number | null) => {
   if (typeof window !== 'undefined') {
     const maxLabel = maxPrice === null ? 'sin limite superior' : formatPenValue(maxPrice);
-    window.alert(`El precio fue ajustado. El rango permitido para este elemento es entre ${formatPenValue(basePrice)} y ${maxLabel}.`);
+    useQuoterState.getState().setAlertModal({ title: 'Precio Ajustado', message: `El precio fue ajustado. El rango permitido para este elemento es entre ${formatPenValue(basePrice)} y ${maxLabel}.`, type: 'warning' });
   }
 };
 
@@ -481,6 +485,8 @@ export const computeQuoteTotals = (
 };
 
 export const useQuoterState = create<QuoterState>((set, get) => ({
+  alertModal: null,
+  setAlertModal: (alert) => set({ alertModal: alert }),
   catalog: [],
   cart: [],
   infrastructure: defaultInfrastructure(),
