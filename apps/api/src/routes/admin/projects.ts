@@ -787,11 +787,13 @@ projectsRouter.post(
         ]
       );
       const paymentRow = result.rows[0];
+      const auditLogs: any[] = [];
+      auditLogs.push({ userId: req.admin?.id, action: 'create_milestone_payment', entityType: 'milestone_payments', entity: paymentRow, req });
 
       const isFullPayment = Math.round(body.amountPaid * 100) >= Math.round(maxPaymentAllowed * 100);
       if (isFullPayment && completed_status_id) {
          const updRes = await client.query(`UPDATE project_milestones SET status_id = $1, completed_at = NOW() WHERE id = $2 RETURNING *`, [completed_status_id, milestoneId]);
-         await auditService.logAdminAction({ userId: req.admin?.id, action: 'update_milestone_status_auto', entityType: 'project_milestones', entity: updRes.rows[0], previousState: oldMilestoneState, req });
+         auditLogs.push({ userId: req.admin?.id, action: 'update_milestone_status_auto', entityType: 'project_milestones', entity: updRes.rows[0], previousState: oldMilestoneState, req });
       } else if (body.splitRemaining && !isFullPayment) {
          const paidPercentage = ((amountPaidCurrently + body.amountPaid) / Number(total_amount)) * 100;
          const remainingPercentage = Number(payment_percentage) - paidPercentage;
@@ -804,11 +806,14 @@ projectsRouter.post(
             VALUES ($1, $2, $3, $4, $5, $6)`,
            [projectId, quote_id, `Restante del pago de ${cleanTitle}`, due_date, remainingPercentage, original_status_id]
          );
-         await auditService.logAdminAction({ userId: req.admin?.id, action: 'split_milestone_auto', entityType: 'project_milestones', entity: updRes.rows[0], previousState: oldMilestoneState, req });
+         auditLogs.push({ userId: req.admin?.id, action: 'split_milestone_auto', entityType: 'project_milestones', entity: updRes.rows[0], previousState: oldMilestoneState, req });
       }
 
       await client.query('COMMIT');
-      await auditService.logAdminAction({ userId: req.admin?.id, action: 'create_milestone_payment', entityType: 'milestone_payments', entity: paymentRow, req });
+      
+      for (const log of auditLogs) {
+        await auditService.logAdminAction(log);
+      }
       res.status(201).json({ id: paymentRow.id });
     } catch (error) {
       await client.query('ROLLBACK').catch(() => undefined);
