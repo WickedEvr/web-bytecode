@@ -793,10 +793,11 @@ projectsRouter.post(
          
          await client.query(`UPDATE project_milestones SET payment_percentage = $1, status_id = $2, completed_at = NOW() WHERE id = $3`, [paidPercentage, completed_status_id, milestoneId]);
          
+         const cleanTitle = title.replace(/^Restante del pago de /, '');
          await client.query(
            `INSERT INTO project_milestones (project_id, quote_id, title, due_date, payment_percentage, status_id)
             VALUES ($1, $2, $3, $4, $5, $6)`,
-           [projectId, quote_id, `Restante del pago de ${title}`, due_date, remainingPercentage, original_status_id]
+           [projectId, quote_id, `Restante del pago de ${cleanTitle}`, due_date, remainingPercentage, original_status_id]
          );
          await auditService.logAdminAction({ userId: req.admin?.id, action: 'split_milestone_auto', entityType: 'project_milestones', entity: milestoneId, req });
       }
