@@ -26,7 +26,7 @@ case "$ACTION" in
 
         # Sincronizar el repositorio base de producción con GitHub
         echo "--> Sincronizando ramas de GitHub en repositorio base..."
-        cd "$MAIN_REPO_DIR"
+        cd "$MAIN_REPO_DIR" || exit 1
         git config --global --add safe.directory "$MAIN_REPO_DIR"
         git fetch origin
 
@@ -36,7 +36,7 @@ case "$ACTION" in
         fi
 
         # Asegurar que el origen del PR apunte a GitHub siempre (incluso si la carpeta ya existe)
-        cd "$EPHEMERAL_ROOT"
+        cd "$EPHEMERAL_ROOT" || exit 1
         git remote set-url origin https://github.com/bytecode-web/web-bytecode.git
 
         git fetch origin "$BRANCH_NAME"
@@ -56,7 +56,7 @@ case "$ACTION" in
 
         # Copiar las variables comunes de producción
         cp "$MAIN_ENV_FILE" "$EPHEMERAL_ROOT/.env"
-        
+
         # 🟢 CURA DEFINITIVA 2.0: Purgar TODO rastro de variables usando Regex agresivo e ignorando formato Windows
         sed -i 's/\r$//' "$EPHEMERAL_ROOT/.env"
         sed -i -E '/^[[:space:]]*(DB_PASSWORD|DB_NAME|JWT_SECRET|DATABASE_URL|POSTGRES_PASSWORD)[[:space:]]*=/d' "$EPHEMERAL_ROOT/.env"
@@ -85,7 +85,7 @@ case "$ACTION" in
         docker rm -f "bytecode-backend-pr-${PR_NUMBER}" "bytecode-frontend-pr-${PR_NUMBER}" "bytecode-db-pr-${PR_NUMBER}" 2>/dev/null || true
         # CURA 1: Evitar error de password en Re-Runs borrando volúmenes fantasma previamente.
         docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml down -v 2>/dev/null || true
-        
+
         docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml up -d --build db-pr
 
         # Esperar a que la base de datos se inicialice por completo (el primer arranque toma unos segundos)
@@ -99,13 +99,13 @@ case "$ACTION" in
             fi
             sleep 3
         done
-	
-	    echo "--> Clonando datos reales de producción al entorno efímero..."
+
+        echo "--> Clonando datos reales de producción al entorno efímero..."
 
         PROD_DB_PASSWORD=$(grep -E "^DB_PASSWORD=" "$MAIN_ENV_FILE" | cut -d'=' -f2- | tr -d '"' | tr -d "'" | tr -d '\r')
         PROD_DB_NAME="bytecode_prod"
 
-	    docker exec -e PGPASSWORD="${PROD_DB_PASSWORD}" bytecode-db pg_dump -U bytecode_user -d "${PROD_DB_NAME}" -x -O | docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T -e PGPASSWORD="${DB_PASSWORD}" db-pr psql -U bytecode_user -d "bytecode_pr_${PR_NUMBER}"
+        docker exec -e PGPASSWORD="${PROD_DB_PASSWORD}" bytecode-db pg_dump -U bytecode_user -d "${PROD_DB_NAME}" -x -O | docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T -e PGPASSWORD="${DB_PASSWORD}" db-pr psql -U bytecode_user -d "bytecode_pr_${PR_NUMBER}"
 
         echo "--> Sincronizando contraseña explícita de Postgres para evadir corrupción de hashes..."
         docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T db-pr psql -U bytecode_user -d "bytecode_pr_${PR_NUMBER}" -c "ALTER ROLE bytecode_user WITH PASSWORD '${DB_PASSWORD}'; SELECT pg_reload_conf();"
@@ -115,7 +115,7 @@ case "$ACTION" in
         docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml up -d --build --force-recreate backend-pr frontend-pr
         sleep 6
 
- 	    echo "--> Corriendo migraciones en la base de datos temporal..."
+        echo "--> Corriendo migraciones en la base de datos temporal..."
         for attempt in {1..4}; do
             if docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml exec -T backend-pr node apps/api/dist/db/migrate.js; then
                 echo "✅ Migraciones ejecutadas exitosamente."
@@ -131,19 +131,19 @@ case "$ACTION" in
         done
 
         echo "--> Configurando subdominio dinámico en Caddy..."
-        echo "pr${PR_NUMBER}.env.bytecode.com.pe {
-            tls internal
-            handle /api/* {
-                reverse_proxy bytecode-backend-pr-${PR_NUMBER}:4000
-            }
-            handle {
-                reverse_proxy bytecode-frontend-pr-${PR_NUMBER}:80
-            }
-        }
-        api-pr${PR_NUMBER}.env.bytecode.com.pe {
-            tls internal
-            reverse_proxy bytecode-backend-pr-${PR_NUMBER}:4000
-        }" > "${CADDY_CONF_DIR}/pr-${PR_NUMBER}.conf"
+        cat <<EOF > "${CADDY_CONF_DIR}/pr-${PR_NUMBER}.conf"
+pr${PR_NUMBER}.env.bytecode.com.pe {
+    handle /api/* {
+        reverse_proxy bytecode-backend-pr-${PR_NUMBER}:4000
+    }
+    handle {
+        reverse_proxy bytecode-frontend-pr-${PR_NUMBER}:80
+    }
+}
+api-pr${PR_NUMBER}.env.bytecode.com.pe {
+    reverse_proxy bytecode-backend-pr-${PR_NUMBER}:4000
+}
+EOF
 
         echo "--> Recargando Caddy..."
         docker exec bytecode-proxy caddy reload --config /etc/caddy/Caddyfile
@@ -151,7 +151,7 @@ case "$ACTION" in
         echo "--> Notificando al Backend del nuevo despliegue..."
         # Leer JWT_SECRET limpiando comillas dobles y simples
         PROD_JWT_SECRET=$(grep -E "^JWT_SECRET=" "$MAIN_ENV_FILE" | cut -d'=' -f2- | tr -d '"' | tr -d "'" | tr -d '\r')
-        
+
         curl -s -X POST https://api.bytecode.com.pe/api/webhooks/ephemeral-deploy \
           -H "Authorization: Bearer ${PROD_JWT_SECRET}" \
           -H "Content-Type: application/json" \
@@ -163,11 +163,11 @@ case "$ACTION" in
     closed)
         echo "--> Eliminando entorno efímero para el PR #${PR_NUMBER}..."
         if [ -d "$EPHEMERAL_ROOT" ]; then
-            cd "$EPHEMERAL_ROOT"
+            cd "$EPHEMERAL_ROOT" || exit 1
             export PR_NUMBER
             echo "--> Deteniendo contenedores con docker compose..."
             docker compose -p "pr-${PR_NUMBER}" -f docker-compose.ephemeral.yml down -v --remove-orphans || true
-            cd /var/www
+            cd /var/www || exit 1
             rm -rf "$EPHEMERAL_ROOT"
         fi
 

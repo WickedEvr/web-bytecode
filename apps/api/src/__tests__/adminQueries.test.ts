@@ -29,6 +29,7 @@ test('quote queries use the enterprise schema column names', async () => {
   assert.doesNotMatch(source, /INSERT INTO quotes \(quote_code, customer_id, total_amount, status_id, notes/);
 });
 
+
 test('contact admin queries return separated company fields', async () => {
   const source = await readFile(casesRoutePath, 'utf8');
   const contactColumns = source.match(/const contactColumns = `([\s\S]*?)`;/)?.[1] ?? '';

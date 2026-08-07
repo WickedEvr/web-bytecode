@@ -36,7 +36,7 @@ export const getLiveExchangeRates = async (): Promise<{ USD: number; EUR: number
   } catch (error) {
     console.warn('[ExchangeRate] Failed to fetch live exchange rates, falling back to defaults:', error);
   }
-  return cachedRates ? { USD: cachedRates.USD, EUR: cachedRates.EUR, PEN: 1 } : { USD: 3.75, EUR: 4.05, PEN: 1 };
+  return { USD: 3.75, EUR: 4.10, PEN: 1 };
 };
 
 const getPricingCatalogColumns = async () => {
@@ -395,7 +395,7 @@ quotesRouter.post(
         if (catalogRow.pricing_model === 'fixed') {
           unitPrice = effectiveBase;
         } else if (catalogRow.pricing_model === 'range') {
-          const EPSILON = 0.0005; // Tolerancia por conversión de divisas y redondeo en coma flotante
+          const EPSILON = 0.0005;
           if (unitPrice < (effectiveBase - EPSILON) || (effectiveMax !== null && unitPrice > (effectiveMax + EPSILON))) {
             const minFormatted = currencyCode === 'PEN' ? `S/ ${effectiveBase.toFixed(2)}` : currencyCode === 'USD' ? `$ ${effectiveBase.toFixed(2)}` : `€ ${effectiveBase.toFixed(2)}`;
             const maxFormatted = effectiveMax !== null ? (currencyCode === 'PEN' ? `S/ ${effectiveMax.toFixed(2)}` : currencyCode === 'USD' ? `$ ${effectiveMax.toFixed(2)}` : `€ ${effectiveMax.toFixed(2)}`) : 'sin límite superior';
