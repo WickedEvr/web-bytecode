@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTerminalState } from '../../hooks/useTerminalState';
-import { ArrowLeft, ExternalLink, GitCommitHorizontal, Pencil, Trash2, UserPlus, X, DollarSign, Plus } from 'lucide-react';
+import { formatCurrencyValue } from '../../hooks/useQuoterState';
+import { ArrowLeft, ExternalLink, Pencil, Trash2, UserPlus, X, DollarSign, Plus, GitCommitHorizontal, AlertTriangle } from 'lucide-react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import AdminPanel from '../../components/admin/AdminPanel';
+import ShineBorder from '../../components/ui/shine-border';
 import type { AdminUser } from '../../components/admin/AdminLayout';
 import RoleGuard from '../../components/admin/RoleGuard';
 import ProjectQuoteSelector from '../../components/admin/ProjectQuoteSelector';
@@ -45,6 +47,7 @@ const ProyectoDetalle: React.FC = () => {
   const [commits, setCommits] = useState<ProjectCommit[]>([]);
   const [assignments, setAssignments] = useState<ProjectAssignment[]>([]);
   const [assignmentOptions, setAssignmentOptions] = useState<ProjectAssignmentOption[]>([]);
+  const [adendas, setAdendas] = useState<{ id: string; quote_code: string; title?: string; total_amount: string; currency_code: string }[]>([]);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [assignmentRole, setAssignmentRole] = useState('');
   const [assigning, setAssigning] = useState(false);
@@ -53,6 +56,10 @@ const ProyectoDetalle: React.FC = () => {
   const [projectStatuses, setProjectStatuses] = useState<StatusCatalogItem[]>([]);
   const [statusHistory, setStatusHistory] = useState<StatusHistoryRecord[]>([]);
   const [updatingProjectStatus, setUpdatingProjectStatus] = useState(false);
+  const [killFeeConfirmOpen, setKillFeeConfirmOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteMilestoneConfirmOpen, setDeleteMilestoneConfirmOpen] = useState<string | null>(null);
+  const [milestoneDetailsOpen, setMilestoneDetailsOpen] = useState<ProjectMilestone | null>(null);
   const [tab, setTab] = useState<Tab>('general');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -61,32 +68,80 @@ const ProyectoDetalle: React.FC = () => {
   const [deleting, setDeleting] = useState(false);
   const [editForm, setEditForm] = useState<ProjectEditForm>({ name: '', description: '', githubRepo: '', quoteId: '', totalBudget: 0, currencyCode: 'PEN' });
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [activeMilestoneId, setActiveMilestoneId] = useState('');
-  const [paymentForm, setPaymentForm] = useState<{ amount: number; method: string; reference: string; date: string; receipt: File | null }>({ amount: 0, method: 'transfer', reference: '', date: new Date().toISOString().split('T')[0], receipt: null });
+  const [paymentForm, setPaymentForm] = useState<{ amount: number; method: string; reference: string; date: string; receipt: File | null; splitRemaining: boolean }>({ amount: 0, method: 'transfer', reference: '', date: new Date().toISOString().split('T')[0], receipt: null, splitRemaining: false });
   const [savingPayment, setSavingPayment] = useState(false);
   const [addMilestoneOpen, setAddMilestoneOpen] = useState(false);
-  const [addMilestoneForm, setAddMilestoneForm] = useState({ title: '', due_date: '', payment_percentage: 0, status_id: '' });
+  const [addMilestoneForm, setAddMilestoneForm] = useState({ title: '', due_date: '', payment_percentage: 0, status_id: '', quote_id: '' });
   const [savingMilestone, setSavingMilestone] = useState(false);
 
-  const loadMilestones = async () => setMilestones(await fetchProjectMilestones(id));
+  const loadMilestones = async () => {
+    const isRestrictedDeveloper = admin.roles.includes('developer') && !admin.roles.includes('super_admin') && !admin.roles.includes('admin');
+    if (isRestrictedDeveloper) {
+      setMilestones([]);
+      return;
+    }
+    setMilestones(await fetchProjectMilestones(id).catch(() => []));
+  };
+
+  const getMilestoneRawAmount = (milestone: ProjectMilestone) => {
+    let amount = 0;
+    let currency = milestone.currency_code || 'USD';
+    
+    if (milestone.quote_id && project && milestone.quote_id !== project.quote_id) {
+      const adenda = adendas.find((a) => a.id === milestone.quote_id);
+      if (adenda) {
+        amount = Number(adenda.total_amount);
+        currency = milestone.currency_code || adenda.currency_code;
+      }
+    }
+    
+    if (!amount && project) {
+      amount = Number(project.total_budget);
+      currency = milestone.currency_code || project.currency_code;
+    }
+    
+    if (!amount) return { amount: 0, currency };
+    const rawAmount = (amount * Number(milestone.payment_percentage)) / 100;
+    let expected = Math.round(rawAmount * 100) / 100;
+
+    const totalPaid = (milestone.payments || []).reduce((sum, p) => sum + Number(p.amount_paid), 0);
+    if (totalPaid > 0 && Math.abs(totalPaid - expected) < 1.00) {
+      if (milestone.status === 'completed' || totalPaid >= expected) {
+        expected = totalPaid;
+      }
+    }
+
+    return { amount: expected, currency };
+  };
+
+  const getMilestoneAmountString = (milestone: ProjectMilestone) => {
+    const { amount, currency } = getMilestoneRawAmount(milestone);
+    if (!amount) return '';
+    return `(${formatCurrencyValue(amount, currency)})`;
+  };
 
   const loadData = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     try {
-      const [projectResult, milestoneResult, commitResult, assignmentResult, statusResult, projectStatusResult, historyResult] = await Promise.all([
+      const isRestrictedDeveloper = admin.roles.includes('developer') && !admin.roles.includes('super_admin') && !admin.roles.includes('admin');
+      const [projectResult, milestoneResult, commitResult, assignmentResult, adendasResult, statusResult, projectStatusResult, historyResult] = await Promise.all([
         fetchProject(id),
-        fetchProjectMilestones(id),
-        fetchProjectCommits(id),
+        isRestrictedDeveloper ? Promise.resolve([]) : fetchProjectMilestones(id).catch(() => []),
+        fetchProjectCommits(id).catch(() => []),
         fetchProjectAssignments(id),
+        isRestrictedDeveloper ? Promise.resolve({ items: [] }) : apiRequest<{ items: { id: string; quote_code: string; title?: string; total_amount: string; currency_code: string }[] }>(`/admin/projects/${id}/adendas`).catch(() => ({ items: [] })),
         apiRequest<{ items: StatusCatalogItem[] }>('/catalog/statuses?domain=milestone'),
         apiRequest<{ items: StatusCatalogItem[] }>('/catalog/statuses?domain=project'),
-        fetchProjectStatusHistory<StatusHistoryRecord>(id),
+        fetchProjectStatusHistory<StatusHistoryRecord>(id).catch(() => []),
       ]);
       setProject(projectResult);
       setMilestones(milestoneResult);
       setCommits(commitResult);
       setAssignments(assignmentResult);
+      setAdendas(adendasResult.items);
       setStatuses(statusResult.items);
       setProjectStatuses(projectStatusResult.items);
       setStatusHistory(historyResult);
@@ -116,18 +171,38 @@ const ProyectoDetalle: React.FC = () => {
     }
   };
 
-  const changeProjectStatus = async (status: string) => {
-    if (!project || status === project.status) return;
+  const confirmDeleteMilestone = async () => {
+    if (!deleteMilestoneConfirmOpen) return;
+    try {
+      await apiRequest(`/admin/projects/${id}/milestones/${deleteMilestoneConfirmOpen}`, { method: 'DELETE' });
+      await Promise.all([loadMilestones(), loadData()]);
+      setDeleteMilestoneConfirmOpen(null);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'No se pudo eliminar el hito.');
+    }
+  };
+
+  const changeProjectStatus = async (status: string, applyKillFee = false) => {
+    const isFullyPaid = milestones.reduce((sum, m) => sum + Number(m.payment_percentage), 0) >= 100 && milestones.every(m => ['completed', 'cancelled'].includes(m.status));
+    if (status === 'cancelled' && !applyKillFee && !cancelModalOpen && !isFullyPaid) {
+       setCancelModalOpen(true);
+       return;
+    }
     setUpdatingProjectStatus(true);
     setError('');
     try {
-      const updated = await updateProject(id, { status });
-      setProject(updated);
+      await apiRequest(`/admin/projects/${id}`, {
+        method: 'PATCH',
+        json: { status, applyKillFee },
+      });
+      setProject(prev => prev ? ({ ...prev, status }) : null);
+      if (applyKillFee) await loadMilestones();
       setStatusHistory(await fetchProjectStatusHistory<StatusHistoryRecord>(id));
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudo actualizar el estado del proyecto.');
+      setError(requestError instanceof Error ? requestError.message : 'No se pudo actualizar el estado.');
     } finally {
       setUpdatingProjectStatus(false);
+      setCancelModalOpen(false);
     }
   };
 
@@ -170,12 +245,13 @@ const ProyectoDetalle: React.FC = () => {
       formData.append('paidAt', paymentForm.date);
       if (paymentForm.reference) formData.append('referenceNumber', paymentForm.reference);
       if (paymentForm.receipt) formData.append('receipt', paymentForm.receipt);
+      if (paymentForm.splitRemaining) formData.append('splitRemaining', 'true');
 
       await createMilestonePayment(id, activeMilestoneId, formData);
       await loadMilestones();
       setPaymentModalOpen(false);
       setActiveMilestoneId('');
-      setPaymentForm({ amount: 0, method: 'transfer', reference: '', date: new Date().toISOString().split('T')[0], receipt: null });
+      setPaymentForm({ amount: 0, method: 'transfer', reference: '', date: new Date().toISOString().split('T')[0], receipt: null, splitRemaining: false });
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'No se pudo registrar el pago.');
     } finally {
@@ -183,8 +259,7 @@ const ProyectoDetalle: React.FC = () => {
     }
   };
 
-  const handleAddMilestoneSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const submitMilestone = async (cancelPending: boolean = false) => {
     setSavingMilestone(true);
     setError('');
     try {
@@ -193,15 +268,29 @@ const ProyectoDetalle: React.FC = () => {
         dueDate: addMilestoneForm.due_date,
         paymentPercentage: addMilestoneForm.payment_percentage,
         statusId: addMilestoneForm.status_id,
+        quoteId: addMilestoneForm.quote_id || undefined,
+        cancelPending,
       });
-      await loadMilestones();
+      await Promise.all([loadMilestones(), loadData()]);
       setAddMilestoneOpen(false);
-      setAddMilestoneForm({ title: '', due_date: '', payment_percentage: 0, status_id: statuses[0]?.id || '' });
+      setAddMilestoneForm({ title: '', due_date: '', payment_percentage: 0, status_id: statuses[0]?.id || '', quote_id: '' });
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'No se pudo crear el hito.');
     } finally {
       setSavingMilestone(false);
     }
+  };
+
+  const handleAddMilestoneSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const isKillFee = addMilestoneForm.title.toLowerCase().includes('kill fee') || addMilestoneForm.title.toLowerCase().includes('compensación');
+    
+    if (isKillFee) {
+      setKillFeeConfirmOpen(true);
+      return;
+    }
+    
+    await submitMilestone(false);
   };
 
   const openEdit = () => {
@@ -238,8 +327,8 @@ const ProyectoDetalle: React.FC = () => {
     }
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm(`¿Eliminar el proyecto "${project?.name ?? ''}"? Esta acción lo retirará del panel.`)) return;
+  const executeDelete = async () => {
+    setDeleteConfirmOpen(false);
     setDeleting(true);
     setError('');
     try {
@@ -260,15 +349,68 @@ const ProyectoDetalle: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-6 font-sansation">
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-4"><div className="flex items-center gap-4"><button type="button" onClick={() => navigate('/admin/proyectos')} className="rounded-lg border border-white/10 bg-white/5 p-2 text-white/60"><ArrowLeft className="h-5 w-5" /></button><div><h1 className="text-2xl font-semibold text-white/90">{project.name}</h1><p className="mt-1 text-xs text-white/40">{project.project_code} · {project.customer_name || 'Cliente sin nombre'} · {project.status_name || project.status}</p></div></div><RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>{(admin.roles.includes('super_admin') || admin.roles.includes('admin')) && !isReadOnly && (<div className="flex gap-2"><button type="button" onClick={openEdit} className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/75 hover:bg-white/10"><Pencil className="h-4 w-4" />Editar</button><button type="button" disabled={deleting} onClick={() => void handleDelete()} className="inline-flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm text-red-300 hover:bg-red-500/20 disabled:opacity-40"><Trash2 className="h-4 w-4" />{deleting ? 'Eliminando...' : 'Eliminar'}</button></div>)}</RoleGuard></div>
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-4"><div className="flex items-center gap-4"><button type="button" onClick={() => navigate('/admin/proyectos')} className="rounded-lg border border-white/10 bg-white/5 p-2 text-white/60"><ArrowLeft className="h-5 w-5" /></button><div><h1 className="text-2xl font-semibold text-white/90">{project.name}</h1><p className="mt-1 text-xs text-white/40">{project.project_code} · {project.customer_name || 'Cliente sin nombre'} · {project.status_name || project.status}</p></div></div><RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>{(admin.roles.includes('super_admin') || admin.roles.includes('admin')) && !isReadOnly && (<div className="flex gap-2"><button type="button" onClick={openEdit} className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/75 hover:bg-white/10"><Pencil className="h-4 w-4" />Editar</button><button type="button" disabled={deleting} onClick={() => setDeleteConfirmOpen(true)} className="inline-flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm text-red-300 hover:bg-red-500/20 disabled:opacity-40"><Trash2 className="h-4 w-4" />{deleting ? 'Eliminando...' : 'Eliminar'}</button></div>)}</RoleGuard></div>
       {error && <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</p>}
-      <div className="flex gap-2 border-b border-white/5 pb-3">
-        {([['general', 'General'], ['milestones', 'Hitos'], ['environments', 'Entornos'], ['activity', 'Actividad (GitHub)'], ['history', 'Historial de Estados']] as const).map(([value, label]) => <button key={value} type="button" onClick={() => setTab(value)} className={`rounded-lg px-4 py-2 text-sm transition ${tab === value ? 'bg-white text-black' : 'bg-white/5 text-white/55 hover:text-white'}`}>{label}</button>)}
-      </div>
+      <div className="flex flex-wrap gap-2 mb-6">
+          {[
+            ['general', 'General'],
+            ...(admin.roles.includes('super_admin') || admin.roles.includes('admin') ? [['milestones', 'Hitos']] : []),
+            ['environments', 'Entornos'],
+            ['activity', 'Actividad (GitHub)'],
+            ['history', 'Historial de Estados']
+          ].map(([value, label]) => (
+            <button key={value} type="button" onClick={() => setTab(value as Tab)} className={`rounded-lg px-4 py-2 text-sm transition ${tab === value ? 'bg-white text-black' : 'bg-white/5 text-white/55 hover:text-white'}`}>{label}</button>
+          ))}
+        </div>
 
       {tab === 'general' && <div className="grid gap-6"><AdminPanel className="p-6 lg:p-8"><div className="grid gap-5 md:grid-cols-2"><div><p className="text-xs uppercase tracking-wider text-white/35">Cliente</p><p className="mt-2 text-white/80">{project.customer_name}</p></div><div><p className="text-xs uppercase tracking-wider text-white/35">Servicio</p><p className="mt-2 text-white/80">{project.service_name}</p></div><div><p className="text-xs uppercase tracking-wider text-white/35">Fecha Inicio</p><p className="mt-2 text-white/80">{project.start_date ? new Date(project.start_date).toISOString().slice(0, 10) : '-'}</p></div><div><p className="text-xs uppercase tracking-wider text-white/35">Fin Estimado</p><p className="mt-2 text-white/80">{project.estimated_end_date ? new Date(project.estimated_end_date).toISOString().slice(0, 10) : '-'}</p></div><div><p className="text-xs uppercase tracking-wider text-white/35">Fin Real (Auto)</p><p className="mt-2 text-white/80">{project.actual_end_date ? new Date(project.actual_end_date).toISOString().slice(0, 10) : '-'}</p></div><div><p className="mb-1.5 text-xs uppercase tracking-wider text-white/35">Estado del Proyecto</p><RoleGuard requiredPermission="admin.proyectos.manage" fallback={<div className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white/55">{project.status_name || project.status}</div>}>{(admin.roles.includes('super_admin') || admin.roles.includes('admin')) ? <CustomDropdown value={project.status} onChange={(status) => void changeProjectStatus(status)} placeholder="Seleccionar estado..." disabled={updatingProjectStatus || isReadOnly} options={projectStatuses.map((status) => ({ value: status.code, label: status.name }))} /> : <div className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white/55">{project.status_name || project.status}</div>}</RoleGuard></div><div className="md:col-span-2"><p className="text-xs uppercase tracking-wider text-white/35">Descripción</p><p className="mt-2 text-sm leading-6 text-white/60">{project.description || 'Sin descripción.'}</p></div>{link('Repositorio GitHub', project.github_repo)}</div></AdminPanel><AdminPanel className="p-6 lg:p-8"><div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-sm font-semibold uppercase tracking-wider text-white/75">Equipo asignado</h2><p className="mt-1 text-xs text-white/35">Integrantes con acceso operativo al proyecto.</p></div>{(admin.roles.includes('super_admin') || admin.roles.includes('admin')) && <div className="flex flex-wrap items-end gap-2"><div className="min-w-52"><CustomDropdown disabled={isReadOnly} value={selectedUserId} onChange={setSelectedUserId} placeholder="Seleccionar integrante..." options={assignmentOptions.map((user) => ({ value: user.id, label: `${user.name} · ${user.email}` }))} /></div><input value={assignmentRole} disabled={isReadOnly} onChange={(event) => setAssignmentRole(event.target.value)} placeholder="Rol en el proyecto" className="rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white" />{!isReadOnly && <button type="button" disabled={!selectedUserId || assigning} onClick={() => void handleAssign()} className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-black disabled:opacity-40"><UserPlus className="h-4 w-4" />{assigning ? 'Asignando...' : 'Asignar'}</button>}</div>}</div><div className="mt-5 grid gap-2">{assignments.length ? assignments.map((assignment) => <div key={assignment.user_id} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.02] px-4 py-3"><div><p className="text-sm text-white/80">{assignment.name}</p><p className="text-xs text-white/35">{assignment.email}</p></div><div className="flex items-center gap-3"><span className="text-xs text-white/50">{assignment.role || 'Integrante'}</span>{(admin.roles.includes('super_admin') || admin.roles.includes('admin')) && !isReadOnly && (<div className="flex items-center gap-1"><button type="button" onClick={() => { setSelectedUserId(assignment.user_id); setAssignmentRole(assignment.role || ''); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="p-1.5 text-white/40 hover:text-white" title="Editar Rol"><Pencil className="h-3.5 w-3.5" /></button><button type="button" onClick={() => void handleRemoveAssignment(assignment.user_id)} className="p-1.5 text-white/40 hover:text-red-400" title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button></div>)}</div></div>) : <p className="py-3 text-sm text-white/30">No hay integrantes asignados.</p>}</div></AdminPanel></div>}
 
-      {tab === 'milestones' && <AdminPanel className="divide-y divide-white/5 overflow-hidden"><div className="flex items-center justify-between p-5 border-b border-white/5 bg-white/[0.02]"><div><h2 className="text-sm font-semibold uppercase tracking-wider text-white/75">Hitos del Proyecto</h2></div><RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>{(admin.roles.includes('super_admin') || admin.roles.includes('admin')) && !isReadOnly && <button type="button" onClick={() => { setAddMilestoneForm(prev => ({ ...prev, status_id: statuses[0]?.id || '' })); setAddMilestoneOpen(true); }} className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black hover:bg-white/90"><Plus className="h-4 w-4" />Añadir Hito</button>}</RoleGuard></div>{milestones.length ? milestones.map((milestone) => <div key={milestone.id} className="grid gap-4 p-5 md:grid-cols-[1fr_180px_auto] md:items-center"><div><h3 className="font-medium text-white/85">{milestone.title}</h3><p className="mt-1 text-xs text-white/35">Vence {new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium' }).format(new Date(milestone.due_date))} · {milestone.payment_percentage}%</p>{milestone.payments && milestone.payments.length > 0 && (<div className="mt-2 flex flex-col gap-1">{milestone.payments.map((p) => (<p key={p.id} className="text-xs text-green-400">Pago: {p.currency_code} {Number(p.amount_paid).toFixed(2)} ({p.payment_method}) {p.receipt_url && <a href={p.receipt_url} target="_blank" rel="noreferrer" className="underline hover:text-green-300">Ver recibo</a>}</p>))}</div>)}</div><RoleGuard requiredPermission="admin.proyectos.manage" fallback={<div className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white/55" aria-label="Estado de solo lectura">{milestone.status_name || milestone.status}</div>}><CustomDropdown value={milestone.status} onChange={(status) => void changeMilestoneStatus(milestone.id, status)} disabled={isReadOnly} placeholder="Estado..." options={statuses.map((status) => ({ value: status.code, label: status.name }))} /></RoleGuard><RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>{(admin.roles.includes('super_admin') || admin.roles.includes('admin')) && !isReadOnly && <button type="button" onClick={() => { setActiveMilestoneId(milestone.id); setPaymentModalOpen(true); }} className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white" title="Registrar Pago"><DollarSign className="h-4 w-4" /></button>}</RoleGuard></div>) : <p className="p-8 text-center text-sm text-white/30">No hay hitos registrados.</p>}</AdminPanel>}
+      {tab === 'milestones' && <AdminPanel className="divide-y divide-white/5"><div className="flex items-center justify-between p-5 border-b border-white/5 bg-white/[0.02]"><div><h2 className="text-sm font-semibold uppercase tracking-wider text-white/75">Hitos del Proyecto</h2></div><RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>{(admin.roles.includes('super_admin') || admin.roles.includes('admin')) && !isReadOnly && project?.status !== 'cancelled' && <button type="button" onClick={() => { setAddMilestoneForm(prev => ({ ...prev, status_id: statuses[0]?.id || '' })); setAddMilestoneOpen(true); }} className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black hover:bg-white/90"><Plus className="h-4 w-4" />Añadir Hito</button>}</RoleGuard></div>{milestones.length ? milestones.map((milestone) => {
+        const totalPaid = (milestone.payments || []).reduce((sum, p) => sum + Number(p.amount_paid), 0);
+        const { amount: expectedAmount, currency } = getMilestoneRawAmount(milestone);
+        const remaining = expectedAmount - totalPaid;
+        const canPay = !['completed', 'canceled'].includes(milestone.status) && Math.round(remaining * 100) > 0;
+        
+        return (
+          <div key={milestone.id} className="grid gap-4 p-5 md:grid-cols-[1fr_180px_auto] md:items-center">
+            <div>
+              <h3 className="font-medium text-white/85">{milestone.title} <span className="text-white/45 font-normal ml-1">{getMilestoneAmountString(milestone)}</span></h3>
+              <p className="mt-1 text-xs text-white/35">Vence {new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium' }).format(new Date(milestone.due_date))} · {parseFloat(Number(milestone.payment_percentage).toFixed(2))}%</p>
+              {milestone.payments && milestone.payments.length > 0 && (
+                <div className="mt-2 flex flex-col gap-1">
+                  <button type="button" onClick={() => setMilestoneDetailsOpen(milestone)} className="mt-1 w-fit rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-300 transition-colors">Ver detalle de {milestone.payments.length === 1 ? 'pago' : `pagos (${milestone.payments.length})`}</button>
+                </div>
+              )}
+              {Math.round(remaining * 100) > 0 && !['canceled', 'completed'].includes(milestone.status) && (
+                <p className="text-xs text-yellow-300/80 mt-1.5 font-medium">Saldo pendiente: {currency} {Math.max(0, remaining).toFixed(2)}</p>
+              )}
+            </div>
+
+            {(admin.roles.includes('super_admin') || admin.roles.includes('admin')) && !isReadOnly ? (
+              <>
+                <CustomDropdown value={milestone.status} onChange={(status) => void changeMilestoneStatus(milestone.id, status)} disabled={false} placeholder="Estado..." options={statuses.map((status) => ({ value: status.code, label: status.name }))} />
+                <div className="flex gap-2">
+                  {canPay && (
+                    <button type="button" onClick={() => { setActiveMilestoneId(milestone.id); setPaymentModalOpen(true); }} className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-emerald-400 transition-colors" title="Registrar Pago">
+                      <DollarSign className="h-4 w-4" />
+                    </button>
+                  )}
+                  {(milestone.payments?.length ?? 0) === 0 && (
+                      <button type="button" onClick={() => setDeleteMilestoneConfirmOpen(milestone.id)} className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-red-400 transition-colors" title="Eliminar Hito">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white/55" aria-label="Estado de solo lectura">{milestone.status_name || milestone.status}</div>
+                <div></div>
+              </>
+            )}
+          </div>
+        );
+      }) : <p className="p-8 text-center text-sm text-white/30">No hay hitos registrados.</p>}</AdminPanel>}
 
       {tab === 'environments' && <ProjectEnvironmentsHub projectId={id} isAdmin={admin.roles.includes('super_admin') || admin.roles.includes('admin')} />}
 
@@ -324,6 +466,7 @@ const ProyectoDetalle: React.FC = () => {
                 <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Referencia (Opcional)</span><input type="text" value={paymentForm.reference} onChange={(event) => setPaymentForm({ ...paymentForm, reference: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>
                 <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Fecha de pago</span><input type="date" required value={paymentForm.date} onChange={(event) => setPaymentForm({ ...paymentForm, date: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>
                 <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Comprobante (Opcional)</span><input type="file" accept="image/*,.pdf" onChange={(event) => setPaymentForm({ ...paymentForm, receipt: event.target.files?.[0] || null })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white text-sm" /></label>
+                <label className="flex items-center gap-3 mt-2"><input type="checkbox" checked={paymentForm.splitRemaining} onChange={(e) => setPaymentForm({ ...paymentForm, splitRemaining: e.target.checked })} className="h-4 w-4 rounded border-white/20 bg-white/5 text-blue-600 focus:ring-blue-600 focus:ring-offset-gray-900" /><span className="text-sm text-white/70">Pago incompleto. Cerrar este hito y generar uno nuevo por el saldo restante.</span></label>
               </div>
               <div className="mt-6 flex justify-end gap-3 border-t border-white/5 pt-5"><button type="button" onClick={() => setPaymentModalOpen(false)} className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-white/65">Cancelar</button><button disabled={savingPayment} className="rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black disabled:opacity-40">{savingPayment ? 'Registrando...' : 'Registrar'}</button></div>
             </form>
@@ -336,12 +479,58 @@ const ProyectoDetalle: React.FC = () => {
             <form onSubmit={handleAddMilestoneSubmit} className="max-h-[92vh] w-full max-w-md overflow-visible rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 shadow-2xl md:p-8">
               <div className="mb-6 flex items-center justify-between border-b border-white/5 pb-4">
                 <div><h2 className="text-lg font-semibold text-white/90">Añadir Hito</h2></div>
-                <button type="button" onClick={() => setAddMilestoneOpen(false)} className="rounded-lg p-2 text-white/50 hover:bg-white/5"><X className="h-5 w-5" /></button>
+                <button type="button" onClick={() => { setAddMilestoneOpen(false); setAddMilestoneForm({ title: '', due_date: '', payment_percentage: 0, status_id: statuses[0]?.id || '', quote_id: '' }); }} className="rounded-lg p-2 text-white/50 hover:bg-white/5"><X className="h-5 w-5" /></button>
               </div>
+              {(() => {
+                const currentQuoteMilestones = milestones.filter(m => {
+                  if (addMilestoneForm.quote_id) return m.quote_id === addMilestoneForm.quote_id;
+                  return m.quote_id === project?.quote_id || !m.quote_id;
+                });
+                const hasAnticipo = currentQuoteMilestones.some(m => m.title.includes('Anticipo (50%)'));
+                const hasDiseno = currentQuoteMilestones.some(m => m.title.includes('Aprobación de Diseño'));
+                const hasEntrega = currentQuoteMilestones.some(m => m.title.includes('Entrega Final (20%)'));
+                const hasKillFee = currentQuoteMilestones.some(m => m.title.includes('Compensación') || m.title.includes('Kill Fee') || m.title.includes('Cancelación'));
+                const isFullyConfigured = currentQuoteMilestones.reduce((sum, m) => sum + Number(m.payment_percentage), 0) >= 100;
+                const isFullyPaid = isFullyConfigured && currentQuoteMilestones.every(m => ['completed', 'cancelled'].includes(m.status));
+                
+                const hasAnticipoAdenda = currentQuoteMilestones.some(m => m.title.includes('Anticipo Adenda'));
+                const hasFinalAdenda = currentQuoteMilestones.some(m => m.title.includes('Entrega Final Adenda'));
+
+                return (
+                  <div className="mb-4 flex flex-wrap gap-2">
+                    {!addMilestoneForm.quote_id ? (
+                      <>
+                        <button type="button" disabled={hasAnticipo || hasKillFee || isFullyConfigured} onClick={() => setAddMilestoneForm({ ...addMilestoneForm, title: 'Anticipo (50%)', payment_percentage: 50 })} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none">50% Inicial</button>
+                        <button type="button" disabled={!hasAnticipo || hasDiseno || hasKillFee || isFullyConfigured} onClick={() => setAddMilestoneForm({ ...addMilestoneForm, title: 'Aprobación de Diseño (30%)', payment_percentage: 30 })} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none">30% Diseño</button>
+                        <button type="button" disabled={!hasAnticipo || !hasDiseno || hasEntrega || hasKillFee || isFullyConfigured} onClick={() => setAddMilestoneForm({ ...addMilestoneForm, title: 'Entrega Final (20%)', payment_percentage: 20 })} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none">20% Entrega</button>
+                        <button type="button" disabled={hasKillFee || isFullyPaid} onClick={() => setAddMilestoneForm({ ...addMilestoneForm, title: 'Compensación por Cancelación', payment_percentage: 20 })} className="rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-xs text-red-400 hover:bg-red-500/20 hover:text-red-300 disabled:opacity-30 disabled:pointer-events-none">Kill Fee (20%)</button>
+                      </>
+                    ) : (
+                      <>
+                        <button type="button" disabled={hasAnticipoAdenda || hasKillFee || isFullyConfigured} onClick={() => setAddMilestoneForm({ ...addMilestoneForm, title: 'Anticipo Adenda (50%)', payment_percentage: 50 })} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none">50% Inicial Adenda</button>
+                        <button type="button" disabled={!hasAnticipoAdenda || hasFinalAdenda || hasKillFee || isFullyConfigured} onClick={() => setAddMilestoneForm({ ...addMilestoneForm, title: 'Entrega Final Adenda (50%)', payment_percentage: 50 })} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none">50% Final Adenda</button>
+                        <button type="button" disabled={hasKillFee || isFullyPaid} onClick={() => setAddMilestoneForm({ ...addMilestoneForm, title: 'Kill Fee Cancelación Adenda', payment_percentage: 20 })} className="rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-xs text-red-400 hover:bg-red-500/20 hover:text-red-300 disabled:opacity-30 disabled:pointer-events-none">Kill Fee (20%)</button>
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
               <div className="grid gap-5">
+                <label className="grid gap-1.5">
+                  <span className="text-xs uppercase tracking-wider text-white/45">Cotización (Adendas - Opcional)</span>
+                  <CustomDropdown
+                    options={[
+                      { value: '', label: 'Dejar en blanco para usar la original' },
+                      ...adendas.map((a) => ({ value: a.id, label: `${a.quote_code} - ${formatCurrencyValue(Number(a.total_amount), a.currency_code)}` }))
+                    ]}
+                    value={addMilestoneForm.quote_id}
+                    onChange={(val) => setAddMilestoneForm({ ...addMilestoneForm, quote_id: val, title: '', payment_percentage: 0 })}
+                    placeholder="Seleccionar Adenda..."
+                  />
+                </label>
                 <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Título</span><input required minLength={2} value={addMilestoneForm.title} onChange={(event) => setAddMilestoneForm({ ...addMilestoneForm, title: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>
                 <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Fecha de vencimiento</span><input type="date" required value={addMilestoneForm.due_date} onChange={(event) => setAddMilestoneForm({ ...addMilestoneForm, due_date: event.target.value })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>
-                <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Porcentaje de pago (%)</span><input type="number" min={0} max={100} step="0.01" required value={addMilestoneForm.payment_percentage} onChange={(event) => setAddMilestoneForm({ ...addMilestoneForm, payment_percentage: Number(event.target.value) })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>
+                <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Porcentaje de pago (%)</span><input type="number" min={0} max={100} step="0.01" required readOnly value={addMilestoneForm.payment_percentage} onChange={(event) => setAddMilestoneForm({ ...addMilestoneForm, payment_percentage: Number(event.target.value) })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white opacity-60 cursor-not-allowed" /></label>
                 <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Estado</span>
                     <div className="min-w-48">
                       <CustomDropdown
@@ -353,8 +542,157 @@ const ProyectoDetalle: React.FC = () => {
                     </div>
                 </label>
               </div>
-              <div className="mt-6 flex justify-end gap-3 border-t border-white/5 pt-5"><button type="button" onClick={() => setAddMilestoneOpen(false)} className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-white/65">Cancelar</button><button disabled={savingMilestone} className="rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black disabled:opacity-40">{savingMilestone ? 'Guardando...' : 'Crear Hito'}</button></div>
+              <div className="mt-6 flex justify-end gap-3 border-t border-white/5 pt-5"><button type="button" onClick={() => { setAddMilestoneOpen(false); setAddMilestoneForm({ title: '', due_date: '', payment_percentage: 0, status_id: statuses[0]?.id || '', quote_id: '' }); }} className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-white/65">Cancelar</button><button disabled={savingMilestone} className="rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black disabled:opacity-40">{savingMilestone ? 'Guardando...' : 'Crear Hito'}</button></div>
             </form>
+          </div>
+        )}
+      </RoleGuard>
+      <RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>
+        {cancelModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+            <ShineBorder borderRadius={16} borderWidth={1.5} color={["#ef4444", "#991b1b", "#ef4444"]} className="w-full max-w-sm bg-[#0a0a0a] shadow-[0_0_50px_-12px_rgba(239,68,68,0.25)]">
+              <div className="p-6 text-center">
+                <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
+                  <AlertTriangle className="h-7 w-7 text-red-500" />
+                </div>
+                <h2 className="mb-2 text-lg font-semibold text-white/90">Proyecto Cancelado</h2>
+                <p className="mb-6 text-sm text-white/60">Has marcado el proyecto como cancelado. ¿Deseas liberar los hitos pendientes y generar automáticamente el hito de Compensación por Cancelación (Kill Fee)?</p>
+                <div className="flex flex-col gap-3">
+                  <button onClick={() => void changeProjectStatus('cancelled', true)} className="rounded-lg bg-red-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-600 transition-colors">Sí, aplicar Kill Fee y cancelar</button>
+                  <button onClick={() => void changeProjectStatus('cancelled', false)} className="rounded-lg border border-white/10 px-4 py-2.5 text-sm text-white/60 hover:bg-white/5 transition-colors">No, solo cancelar proyecto</button>
+                  <button onClick={() => setCancelModalOpen(false)} className="rounded-lg px-4 py-2 text-sm text-white/40 hover:text-white/60 transition-colors">Cancelar acción</button>
+                </div>
+              </div>
+            </ShineBorder>
+          </div>
+        )}
+      </RoleGuard>
+      <RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>
+        {killFeeConfirmOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+            <ShineBorder borderRadius={16} borderWidth={1.5} color={["#ef4444", "#991b1b", "#ef4444"]} className="w-full max-w-md bg-[#0a0a0a] shadow-[0_0_50px_-12px_rgba(239,68,68,0.25)]">
+              <div className="p-6 text-center">
+                <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
+                  <AlertTriangle className="h-7 w-7 text-red-500" />
+                </div>
+                <h3 className="mb-2 text-lg font-semibold text-white">¿Añadir Kill Fee?</h3>
+                <p className="mb-6 text-sm text-white/60">
+                  Esto cancelará automáticamente todos los hitos pendientes asociados a esta cotización. 
+                  Si esta es la cotización principal del proyecto, el <strong>proyecto entero será cancelado</strong>.
+                  ¿Deseas continuar?
+                </p>
+                <div className="flex justify-center gap-3">
+                  <button type="button" onClick={() => setKillFeeConfirmOpen(false)} className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-white/65 hover:bg-white/5 transition-colors">
+                    Cancelar
+                  </button>
+                  <button type="button" onClick={() => { setKillFeeConfirmOpen(false); void submitMilestone(true); }} className="rounded-lg bg-red-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-red-600 transition-colors">
+                    Sí, proceder y cancelar
+                  </button>
+                </div>
+              </div>
+            </ShineBorder>
+          </div>
+        )}
+      </RoleGuard>
+      <RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>
+        {milestoneDetailsOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 shadow-2xl md:p-8">
+              <div className="mb-6 flex items-center justify-between border-b border-white/5 pb-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-white/90">Desglose de Pagos</h2>
+                  <p className="mt-1 text-xs text-white/40">{milestoneDetailsOpen.title}</p>
+                </div>
+                <button type="button" onClick={() => setMilestoneDetailsOpen(null)} className="rounded-lg p-2 text-white/50 hover:bg-white/5 transition-colors"><X className="h-5 w-5" /></button>
+              </div>
+              <div className="max-h-[50vh] overflow-y-auto pr-1">
+                <div className="grid gap-3">
+                  {milestoneDetailsOpen.payments?.map((payment, index) => (
+                    <div key={payment.id} className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <p className="text-sm font-medium text-white/80">Pago #{index + 1}</p>
+                          <p className="text-xs text-white/40">{new Date(payment.created_at || Date.now()).toLocaleString('es-PE')}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-medium text-green-400">{payment.currency_code} {Number(payment.amount_paid).toFixed(2)}</p>
+                          <p className="text-xs text-white/40 capitalize">{payment.payment_method}</p>
+                        </div>
+                      </div>
+                      
+                      {payment.receipt_url ? (
+                        <div className="mt-3 border-t border-white/5 pt-3">
+                          <a href={payment.receipt_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-xs text-cyan-400 hover:text-cyan-300">
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            Ver comprobante adjunto
+                          </a>
+                        </div>
+                      ) : (
+                        <div className="mt-3 border-t border-white/5 pt-3">
+                          <p className="text-xs text-white/30">Sin comprobante adjunto</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end border-t border-white/5 pt-5">
+                <button type="button" onClick={() => setMilestoneDetailsOpen(null)} className="rounded-lg bg-white/10 px-5 py-2.5 text-sm font-medium text-white hover:bg-white/20 transition-colors">Cerrar</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </RoleGuard>
+      <RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>
+        {deleteConfirmOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+            <ShineBorder borderRadius={16} borderWidth={1.5} color={["#ef4444", "#991b1b", "#ef4444"]} className="w-full max-w-md bg-[#0a0a0a] shadow-[0_0_50px_-12px_rgba(239,68,68,0.25)]">
+              <div className="p-6 text-center">
+                <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
+                  <Trash2 className="h-7 w-7 text-red-500" />
+                </div>
+                <h3 className="mb-2 text-lg font-semibold text-white">¿Eliminar Proyecto?</h3>
+                <p className="mb-6 text-sm text-white/60">
+                  ¿Seguro que deseas eliminar el proyecto <strong className="text-white/90">{project?.name}</strong>? 
+                  Esta acción lo retirará del panel de forma irreversible.
+                </p>
+                <div className="flex justify-center gap-3">
+                  <button type="button" onClick={() => setDeleteConfirmOpen(false)} className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-white/65 hover:bg-white/5 transition-colors">
+                    Cancelar
+                  </button>
+                  <button type="button" onClick={() => void executeDelete()} className="rounded-lg bg-red-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-red-600 transition-colors">
+                    Sí, eliminar proyecto
+                  </button>
+                </div>
+              </div>
+            </ShineBorder>
+          </div>
+        )}
+      </RoleGuard>
+
+      <RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>
+        {deleteMilestoneConfirmOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+            <ShineBorder borderRadius={16} borderWidth={1.5} color={["#ef4444", "#991b1b", "#ef4444"]} className="w-full max-w-md bg-[#0a0a0a] shadow-[0_0_50px_-12px_rgba(239,68,68,0.25)]">
+              <div className="p-6 text-center">
+                <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
+                  <Trash2 className="h-7 w-7 text-red-500" />
+                </div>
+                <h3 className="mb-2 text-lg font-semibold text-white">¿Eliminar Hito?</h3>
+                <p className="mb-6 text-sm text-white/60">
+                  ¿Estás seguro que deseas eliminar este hito? 
+                  Esta acción es irreversible.
+                </p>
+                <div className="flex justify-center gap-3">
+                  <button type="button" onClick={() => setDeleteMilestoneConfirmOpen(null)} className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-white/65 hover:bg-white/5 transition-colors">
+                    Cancelar
+                  </button>
+                  <button type="button" onClick={() => void confirmDeleteMilestone()} className="rounded-lg bg-red-500/10 px-5 py-2.5 text-sm font-medium text-red-400 hover:bg-red-500/20 transition-colors">
+                    Sí, eliminar hito
+                  </button>
+                </div>
+              </div>
+            </ShineBorder>
           </div>
         )}
       </RoleGuard>

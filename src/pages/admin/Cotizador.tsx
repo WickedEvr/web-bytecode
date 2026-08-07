@@ -433,7 +433,9 @@ const AdminCotizador: React.FC = () => {
                       value={formData.status}
                       placeholder="Seleccionar estado..."
                       onChange={(status) => setFormData({ ...formData, status })}
-                      options={statuses.map((item) => ({ value: item.code, label: item.name }))}
+                      options={statuses
+                        .filter((item) => editingQuoteId || !['expired', 'rejected'].includes(item.code))
+                        .map((item) => ({ value: item.code, label: item.name }))}
                       disabled={isReadOnly}
                     />
                   </div>

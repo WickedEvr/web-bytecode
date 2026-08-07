@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { apiRequest } from '../../lib/api';
 import { LogOut, Menu, UserCircle } from 'lucide-react';
+import ShineBorder from '../ui/shine-border';
 
 export type AdminUser = {
   id: string;
@@ -16,6 +17,13 @@ const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
   const [admin, setAdmin] = useState<AdminUser | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showIdleWarning, setShowIdleWarning] = useState(false);
+  const lastActivityRef = useRef<number>(Date.now());
+
+  const handleLogout = async () => {
+    await apiRequest('/auth/logout', { method: 'POST' }).catch(() => null);
+    navigate('/admin/login');
+  };
 
   useEffect(() => {
     apiRequest<{ admin: AdminUser }>('/auth/me')
@@ -23,10 +31,36 @@ const AdminLayout: React.FC = () => {
       .catch(() => navigate('/admin/login'));
   }, [navigate]);
 
-  const handleLogout = async () => {
-    await apiRequest('/auth/logout', { method: 'POST' }).catch(() => null);
-    navigate('/admin/login');
-  };
+  // Detector de inactividad (60 mins max, advierte a los 55)
+  useEffect(() => {
+    const handleActivity = () => {
+      lastActivityRef.current = Date.now();
+      if (showIdleWarning) setShowIdleWarning(false);
+    };
+
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove'];
+    events.forEach((evt) => document.addEventListener(evt, handleActivity, { passive: true }));
+
+    const intervalId = setInterval(() => {
+      const now = Date.now();
+      const idleTime = now - lastActivityRef.current;
+      const MAX_IDLE_TIME = 60 * 60 * 1000; // 60 minutos
+      const WARNING_TIME = 55 * 60 * 1000; // 55 minutos
+      
+      if (idleTime > MAX_IDLE_TIME) {
+        void handleLogout();
+      } else if (idleTime > WARNING_TIME) {
+        setShowIdleWarning(true);
+      } else {
+        setShowIdleWarning(false);
+      }
+    }, 10000); // Comprobar cada 10 segundos para mayor precisión
+
+    return () => {
+      events.forEach((evt) => document.removeEventListener(evt, handleActivity));
+      clearInterval(intervalId);
+    };
+  }, [showIdleWarning]);
 
   return (
     <div className="flex min-h-screen bg-black font-sansation text-white/90">
@@ -75,6 +109,29 @@ const AdminLayout: React.FC = () => {
           {admin ? <Outlet context={{ admin }} /> : <div className="flex h-full items-center justify-center text-white/30 text-sm tracking-widest uppercase">Cargando Sistema...</div>}
         </main>
       </div>
+
+      {showIdleWarning && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 backdrop-blur-md">
+          <ShineBorder borderRadius={16} borderWidth={1.5} duration={3} color={["#f59e0b", "#b45309", "#f59e0b"]} className="w-full max-w-sm bg-[#0a0a0a] shadow-[0_0_50px_-12px_rgba(245,158,11,0.25)]">
+            <div className="p-6 text-center">
+              <h2 className="mb-2 text-lg font-semibold text-amber-500">Inactividad Detectada</h2>
+              <p className="mb-6 text-sm text-white/70">Tu sesión expirará en menos de 5 minutos por seguridad. ¿Deseas mantener tu sesión iniciada?</p>
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={() => {
+                    lastActivityRef.current = Date.now();
+                    setShowIdleWarning(false);
+                  }} 
+                  className="rounded-lg bg-amber-500/10 px-4 py-2.5 text-sm font-medium text-amber-400 hover:bg-amber-500/20 transition-colors"
+                >
+                  Sí, mantenerme conectado
+                </button>
+                <button onClick={() => void handleLogout()} className="rounded-lg px-4 py-2 text-sm text-white/40 hover:text-white/60 transition-colors">Cerrar sesión ahora</button>
+              </div>
+            </div>
+          </ShineBorder>
+        </div>
+      )}
     </div>
   );
 };

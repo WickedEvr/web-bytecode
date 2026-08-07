@@ -5,8 +5,9 @@ services:
     restart: always
     environment:
       POSTGRES_USER: bytecode_user
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_PASSWORD: pr_preview_password
       POSTGRES_DB: bytecode_pr_${PR_NUMBER}
+      POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
@@ -21,7 +22,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4000
-      DATABASE_URL: postgresql://bytecode_user:${DB_PASSWORD}@db-pr:5432/bytecode_pr_${PR_NUMBER}?schema=public
+      DATABASE_URL: postgresql://bytecode_user:pr_preview_password@db-pr:5432/bytecode_pr_${PR_NUMBER}?schema=public
       DATABASE_SSL: "false"
       JWT_SECRET: ${JWT_SECRET}
       GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET}

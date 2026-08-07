@@ -197,7 +197,14 @@ quotesRouter.get(
          ORDER BY q.created_at DESC`,
         emailParams,
       );
-      res.json({ data: result.rows, total: result.rowCount ?? 0 });
+      const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+      const data = result.rows.map(row => {
+        if (isRestrictedDeveloper) {
+          return { ...row, total_amount: 0, items: [] };
+        }
+        return row;
+      });
+      res.json({ data, total: result.rowCount ?? 0 });
       return;
     }
     const isRestrictedPartner = req.admin?.roles.includes('partner_designer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');

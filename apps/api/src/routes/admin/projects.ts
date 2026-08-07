@@ -37,7 +37,6 @@ const projectCreateSchema = z.object({
   description: z.string().trim().max(3000).optional().nullable(),
   status: z.string().trim().min(1).max(80),
   githubRepo: nullableProjectUrl,
-  githubBranch: z.string().trim().max(160).optional().nullable(),
   startDate: z.string().date(),
   estimatedEndDate: z.string().date(),
   actualEndDate: z.string().date().optional().nullable(),
@@ -45,12 +44,13 @@ const projectCreateSchema = z.object({
   currencyCode: z.string().trim().length(3).transform((value) => value.toUpperCase()).default('PEN'),
 });
 const projectUpdateSchema = projectCreateSchema.partial().extend({
-  vercel_bypass_secret: z.string().trim().max(500).optional().nullable(),
+  currencyCode: z.string().trim().length(3).transform((value) => value.toUpperCase()).optional(),
+  applyKillFee: z.boolean().optional(),
 });
 
 const projectSelectSql = `
   SELECT p.id, p.project_code, p.customer_id, p.organization_id, p.service_id, p.quote_id, p.status_id,
-         p.name, p.description, p.github_repo, p.github_branch,
+         p.name, p.description, p.github_repo,
          p.start_date, p.estimated_end_date, p.actual_end_date,
          p.total_budget, p.currency_code, p.created_at, p.updated_at,
          sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
@@ -208,9 +208,11 @@ projectsRouter.post(
   asyncHandler(async (req: Request, res: Response) => {
     const body = projectCreateSchema.parse(req.body);
     const { id: statusId } = await getProjectStatusInfo(pool, body.status);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    
     if (body.quoteId) {
       const quote = await pool.query(
-        `SELECT q.id
+        `SELECT q.id, q.total_amount, q.currency_code
          FROM quotes q
          JOIN customers quote_customer ON quote_customer.id = q.customer_id
          JOIN customers project_customer ON project_customer.id = $2
@@ -219,17 +221,28 @@ projectsRouter.post(
         [body.quoteId, body.customerId],
       );
       if (!quote.rowCount) throw new HttpError(400, 'La cotizacion no pertenece al cliente seleccionado.');
+      
+      body.totalBudget = Number(quote.rows[0].total_amount);
+      body.currencyCode = quote.rows[0].currency_code;
+      
+      const existingProject = await pool.query(
+        `SELECT id FROM projects WHERE quote_id = $1 AND deleted_at IS NULL`,
+        [body.quoteId]
+      );
+      if (existingProject.rowCount) throw new HttpError(400, 'Esta cotización ya se encuentra asignada a un proyecto registrado.');
+    } else if (isRestrictedDeveloper) {
+      body.totalBudget = 0;
     }
     const result = await pool.query(
       `INSERT INTO projects (
          project_code, customer_id, organization_id, service_id, name, description,
-         status_id, github_repo, github_branch, start_date, estimated_end_date,
+         status_id, github_repo, start_date, estimated_end_date,
          actual_end_date, total_budget, currency_code, quote_id
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
        RETURNING id`,
       [createBusinessCode('PRJ'), body.customerId, body.organizationId ?? null, body.serviceId,
        body.name, body.description ?? null, statusId, body.githubRepo ?? null,
-       body.githubBranch ?? null, body.startDate, body.estimatedEndDate,
+       body.startDate, body.estimatedEndDate,
        body.actualEndDate ?? null, body.totalBudget, body.currencyCode, body.quoteId ?? null],
     );
     const created = await pool.query(`${projectSelectSql} AND p.id = $1`, [result.rows[0].id]);
@@ -290,8 +303,7 @@ projectsRouter.patch(
       await client.query('BEGIN');
       const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
       if (isRestrictedDeveloper) {
-        const assignmentCheck = await client.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [id, req.admin?.id]);
-        if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para modificar un proyecto no asignado.');
+        throw new HttpError(403, 'No tienes permiso para modificar la información del proyecto.');
       }
       const current = await client.query(
         `${projectSelectSql} AND p.id = $1 FOR UPDATE OF p`,
@@ -301,7 +313,7 @@ projectsRouter.patch(
       const oldStatusId = current.rows[0].status_id as string | null;
       const statusInfo = body.status ? await getProjectStatusInfo(client, body.status) : null;
       const statusId = statusInfo?.id ?? null;
-      if (body.quoteId) {
+      if (body.quoteId && body.quoteId !== current.rows[0].quote_id) {
         const customerId = body.customerId ?? current.rows[0].customer_id;
         const quote = await client.query(
           `SELECT q.id
@@ -313,6 +325,12 @@ projectsRouter.patch(
           [body.quoteId, customerId],
         );
         if (!quote.rowCount) throw new HttpError(400, 'La cotizacion no pertenece al cliente seleccionado.');
+        
+        const existingProject = await client.query(
+          `SELECT id FROM projects WHERE quote_id = $1 AND id != $2 AND deleted_at IS NULL`,
+          [body.quoteId, id]
+        );
+        if (existingProject.rowCount) throw new HttpError(400, 'Esta cotización ya se encuentra asignada a otro proyecto.');
       }
       let finalActualEndDate = body.actualEndDate ?? current.rows[0].actual_end_date;
       if (oldStatusId && statusId && oldStatusId !== statusId) {
@@ -321,28 +339,88 @@ projectsRouter.patch(
         } else {
           finalActualEndDate = null;
         }
+
+        if (statusInfo?.code === 'cancelled' && body.applyKillFee) {
+          const statusCatRes = await client.query(`SELECT code, id FROM status_catalog WHERE domain = 'milestone'`);
+          const milestoneCancelledId = statusCatRes.rows.find(r => r.code === 'cancelled' || r.code === 'canceled')?.id;
+          const milestoneCompletedId = statusCatRes.rows.find(r => r.code === 'completed')?.id;
+          const milestonePendingId = statusCatRes.rows.find(r => r.code !== 'cancelled' && r.code !== 'canceled' && r.code !== 'completed')?.id;
+          const activeQuoteId = current.rows[0].quote_id;
+
+          if (activeQuoteId) {
+            // 1. Cancelar de golpe todos los hitos técnicos que estaban en progreso o pendientes ANTES de inyectar el Kill Fee
+            await client.query(`
+              UPDATE project_milestones 
+              SET status_id = $1 
+              WHERE project_id = $2 AND status_id != $3 AND status_id != $1
+            `, [milestoneCancelledId, id, milestoneCompletedId]);
+
+            // 2. Obtener todas las cotizaciones involucradas (Raíz + Adendas usadas en hitos)
+            const quotesToEvaluateRes = await client.query(`
+              SELECT DISTINCT q.id as quote_id, q.total_amount
+              FROM quotes q
+              WHERE q.id = $1
+                 OR q.id IN (SELECT quote_id FROM project_milestones WHERE project_id = $2 AND quote_id IS NOT NULL)
+            `, [activeQuoteId, id]);
+
+            // 3. Iterar sobre cada cotización para inyectar su respectivo Kill Fee si no está 100% pagada
+            for (const qRow of quotesToEvaluateRes.rows) {
+              const currentQuoteId = qRow.quote_id;
+              const totalQuoteAmount = Number(qRow.total_amount);
+
+              // 3.1. Calcular el dinero real validado pagado para ESTA cotización en ESTE proyecto
+              const paidMoneyRes = await client.query(`
+                SELECT COALESCE(SUM(mp.amount_paid), 0) as total_paid_money
+                FROM project_milestones pm
+                JOIN milestone_payments mp ON mp.milestone_id = pm.id AND mp.status = 'valid' AND mp.deleted_at IS NULL
+                WHERE pm.project_id = $1 AND pm.quote_id = $2
+              `, [id, currentQuoteId]);
+
+              const totalPaidMoney = Number(paidMoneyRes.rows[0].total_paid_money);
+              const paidPercentage = totalQuoteAmount > 0 ? (totalPaidMoney / totalQuoteAmount) * 100 : 0;
+              const actualPaidPercentage = Math.min(100, paidPercentage);
+              const pendingPercentage = 100 - actualPaidPercentage;
+
+              // 3.2. Si queda porcentaje por cobrar, inyectar el Kill Fee
+              if (pendingPercentage > 0) {
+                // Verificar que no exista ya un Kill Fee para esta cotización
+                const existingKillFee = await client.query(`
+                  SELECT id FROM project_milestones 
+                  WHERE project_id = $1 AND quote_id = $2 AND title = 'Compensación por Cancelación'
+                `, [id, currentQuoteId]);
+
+                if (existingKillFee.rowCount === 0) {
+                  // El tope del Kill Fee es 20%, o lo que reste si es menor a 20%
+                  const killFeePercentage = Math.min(20, pendingPercentage);
+                  await client.query(`
+                    INSERT INTO project_milestones (project_id, title, due_date, payment_percentage, status_id, quote_id)
+                    VALUES ($1, 'Compensación por Cancelación', CURRENT_DATE, $2, $3, $4)
+                  `, [id, killFeePercentage, milestonePendingId, currentQuoteId]);
+                }
+              }
+            }
+          }
+        }
       }
 
       await client.query(
         `UPDATE projects SET
            customer_id = COALESCE($2, customer_id), organization_id = COALESCE($3, organization_id),
            service_id = COALESCE($4, service_id), name = COALESCE($5, name),
-           description = CASE WHEN $15 THEN $6 ELSE description END, status_id = COALESCE($7, status_id),
-           github_repo = CASE WHEN $16 THEN $8 ELSE github_repo END, github_branch = COALESCE($9, github_branch),
-           start_date = COALESCE($10, start_date), estimated_end_date = COALESCE($11, estimated_end_date),
-           actual_end_date = COALESCE($12, actual_end_date), total_budget = COALESCE($13, total_budget),
-           currency_code = COALESCE($14, currency_code),
-           quote_id = CASE WHEN $18 THEN $17 ELSE quote_id END,
-           vercel_bypass_secret = CASE WHEN $20 THEN $19 ELSE vercel_bypass_secret END,
+           description = CASE WHEN $14 THEN $6 ELSE description END, status_id = COALESCE($7, status_id),
+           github_repo = CASE WHEN $15 THEN $8 ELSE github_repo END,
+           start_date = COALESCE($9, start_date), estimated_end_date = COALESCE($10, estimated_end_date),
+           actual_end_date = COALESCE($11, actual_end_date), total_budget = COALESCE($12, total_budget),
+           currency_code = COALESCE($13, currency_code),
+           quote_id = CASE WHEN $17 THEN $16 ELSE quote_id END,
            updated_at = now()
          WHERE id = $1 AND deleted_at IS NULL`,
         [id, body.customerId ?? null, body.organizationId ?? null, body.serviceId ?? null,
          body.name ?? null, body.description ?? null, statusId, body.githubRepo ?? null,
-         body.githubBranch ?? null, body.startDate ?? null, body.estimatedEndDate ?? null,
-         finalActualEndDate, body.totalBudget ?? null, body.currencyCode ?? null,
-         Object.hasOwn(body, 'description'), Object.hasOwn(body, 'githubRepo'),
-         body.quoteId ?? null, Object.hasOwn(body, 'quoteId'),
-         body.vercel_bypass_secret ?? null, Object.hasOwn(body, 'vercel_bypass_secret')],
+         body.startDate ?? null, body.estimatedEndDate ?? null,
+         finalActualEndDate ?? null, body.totalBudget ?? null, body.currencyCode ?? null,
+         body.description !== undefined, body.githubRepo !== undefined,
+         body.quoteId ?? null, body.quoteId !== undefined],
       );
       if (oldStatusId && statusId && oldStatusId !== statusId) {
         await client.query(
@@ -487,6 +565,8 @@ const milestoneCreateSchema = z.object({
   dueDate: z.string().date(),
   paymentPercentage: z.coerce.number().min(0).max(100),
   statusId: z.string().uuid(),
+  quoteId: z.string().uuid().optional().nullable(),
+  cancelPending: z.boolean().optional(),
 });
 
 projectsRouter.post(
@@ -502,23 +582,44 @@ projectsRouter.post(
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
+      
+      const projectData = await client.query('SELECT quote_id FROM projects WHERE id = $1', [projectId]);
+      const activeQuoteId = body.quoteId || projectData.rows[0]?.quote_id;
+      if (!activeQuoteId) throw new HttpError(400, 'El proyecto no tiene una cotización asignada para calcular hitos.');
+
+      if (body.cancelPending) {
+        await client.query(`
+          UPDATE project_milestones
+          SET status_id = (SELECT id FROM status_catalog WHERE code IN ('canceled', 'cancelled') AND domain = 'milestone' LIMIT 1)
+          WHERE project_id = $1 AND quote_id = $2 
+            AND status_id IN (SELECT id FROM status_catalog WHERE domain = 'milestone' AND code NOT IN ('completed', 'canceled', 'cancelled'))
+        `, [projectId, activeQuoteId]);
+        
+        if (activeQuoteId === projectData.rows[0]?.quote_id) {
+          await client.query(`UPDATE projects SET status_id = (SELECT id FROM status_catalog WHERE code = 'cancelled' AND domain = 'project'), updated_at = now() WHERE id = $1`, [projectId]);
+        }
+      }
+
       const sumResult = await client.query(
-        'SELECT COALESCE(SUM(payment_percentage), 0) as total FROM project_milestones WHERE project_id = $1',
-        [projectId]
+        `SELECT COALESCE(SUM(pm.payment_percentage), 0) as total 
+         FROM project_milestones pm 
+         JOIN status_catalog sc ON pm.status_id = sc.id 
+         WHERE pm.project_id = $1 AND pm.quote_id = $2 AND sc.code != 'canceled'`,
+        [projectId, activeQuoteId]
       );
       const currentTotal = parseFloat(sumResult.rows[0].total);
       if (currentTotal + body.paymentPercentage > 100) {
-        throw new HttpError(400, 'El porcentaje total de los hitos no puede superar el 100%.');
+        throw new HttpError(400, 'El porcentaje total de los hitos para esta cotización no puede superar el 100%.');
       }
 
       const result = await client.query(
-        `INSERT INTO project_milestones (project_id, title, due_date, payment_percentage, status_id)
-         VALUES ($1, $2, $3, $4, $5)
-         RETURNING id`,
-        [projectId, body.title, body.dueDate, body.paymentPercentage, body.statusId],
+        `INSERT INTO project_milestones (project_id, title, due_date, payment_percentage, status_id, quote_id)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING *`,
+        [projectId, body.title, body.dueDate, body.paymentPercentage, body.statusId, activeQuoteId],
       );
       await client.query('COMMIT');
-      await auditService.logAdminAction({ userId: req.admin?.id, action: 'create_milestone', entityType: 'project_milestones', entity: result.rows[0].id, req });
+      await auditService.logAdminAction({ userId: req.admin?.id, action: 'create_milestone', entityType: 'project_milestones', entity: result.rows[0], req });
       res.status(201).json({ id: result.rows[0].id });
     } catch (e) {
       await client.query('ROLLBACK');
@@ -536,16 +637,18 @@ projectsRouter.get(
     const id = z.string().uuid().parse(req.params.id);
     const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
     if (isRestrictedDeveloper) {
-      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [id, req.admin?.id]);
-      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para ver hitos de un proyecto ajeno.');
+      throw new HttpError(403, 'No tienes permiso para visualizar hitos del proyecto.');
     }
     const result = await pool.query(
-      `SELECT pm.id, pm.project_id, pm.title, pm.due_date, pm.payment_percentage,
+      `SELECT pm.id, pm.project_id, pm.title, pm.due_date, pm.payment_percentage, pm.quote_id,
               pm.completed_at, pm.created_at, pm.updated_at,
               sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
+              COALESCE(q.currency_code, p.currency_code) AS currency_code,
               COALESCE(payments_data.payments, '[]'::json) AS payments
        FROM project_milestones pm
        JOIN status_catalog sc ON pm.status_id = sc.id
+       JOIN projects p ON pm.project_id = p.id
+       LEFT JOIN quotes q ON pm.quote_id = q.id
        LEFT JOIN LATERAL (
          SELECT json_agg(json_build_object(
            'id', mp.id,
@@ -577,6 +680,7 @@ const milestonePaymentSchema = z.object({
   paymentMethod: z.string().min(1).max(80),
   referenceNumber: z.string().max(180).optional().nullable(),
   paidAt: z.string().date(),
+  splitRemaining: z.string().optional().transform(v => v === 'true'),
 });
 
 projectsRouter.post(
@@ -637,17 +741,44 @@ projectsRouter.post(
         fileAssetId = fileResult.rows[0].id;
       }
 
+      const milestoneRes = await client.query(`
+        SELECT pm.*,
+               q.total_amount, COALESCE(SUM(mp.amount_paid), 0) as total_paid,
+               sc.id as completed_status_id,
+               q.currency_code as quote_currency_code
+        FROM project_milestones pm
+        LEFT JOIN quotes q ON q.id = pm.quote_id
+        LEFT JOIN milestone_payments mp ON mp.milestone_id = pm.id AND mp.status = 'valid' AND mp.deleted_at IS NULL
+        LEFT JOIN status_catalog sc ON sc.domain = 'milestone' AND sc.code = 'completed'
+        WHERE pm.id = $1
+        GROUP BY pm.id, q.total_amount, sc.id, q.currency_code
+      `, [milestoneId]);
+
+      if (!milestoneRes.rowCount) throw new HttpError(404, 'Hito no encontrado.');
+      const oldMilestoneState = milestoneRes.rows[0];
+      const { payment_percentage, total_amount, total_paid, title, due_date, status_id: original_status_id, completed_status_id, quote_id, quote_currency_code } = oldMilestoneState;
+      
+      const realCurrencyCode = quote_currency_code || currencyCode;
+      
+      const amountExpected = Number(total_amount) * (Number(payment_percentage) / 100);
+      const amountPaidCurrently = Number(total_paid);
+      const maxPaymentAllowed = amountExpected - amountPaidCurrently;
+
+      if (Math.round(body.amountPaid * 100) > Math.round(maxPaymentAllowed * 100)) {
+        throw new HttpError(400, `El pago excede el saldo restante del hito. Máximo permitido: ${maxPaymentAllowed.toFixed(2)}`);
+      }
+
       const result = await client.query(
         `INSERT INTO milestone_payments (
           milestone_id, amount_paid, currency_code, payment_method,
           reference_number, receipt_file_id, paid_at, status, created_by
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, 'valid', $8)
-        RETURNING id`,
+        RETURNING *`,
         [
           milestoneId,
           body.amountPaid,
-          currencyCode,
+          realCurrencyCode,
           body.paymentMethod,
           body.referenceNumber || null,
           fileAssetId,
@@ -655,10 +786,35 @@ projectsRouter.post(
           req.admin?.id ?? null,
         ]
       );
+      const paymentRow = result.rows[0];
+      const auditLogs: any[] = [];
+      auditLogs.push({ userId: req.admin?.id, action: 'create_milestone_payment', entityType: 'milestone_payments', entity: paymentRow, req });
+
+      const isFullPayment = Math.round(body.amountPaid * 100) >= Math.round(maxPaymentAllowed * 100);
+      if (isFullPayment && completed_status_id) {
+         const updRes = await client.query(`UPDATE project_milestones SET status_id = $1, completed_at = NOW() WHERE id = $2 RETURNING *`, [completed_status_id, milestoneId]);
+         auditLogs.push({ userId: req.admin?.id, action: 'update_milestone_status_auto', entityType: 'project_milestones', entity: updRes.rows[0], previousState: oldMilestoneState, req });
+      } else if (body.splitRemaining && !isFullPayment) {
+         const paidPercentage = ((amountPaidCurrently + body.amountPaid) / Number(total_amount)) * 100;
+         const remainingPercentage = Number(payment_percentage) - paidPercentage;
+         
+         const updRes = await client.query(`UPDATE project_milestones SET payment_percentage = $1, status_id = $2, completed_at = NOW() WHERE id = $3 RETURNING *`, [paidPercentage, completed_status_id, milestoneId]);
+         
+         const cleanTitle = title.replace(/^Restante del pago de /, '');
+         await client.query(
+           `INSERT INTO project_milestones (project_id, quote_id, title, due_date, payment_percentage, status_id)
+            VALUES ($1, $2, $3, $4, $5, $6)`,
+           [projectId, quote_id, `Restante del pago de ${cleanTitle}`, due_date, remainingPercentage, original_status_id]
+         );
+         auditLogs.push({ userId: req.admin?.id, action: 'split_milestone_auto', entityType: 'project_milestones', entity: updRes.rows[0], previousState: oldMilestoneState, req });
+      }
 
       await client.query('COMMIT');
-      await auditService.logAdminAction({ userId: req.admin?.id, action: 'create_milestone_payment', entityType: 'milestone_payments', entity: result.rows[0].id, req });
-      res.status(201).json({ id: result.rows[0].id });
+      
+      for (const log of auditLogs) {
+        await auditService.logAdminAction(log);
+      }
+      res.status(201).json({ id: paymentRow.id });
     } catch (error) {
       await client.query('ROLLBACK').catch(() => undefined);
       if (cloudinaryAsset) {
@@ -755,6 +911,9 @@ projectsRouter.patch(
     if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para gestionar hitos.');
     const milestoneId = z.string().uuid().parse(req.params.milestone_id);
     const body = projectStatusSchema.parse(req.body);
+    const oldStateRes = await pool.query('SELECT * FROM project_milestones WHERE id = $1', [milestoneId]);
+    if (!oldStateRes.rowCount) throw new HttpError(404, 'Hito no encontrado.');
+
     const result = await pool.query(
       `UPDATE project_milestones pm
        SET status_id = sc.id,
@@ -763,11 +922,11 @@ projectsRouter.patch(
        FROM status_catalog sc
        WHERE pm.id = $1 AND pm.project_id = $2
          AND sc.domain = 'milestone' AND sc.code = $3 AND sc.is_active = true
-       RETURNING pm.id`,
+       RETURNING pm.*`,
       [milestoneId, projectId, body.status],
     );
-    if (!result.rowCount) throw new HttpError(400, 'Hito o estado invalido.');
-    await auditService.logAdminAction({ userId: req.admin?.id, action: 'update_milestone_status', entityType: 'project_milestones', entity: milestoneId, req });
+    if (!result.rowCount) throw new HttpError(400, 'Estado invalido.');
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'update_milestone_status', entityType: 'project_milestones', entity: result.rows[0], previousState: oldStateRes.rows[0], req });
     res.json({ ok: true });
   }),
 );
@@ -811,3 +970,64 @@ projectsRouter.get(
   }),
 );
 
+projectsRouter.get(
+  '/projects/:id/adendas',
+  requirePermission('admin.proyectos.view'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) {
+      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [id, req.admin?.id]);
+      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para ver adendas de un proyecto ajeno.');
+    }
+    const projectRes = await pool.query('SELECT customer_id FROM projects WHERE id = $1', [id]);
+    if (projectRes.rowCount === 0) throw new HttpError(404, 'Proyecto no encontrado');
+
+    const result = await pool.query(
+      `SELECT q.id, q.quote_code, q.total_amount, q.currency_code, q.created_at, sc.name AS status_name
+       FROM quotes q
+       JOIN status_catalog sc ON q.status_id = sc.id AND sc.domain = 'quote'
+       WHERE q.customer_id = $1 
+         AND q.deleted_at IS NULL
+         AND sc.code NOT IN ('expired', 'rejected')
+         AND EXISTS (
+           SELECT 1 FROM quote_items qi
+           JOIN pricing_catalog pc ON qi.pricing_catalog_id = pc.id
+           WHERE qi.quote_id = q.id 
+             AND pc.item_code IN ('revision_basic', 'revision_custom', 'revision_mid')
+         )
+       ORDER BY q.created_at DESC`,
+      [projectRes.rows[0].customer_id],
+    );
+    res.json({ items: result.rows });
+  }),
+);
+
+projectsRouter.delete(
+  '/projects/:id/milestones/:milestone_id',
+  requireCsrf,
+  requirePermission('admin.proyectos.manage'),
+  requireNonTerminalState('projects'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const projectId = z.string().uuid().parse(req.params.id);
+    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
+    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para eliminar hitos.');
+    const milestoneId = z.string().uuid().parse(req.params.milestone_id);
+    
+    const checkRes = await pool.query('SELECT title, (SELECT COUNT(*) FROM milestone_payments WHERE milestone_id = $1 AND status != \'rejected\') as count FROM project_milestones WHERE id = $1', [milestoneId]);
+    
+    if (checkRes.rowCount === 0) throw new HttpError(404, 'Hito no encontrado.');
+    if (checkRes.rows[0].title === 'Compensación por Cancelación') {
+       throw new HttpError(403, 'Protección de Sistema: Este es un hito penal (Kill Fee) autogenerado y no puede ser eliminado manualmente.');
+    }
+    if (Number(checkRes.rows[0].count) > 0) {
+      throw new HttpError(400, 'No se puede eliminar un hito que ya tiene pagos registrados.');
+    }
+    
+    const result = await pool.query('DELETE FROM project_milestones WHERE id = $1 AND project_id = $2 RETURNING id', [milestoneId, projectId]);
+    if (result.rowCount === 0) throw new HttpError(404, 'Hito no encontrado.');
+    
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'delete_milestone', entityType: 'project_milestones', entity: milestoneId, req });
+    res.status(200).json({ success: true });
+  })
+);

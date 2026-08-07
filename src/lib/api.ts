@@ -264,12 +264,14 @@ export interface ProjectMilestone {
   id: string;
   project_id: string;
   title: string;
+  quote_id?: string;
   due_date: string;
   payment_percentage: string;
   completed_at: string | null;
   status: string;
   status_name?: string;
   isTerminal?: boolean;
+  currency_code?: string;
   created_at: string;
   updated_at: string;
   payments?: MilestonePayment[];
@@ -394,7 +396,7 @@ export const fetchProjectQuotesByEmail = (email: string) =>
 export const fetchProjectMilestones = (projectId: string) =>
   apiRequest<{ items: ProjectMilestone[] }>(`/admin/projects/${projectId}/milestones`).then((response) => response.items);
 
-export const createProjectMilestone = (projectId: string, data: { title: string; dueDate: string; paymentPercentage: number; statusId: string }) =>
+export const createProjectMilestone = (projectId: string, data: { title: string; dueDate: string; paymentPercentage: number; statusId: string; quoteId?: string; cancelPending?: boolean }) =>
   apiRequest<{ id: string }>(`/admin/projects/${projectId}/milestones`, {
     method: 'POST',
     json: data,

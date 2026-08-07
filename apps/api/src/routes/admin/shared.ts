@@ -56,9 +56,9 @@ export const statusHistorySelect = (historyTable: string, entityColumn: string) 
 
 export const getProjectStatusInfo = async (client: Queryable, code: string) => {
   const result = await client.query(
-    "SELECT id, name, is_terminal FROM status_catalog WHERE domain = 'project' AND code = $1 AND is_active = true LIMIT 1",
+    "SELECT id, name, code, is_terminal FROM status_catalog WHERE domain = 'project' AND code = $1 AND is_active = true LIMIT 1",
     [code],
   );
   if (!result.rowCount) throw new HttpError(400, 'Estado de proyecto invalido.');
-  return { id: result.rows[0].id as string, name: result.rows[0].name as string, is_terminal: result.rows[0].is_terminal as boolean };
+  return { id: result.rows[0].id as string, name: result.rows[0].name as string, code: result.rows[0].code as string, is_terminal: result.rows[0].is_terminal ?? false };
 };
