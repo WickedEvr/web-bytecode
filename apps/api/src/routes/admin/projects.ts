@@ -388,7 +388,6 @@ projectsRouter.patch(
            actual_end_date = COALESCE($12, actual_end_date), total_budget = COALESCE($13, total_budget),
            currency_code = COALESCE($14, currency_code),
            quote_id = CASE WHEN $18 THEN $17 ELSE quote_id END,
-           vercel_bypass_secret = CASE WHEN $20 THEN $19 ELSE vercel_bypass_secret END,
            updated_at = now()
          WHERE id = $1 AND deleted_at IS NULL`,
         [id, body.customerId ?? null, body.organizationId ?? null, body.serviceId ?? null,
@@ -396,8 +395,7 @@ projectsRouter.patch(
          body.githubBranch ?? null, body.startDate ?? null, body.estimatedEndDate ?? null,
          finalActualEndDate, body.totalBudget ?? null, body.currencyCode ?? null,
          Object.hasOwn(body, 'description'), Object.hasOwn(body, 'githubRepo'),
-         body.quoteId ?? null, Object.hasOwn(body, 'quoteId'),
-         body.vercel_bypass_secret ?? null, Object.hasOwn(body, 'vercel_bypass_secret')],
+         body.quoteId ?? null, Object.hasOwn(body, 'quoteId')],
       );
       if (oldStatusId && statusId && oldStatusId !== statusId) {
         await client.query(
