@@ -635,9 +635,12 @@ projectsRouter.get(
       `SELECT pm.id, pm.project_id, pm.title, pm.due_date, pm.payment_percentage, pm.quote_id,
               pm.completed_at, pm.created_at, pm.updated_at,
               sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
+              COALESCE(q.currency_code, p.currency_code) AS currency_code,
               COALESCE(payments_data.payments, '[]'::json) AS payments
        FROM project_milestones pm
        JOIN status_catalog sc ON pm.status_id = sc.id
+       JOIN projects p ON pm.project_id = p.id
+       LEFT JOIN quotes q ON pm.quote_id = q.id
        LEFT JOIN LATERAL (
          SELECT json_agg(json_build_object(
            'id', mp.id,
