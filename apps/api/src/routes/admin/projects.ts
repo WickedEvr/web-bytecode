@@ -37,7 +37,6 @@ const projectCreateSchema = z.object({
   description: z.string().trim().max(3000).optional().nullable(),
   status: z.string().trim().min(1).max(80),
   githubRepo: nullableProjectUrl,
-  githubBranch: z.string().trim().max(160).optional().nullable(),
   startDate: z.string().date(),
   estimatedEndDate: z.string().date(),
   actualEndDate: z.string().date().optional().nullable(),
@@ -50,7 +49,7 @@ const projectUpdateSchema = projectCreateSchema.partial().extend({
 
 const projectSelectSql = `
   SELECT p.id, p.project_code, p.customer_id, p.organization_id, p.service_id, p.quote_id, p.status_id,
-         p.name, p.description, p.github_repo, p.github_branch,
+         p.name, p.description, p.github_repo,
          p.start_date, p.estimated_end_date, p.actual_end_date,
          p.total_budget, p.currency_code, p.created_at, p.updated_at,
          sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
@@ -236,13 +235,13 @@ projectsRouter.post(
     const result = await pool.query(
       `INSERT INTO projects (
          project_code, customer_id, organization_id, service_id, name, description,
-         status_id, github_repo, github_branch, start_date, estimated_end_date,
+         status_id, github_repo, start_date, estimated_end_date,
          actual_end_date, total_budget, currency_code, quote_id
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
        RETURNING id`,
       [createBusinessCode('PRJ'), body.customerId, body.organizationId ?? null, body.serviceId,
        body.name, body.description ?? null, statusId, body.githubRepo ?? null,
-       body.githubBranch ?? null, body.startDate, body.estimatedEndDate,
+       body.startDate, body.estimatedEndDate,
        body.actualEndDate ?? null, body.totalBudget, body.currencyCode, body.quoteId ?? null],
     );
     const created = await pool.query(`${projectSelectSql} AND p.id = $1`, [result.rows[0].id]);
@@ -399,20 +398,20 @@ projectsRouter.patch(
         `UPDATE projects SET
            customer_id = COALESCE($2, customer_id), organization_id = COALESCE($3, organization_id),
            service_id = COALESCE($4, service_id), name = COALESCE($5, name),
-           description = CASE WHEN $15 THEN $6 ELSE description END, status_id = COALESCE($7, status_id),
-           github_repo = CASE WHEN $16 THEN $8 ELSE github_repo END, github_branch = COALESCE($9, github_branch),
-           start_date = COALESCE($10, start_date), estimated_end_date = COALESCE($11, estimated_end_date),
-           actual_end_date = COALESCE($12, actual_end_date), total_budget = COALESCE($13, total_budget),
-           currency_code = COALESCE($14, currency_code),
-           quote_id = CASE WHEN $18 THEN $17 ELSE quote_id END,
+           description = CASE WHEN $14 THEN $6 ELSE description END, status_id = COALESCE($7, status_id),
+           github_repo = CASE WHEN $15 THEN $8 ELSE github_repo END,
+           start_date = COALESCE($9, start_date), estimated_end_date = COALESCE($10, estimated_end_date),
+           actual_end_date = COALESCE($11, actual_end_date), total_budget = COALESCE($12, total_budget),
+           currency_code = COALESCE($13, currency_code),
+           quote_id = CASE WHEN $17 THEN $16 ELSE quote_id END,
            updated_at = now()
          WHERE id = $1 AND deleted_at IS NULL`,
         [id, body.customerId ?? null, body.organizationId ?? null, body.serviceId ?? null,
          body.name ?? null, body.description ?? null, statusId, body.githubRepo ?? null,
-         body.githubBranch ?? null, body.startDate ?? null, body.estimatedEndDate ?? null,
-         finalActualEndDate, body.totalBudget ?? null, body.currencyCode ?? null,
-         Object.hasOwn(body, 'description'), Object.hasOwn(body, 'githubRepo'),
-         body.quoteId ?? null, Object.hasOwn(body, 'quoteId')],
+         body.startDate ?? null, body.estimatedEndDate ?? null,
+         finalActualEndDate ?? null, body.totalBudget ?? null, body.currencyCode ?? null,
+         body.description !== undefined, body.githubRepo !== undefined,
+         body.quoteId ?? null, body.quoteId !== undefined],
       );
       if (oldStatusId && statusId && oldStatusId !== statusId) {
         await client.query(
