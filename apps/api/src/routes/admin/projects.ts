@@ -1002,7 +1002,12 @@ projectsRouter.delete(
     if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para eliminar hitos.');
     const milestoneId = z.string().uuid().parse(req.params.milestone_id);
     
-    const checkRes = await pool.query('SELECT COUNT(*) as count FROM milestone_payments WHERE milestone_id = $1 AND status != \'rejected\'', [milestoneId]);
+    const checkRes = await pool.query('SELECT title, (SELECT COUNT(*) FROM milestone_payments WHERE milestone_id = $1 AND status != \'rejected\') as count FROM project_milestones WHERE id = $1', [milestoneId]);
+    
+    if (checkRes.rowCount === 0) throw new HttpError(404, 'Hito no encontrado.');
+    if (checkRes.rows[0].title === 'Compensación por Cancelación') {
+       throw new HttpError(403, 'Protección de Sistema: Este es un hito penal (Kill Fee) autogenerado y no puede ser eliminado manualmente.');
+    }
     if (Number(checkRes.rows[0].count) > 0) {
       throw new HttpError(400, 'No se puede eliminar un hito que ya tiene pagos registrados.');
     }
