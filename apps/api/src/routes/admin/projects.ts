@@ -796,7 +796,7 @@ projectsRouter.post(
          const paidPercentage = ((amountPaidCurrently + body.amountPaid) / Number(total_amount)) * 100;
          const remainingPercentage = Number(payment_percentage) - paidPercentage;
          
-         await client.query(`UPDATE project_milestones SET payment_percentage = $1, status_id = $2, completed_at = NOW() WHERE id = $3`, [paidPercentage, completed_status_id, milestoneId]);
+         const updRes = await client.query(`UPDATE project_milestones SET payment_percentage = $1, status_id = $2, completed_at = NOW() WHERE id = $3 RETURNING *`, [paidPercentage, completed_status_id, milestoneId]);
          
          const cleanTitle = title.replace(/^Restante del pago de /, '');
          await client.query(
@@ -804,7 +804,7 @@ projectsRouter.post(
             VALUES ($1, $2, $3, $4, $5, $6)`,
            [projectId, quote_id, `Restante del pago de ${cleanTitle}`, due_date, remainingPercentage, original_status_id]
          );
-         await auditService.logAdminAction({ userId: req.admin?.id, action: 'split_milestone_auto', entityType: 'project_milestones', entity: milestoneId, req });
+         await auditService.logAdminAction({ userId: req.admin?.id, action: 'split_milestone_auto', entityType: 'project_milestones', entity: updRes.rows[0], previousState: oldMilestoneState, req });
       }
 
       await client.query('COMMIT');
