@@ -11,6 +11,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { HttpError } from '../utils/httpError.js';
 import { clearAdminCookie, requireAdmin, requirePermission } from '../middleware/auth.js';
 import { loginLimiter } from '../middleware/rateLimiters.js';
+import { requireCsrf } from '../middleware/csrf.js';
 import { auditService } from '../services/audit.js';
 
 const router = Router();
@@ -183,7 +184,7 @@ router.get('/csrf', (req: Request, res: Response) => {
   return res.status(200).json({ csrfToken: token });
 });
 
-router.post('/logout', requireAdmin, asyncHandler(async (req: Request, res: Response) => {
+router.post('/logout', requireCsrf, requireAdmin, asyncHandler(async (req: Request, res: Response) => {
   if (req.sessionId) {
     await pool.query('UPDATE admin_sessions SET revoked_at = NOW() WHERE id = $1', [req.sessionId]);
   }
@@ -266,7 +267,7 @@ router.get('/me/sessions', requireAdmin, asyncHandler(async (req: Request, res: 
   res.json({ sessions });
 }));
 
-router.post('/me/sessions/:sessionId/revoke', requireAdmin, asyncHandler(async (req: Request, res: Response) => {
+router.post('/me/sessions/:sessionId/revoke', requireCsrf, requireAdmin, asyncHandler(async (req: Request, res: Response) => {
   const params = revokeSchema.parse(req.params);
 
   const sessionResult = await pool.query(
@@ -366,7 +367,7 @@ const revokeSchema = z.object({
   sessionId: z.string().uuid(),
 });
 
-router.post('/sessions/:sessionId/revoke', requireAdmin, requirePermission('admin.seguridad.manage'), asyncHandler(async (req: Request, res: Response) => {
+router.post('/sessions/:sessionId/revoke', requireCsrf, requireAdmin, requirePermission('admin.seguridad.manage'), asyncHandler(async (req: Request, res: Response) => {
   const params = revokeSchema.parse(req.params);
 
   const sessionResult = await pool.query(
@@ -423,7 +424,7 @@ const firstPasswordChangeSchema = z.object({
   newPassword: z.string().min(8),
 });
 
-router.post('/first-password-change', asyncHandler(async (req: Request, res: Response) => {
+router.post('/first-password-change', requireCsrf, loginLimiter, asyncHandler(async (req: Request, res: Response) => {
   const body = firstPasswordChangeSchema.parse(req.body);
 
   const result = await pool.query(
@@ -457,7 +458,7 @@ router.post('/first-password-change', asyncHandler(async (req: Request, res: Res
   res.json({ ok: true, message: 'Contraseña actualizada correctamente.' });
 }));
 
-router.get('/verify-email', asyncHandler(async (req: Request, res: Response) => {
+router.get('/verify-email', loginLimiter, asyncHandler(async (req: Request, res: Response) => {
   const token = req.query.token;
   if (!token || typeof token !== 'string') {
     throw new HttpError(400, 'Token inválido.');
