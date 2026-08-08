@@ -106,7 +106,11 @@ type QuoteTotals = {
   };
 };
 
+export type QuoterAlert = { message: string, title?: string, type?: 'warning' | 'info' | 'error' };
+
 type QuoterState = {
+  alertModal: QuoterAlert | null;
+  setAlertModal: (alert: QuoterAlert | null) => void;
   catalog: NormalizedPricingCatalogItem[];
   cart: QuoteCartLine[];
   infrastructure: InfrastructureState;
@@ -128,7 +132,7 @@ type QuoterState = {
 
 const DEFAULT_PROJECT_CATEGORY = 'Landing Page';
 const LEGAL_NOTES = [
-  'Nota Legal: Retrasos mayores a 60 dias tendran un recargo del 20%. Cancelaciones requieren un abono del 30% por tiempo invertido.',
+  'Nota Legal: Retrasos mayores a 60 dias tendran un recargo del 20%. Cancelaciones requieren un abono del 20% por tiempo invertido.',
 ];
 const DOMAIN_INFRA_CODES = ['discount_own_domain', 'fee_domain_setup'];
 const HOSTING_INFRA_CODES = ['discount_own_hosting', 'fee_hosting_setup'];
@@ -214,20 +218,20 @@ export const allowsMultipleQuantity = (item: NormalizedPricingCatalogItem) =>
 
 const showMaintenanceDowngradeWarning = (includedBy: string) => {
   if (typeof window !== 'undefined') {
-    window.alert(`El ${includedBy} ya incluye las caracteristicas de este plan.`);
+    setTimeout(() => useQuoterState.getState().setAlertModal({ title: 'Aviso de Mantenimiento', message: `El ${includedBy} ya incluye las caracteristicas de este plan.`, type: 'warning' }), 0);
   }
 };
 
 const showRevisionDowngradeWarning = () => {
   if (typeof window !== 'undefined') {
-    window.alert('El nivel actual de revisión ya cubre los cambios básicos. No es necesario agregarlo.');
+    setTimeout(() => useQuoterState.getState().setAlertModal({ title: 'Aviso de Revisión', message: 'El nivel actual de revisión ya cubre los cambios básicos. No es necesario agregarlo.', type: 'info' }), 0);
   }
 };
 
 const showCustomPriceClampWarning = (basePrice: number, maxPrice: number | null) => {
   if (typeof window !== 'undefined') {
     const maxLabel = maxPrice === null ? 'sin limite superior' : formatPenValue(maxPrice);
-    window.alert(`El precio fue ajustado. El rango permitido para este elemento es entre ${formatPenValue(basePrice)} y ${maxLabel}.`);
+    setTimeout(() => useQuoterState.getState().setAlertModal({ title: 'Precio Ajustado', message: `El precio fue ajustado. El rango permitido para este elemento es entre ${formatPenValue(basePrice)} y ${maxLabel}.`, type: 'warning' }), 0);
   }
 };
 
@@ -402,11 +406,14 @@ export const computeQuoteTotals = (
     return moneyValue(item.base_price) > moneyValue(current.base_price) ? item : current;
   }, null);
 
-  const activeBaseSource = activeTrigger ?? baseItem;
-  const projectCategory = activeTrigger?.upgrades_to_category || activeTrigger?.name || DEFAULT_PROJECT_CATEGORY;
+  const adendaTrigger = cartWithItems.find(({ item }) => item.item_code?.startsWith('revision_'))?.item;
+  const isAdendaMode = Boolean(adendaTrigger);
+
+  const activeBaseSource = activeTrigger ?? adendaTrigger ?? baseItem;
+  const projectCategory = activeTrigger?.upgrades_to_category || activeTrigger?.name || (isAdendaMode ? 'Adenda Adicional' : DEFAULT_PROJECT_CATEGORY);
 
   const visibleCartWithItems = cartWithItems.filter(({ item }) => {
-    if (item.item_type === 'base_canvas') return !activeTrigger;
+    if (item.item_type === 'base_canvas') return !activeTrigger && !isAdendaMode;
     if (item.item_type === 'category_trigger') return activeTrigger?.id === item.id;
     return true;
   });
@@ -481,6 +488,8 @@ export const computeQuoteTotals = (
 };
 
 export const useQuoterState = create<QuoterState>((set, get) => ({
+  alertModal: null,
+  setAlertModal: (alert) => set({ alertModal: alert }),
   catalog: [],
   cart: [],
   infrastructure: defaultInfrastructure(),
@@ -556,14 +565,7 @@ export const useQuoterState = create<QuoterState>((set, get) => ({
       }
 
       return {
-        cart: [
-          ...state.cart.filter((line) => {
-            const item = state.catalog.find((entry) => entry.id === line.catalogItemId);
-            const revision = item ? revisionLevelFor(item) : null;
-            return !revision || revision.level >= incomingRevision.level;
-          }),
-          cartLineFor(catalogItem),
-        ],
+        cart: [cartLineFor(catalogItem)],
       };
     }
 
@@ -616,6 +618,24 @@ export const useQuoterState = create<QuoterState>((set, get) => ({
           ...withoutRootCategoryLines(state.catalog, nextCart),
         ],
       };
+    }
+
+    if (removedItem && revisionLevelFor(removedItem)) {
+      const hasOtherRevisions = nextCart.some((line) => {
+        const item = state.catalog.find(i => i.id === line.catalogItemId);
+        return item && revisionLevelFor(item);
+      });
+      if (!hasOtherRevisions) {
+        const hasTrigger = nextCart.some((line) => state.catalog.find(i => i.id === line.catalogItemId)?.item_type === 'category_trigger');
+        if (!hasTrigger) {
+          return {
+             cart: [
+               ...defaultCartFor(state.catalog),
+               ...nextCart
+             ]
+          };
+        }
+      }
     }
 
     return { cart: nextCart };

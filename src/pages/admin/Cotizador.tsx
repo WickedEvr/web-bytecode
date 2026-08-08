@@ -9,6 +9,7 @@ import CustomDropdown from '../../components/ui/CustomDropdown';
 import StatusHistoryTimeline from '../../components/admin/StatusHistoryTimeline';
 import type { StatusCatalogItem, StatusHistoryRecord } from '../../types/status';
 import PaginationControl from '../../components/ui/PaginationControl';
+import { ConfirmModal, type ConfirmModalProps } from '../../components/ui/ConfirmModal';
 import { formatCurrencyValue, useQuoterState, type EditableQuoteItemData, type PreparedQuotePayload, type PricingCatalogItem } from '../../hooks/useQuoterState';
 
 const PAGE_SIZE = 9;
@@ -49,6 +50,7 @@ const AdminCotizador: React.FC = () => {
   const [error, setError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [actionsMenu, setActionsMenu] = useState<ActionMenuState | null>(null);
+  const [confirmModal, setConfirmModal] = useState<Omit<ConfirmModalProps, 'isOpen' | 'onCancel'> | null>(null);
   const [formData, setFormData] = useState({
     customerName: '',
     customerEmail: '',
@@ -170,25 +172,30 @@ const AdminCotizador: React.FC = () => {
     }
   };
 
-  const handleDeleteQuote = async (quote: Quote) => {
+  const handleDeleteQuote = (quote: Quote) => {
     setActionsMenu(null);
-    const confirmed = window.confirm(`¿Eliminar la cotizacion ${quote.quote_code}? Esta accion no se mostrara en el historial.`);
-    if (!confirmed) return;
-
-    setLoading(true);
-    setError('');
-    try {
-      await apiRequest(`/admin/quotes/${quote.id}`, { method: 'DELETE' });
-      if (editingQuoteId === quote.id) {
-        resetQuoter();
-        setIsModalOpen(false);
+    setConfirmModal({
+      title: 'Eliminar Cotización',
+      message: `¿Eliminar la cotizacion ${quote.quote_code}? Esta accion no se mostrara en el historial.`,
+      type: 'danger',
+      onConfirm: async () => {
+        setLoading(true);
+        setError('');
+        try {
+          await apiRequest(`/admin/quotes/${quote.id}`, { method: 'DELETE' });
+          if (editingQuoteId === quote.id) {
+            resetQuoter();
+            setIsModalOpen(false);
+          }
+          await loadData();
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Error al eliminar cotizacion');
+        } finally {
+          setLoading(false);
+          setConfirmModal(null);
+        }
       }
-      await loadData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al eliminar cotizacion');
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   const handleCreate = async (payload: PreparedQuotePayload) => {
@@ -456,6 +463,14 @@ const AdminCotizador: React.FC = () => {
             />
           </div>
         </div>
+      )}
+
+      {confirmModal && (
+        <ConfirmModal
+          isOpen={true}
+          onCancel={() => setConfirmModal(null)}
+          {...confirmModal}
+        />
       )}
     </div>
   );
