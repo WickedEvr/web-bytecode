@@ -68,10 +68,11 @@ type DynamicQuoterProps = {
 };
 
 const catalogSections = [
-  { type: 'addon', label: 'Add-ons' },
-  { type: 'category_trigger', label: 'Triggers de Categoria' },
-  { type: 'recurring', label: 'Recurrentes' },
-] as const;
+  { filter: (i: NormalizedPricingCatalogItem) => Boolean(i.item_code?.startsWith('revision_')), label: 'Adendas / Revisiones' },
+  { filter: (i: NormalizedPricingCatalogItem) => i.item_type === 'addon' && !i.item_code?.startsWith('revision_'), label: 'Add-ons' },
+  { filter: (i: NormalizedPricingCatalogItem) => i.item_type === 'category_trigger', label: 'Triggers de Categoria' },
+  { filter: (i: NormalizedPricingCatalogItem) => i.item_type === 'recurring', label: 'Recurrentes' },
+];
 const infrastructureCodes = new Set(['discount_own_domain', 'fee_domain_setup', 'discount_own_hosting', 'fee_hosting_setup']);
 
 const iconMap: Record<string, LucideIcon> = {
@@ -252,17 +253,6 @@ const DynamicQuoter = ({
     setCatalog(initialCatalog);
   }, [initialCatalog, setCatalog]);
 
-  const groupedCatalog = useMemo(() => {
-    const draggableItems = storeCatalog.filter((item) =>
-      item.is_draggable && !['base_canvas', 'base_included'].includes(item.item_type),
-    );
-    return draggableItems.reduce<Record<string, NormalizedPricingCatalogItem[]>>((groups, item) => {
-      const key = item.item_type;
-      groups[key] = [...(groups[key] ?? []), item];
-      return groups;
-    }, {});
-  }, [storeCatalog]);
-
   const handleDragStart = (event: DragStartEvent) => {
     const item = storeCatalog.find((entry) => entry.id === event.active.id);
     setActiveItem(item ?? null);
@@ -393,12 +383,14 @@ const DynamicQuoter = ({
             </div>
 
             <div className="flex flex-col gap-6">
-              {catalogSections.map(({ type, label }) => {
-                const items = groupedCatalog[type] ?? [];
+              {catalogSections.map(({ filter, label }, idx) => {
+                const items = storeCatalog.filter(
+                  (item) => item.is_draggable && !['base_canvas', 'base_included'].includes(item.item_type) && filter(item)
+                );
                 if (items.length === 0) return null;
 
                 return (
-                  <div key={type}>
+                  <div key={idx}>
                     <h4 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">{label}</h4>
                     <div className="flex flex-col gap-3">
                       {items.map((item) => <DraggableCatalogCard key={item.id} item={item} formatCurr={formatCurr} />)}

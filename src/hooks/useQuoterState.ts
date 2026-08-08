@@ -406,11 +406,14 @@ export const computeQuoteTotals = (
     return moneyValue(item.base_price) > moneyValue(current.base_price) ? item : current;
   }, null);
 
-  const activeBaseSource = activeTrigger ?? baseItem;
-  const projectCategory = activeTrigger?.upgrades_to_category || activeTrigger?.name || DEFAULT_PROJECT_CATEGORY;
+  const adendaTrigger = cartWithItems.find(({ item }) => item.item_code?.startsWith('revision_'))?.item;
+  const isAdendaMode = Boolean(adendaTrigger);
+
+  const activeBaseSource = activeTrigger ?? adendaTrigger ?? baseItem;
+  const projectCategory = activeTrigger?.upgrades_to_category || activeTrigger?.name || (isAdendaMode ? 'Adenda Adicional' : DEFAULT_PROJECT_CATEGORY);
 
   const visibleCartWithItems = cartWithItems.filter(({ item }) => {
-    if (item.item_type === 'base_canvas') return !activeTrigger;
+    if (item.item_type === 'base_canvas') return !activeTrigger && !isAdendaMode;
     if (item.item_type === 'category_trigger') return activeTrigger?.id === item.id;
     return true;
   });
@@ -562,14 +565,7 @@ export const useQuoterState = create<QuoterState>((set, get) => ({
       }
 
       return {
-        cart: [
-          ...state.cart.filter((line) => {
-            const item = state.catalog.find((entry) => entry.id === line.catalogItemId);
-            const revision = item ? revisionLevelFor(item) : null;
-            return !revision || revision.level >= incomingRevision.level;
-          }),
-          cartLineFor(catalogItem),
-        ],
+        cart: [cartLineFor(catalogItem)],
       };
     }
 
