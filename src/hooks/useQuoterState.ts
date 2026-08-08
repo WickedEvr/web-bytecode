@@ -218,20 +218,20 @@ export const allowsMultipleQuantity = (item: NormalizedPricingCatalogItem) =>
 
 const showMaintenanceDowngradeWarning = (includedBy: string) => {
   if (typeof window !== 'undefined') {
-    useQuoterState.getState().setAlertModal({ title: 'Aviso de Mantenimiento', message: `El ${includedBy} ya incluye las caracteristicas de este plan.`, type: 'warning' });
+    setTimeout(() => useQuoterState.getState().setAlertModal({ title: 'Aviso de Mantenimiento', message: `El ${includedBy} ya incluye las caracteristicas de este plan.`, type: 'warning' }), 0);
   }
 };
 
 const showRevisionDowngradeWarning = () => {
   if (typeof window !== 'undefined') {
-    useQuoterState.getState().setAlertModal({ title: 'Aviso de Revisión', message: 'El nivel actual de revisión ya cubre los cambios básicos. No es necesario agregarlo.', type: 'info' });
+    setTimeout(() => useQuoterState.getState().setAlertModal({ title: 'Aviso de Revisión', message: 'El nivel actual de revisión ya cubre los cambios básicos. No es necesario agregarlo.', type: 'info' }), 0);
   }
 };
 
 const showCustomPriceClampWarning = (basePrice: number, maxPrice: number | null) => {
   if (typeof window !== 'undefined') {
     const maxLabel = maxPrice === null ? 'sin limite superior' : formatPenValue(maxPrice);
-    useQuoterState.getState().setAlertModal({ title: 'Precio Ajustado', message: `El precio fue ajustado. El rango permitido para este elemento es entre ${formatPenValue(basePrice)} y ${maxLabel}.`, type: 'warning' });
+    setTimeout(() => useQuoterState.getState().setAlertModal({ title: 'Precio Ajustado', message: `El precio fue ajustado. El rango permitido para este elemento es entre ${formatPenValue(basePrice)} y ${maxLabel}.`, type: 'warning' }), 0);
   }
 };
 
@@ -618,6 +618,24 @@ export const useQuoterState = create<QuoterState>((set, get) => ({
           ...withoutRootCategoryLines(state.catalog, nextCart),
         ],
       };
+    }
+
+    if (removedItem && revisionLevelFor(removedItem)) {
+      const hasOtherRevisions = nextCart.some((line) => {
+        const item = state.catalog.find(i => i.id === line.catalogItemId);
+        return item && revisionLevelFor(item);
+      });
+      if (!hasOtherRevisions) {
+        const hasTrigger = nextCart.some((line) => state.catalog.find(i => i.id === line.catalogItemId)?.item_type === 'category_trigger');
+        if (!hasTrigger) {
+          return {
+             cart: [
+               ...defaultCartFor(state.catalog),
+               ...nextCart
+             ]
+          };
+        }
+      }
     }
 
     return { cart: nextCart };
