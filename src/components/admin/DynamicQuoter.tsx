@@ -36,6 +36,7 @@ import {
   UploadCloud,
   X,
   AlertTriangle,
+  AlertCircle,
   Info,
   type LucideIcon,
 } from 'lucide-react';
@@ -383,14 +384,14 @@ const DynamicQuoter = ({
             </div>
 
             <div className="flex flex-col gap-6">
-              {catalogSections.map(({ filter, label }, idx) => {
+              {catalogSections.map(({ filter, label }) => {
                 const items = storeCatalog.filter(
                   (item) => item.is_draggable && !['base_canvas', 'base_included'].includes(item.item_type) && filter(item)
                 );
                 if (items.length === 0) return null;
 
                 return (
-                  <div key={idx}>
+                  <div key={label}>
                     <h4 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">{label}</h4>
                     <div className="flex flex-col gap-3">
                       {items.map((item) => <DraggableCatalogCard key={item.id} item={item} formatCurr={formatCurr} />)}
@@ -647,7 +648,7 @@ const DynamicQuoter = ({
                 {alertModal.type === 'info' ? (
                   <Info className="h-7 w-7 text-blue-500" />
                 ) : alertModal.type === 'error' ? (
-                  <AlertTriangle className="h-7 w-7 text-red-500" />
+                  <AlertCircle className="h-7 w-7 text-red-500" />
                 ) : (
                   <AlertTriangle className="h-7 w-7 text-amber-500" />
                 )}
