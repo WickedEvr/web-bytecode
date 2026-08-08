@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import AdminPanel from '../../components/admin/AdminPanel';
 import { apiRequest, type AdminPortfolioItemData, type PortfolioTechnologyData } from '../../lib/api';
 import CustomDropdown from '../../components/ui/CustomDropdown';
+import { ConfirmModal, type ConfirmModalProps } from '../../components/ui/ConfirmModal';
 
 type PortfolioForm = {
   name: string;
@@ -68,6 +69,7 @@ const AdminPortafolio: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [confirmModal, setConfirmModal] = useState<Omit<ConfirmModalProps, 'isOpen' | 'onCancel'> | null>(null);
 
   const selectedItem = useMemo(
     () => items.find((item) => item.id === selectedId) ?? null,
@@ -230,22 +232,27 @@ const AdminPortafolio: React.FC = () => {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!selectedId) return;
-    const confirmed = window.confirm('¿Eliminar este proyecto del portafolio?');
-    if (!confirmed) return;
-
-    setSaving(true);
-    setError('');
-    try {
-      await apiRequest(`/admin/portfolio/${selectedId}`, { method: 'DELETE' });
-      setItems((current) => current.filter((item) => item.id !== selectedId));
-      handleNew();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo eliminar el proyecto.');
-    } finally {
-      setSaving(false);
-    }
+    setConfirmModal({
+      title: 'Eliminar Proyecto',
+      message: '¿Eliminar este proyecto del portafolio?',
+      type: 'danger',
+      onConfirm: async () => {
+        setSaving(true);
+        setError('');
+        try {
+          await apiRequest(`/admin/portfolio/${selectedId}`, { method: 'DELETE' });
+          setItems((current) => current.filter((item) => item.id !== selectedId));
+          handleNew();
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'No se pudo eliminar el proyecto.');
+        } finally {
+          setSaving(false);
+          setConfirmModal(null);
+        }
+      }
+    });
   };
 
   return (
@@ -413,6 +420,13 @@ const AdminPortafolio: React.FC = () => {
           </div>
         </AdminPanel>
       </section>
+      {confirmModal && (
+        <ConfirmModal
+          isOpen={true}
+          onCancel={() => setConfirmModal(null)}
+          {...confirmModal}
+        />
+      )}
     </div>
   );
 };

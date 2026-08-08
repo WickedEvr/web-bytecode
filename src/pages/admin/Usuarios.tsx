@@ -5,6 +5,7 @@ import { apiRequest } from '../../lib/api';
 import AdminPanel from '../../components/admin/AdminPanel';
 import CustomDropdown from '../../components/ui/CustomDropdown';
 import PaginationControl from '../../components/ui/PaginationControl';
+import { ConfirmModal, type ConfirmModalProps } from '../../components/ui/ConfirmModal';
 
 const PAGE_SIZE = 9;
 
@@ -53,6 +54,7 @@ const Usuarios: React.FC = () => {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [confirmModal, setConfirmModal] = useState<Omit<ConfirmModalProps, 'isOpen' | 'onCancel'> | null>(null);
 
   const roleOptions = roles.map((role) => ({ value: role.code, label: role.name }));
 
@@ -84,18 +86,26 @@ const Usuarios: React.FC = () => {
     void loadData();
   }, [page, statusFilter]);
 
-  const handleDelete = async (user: AdminUserRow) => {
-    if (!window.confirm(`¿Estás seguro de eliminar permanentemente a ${user.name}? Esta acción no se puede deshacer.`)) return;
-    setLoading(true);
-    setError('');
-    try {
-      await apiRequest(`/admin/users/${user.id}`, { method: 'DELETE' });
-      await loadUsers();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al eliminar usuario');
-    } finally {
-      setLoading(false);
-    }
+  const handleDelete = (user: AdminUserRow) => {
+    setActionsMenu(null);
+    setConfirmModal({
+      title: 'Eliminar Usuario',
+      message: `¿Estás seguro de eliminar permanentemente a ${user.name}? Esta acción no se puede deshacer.`,
+      type: 'danger',
+      onConfirm: async () => {
+        setLoading(true);
+        setError('');
+        try {
+          await apiRequest(`/admin/users/${user.id}`, { method: 'DELETE' });
+          await loadUsers();
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Error al eliminar usuario');
+        } finally {
+          setLoading(false);
+          setConfirmModal(null);
+        }
+      }
+    });
   };
 
   useEffect(() => {
@@ -167,22 +177,29 @@ const Usuarios: React.FC = () => {
     }
   };
 
-  const handleToggleStatus = async (user: AdminUserRow) => {
-    if (!window.confirm(`Confirmas ${user.is_active ? 'desactivar' : 'activar'} a ${user.name}?`)) return;
-
-    setLoading(true);
-    setError('');
-    try {
-      await apiRequest(`/admin/users/${user.id}`, {
-        method: 'PATCH',
-        json: { isActive: !user.is_active },
-      });
-      await loadUsers();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cambiar estado');
-    } finally {
-      setLoading(false);
-    }
+  const handleToggleStatus = (user: AdminUserRow) => {
+    setActionsMenu(null);
+    setConfirmModal({
+      title: user.is_active ? 'Desactivar Usuario' : 'Activar Usuario',
+      message: `Confirmas ${user.is_active ? 'desactivar' : 'activar'} a ${user.name}?`,
+      type: 'warning',
+      onConfirm: async () => {
+        setLoading(true);
+        setError('');
+        try {
+          await apiRequest(`/admin/users/${user.id}`, {
+            method: 'PATCH',
+            json: { isActive: !user.is_active },
+          });
+          await loadUsers();
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Error al cambiar estado');
+        } finally {
+          setLoading(false);
+          setConfirmModal(null);
+        }
+      }
+    });
   };
 
   const handleOpenActions = (e: React.MouseEvent, id: string) => {
@@ -418,6 +435,14 @@ const Usuarios: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {confirmModal && (
+        <ConfirmModal
+          isOpen={true}
+          onCancel={() => setConfirmModal(null)}
+          {...confirmModal}
+        />
       )}
     </div>
   );
