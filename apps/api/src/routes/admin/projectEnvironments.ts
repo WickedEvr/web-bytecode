@@ -3,6 +3,7 @@ import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { pool } from '../../db/pool.js';
 import { requirePermission } from '../../middleware/auth.js';
+import { requireProjectOwnership } from '../../middleware/abac.js';
 import { requireCsrf } from '../../middleware/csrf.js';
 import { triggerEnvironmentVerification } from '../../services/environmentVerification.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
@@ -21,14 +22,9 @@ const projectEnvironmentSchema = z.object({
 projectEnvironmentsRouter.get(
   '/projects/:id/environments',
   requirePermission('admin.proyectos.view'),
+  requireProjectOwnership,
   asyncHandler(async (req: Request, res: Response) => {
-    const projectId = z.string().uuid().parse(req.params.id);
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) {
-      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [projectId, req.admin?.id]);
-      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para ver entornos de un proyecto ajeno.');
-    }
-    const result = await pool.query(
+    const projectId = z.string().uuid().parse(req.params.id);    const result = await pool.query(
       `SELECT id, project_id, type, name, url, api_url, branch_name, commit_sha, status, error_details, audit_report, created_at
        FROM project_environments
        WHERE project_id = $1
@@ -44,11 +40,9 @@ projectEnvironmentsRouter.post(
   '/projects/:id/environments',
   requireCsrf,
   requirePermission('admin.proyectos.manage'),
+  requireProjectOwnership,
   asyncHandler(async (req: Request, res: Response) => {
-    const projectId = z.string().uuid().parse(req.params.id);
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para gestionar los entornos.');
-    const body = projectEnvironmentSchema.parse(req.body);
+    const projectId = z.string().uuid().parse(req.params.id);    const body = projectEnvironmentSchema.parse(req.body);
     const result = await pool.query(
       `INSERT INTO project_environments (project_id, type, name, url, api_url, status)
        SELECT id, $2, $3, $4, $5, 'verifying'
@@ -70,14 +64,9 @@ projectEnvironmentsRouter.post(
   '/projects/:id/environments/:environment_id/verify',
   requireCsrf,
   requirePermission('admin.proyectos.view'),
+  requireProjectOwnership,
   asyncHandler(async (req: Request, res: Response) => {
-    const projectId = z.string().uuid().parse(req.params.id);
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) {
-      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [projectId, req.admin?.id]);
-      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para interactuar con entornos de un proyecto ajeno.');
-    }
-    const environmentId = z.string().uuid().parse(req.params.environment_id);
+    const projectId = z.string().uuid().parse(req.params.id);    const environmentId = z.string().uuid().parse(req.params.environment_id);
     const result = await pool.query(
       `UPDATE project_environments
        SET status = 'verifying', error_details = NULL
@@ -98,11 +87,9 @@ projectEnvironmentsRouter.delete(
   '/projects/:id/environments/:environment_id',
   requireCsrf,
   requirePermission('admin.proyectos.manage'),
+  requireProjectOwnership,
   asyncHandler(async (req: Request, res: Response) => {
-    const projectId = z.string().uuid().parse(req.params.id);
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para interactuar con los entornos.');
-    const environmentId = z.string().uuid().parse(req.params.environment_id);
+    const projectId = z.string().uuid().parse(req.params.id);    const environmentId = z.string().uuid().parse(req.params.environment_id);
     const result = await pool.query(
       'DELETE FROM project_environments WHERE id = $1 AND project_id = $2 RETURNING id',
       [environmentId, projectId],
