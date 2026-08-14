@@ -11,7 +11,10 @@ export const requireProjectOwnership = asyncHandler(async (req: Request, res: Re
     const idParam = req.params.id || req.params.projectId;
     if (idParam) {
       const projectId = z.string().uuid().parse(idParam);
-      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [projectId, req.admin?.id]);
+      if (!req.admin?.id) {
+        throw new HttpError(401, 'ID de usuario no disponible para la verificación de propiedad.');
+      }
+      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [projectId, req.admin.id]);
       
       if (assignmentCheck.rowCount === 0) {
         throw new HttpError(403, 'No tienes permiso para acceder a este proyecto o sus recursos.');
@@ -29,7 +32,10 @@ export const requireQuoteOwnership = asyncHandler(async (req: Request, res: Resp
     const idParam = req.params.id;
     if (idParam) {
       const quoteId = z.string().uuid().parse(idParam);
-      const ownershipCheck = await pool.query('SELECT 1 FROM quotes WHERE id = $1 AND created_by = $2', [quoteId, req.admin?.id]);
+      if (!req.admin?.id) {
+        throw new HttpError(401, 'ID de usuario no disponible para la verificación de propiedad.');
+      }
+      const ownershipCheck = await pool.query('SELECT 1 FROM quotes WHERE id = $1 AND created_by = $2', [quoteId, req.admin.id]);
       
       if (ownershipCheck.rowCount === 0) {
         throw new HttpError(403, 'No tienes permiso para acceder a esta cotización.');
