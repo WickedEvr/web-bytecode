@@ -9,6 +9,7 @@ import {
 import { pool } from '../../db/pool.js';
 import { validateUpload } from '../../lib/validateUpload.js';
 import { requirePermission } from '../../middleware/auth.js';
+import { requireProjectOwnership } from '../../middleware/abac.js';
 import { requireCsrf } from '../../middleware/csrf.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { HttpError } from '../../utils/httpError.js';
@@ -29,11 +30,10 @@ projectMilestonePaymentsRouter.post(
   '/projects/:id/milestones/:milestone_id/payments',
   requireCsrf,
   requirePermission('admin.proyectos.manage'),
+  requireProjectOwnership,
   upload.single('receipt'),
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para gestionar hitos.');
     const milestoneId = z.string().uuid().parse(req.params.milestone_id);
     const body = milestonePaymentSchema.parse(req.body);
     const file = req.file;

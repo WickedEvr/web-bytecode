@@ -3,6 +3,7 @@ import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { pool } from '../../db/pool.js';
 import { requirePermission } from '../../middleware/auth.js';
+import { requireProjectOwnership } from '../../middleware/abac.js';
 import { requireCsrf } from '../../middleware/csrf.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { HttpError } from '../../utils/httpError.js';
@@ -13,14 +14,9 @@ export const projectAssignmentsRouter = Router();
 projectAssignmentsRouter.get(
   '/projects/:id/assignments',
   requirePermission('admin.proyectos.view'),
+  requireProjectOwnership,
   asyncHandler(async (req: Request, res: Response) => {
-    const projectId = z.string().uuid().parse(req.params.id);
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) {
-      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [projectId, req.admin?.id]);
-      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para ver asignaciones de un proyecto ajeno.');
-    }
-    const result = await pool.query(
+    const projectId = z.string().uuid().parse(req.params.id);    const result = await pool.query(
       `SELECT pa.project_id, pa.user_id, pa.role, pa.assigned_at, u.name, u.email
        FROM project_assignments pa
        JOIN admin_users u ON u.id = pa.user_id
@@ -36,13 +32,9 @@ projectAssignmentsRouter.post(
   '/projects/:id/assignments',
   requireCsrf,
   requirePermission('admin.proyectos.assign'),
+  requireProjectOwnership,
   asyncHandler(async (req: Request, res: Response) => {
-    const projectId = z.string().uuid().parse(req.params.id);
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) {
-      throw new HttpError(403, 'Solo los administradores pueden gestionar las asignaciones de equipo.');
-    }
-    const body = z.object({
+    const projectId = z.string().uuid().parse(req.params.id);    const body = z.object({
       userId: z.string().uuid(),
       role: z.string().trim().max(120).optional().nullable(),
     }).parse(req.body);
@@ -67,13 +59,9 @@ projectAssignmentsRouter.delete(
   '/projects/:id/assignments/:userId',
   requireCsrf,
   requirePermission('admin.proyectos.assign'),
+  requireProjectOwnership,
   asyncHandler(async (req: Request, res: Response) => {
-    const projectId = z.string().uuid().parse(req.params.id);
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) {
-      throw new HttpError(403, 'Solo los administradores pueden gestionar las asignaciones de equipo.');
-    }
-    const userId = z.string().uuid().parse(req.params.userId);
+    const projectId = z.string().uuid().parse(req.params.id);    const userId = z.string().uuid().parse(req.params.userId);
     const result = await pool.query(
       'DELETE FROM project_assignments WHERE project_id = $1 AND user_id = $2 RETURNING user_id',
       [projectId, userId]

@@ -3,6 +3,7 @@ import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { pool } from '../../db/pool.js';
 import { requirePermission } from '../../middleware/auth.js';
+import { requireProjectOwnership } from '../../middleware/abac.js';
 import { requireCsrf } from '../../middleware/csrf.js';
 import { requireNonTerminalState } from '../../middleware/requireNonTerminalState.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
@@ -26,11 +27,9 @@ projectMilestonesRouter.post(
   '/projects/:id/milestones',
   requireCsrf,
   requirePermission('admin.proyectos.manage'),
+  requireProjectOwnership,
   asyncHandler(async (req: Request, res: Response) => {
-    const projectId = z.string().uuid().parse(req.params.id);
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para gestionar los hitos.');
-    const body = milestoneCreateSchema.parse(req.body);
+    const projectId = z.string().uuid().parse(req.params.id);    const body = milestoneCreateSchema.parse(req.body);
 
     const client = await pool.connect();
     try {
@@ -86,13 +85,9 @@ projectMilestonesRouter.post(
 projectMilestonesRouter.get(
   '/projects/:id/milestones',
   requirePermission('admin.proyectos.view'),
+  requireProjectOwnership,
   asyncHandler(async (req: Request, res: Response) => {
-    const id = z.string().uuid().parse(req.params.id);
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) {
-      throw new HttpError(403, 'No tienes permiso para visualizar hitos del proyecto.');
-    }
-    const result = await pool.query(
+    const id = z.string().uuid().parse(req.params.id);    const result = await pool.query(
       `SELECT pm.id, pm.project_id, pm.title, pm.due_date, pm.payment_percentage, pm.quote_id,
               pm.completed_at, pm.created_at, pm.updated_at,
               sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal",
@@ -132,12 +127,10 @@ projectMilestonesRouter.patch(
   '/projects/:id/milestones/:milestone_id',
   requireCsrf,
   requirePermission('admin.proyectos.manage'),
+  requireProjectOwnership,
   requireNonTerminalState('projects'),
   asyncHandler(async (req: Request, res: Response) => {
-    const projectId = z.string().uuid().parse(req.params.id);
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para gestionar hitos.');
-    const milestoneId = z.string().uuid().parse(req.params.milestone_id);
+    const projectId = z.string().uuid().parse(req.params.id);    const milestoneId = z.string().uuid().parse(req.params.milestone_id);
     const body = projectStatusSchema.parse(req.body);
     const oldStateRes = await pool.query('SELECT * FROM project_milestones WHERE id = $1', [milestoneId]);
     if (!oldStateRes.rowCount) throw new HttpError(404, 'Hito no encontrado.');
@@ -163,12 +156,10 @@ projectMilestonesRouter.delete(
   '/projects/:id/milestones/:milestone_id',
   requireCsrf,
   requirePermission('admin.proyectos.manage'),
+  requireProjectOwnership,
   requireNonTerminalState('projects'),
   asyncHandler(async (req: Request, res: Response) => {
-    const projectId = z.string().uuid().parse(req.params.id);
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para eliminar hitos.');
-    const milestoneId = z.string().uuid().parse(req.params.milestone_id);
+    const projectId = z.string().uuid().parse(req.params.id);    const milestoneId = z.string().uuid().parse(req.params.milestone_id);
     
     const checkRes = await pool.query('SELECT title, (SELECT COUNT(*) FROM milestone_payments WHERE milestone_id = $1 AND status != \'rejected\') as count FROM project_milestones WHERE id = $1', [milestoneId]);
     
