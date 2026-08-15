@@ -18,12 +18,22 @@ import { upload } from './shared.js';
 
 export const projectMilestonePaymentsRouter = Router();
 
-const milestonePaymentSchema = z.object({
+const milestonePaymentBaseSchema = z.object({
   amountPaid: z.coerce.number().min(0.01),
-  paymentMethod: z.string().min(1).max(80),
+  paymentMethod: z.enum(['transfer', 'cash', 'credit_card', 'paypal']),
   referenceNumber: z.string().max(180).optional().nullable(),
   paidAt: z.string().date(),
   splitRemaining: z.string().optional().transform(v => v === 'true'),
+});
+
+const milestonePaymentSchema = milestonePaymentBaseSchema.superRefine((data, ctx) => {
+  if (data.paymentMethod !== 'cash' && (!data.referenceNumber || data.referenceNumber.trim() === '')) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'El número de operación es obligatorio para este método de pago.',
+      path: ['referenceNumber'],
+    });
+  }
 });
 
 projectMilestonePaymentsRouter.post(
@@ -37,6 +47,10 @@ projectMilestonePaymentsRouter.post(
     const milestoneId = z.string().uuid().parse(req.params.milestone_id);
     const body = milestonePaymentSchema.parse(req.body);
     const file = req.file;
+
+    if (body.paymentMethod !== 'cash' && !file) {
+      throw new HttpError(400, 'El comprobante de pago es obligatorio para este método de pago.');
+    }
 
     const client = await pool.connect();
     let cloudinaryAsset: CloudinaryStoredAsset | null = null;
