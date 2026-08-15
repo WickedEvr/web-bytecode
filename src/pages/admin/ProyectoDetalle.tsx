@@ -444,7 +444,7 @@ const ProyectoDetalle: React.FC = () => {
             <form onSubmit={handlePaymentSubmit} className="max-h-[92vh] w-full max-w-md overflow-visible rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 shadow-2xl md:p-8">
               <div className="mb-6 flex items-center justify-between border-b border-white/5 pb-4">
                 <div><h2 className="text-lg font-semibold text-white/90">Registrar Pago</h2></div>
-                <button type="button" onClick={() => setPaymentModalOpen(false)} className="rounded-lg p-2 text-white/50 hover:bg-white/5"><X className="h-5 w-5" /></button>
+                <button type="button" onClick={() => { setPaymentModalOpen(false); setPaymentForm({ amount: 0, method: 'transfer', reference: '', date: new Date().toISOString().split('T')[0], receipt: null, splitRemaining: false }); }} className="rounded-lg p-2 text-white/50 hover:bg-white/5"><X className="h-5 w-5" /></button>
               </div>
               <div className="grid gap-5">
                 <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Monto</span><input type="number" min={0.01} step="0.01" required value={paymentForm.amount} onChange={(event) => setPaymentForm({ ...paymentForm, amount: Number(event.target.value) })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>
@@ -468,7 +468,7 @@ const ProyectoDetalle: React.FC = () => {
                 <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Comprobante (Opcional)</span><input type="file" accept="image/*,.pdf" onChange={(event) => setPaymentForm({ ...paymentForm, receipt: event.target.files?.[0] || null })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white text-sm" /></label>
                 <label className="flex items-center gap-3 mt-2"><input type="checkbox" checked={paymentForm.splitRemaining} onChange={(e) => setPaymentForm({ ...paymentForm, splitRemaining: e.target.checked })} className="h-4 w-4 rounded border-white/20 bg-white/5 text-blue-600 focus:ring-blue-600 focus:ring-offset-gray-900" /><span className="text-sm text-white/70">Pago incompleto. Cerrar este hito y generar uno nuevo por el saldo restante.</span></label>
               </div>
-              <div className="mt-6 flex justify-end gap-3 border-t border-white/5 pt-5"><button type="button" onClick={() => setPaymentModalOpen(false)} className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-white/65">Cancelar</button><button disabled={savingPayment} className="rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black disabled:opacity-40">{savingPayment ? 'Registrando...' : 'Registrar'}</button></div>
+              <div className="mt-6 flex justify-end gap-3 border-t border-white/5 pt-5"><button type="button" onClick={() => { setPaymentModalOpen(false); setPaymentForm({ amount: 0, method: 'transfer', reference: '', date: new Date().toISOString().split('T')[0], receipt: null, splitRemaining: false }); }} className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-white/65">Cancelar</button><button disabled={savingPayment} className="rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black disabled:opacity-40">{savingPayment ? 'Registrando...' : 'Registrar'}</button></div>
             </form>
           </div>
         )}
@@ -617,6 +617,9 @@ const ProyectoDetalle: React.FC = () => {
                         <div className="text-right">
                           <p className="text-sm font-medium text-green-400">{payment.currency_code} {Number(payment.amount_paid).toFixed(2)}</p>
                           <p className="text-xs text-white/40 capitalize">{payment.payment_method}</p>
+                          {payment.reference_number && (
+                            <p className="text-xs font-mono text-white/30 mt-0.5" title="Número de Operación">Ref: {payment.reference_number}</p>
+                          )}
                         </div>
                       </div>
                       

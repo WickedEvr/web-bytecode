@@ -171,10 +171,13 @@ projectMilestonePaymentsRouter.post(
         await auditService.logAdminAction(log);
       }
       res.status(201).json({ id: paymentRow.id });
-    } catch (error) {
+    } catch (error: any) {
       await client.query('ROLLBACK').catch(() => undefined);
       if (cloudinaryAsset) {
         await deleteCloudinaryAsset(cloudinaryAsset.publicId, cloudinaryAsset.resourceType).catch(() => undefined);
+      }
+      if (error.code === '23505') {
+        throw new HttpError(400, 'El número de operación ya ha sido registrado previamente para este método de pago.');
       }
       throw error;
     } finally {
