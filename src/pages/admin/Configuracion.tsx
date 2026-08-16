@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useToastStore } from '../../stores/toastStore';
 import { Settings, Save, RefreshCw, Cloud } from 'lucide-react';
 import { apiRequest } from '../../lib/api';
 
@@ -29,13 +30,10 @@ const readBoolean = (value: unknown, fallback: boolean) => (typeof value === 'bo
 
 import AdminPanel from '../../components/admin/AdminPanel';
 
-// ... (skip to component)
-
 const AdminConfiguracion: React.FC = () => {
+  const { addToast } = useToastStore();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-
+    
   const [contactInfo, setContactInfo] = useState(defaultSettings.contact_info);
   const [smtpConfig, setSmtpConfig] = useState(defaultSettings.smtp_config);
   const [cloudinaryConfig, setCloudinaryConfig] = useState(defaultSettings.cloudinary_config);
@@ -43,8 +41,6 @@ const AdminConfiguracion: React.FC = () => {
 
   const loadSettings = async () => {
     setLoading(true);
-    setError('');
-    setSuccess(false);
     try {
       const res = await apiRequest<{ items: SettingItem[] }>('/admin/settings');
 
@@ -86,7 +82,7 @@ const AdminConfiguracion: React.FC = () => {
         }
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cargar configuración');
+      addToast(err instanceof Error ? err.message : 'Error al cargar configuración', 'error');
     } finally {
       setLoading(false);
     }
@@ -99,8 +95,6 @@ const AdminConfiguracion: React.FC = () => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
-    setSuccess(false);
     try {
       await apiRequest('/admin/settings', {
         method: 'PATCH',
@@ -113,10 +107,10 @@ const AdminConfiguracion: React.FC = () => {
           ]
         }
       });
-      setSuccess(true);
+      addToast('Configuración guardada exitosamente.', 'success');
       await loadSettings();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al guardar configuración');
+      addToast(err instanceof Error ? err.message : 'Error al guardar configuración', 'error');
     } finally {
       setLoading(false);
     }
@@ -136,9 +130,6 @@ const AdminConfiguracion: React.FC = () => {
           <RefreshCw className="h-4 w-4" /> <span>Actualizar</span>
         </button>
       </div>
-
-      {error && <p className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-red-300 text-sm">{error}</p>}
-      {success && <p className="rounded-lg bg-green-500/10 border border-green-500/20 px-4 py-3 text-green-400 text-sm">Configuración guardada correctamente.</p>}
 
       <form onSubmit={handleSave} className="grid gap-6 lg:grid-cols-2">
         {/* Contact Info */}
