@@ -23,7 +23,6 @@ type ServiceOption = { id: string; code: string; name: string };
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-
 const emptyForm = (): ProjectInput => ({
   customerId: '',
   serviceId: '',

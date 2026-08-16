@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useToastStore } from '../../stores/toastStore';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CalendarDays, Download, Mail, MessageSquareText, RefreshCw, Tag, X } from 'lucide-react';
 import { apiRequest, apiUrl } from '../../lib/api';
@@ -45,6 +46,7 @@ const PAGE_SIZE = 9;
 // ... (skip to the component rendering)
 
 const Reclamos: React.FC = () => {
+  const { addToast } = useToastStore();
   const [complaints, setComplaints] = useState<ComplaintItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<DetailItem | null>(null);
@@ -52,7 +54,6 @@ const Reclamos: React.FC = () => {
   const [notes, setNotes] = useState('');
   const [status, setStatus] = useState('new');
   const [listLoading, setListLoading] = useState(false);
-  const [error, setError] = useState('');
   const [statuses, setStatuses] = useState<{ value: string, label: string }[]>([]);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [statusHistory, setStatusHistory] = useState<StatusHistoryRecord[]>([]);
@@ -72,14 +73,13 @@ const Reclamos: React.FC = () => {
 
   const loadList = async () => {
     setListLoading(true);
-    setError('');
     try {
       const result = await apiRequest<{ data: ComplaintItem[]; total: number }>(`/admin/complaints?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`);
       if (result.data.length === 0 && result.total > 0 && page > 1) { setPage(page - 1); return; }
       setComplaints(result.data);
       setTotal(result.total);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudo cargar la lista.');
+      addToast(requestError instanceof Error ? requestError.message : 'No se pudo cargar la lista.', 'error');
     } finally {
       setListLoading(false);
     }
@@ -87,7 +87,6 @@ const Reclamos: React.FC = () => {
 
   const loadDetail = async (id: string) => {
     setSelectedId(id);
-    setError('');
     try {
       const [result, historyResult] = await Promise.all([
         apiRequest<{ item: DetailItem }>(`/admin/complaints/${id}`),
@@ -101,7 +100,7 @@ const Reclamos: React.FC = () => {
         setMobileDetailOpen(true);
       }
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudo cargar el detalle.');
+      addToast(requestError instanceof Error ? requestError.message : 'No se pudo cargar el detalle.', 'error');
     }
   };
 
@@ -122,7 +121,7 @@ const Reclamos: React.FC = () => {
       setStatusHistory(historyResult.items);
       await loadList();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al guardar');
+      addToast(err instanceof Error ? err.message : 'Error al guardar', 'error');
     }
   };
 
@@ -217,12 +216,6 @@ const Reclamos: React.FC = () => {
           <RefreshCw className="h-4 w-4" /> <span>Actualizar</span>
         </button>
       </div>
-
-      {error && (
-        <p className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-red-300 text-sm">
-          {error}
-        </p>
-      )}
 
       <section className="grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">
         
