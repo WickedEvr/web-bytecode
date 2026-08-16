@@ -4,6 +4,7 @@ import { Edit2, Plus, RefreshCw, Save, ShieldCheck, X, MoreVertical, Info } from
 import { apiRequest } from '../../lib/api';
 import AdminPanel from '../../components/admin/AdminPanel';
 import PaginationControl from '../../components/ui/PaginationControl';
+import { useToastStore } from '../../stores/toastStore';
 
 const PAGE_SIZE = 9;
 
@@ -57,7 +58,7 @@ const Roles: React.FC = () => {
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const { addToast } = useToastStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState(emptyForm);
@@ -75,7 +76,6 @@ const Roles: React.FC = () => {
 
   const loadData = async () => {
     setLoading(true);
-    setError('');
     try {
       const [rolesResult, permissionsResult] = await Promise.all([
         apiRequest<{ data: Role[]; total: number }>(`/admin/roles?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`),
@@ -86,7 +86,7 @@ const Roles: React.FC = () => {
       setTotal(rolesResult.total);
       setPermissions(permissionsResult.items);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cargar roles');
+      addToast(err instanceof Error ? err.message : 'Error al cargar roles', 'error');
     } finally {
       setLoading(false);
     }
@@ -133,7 +133,6 @@ const Roles: React.FC = () => {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true);
-    setError('');
 
     try {
       if (isEditing) {
@@ -161,7 +160,7 @@ const Roles: React.FC = () => {
       setIsModalOpen(false);
       await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al guardar rol');
+      addToast(err instanceof Error ? err.message : 'Error al guardar rol', 'error');
     } finally {
       setLoading(false);
     }
@@ -199,12 +198,6 @@ const Roles: React.FC = () => {
           </button>
         </div>
       </div>
-
-      {error && !isModalOpen && (
-        <p className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300">
-          {error}
-        </p>
-      )}
 
       <AdminPanel className="flex flex-col overflow-hidden">
         <div className="overflow-x-auto">
@@ -287,12 +280,7 @@ const Roles: React.FC = () => {
 
             <form onSubmit={handleSubmit} className="flex max-h-[calc(90vh-73px)] flex-col">
               <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
-                {error && (
-                  <p className="mb-6 rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300">
-                    {error}
-                  </p>
-                )}
-
+                
                 <div className="grid gap-5 md:grid-cols-2">
                   <div>
                     <label className="mb-1.5 block text-xs font-medium text-white/60 uppercase tracking-wider">Nombre</label>
