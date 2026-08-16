@@ -33,6 +33,7 @@ import {
   type ProjectMilestone,
 } from '../../lib/api';
 import type { StatusCatalogItem, StatusHistoryRecord } from '../../types/status';
+import { useToastStore } from '../../stores/toastStore';
 
 type Tab = 'general' | 'milestones' | 'environments' | 'activity' | 'history';
 type ProjectEditForm = { name: string; description: string; githubRepo: string; quoteId: string; totalBudget: number; currencyCode: string };
@@ -40,6 +41,7 @@ type ProjectEditForm = { name: string; description: string; githubRepo: string; 
 const ProyectoDetalle: React.FC = () => {
   const { id = '' } = useParams();
   const navigate = useNavigate();
+  const { addToast } = useToastStore();
   const { admin } = useOutletContext<{ admin: AdminUser }>();
   const canAssign = admin.roles.includes('super_admin') || admin.permissions?.includes('admin.proyectos.assign') === true;
   const [project, setProject] = useState<Project | null>(null);
@@ -236,7 +238,6 @@ const ProyectoDetalle: React.FC = () => {
     event.preventDefault();
     if (!activeMilestoneId) return;
     setSavingPayment(true);
-    setError('');
     
     try {
       const formData = new FormData();
@@ -253,7 +254,7 @@ const ProyectoDetalle: React.FC = () => {
       setActiveMilestoneId('');
       setPaymentForm({ amount: 0, method: 'transfer', reference: '', date: new Date().toISOString().split('T')[0], receipt: null, splitRemaining: false });
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudo registrar el pago.');
+      addToast(requestError instanceof Error ? requestError.message : 'No se pudo registrar el pago.', 'error');
     } finally {
       setSavingPayment(false);
     }
@@ -261,7 +262,6 @@ const ProyectoDetalle: React.FC = () => {
 
   const submitMilestone = async (cancelPending: boolean = false) => {
     setSavingMilestone(true);
-    setError('');
     try {
       await createProjectMilestone(id, {
         title: addMilestoneForm.title,
@@ -275,7 +275,7 @@ const ProyectoDetalle: React.FC = () => {
       setAddMilestoneOpen(false);
       setAddMilestoneForm({ title: '', due_date: '', payment_percentage: 0, status_id: statuses[0]?.id || '', quote_id: '' });
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudo crear el hito.');
+      addToast(requestError instanceof Error ? requestError.message : 'No se pudo crear el hito.', 'error');
     } finally {
       setSavingMilestone(false);
     }
