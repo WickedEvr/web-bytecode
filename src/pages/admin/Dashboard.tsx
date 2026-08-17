@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useToastStore } from '../../stores/toastStore';
 import { Users, MessageSquareText, Activity, ShieldCheck } from 'lucide-react';
 import { apiRequest } from '../../lib/api';
 
@@ -15,9 +16,8 @@ type DashboardData = {
 
 import AdminPanel from '../../components/admin/AdminPanel';
 
-// ... (skip to component)
-
 const Dashboard: React.FC = () => {
+  const { addToast } = useToastStore();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -27,13 +27,13 @@ const Dashboard: React.FC = () => {
         const res = await apiRequest<DashboardData>('/admin/stats');
         setData(res);
       } catch (err) {
-        console.error("Error loading dashboard stats", err);
+        addToast(err instanceof Error ? err.message : 'Error al cargar estadísticas', 'error');
       } finally {
         setLoading(false);
       }
     };
     void loadData();
-  }, []);
+  }, [addToast]);
 
   const totalContacts = data?.contactsStats.reduce((acc, curr) => acc + curr.total, 0) || 0;
   const totalComplaints = data?.complaintsStats.reduce((acc, curr) => acc + curr.total, 0) || 0;

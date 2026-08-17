@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useToastStore } from '../../stores/toastStore';
 import { ClipboardList, RefreshCw, Eye, X } from 'lucide-react';
 import { apiRequest } from '../../lib/api';
 
@@ -30,16 +31,15 @@ import PaginationControl from '../../components/ui/PaginationControl';
 const PAGE_SIZE = 9;
 
 const Auditoria: React.FC = () => {
+  const { addToast } = useToastStore();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [selectedDetails, setSelectedDetails] = useState<Record<string, any> | null>(null);
+    const [selectedDetails, setSelectedDetails] = useState<Record<string, any> | null>(null);
 
   const loadLogs = useCallback(async (targetPage: number) => {
     setLoading(true);
-    setError('');
     try {
       const offset = (targetPage - 1) * PAGE_SIZE;
       const params = new URLSearchParams({
@@ -56,7 +56,7 @@ const Auditoria: React.FC = () => {
       setLogs(result.items);
       setTotal(result.total);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cargar los logs.');
+      addToast(err instanceof Error ? err.message : 'Error al cargar los logs.', 'error');
     } finally {
       setLoading(false);
     }
@@ -96,7 +96,6 @@ const Auditoria: React.FC = () => {
     return `${os} • ${browser}`;
   };
 
-
   const formatDate = (val: string) => 
     new Intl.DateTimeFormat('es-PE', { dateStyle: 'short', timeStyle: 'medium' }).format(new Date(val));
 
@@ -118,8 +117,6 @@ const Auditoria: React.FC = () => {
           <RefreshCw className="h-4 w-4" /> <span>Actualizar</span>
         </button>
       </div>
-
-      {error && <p className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-red-300 text-sm">{error}</p>}
 
       <AdminPanel className="flex flex-col overflow-hidden">
         <div className="overflow-x-auto">

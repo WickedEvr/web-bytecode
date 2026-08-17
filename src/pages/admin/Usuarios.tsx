@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useToastStore } from '../../stores/toastStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Edit2, Plus, RefreshCw, Save, UserCheck, UserX, X, MoreVertical, Trash2 } from 'lucide-react';
 import { apiRequest } from '../../lib/api';
@@ -43,10 +44,10 @@ const emptyForm = {
 };
 
 const Usuarios: React.FC = () => {
+  const { addToast } = useToastStore();
   const [users, setUsers] = useState<AdminUserRow[]>([]);
   const [roles, setRoles] = useState<RoleOption[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState(emptyForm);
@@ -72,11 +73,10 @@ const Usuarios: React.FC = () => {
 
   const loadData = async () => {
     setLoading(true);
-    setError('');
     try {
       await Promise.all([loadUsers(), loadRoles()]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cargar usuarios');
+      addToast(err instanceof Error ? err.message : 'Error al cargar usuarios', 'error');
     } finally {
       setLoading(false);
     }
@@ -94,12 +94,11 @@ const Usuarios: React.FC = () => {
       type: 'danger',
       onConfirm: async () => {
         setLoading(true);
-        setError('');
         try {
           await apiRequest(`/admin/users/${user.id}`, { method: 'DELETE' });
           await loadUsers();
         } catch (err) {
-          setError(err instanceof Error ? err.message : 'Error al eliminar usuario');
+          addToast(err instanceof Error ? err.message : 'Error al eliminar usuario', 'error');
         } finally {
           setLoading(false);
           setConfirmModal(null);
@@ -138,7 +137,6 @@ const Usuarios: React.FC = () => {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true);
-    setError('');
 
     try {
       if (isEditing) {
@@ -171,7 +169,7 @@ const Usuarios: React.FC = () => {
       setIsModalOpen(false);
       await loadUsers();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al guardar usuario');
+      addToast(err instanceof Error ? err.message : 'Error al guardar usuario', 'error');
     } finally {
       setLoading(false);
     }
@@ -185,7 +183,6 @@ const Usuarios: React.FC = () => {
       type: 'warning',
       onConfirm: async () => {
         setLoading(true);
-        setError('');
         try {
           await apiRequest(`/admin/users/${user.id}`, {
             method: 'PATCH',
@@ -193,7 +190,7 @@ const Usuarios: React.FC = () => {
           });
           await loadUsers();
         } catch (err) {
-          setError(err instanceof Error ? err.message : 'Error al cambiar estado');
+          addToast(err instanceof Error ? err.message : 'Error al cambiar estado', 'error');
         } finally {
           setLoading(false);
           setConfirmModal(null);
@@ -236,12 +233,6 @@ const Usuarios: React.FC = () => {
           </button>
         </div>
       </div>
-
-      {error && !isModalOpen && (
-        <p className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300">
-          {error}
-        </p>
-      )}
 
       <AdminPanel className="flex flex-col overflow-hidden">
         <div className="overflow-x-auto">
@@ -354,12 +345,6 @@ const Usuarios: React.FC = () => {
                 <X className="h-5 w-5" />
               </button>
             </div>
-
-            {error && isModalOpen && (
-              <p className="mb-6 rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300">
-                {error}
-              </p>
-            )}
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-5">
               {!isEditing && (

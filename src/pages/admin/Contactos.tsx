@@ -7,6 +7,7 @@ import Timeline from '../../components/ui/Timeline';
 import PaginationControl from '../../components/ui/PaginationControl';
 import { useTerminalState } from '../../hooks/useTerminalState';
 import type { StatusHistoryRecord } from '../../types/status';
+import { useToastStore } from '../../stores/toastStore';
 
 export interface ContactCase {
   id: string;
@@ -90,7 +91,7 @@ const Contactos: React.FC = () => {
   const [notes, setNotes] = useState('');
   const [status, setStatus] = useState('new');
   const [listLoading, setListLoading] = useState(false);
-  const [error, setError] = useState('');
+  const { addToast } = useToastStore();
   const [statuses, setStatuses] = useState<{ value: string, label: string }[]>([]);
 
   const [adminsList, setAdminsList] = useState<{ value: string, label: string }[]>([]);
@@ -117,14 +118,13 @@ const Contactos: React.FC = () => {
 
   const loadList = async () => {
     setListLoading(true);
-    setError('');
     try {
       const result = await apiRequest<{ data: ContactItem[]; total: number }>(`/admin/contacts?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`);
       if (result.data.length === 0 && result.total > 0 && page > 1) { setPage(page - 1); return; }
       setContacts(result.data);
       setTotal(result.total);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudo cargar la lista.');
+      addToast(requestError instanceof Error ? requestError.message : 'No se pudo cargar la lista.', 'error');
     } finally {
       setListLoading(false);
     }
@@ -132,7 +132,6 @@ const Contactos: React.FC = () => {
 
   const loadDetail = async (id: string) => {
     setSelectedId(id);
-    setError('');
     try {
       const result = await apiRequest<{ item: DetailItem }>(`/admin/contacts/${id}`);
       setDetail(result.item);
@@ -149,7 +148,7 @@ const Contactos: React.FC = () => {
         setMobileDetailOpen(true);
       }
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudo cargar el detalle.');
+      addToast(requestError instanceof Error ? requestError.message : 'No se pudo cargar el detalle.', 'error');
     }
   };
 
@@ -170,7 +169,7 @@ const Contactos: React.FC = () => {
       setStatusHistory(statusResult.items);
       await loadList();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al guardar');
+      addToast(err instanceof Error ? err.message : 'Error al guardar', 'error');
     }
   };
 
@@ -303,7 +302,7 @@ const Contactos: React.FC = () => {
       setHistory(histResult.items);
       await loadList();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al asignar el caso');
+      addToast(err instanceof Error ? err.message : 'Error al asignar el caso', 'error');
     } finally {
       setIsAssigning(false);
     }
@@ -317,12 +316,6 @@ const Contactos: React.FC = () => {
           <RefreshCw className="h-4 w-4" /> <span>Actualizar</span>
         </button>
       </div>
-
-      {error && (
-        <p className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-red-300 text-sm">
-          {error}
-        </p>
-      )}
 
       <section className="grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">
         

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useToastStore } from '../../stores/toastStore';
 import { ImageUp, Plus, RefreshCw, Save, Trash2, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdminPanel from '../../components/admin/AdminPanel';
@@ -56,6 +57,7 @@ const normalizeWebsiteUrl = (value: string) => {
 };
 
 const AdminPortafolio: React.FC = () => {
+  const { addToast } = useToastStore();
   const navigate = useNavigate();
   const [items, setItems] = useState<AdminPortfolioItemData[]>([]);
   const [technologies, setTechnologies] = useState<PortfolioTechnologyData[]>([]);
@@ -68,8 +70,7 @@ const AdminPortafolio: React.FC = () => {
   const [imageAlt, setImageAlt] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [confirmModal, setConfirmModal] = useState<Omit<ConfirmModalProps, 'isOpen' | 'onCancel'> | null>(null);
+    const [confirmModal, setConfirmModal] = useState<Omit<ConfirmModalProps, 'isOpen' | 'onCancel'> | null>(null);
 
   const selectedItem = useMemo(
     () => items.find((item) => item.id === selectedId) ?? null,
@@ -78,7 +79,6 @@ const AdminPortafolio: React.FC = () => {
 
   const loadData = async () => {
     setLoading(true);
-    setError('');
     try {
       const [itemsRes, technologiesRes, statusesRes] = await Promise.all([
         apiRequest<{ items: AdminPortfolioItemData[] }>('/admin/portfolio'),
@@ -89,7 +89,7 @@ const AdminPortafolio: React.FC = () => {
       setTechnologies(technologiesRes.items);
       setStatuses(statusesRes.items);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo cargar el portafolio.');
+      addToast(err instanceof Error ? err.message : 'No se pudo cargar el portafolio.', 'error');
     } finally {
       setLoading(false);
     }
@@ -135,7 +135,6 @@ const AdminPortafolio: React.FC = () => {
 
   const handleSave = async () => {
     setSaving(true);
-    setError('');
     try {
       const normalizedWebsiteUrl = normalizeWebsiteUrl(form.websiteUrl);
       const payload = {
@@ -197,7 +196,7 @@ const AdminPortafolio: React.FC = () => {
       setImageFile(null);
       setImageAlt(response.item.alt_text ?? '');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo guardar el proyecto.');
+      addToast(err instanceof Error ? err.message : 'No se pudo guardar el proyecto.', 'error');
     } finally {
       setSaving(false);
     }
@@ -206,7 +205,6 @@ const AdminPortafolio: React.FC = () => {
   const handleCreateTechnology = async () => {
     if (!newTechnology.trim()) return;
     setSaving(true);
-    setError('');
     try {
       const response = await apiRequest<{ item: PortfolioTechnologyData }>('/admin/portfolio/technologies', {
         method: 'POST',
@@ -226,7 +224,7 @@ const AdminPortafolio: React.FC = () => {
       }));
       setNewTechnology('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo crear la tecnologia.');
+      addToast(err instanceof Error ? err.message : 'No se pudo crear la tecnologia.', 'error');
     } finally {
       setSaving(false);
     }
@@ -240,13 +238,12 @@ const AdminPortafolio: React.FC = () => {
       type: 'danger',
       onConfirm: async () => {
         setSaving(true);
-        setError('');
         try {
           await apiRequest(`/admin/portfolio/${selectedId}`, { method: 'DELETE' });
           setItems((current) => current.filter((item) => item.id !== selectedId));
           handleNew();
         } catch (err) {
-          setError(err instanceof Error ? err.message : 'No se pudo eliminar el proyecto.');
+          addToast(err instanceof Error ? err.message : 'No se pudo eliminar el proyecto.', 'error');
         } finally {
           setSaving(false);
           setConfirmModal(null);
@@ -276,8 +273,6 @@ const AdminPortafolio: React.FC = () => {
           </button>
         </div>
       </div>
-
-      {error && <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</p>}
 
       <section className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
         <AdminPanel className="overflow-hidden">

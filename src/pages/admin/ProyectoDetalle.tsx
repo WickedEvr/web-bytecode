@@ -33,6 +33,7 @@ import {
   type ProjectMilestone,
 } from '../../lib/api';
 import type { StatusCatalogItem, StatusHistoryRecord } from '../../types/status';
+import { useToastStore } from '../../stores/toastStore';
 
 type Tab = 'general' | 'milestones' | 'environments' | 'activity' | 'history';
 type ProjectEditForm = { name: string; description: string; githubRepo: string; quoteId: string; totalBudget: number; currencyCode: string };
@@ -40,6 +41,7 @@ type ProjectEditForm = { name: string; description: string; githubRepo: string; 
 const ProyectoDetalle: React.FC = () => {
   const { id = '' } = useParams();
   const navigate = useNavigate();
+  const { addToast } = useToastStore();
   const { admin } = useOutletContext<{ admin: AdminUser }>();
   const canAssign = admin.roles.includes('super_admin') || admin.permissions?.includes('admin.proyectos.assign') === true;
   const [project, setProject] = useState<Project | null>(null);
@@ -62,7 +64,7 @@ const ProyectoDetalle: React.FC = () => {
   const [milestoneDetailsOpen, setMilestoneDetailsOpen] = useState<ProjectMilestone | null>(null);
   const [tab, setTab] = useState<Tab>('general');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  
   const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -146,7 +148,7 @@ const ProyectoDetalle: React.FC = () => {
       setProjectStatuses(projectStatusResult.items);
       setStatusHistory(historyResult);
     } catch (requestError: unknown) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudo cargar el proyecto.');
+      addToast(requestError instanceof Error ? requestError.message : 'No se pudo cargar el proyecto.', 'error');
     } finally {
       setLoading(false);
     }
@@ -167,7 +169,7 @@ const ProyectoDetalle: React.FC = () => {
       await updateProjectMilestone(id, milestoneId, status);
       await loadMilestones();
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudo actualizar el hito.');
+      addToast(requestError instanceof Error ? requestError.message : 'No se pudo actualizar el hito.', 'error');
     }
   };
 
@@ -178,7 +180,7 @@ const ProyectoDetalle: React.FC = () => {
       await Promise.all([loadMilestones(), loadData()]);
       setDeleteMilestoneConfirmOpen(null);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudo eliminar el hito.');
+      addToast(requestError instanceof Error ? requestError.message : 'No se pudo eliminar el hito.', 'error');
     }
   };
 
@@ -189,7 +191,6 @@ const ProyectoDetalle: React.FC = () => {
        return;
     }
     setUpdatingProjectStatus(true);
-    setError('');
     try {
       await apiRequest(`/admin/projects/${id}`, {
         method: 'PATCH',
@@ -199,7 +200,7 @@ const ProyectoDetalle: React.FC = () => {
       if (applyKillFee) await loadMilestones();
       setStatusHistory(await fetchProjectStatusHistory<StatusHistoryRecord>(id));
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudo actualizar el estado.');
+      addToast(requestError instanceof Error ? requestError.message : 'No se pudo actualizar el estado.', 'error');
     } finally {
       setUpdatingProjectStatus(false);
       setCancelModalOpen(false);
@@ -209,14 +210,13 @@ const ProyectoDetalle: React.FC = () => {
   const handleAssign = async () => {
     if (!selectedUserId) return;
     setAssigning(true);
-    setError('');
     try {
       await assignProjectUser(id, selectedUserId, assignmentRole || undefined);
       setAssignments(await fetchProjectAssignments(id));
       setSelectedUserId('');
       setAssignmentRole('');
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudo asignar el integrante.');
+      addToast(requestError instanceof Error ? requestError.message : 'No se pudo asignar el integrante.', 'error');
     } finally {
       setAssigning(false);
     }
@@ -228,7 +228,7 @@ const ProyectoDetalle: React.FC = () => {
       await apiRequest(`/admin/projects/${id}/assignments/${userId}`, { method: 'DELETE' });
       setAssignments(await fetchProjectAssignments(id));
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudo desasignar el integrante.');
+      addToast(requestError instanceof Error ? requestError.message : 'No se pudo desasignar el integrante.', 'error');
     }
   };
 
@@ -236,7 +236,6 @@ const ProyectoDetalle: React.FC = () => {
     event.preventDefault();
     if (!activeMilestoneId) return;
     setSavingPayment(true);
-    setError('');
     
     try {
       const formData = new FormData();
@@ -253,7 +252,7 @@ const ProyectoDetalle: React.FC = () => {
       setActiveMilestoneId('');
       setPaymentForm({ amount: 0, method: 'transfer', reference: '', date: new Date().toISOString().split('T')[0], receipt: null, splitRemaining: false });
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudo registrar el pago.');
+      addToast(requestError instanceof Error ? requestError.message : 'No se pudo registrar el pago.', 'error');
     } finally {
       setSavingPayment(false);
     }
@@ -261,7 +260,6 @@ const ProyectoDetalle: React.FC = () => {
 
   const submitMilestone = async (cancelPending: boolean = false) => {
     setSavingMilestone(true);
-    setError('');
     try {
       await createProjectMilestone(id, {
         title: addMilestoneForm.title,
@@ -275,7 +273,7 @@ const ProyectoDetalle: React.FC = () => {
       setAddMilestoneOpen(false);
       setAddMilestoneForm({ title: '', due_date: '', payment_percentage: 0, status_id: statuses[0]?.id || '', quote_id: '' });
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudo crear el hito.');
+      addToast(requestError instanceof Error ? requestError.message : 'No se pudo crear el hito.', 'error');
     } finally {
       setSavingMilestone(false);
     }
@@ -309,7 +307,6 @@ const ProyectoDetalle: React.FC = () => {
   const handleUpdate = async (event: React.FormEvent) => {
     event.preventDefault();
     setSaving(true);
-    setError('');
     try {
       const updated = await updateProject(id, {
         name: editForm.name,
@@ -321,7 +318,7 @@ const ProyectoDetalle: React.FC = () => {
       setProject(updated);
       setEditOpen(false);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudo actualizar el proyecto.');
+      addToast(requestError instanceof Error ? requestError.message : 'No se pudo actualizar el proyecto.', 'error');
     } finally {
       setSaving(false);
     }
@@ -330,18 +327,17 @@ const ProyectoDetalle: React.FC = () => {
   const executeDelete = async () => {
     setDeleteConfirmOpen(false);
     setDeleting(true);
-    setError('');
     try {
       await deleteProject(id);
       navigate('/admin/proyectos', { replace: true });
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudo eliminar el proyecto.');
+      addToast(requestError instanceof Error ? requestError.message : 'No se pudo eliminar el proyecto.', 'error');
       setDeleting(false);
     }
   };
 
   if (loading) return <p className="p-8 text-sm text-white/40">Cargando proyecto...</p>;
-  if (!project) return <p className="p-8 text-sm text-red-300">{error || 'Proyecto no encontrado.'}</p>;
+  if (!project) return <p className="p-8 text-sm text-red-300">Proyecto no encontrado.</p>;
 
   const link = (label: string, url: string | null) => (
     <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4"><p className="text-xs uppercase tracking-wider text-white/35">{label}</p>{url ? <a href={url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-2 break-all text-sm text-cyan-300 hover:text-cyan-200">{url}<ExternalLink className="h-3.5 w-3.5 shrink-0" /></a> : <p className="mt-2 text-sm text-white/30">No configurado</p>}</div>
@@ -350,7 +346,7 @@ const ProyectoDetalle: React.FC = () => {
   return (
     <div className="flex flex-col gap-6 font-sansation">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-4"><div className="flex items-center gap-4"><button type="button" onClick={() => navigate('/admin/proyectos')} className="rounded-lg border border-white/10 bg-white/5 p-2 text-white/60"><ArrowLeft className="h-5 w-5" /></button><div><h1 className="text-2xl font-semibold text-white/90">{project.name}</h1><p className="mt-1 text-xs text-white/40">{project.project_code} · {project.customer_name || 'Cliente sin nombre'} · {project.status_name || project.status}</p></div></div><RoleGuard requiredPermission="admin.proyectos.manage" fallback={null}>{(admin.roles.includes('super_admin') || admin.roles.includes('admin')) && !isReadOnly && (<div className="flex gap-2"><button type="button" onClick={openEdit} className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/75 hover:bg-white/10"><Pencil className="h-4 w-4" />Editar</button><button type="button" disabled={deleting} onClick={() => setDeleteConfirmOpen(true)} className="inline-flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm text-red-300 hover:bg-red-500/20 disabled:opacity-40"><Trash2 className="h-4 w-4" />{deleting ? 'Eliminando...' : 'Eliminar'}</button></div>)}</RoleGuard></div>
-      {error && <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</p>}
+      
       <div className="flex flex-wrap gap-2 mb-6">
           {[
             ['general', 'General'],
@@ -444,7 +440,7 @@ const ProyectoDetalle: React.FC = () => {
             <form onSubmit={handlePaymentSubmit} className="max-h-[92vh] w-full max-w-md overflow-visible rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 shadow-2xl md:p-8">
               <div className="mb-6 flex items-center justify-between border-b border-white/5 pb-4">
                 <div><h2 className="text-lg font-semibold text-white/90">Registrar Pago</h2></div>
-                <button type="button" onClick={() => setPaymentModalOpen(false)} className="rounded-lg p-2 text-white/50 hover:bg-white/5"><X className="h-5 w-5" /></button>
+                <button type="button" onClick={() => { setPaymentModalOpen(false); setPaymentForm({ amount: 0, method: 'transfer', reference: '', date: new Date().toISOString().split('T')[0], receipt: null, splitRemaining: false }); }} className="rounded-lg p-2 text-white/50 hover:bg-white/5"><X className="h-5 w-5" /></button>
               </div>
               <div className="grid gap-5">
                 <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Monto</span><input type="number" min={0.01} step="0.01" required value={paymentForm.amount} onChange={(event) => setPaymentForm({ ...paymentForm, amount: Number(event.target.value) })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white" /></label>
@@ -468,7 +464,7 @@ const ProyectoDetalle: React.FC = () => {
                 <label className="grid gap-1.5"><span className="text-xs uppercase tracking-wider text-white/45">Comprobante (Opcional)</span><input type="file" accept="image/*,.pdf" onChange={(event) => setPaymentForm({ ...paymentForm, receipt: event.target.files?.[0] || null })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white text-sm" /></label>
                 <label className="flex items-center gap-3 mt-2"><input type="checkbox" checked={paymentForm.splitRemaining} onChange={(e) => setPaymentForm({ ...paymentForm, splitRemaining: e.target.checked })} className="h-4 w-4 rounded border-white/20 bg-white/5 text-blue-600 focus:ring-blue-600 focus:ring-offset-gray-900" /><span className="text-sm text-white/70">Pago incompleto. Cerrar este hito y generar uno nuevo por el saldo restante.</span></label>
               </div>
-              <div className="mt-6 flex justify-end gap-3 border-t border-white/5 pt-5"><button type="button" onClick={() => setPaymentModalOpen(false)} className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-white/65">Cancelar</button><button disabled={savingPayment} className="rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black disabled:opacity-40">{savingPayment ? 'Registrando...' : 'Registrar'}</button></div>
+              <div className="mt-6 flex justify-end gap-3 border-t border-white/5 pt-5"><button type="button" onClick={() => { setPaymentModalOpen(false); setPaymentForm({ amount: 0, method: 'transfer', reference: '', date: new Date().toISOString().split('T')[0], receipt: null, splitRemaining: false }); }} className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-white/65">Cancelar</button><button disabled={savingPayment} className="rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black disabled:opacity-40">{savingPayment ? 'Registrando...' : 'Registrar'}</button></div>
             </form>
           </div>
         )}
@@ -617,6 +613,9 @@ const ProyectoDetalle: React.FC = () => {
                         <div className="text-right">
                           <p className="text-sm font-medium text-green-400">{payment.currency_code} {Number(payment.amount_paid).toFixed(2)}</p>
                           <p className="text-xs text-white/40 capitalize">{payment.payment_method}</p>
+                          {payment.reference_number && (
+                            <p className="text-xs font-mono text-white/30 mt-0.5" title="Número de Operación">Ref: {payment.reference_number}</p>
+                          )}
                         </div>
                       </div>
                       

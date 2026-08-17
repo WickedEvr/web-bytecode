@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
+import { useToastStore } from '../../stores/toastStore';
+import ToastContainer from '../../components/ui/ToastContainer';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiRequest } from '../../lib/api';
 
 const SetupPassword: React.FC = () => {
+  const { addToast } = useToastStore();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const userId = searchParams.get('userId');
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+    const [success, setSuccess] = useState(false);
   
   const [formData, setFormData] = useState({
     currentPassword: '',
@@ -20,6 +22,7 @@ const SetupPassword: React.FC = () => {
   if (!userId) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-black px-6 font-sansation text-white/90">
+      <ToastContainer />
         <div className="w-full max-w-sm rounded-2xl border border-white/5 bg-[#0a0a0a] p-8 text-center">
           <h2 className="text-xl text-red-400 mb-2">Solicitud Inválida</h2>
           <p className="text-sm text-white/60 mb-6">No se proporcionó un identificador de usuario válido.</p>
@@ -33,14 +36,13 @@ const SetupPassword: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
 
     if (formData.newPassword.length < 8) {
-      setError('La nueva contraseña debe tener al menos 8 caracteres.');
+      addToast('La nueva contraseña debe tener al menos 8 caracteres.', 'error');
       return;
     }
     if (formData.newPassword !== formData.confirmPassword) {
-      setError('Las nuevas contraseñas no coinciden.');
+      addToast('Las nuevas contraseñas no coinciden.', 'error');
       return;
     }
 
@@ -57,7 +59,7 @@ const SetupPassword: React.FC = () => {
       setSuccess(true);
       setTimeout(() => navigate('/admin/login'), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cambiar la contraseña.');
+      addToast(err instanceof Error ? err.message : 'Error al cambiar la contraseña.', 'error');
     } finally {
       setLoading(false);
     }
@@ -66,6 +68,7 @@ const SetupPassword: React.FC = () => {
   if (success) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-black px-6 font-sansation text-white/90">
+      <ToastContainer />
         <div className="w-full max-w-sm rounded-2xl border border-white/5 bg-[#0a0a0a] p-8 text-center shadow-2xl">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10 text-green-400">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -84,6 +87,7 @@ const SetupPassword: React.FC = () => {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-black px-6 font-sansation text-white/90">
+      <ToastContainer />
       <form onSubmit={handleSubmit} className="w-full max-w-sm rounded-2xl border border-white/5 bg-[#0a0a0a] p-8 shadow-2xl">
         <div className="mb-8 text-center">
           <div className="flex justify-center mb-4">
@@ -128,8 +132,6 @@ const SetupPassword: React.FC = () => {
             />
           </div>
         </div>
-        
-        {error && <p className="mb-2 mt-4 rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 text-xs text-red-300">{error}</p>}
         
         <button disabled={loading} className="mt-6 w-full rounded-lg bg-white py-3 text-sm font-medium text-black transition-colors hover:bg-white/90 disabled:opacity-50">
           {loading ? 'Guardando...' : 'Guardar y Continuar'}

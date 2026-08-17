@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useToastStore } from '../../stores/toastStore';
 import { Calculator, Edit, MoreVertical, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AdminPanel from '../../components/admin/AdminPanel';
@@ -44,10 +45,10 @@ type ActionMenuState = {
 };
 
 const AdminCotizador: React.FC = () => {
+  const { addToast } = useToastStore();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [catalog, setCatalog] = useState<PricingCatalogItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [actionsMenu, setActionsMenu] = useState<ActionMenuState | null>(null);
   const [confirmModal, setConfirmModal] = useState<Omit<ConfirmModalProps, 'isOpen' | 'onCancel'> | null>(null);
@@ -75,7 +76,6 @@ const AdminCotizador: React.FC = () => {
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    setError('');
     try {
       const [quotesRes, catalogRes, statusesRes, optionsRes] = await Promise.all([
         apiRequest<{ data: Quote[]; total: number }>(`/admin/quotes?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`),
@@ -91,7 +91,7 @@ const AdminCotizador: React.FC = () => {
       setOrganizations(optionsRes.organizations || []);
       if (optionsRes.exchangeRates) setExchangeRates(optionsRes.exchangeRates);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cargar cotizaciones');
+      addToast(err instanceof Error ? err.message : 'Error al cargar cotizaciones', 'error');
     } finally {
       setLoading(false);
     }
@@ -133,14 +133,12 @@ const AdminCotizador: React.FC = () => {
     resetQuoter();
     setFormData({ customerName: '', customerEmail: '', notes: '', organizationId: null, acquisitionChannel: 'web_form', currencyCode: 'PEN', status: statuses[0]?.code ?? 'draft', isTerminal: false });
     setStatusHistory([]);
-    setError('');
     setIsModalOpen(true);
   };
 
   const handleEditQuote = async (quoteId: string) => {
     setActionsMenu(null);
     setLoading(true);
-    setError('');
     try {
       setCatalogInStore(catalog);
       const [detail, historyResult] = await Promise.all([
@@ -166,7 +164,7 @@ const AdminCotizador: React.FC = () => {
       setStatusHistory(historyResult.items);
       setIsModalOpen(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cargar cotizacion');
+      addToast(err instanceof Error ? err.message : 'Error al cargar cotizacion', 'error');
     } finally {
       setLoading(false);
     }
@@ -180,7 +178,6 @@ const AdminCotizador: React.FC = () => {
       type: 'danger',
       onConfirm: async () => {
         setLoading(true);
-        setError('');
         try {
           await apiRequest(`/admin/quotes/${quote.id}`, { method: 'DELETE' });
           if (editingQuoteId === quote.id) {
@@ -189,7 +186,7 @@ const AdminCotizador: React.FC = () => {
           }
           await loadData();
         } catch (err) {
-          setError(err instanceof Error ? err.message : 'Error al eliminar cotizacion');
+          addToast(err instanceof Error ? err.message : 'Error al eliminar cotizacion', 'error');
         } finally {
           setLoading(false);
           setConfirmModal(null);
@@ -200,12 +197,11 @@ const AdminCotizador: React.FC = () => {
 
   const handleCreate = async (payload: PreparedQuotePayload) => {
     if (!payload.baseCatalogItemId || payload.items.length === 0) {
-      setError('No se encontro el lienzo base de la cotizacion.');
+      addToast('No se encontro el lienzo base de la cotizacion.', 'error');
       return;
     }
 
     setLoading(true);
-    setError('');
     try {
       const activeRate = formData.currencyCode === 'USD' ? exchangeRates.USD : formData.currencyCode === 'EUR' ? exchangeRates.EUR : 1;
       await apiRequest('/admin/quotes', {
@@ -238,7 +234,7 @@ const AdminCotizador: React.FC = () => {
       resetQuoter();
       await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al generar cotizacion');
+      addToast(err instanceof Error ? err.message : 'Error al generar cotizacion', 'error');
     } finally {
       setLoading(false);
     }
@@ -296,10 +292,6 @@ const AdminCotizador: React.FC = () => {
           </button>
         </div>
       </div>
-
-      {error && !isModalOpen && (
-        <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</p>
-      )}
 
       <AdminPanel className="flex flex-col overflow-hidden">
         <div className="overflow-x-auto">
@@ -431,7 +423,7 @@ const AdminCotizador: React.FC = () => {
               exchangeRates={exchangeRates}
               organizations={organizations}
               loading={loading}
-              error={isModalOpen ? error : ''}
+              error={''}
               primaryFieldsAfter={(
                 <div className="mb-2 mt-2 space-y-6 rounded-xl border border-white/10 bg-white/[0.02] p-5">
                   <div>

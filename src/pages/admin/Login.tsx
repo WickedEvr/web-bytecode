@@ -1,19 +1,20 @@
 import React, { useState } from 'react';
+import { useToastStore } from '../../stores/toastStore';
+import ToastContainer from '../../components/ui/ToastContainer';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiRequest, ApiError } from '../../lib/api';
 
 const Login: React.FC = () => {
+  const { addToast } = useToastStore();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [loginLoading, setLoginLoading] = useState(false);
-  const [error, setError] = useState('');
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [showVerificationModal, setShowVerificationModal] = useState(false);
 
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoginLoading(true);
-    setError('');
     setShowVerificationModal(false);
     
     try {
@@ -29,10 +30,10 @@ const Login: React.FC = () => {
         } else if (requestError.code === 'FORCE_PASSWORD_CHANGE') {
           navigate(`/admin/setup-password?userId=${requestError.payload?.userId || ''}`);
         } else {
-          setError(requestError.message);
+          addToast(requestError.message, 'error');
         }
       } else {
-        setError(requestError instanceof Error ? requestError.message : 'No se pudo iniciar sesión.');
+        addToast(requestError instanceof Error ? requestError.message : 'No se pudo iniciar sesión.', 'error');
       }
     } finally {
       setLoginLoading(false);
@@ -41,6 +42,7 @@ const Login: React.FC = () => {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-black px-6 font-sansation text-white/90 relative">
+      <ToastContainer />
       <form onSubmit={handleLogin} className="w-full max-w-sm rounded-2xl border border-white/5 bg-[#0a0a0a] p-8 shadow-2xl z-10 relative">
         <div className="mb-10 text-center">
           <div className="flex justify-center mb-6">
@@ -71,7 +73,6 @@ const Login: React.FC = () => {
             />
           </div>
         </div>
-        {error && <p className="mb-4 mt-2 rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300">{error}</p>}
         <button disabled={loginLoading} className="mt-8 w-full rounded-lg bg-white py-3 text-sm font-medium text-black transition-colors hover:bg-white/90 disabled:opacity-50">
           {loginLoading ? 'Ingresando...' : 'Ingresar'}
         </button>

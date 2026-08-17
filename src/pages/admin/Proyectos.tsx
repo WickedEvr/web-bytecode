@@ -15,13 +15,13 @@ import {
   type ProjectInput,
 } from '../../lib/api';
 import type { StatusCatalogItem } from '../../types/status';
+import { useToastStore } from '../../stores/toastStore';
 
 const PAGE_SIZE = 9;
 type CustomerOption = { id: string; label: string; email: string; type: string; company_name: string | null };
 type ServiceOption = { id: string; code: string; name: string };
 
 const today = () => new Date().toISOString().slice(0, 10);
-
 
 const emptyForm = (): ProjectInput => ({
   customerId: '',
@@ -51,19 +51,18 @@ const Proyectos: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const { addToast } = useToastStore();  
   const selectedCustomerEmail = customers.find((customer) => customer.id === form.customerId)?.email ?? '';
 
   const loadProjects = async () => {
     setLoading(true);
-    setError('');
     try {
       const result = await fetchProjects(page, PAGE_SIZE);
       if (!result.data.length && result.total > 0 && page > 1) { setPage(page - 1); return; }
       setProjects(result.data);
       setTotal(result.total);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudieron cargar los proyectos.');
+      addToast(requestError instanceof Error ? requestError.message : 'No se pudieron cargar los proyectos.', 'error');
     } finally {
       setLoading(false);
     }
@@ -93,7 +92,6 @@ const Proyectos: React.FC = () => {
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
     setSaving(true);
-    setError('');
     try {
       const created = await createProject({
         ...form,
@@ -103,7 +101,7 @@ const Proyectos: React.FC = () => {
       if (page !== 1) setPage(1); else await loadProjects();
       navigate(`/admin/proyectos/${created.id}`);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudo crear el proyecto.');
+      addToast(requestError instanceof Error ? requestError.message : 'No se pudo crear el proyecto.', 'error');
     } finally {
       setSaving(false);
     }
@@ -120,7 +118,7 @@ const Proyectos: React.FC = () => {
           </RoleGuard>
         </div>
       </div>
-      {error && <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</p>}
+      
       <AdminPanel className="flex flex-col overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[820px] text-left text-sm">

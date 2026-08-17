@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useToastStore } from '../../stores/toastStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiRequest } from '../../lib/api';
 import { Monitor, Smartphone, Tablet, Trash2, ShieldCheck, Clock } from 'lucide-react';
@@ -20,25 +21,23 @@ interface Session {
 }
 
 const AdminSeguridad: React.FC = () => {
+  const { addToast } = useToastStore();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [isRefreshing, setIsRefreshing] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchSessions = useCallback(async (showSpinner = false) => {
     if (showSpinner) setIsRefreshing(true);
     try {
       const data = await apiRequest<{ sessions: Session[] }>('/auth/sessions');
-      setSessions(data.sessions);
-      if (error) setError('');
-    } catch (err) {
-      if (showSpinner) alert(err instanceof Error ? err.message : 'Error al actualizar sesiones');
-      else setError(err instanceof Error ? err.message : 'Error al cargar sesiones');
+      setSessions(data.sessions);    } catch (err) {
+      if (showSpinner) addToast(err instanceof Error ? err.message : 'Error al actualizar sesiones', 'error');
+      else addToast(err instanceof Error ? err.message : 'Error al cargar sesiones', 'error');
     } finally {
       if (showSpinner) setIsRefreshing(false);
       setLoading(false);
     }
-  }, [error]);
+  }, [addToast]);
 
   useEffect(() => {
     void fetchSessions();
@@ -58,7 +57,7 @@ const AdminSeguridad: React.FC = () => {
     } catch (err) {
       // Revert if failed
       setSessions(previousSessions);
-      alert(err instanceof Error ? err.message : 'Error al revocar sesión');
+      addToast(err instanceof Error ? err.message : 'Error al revocar sesión', 'error');
     }
   };
 
@@ -81,11 +80,6 @@ const AdminSeguridad: React.FC = () => {
   if (loading) {
     return <div className="p-8 text-white flex items-center gap-3"><Clock className="animate-spin w-5 h-5 text-[#06CFD6]" /> Cargando dispositivos...</div>;
   }
-
-  if (error) {
-    return <div className="p-8 text-red-400 font-medium">Error: {error}</div>;
-  }
-
   return (
     <div className="flex flex-col gap-6 font-sansation">
       <div className="flex items-center justify-between pb-4 border-b border-white/5">

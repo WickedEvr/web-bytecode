@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useToastStore } from '../../stores/toastStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Database, Globe, MoreVertical, RefreshCw, Save, Edit2, Settings2, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -30,11 +31,11 @@ type ActionMenuState = {
 };
 
 const AdminCMS: React.FC = () => {
+  const { addToast } = useToastStore();
   const navigate = useNavigate();
   const [pages, setPages] = useState<CMSPage[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [editingId, setEditingId] = useState<string | null>(null);
+    const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<CMSPage>>({});
   const [actionsMenu, setActionsMenu] = useState<ActionMenuState | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -44,14 +45,13 @@ const AdminCMS: React.FC = () => {
 
   const loadPages = async () => {
     setLoading(true);
-    setError('');
     try {
       const res = await apiRequest<{ data: CMSPage[]; total: number }>(`/admin/cms/pages?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`);
       if (res.data.length === 0 && res.total > 0 && page > 1) { setPage(page - 1); return; }
       setPages(res.data);
       setTotal(res.total);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cargar paginas');
+      addToast(err instanceof Error ? err.message : 'Error al cargar paginas', 'error');
     } finally {
       setLoading(false);
     }
@@ -64,7 +64,7 @@ const AdminCMS: React.FC = () => {
   useEffect(() => {
     apiRequest<{ items: CmsStatus[] }>('/catalog/statuses?domain=cms')
       .then((result) => setStatuses(result.items))
-      .catch((requestError: unknown) => setError(requestError instanceof Error ? requestError.message : 'Error al cargar estados CMS'));
+      .catch((requestError: unknown) => addToast(requestError instanceof Error ? requestError.message : 'Error al cargar estados CMS', 'error'));
   }, []);
 
   useEffect(() => {
@@ -95,7 +95,6 @@ const AdminCMS: React.FC = () => {
   const handleSave = async () => {
     if (!editingId) return;
     setLoading(true);
-    setError('');
     try {
       await apiRequest(`/admin/cms/pages/${editingId}`, {
         method: 'PATCH',
@@ -110,7 +109,7 @@ const AdminCMS: React.FC = () => {
       setEditingId(null);
       await loadPages();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al guardar pagina');
+      addToast(err instanceof Error ? err.message : 'Error al guardar pagina', 'error');
     } finally {
       setLoading(false);
     }
@@ -134,8 +133,7 @@ const AdminCMS: React.FC = () => {
         </button>
       </div>
 
-      {error && !isModalOpen && <p className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-red-300 text-sm">{error}</p>}
-
+      
       <div className="flex flex-col gap-6">
         <AdminPanel className="flex flex-col overflow-hidden">
           <div className="overflow-x-auto">
@@ -231,12 +229,7 @@ const AdminCMS: React.FC = () => {
               </button>
             </div>
 
-            {error && isModalOpen && (
-              <p className="mb-6 rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300">
-                {error}
-              </p>
-            )}
-
+            
             <div className="flex flex-col gap-5">
               <div>
                 <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">Titulo principal</label>
