@@ -13,6 +13,7 @@ import { listQuerySchema, statusHistorySelect } from './shared.js';
 export const casesRouter = Router();
 const updateSchema = z.object({
   status: z.string().trim().min(1).max(80).optional(),
+  priority: z.string().trim().min(1).max(40).optional(),
   adminNotes: z.string().max(3000).optional(),
 });
 
@@ -30,13 +31,13 @@ const contactColumns = `
   c.message,
   sc.code as status,
   sc.name as status_name,
-  c.internal_notes as admin_notes, 
-  c.assigned_to, c.created_at, c.updated_at
+  c.internal_notes as admin_notes, pc.code as priority, pc.name as priority_name, pc.weight as priority_weight, c.assigned_to, c.created_at, c.updated_at
 `;
 
 const contactJoins = `
   JOIN customers cu ON c.customer_id = cu.id
   JOIN status_catalog sc ON c.status_id = sc.id
+  LEFT JOIN priority_catalog pc ON c.priority_id = pc.id
   LEFT JOIN organizations o ON c.organization_id = o.id
   LEFT JOIN service_catalog s ON c.service_id = s.id
   LEFT JOIN customer_organizations co ON co.customer_id = c.customer_id
@@ -58,13 +59,13 @@ const legacyContactColumns = `
   c.message,
   sc.code as status,
   sc.name as status_name,
-  c.internal_notes as admin_notes,
-  c.assigned_to, c.created_at, c.updated_at
+  c.internal_notes as admin_notes, pc.code as priority, pc.name as priority_name, pc.weight as priority_weight, c.assigned_to, c.created_at, c.updated_at
 `;
 
 const legacyContactJoins = `
   JOIN customers cu ON c.customer_id = cu.id
   JOIN status_catalog sc ON c.status_id = sc.id
+  LEFT JOIN priority_catalog pc ON c.priority_id = pc.id
 `;
 
 let normalizedContactSchema: boolean | null = null;
@@ -105,7 +106,7 @@ const complaintColumns = `
   '' as nombre_unidad, '' as opcion_bien, ct.name as claim_type, cg.category as tipo_reclamo, 
   cd.incident_detail as detalle, cd.requested_solution as pedido, sc.code as status,
   sc.name as status_name,
-  c.internal_notes as admin_notes, fa.original_name as attachment_original_name, 
+  c.internal_notes as admin_notes, pc.code as priority, pc.name as priority_name, pc.weight as priority_weight, fa.original_name as attachment_original_name, 
   fa.mime_type as attachment_mime_type, fa.byte_size as attachment_size,
   c.assigned_to, c.created_at, c.updated_at
 `;
@@ -147,7 +148,7 @@ casesRouter.get(
       FROM contact_cases c
       ${normalized ? contactJoins : legacyContactJoins}
       ${whereSql}
-      ORDER BY c.created_at DESC
+      ORDER BY pc.weight DESC NULLS LAST, c.created_at ASC
       LIMIT $${params.length + 1} OFFSET $${params.length + 2}
       `,
       [...params, query.limit, query.offset],
@@ -200,10 +201,21 @@ casesRouter.patch(
       currentRow = current.rows[0];
 
       let newStatusId: string | undefined;
+      let newPriorityId: string | undefined;
+
+      if (body.priority) {
+        const priorityResult = await client.query(
+          "SELECT id FROM priority_catalog WHERE code = $1 AND is_active = true",
+          [body.priority]
+        );
+        if (!priorityResult.rowCount) throw new HttpError(400, 'Prioridad invalida.');
+        newPriorityId = priorityResult.rows[0].id;
+      }
+
       if (body.status) {
         const statusResult = await client.query(
           "SELECT id FROM status_catalog WHERE domain = 'case' AND code = $1 AND is_active = true",
-          [body.status],
+          [body.status]
         );
         if (!statusResult.rowCount) throw new HttpError(400, 'Estado de contacto invalido.');
         newStatusId = statusResult.rows[0].id;
@@ -213,10 +225,11 @@ casesRouter.patch(
         `UPDATE contact_cases
          SET status_id = COALESCE($2, status_id),
              internal_notes = COALESCE($3, internal_notes),
+             priority_id = COALESCE($4, priority_id),
              updated_at = now()
          WHERE id = $1
          RETURNING id`,
-        [id, newStatusId ?? null, body.adminNotes ?? null],
+        [id, newStatusId ?? null, body.adminNotes ?? null, newPriorityId ?? null],
       );
       if (result.rowCount === 0) throw new HttpError(404, 'Mensaje no encontrado.');
 
@@ -370,12 +383,13 @@ casesRouter.get(
       FROM complaints c
       JOIN customers cu ON c.customer_id = cu.id
       JOIN status_catalog sc ON c.status_id = sc.id
+      LEFT JOIN priority_catalog pc ON c.priority_id = pc.id
       JOIN complaint_types ct ON c.complaint_type_id = ct.id
       LEFT JOIN complaint_goods cg ON c.id = cg.complaint_id
       LEFT JOIN complaint_evidences ce ON c.id = ce.complaint_id
       LEFT JOIN file_assets fa ON ce.file_asset_id = fa.id
       ${whereSql}
-      ORDER BY c.created_at DESC
+      ORDER BY pc.weight DESC NULLS LAST, c.created_at ASC
       LIMIT $${params.length + 1} OFFSET $${params.length + 2}
       `,
       [...params, query.limit, query.offset],
@@ -385,6 +399,7 @@ casesRouter.get(
          FROM complaints c
          JOIN customers cu ON c.customer_id = cu.id
          JOIN status_catalog sc ON c.status_id = sc.id
+         LEFT JOIN priority_catalog pc ON c.priority_id = pc.id
          LEFT JOIN complaint_goods cg ON c.id = cg.complaint_id
          ${whereSql}
        ) records`,
@@ -417,6 +432,7 @@ casesRouter.get(
       FROM complaints c
       JOIN customers cu ON c.customer_id = cu.id
       JOIN status_catalog sc ON c.status_id = sc.id
+      LEFT JOIN priority_catalog pc ON c.priority_id = pc.id
       JOIN complaint_types ct ON c.complaint_type_id = ct.id
       LEFT JOIN complaint_details cd ON c.id = cd.complaint_id
       LEFT JOIN complaint_goods cg ON c.id = cg.complaint_id
@@ -452,10 +468,21 @@ casesRouter.patch(
       currentRow = current.rows[0];
 
       let newStatusId: string | undefined;
+      let newPriorityId: string | undefined;
+
+      if (body.priority) {
+        const priorityResult = await client.query(
+          "SELECT id FROM priority_catalog WHERE code = $1 AND is_active = true",
+          [body.priority]
+        );
+        if (!priorityResult.rowCount) throw new HttpError(400, 'Prioridad invalida.');
+        newPriorityId = priorityResult.rows[0].id;
+      }
+
       if (body.status) {
         const statusResult = await client.query(
           "SELECT id FROM status_catalog WHERE domain = 'complaint' AND code = $1 AND is_active = true",
-          [body.status],
+          [body.status]
         );
         if (!statusResult.rowCount) throw new HttpError(400, 'Estado de reclamo invalido.');
         newStatusId = statusResult.rows[0].id;
@@ -465,10 +492,11 @@ casesRouter.patch(
         `UPDATE complaints
          SET status_id = COALESCE($2, status_id),
              internal_notes = COALESCE($3, internal_notes),
+             priority_id = COALESCE($4, priority_id),
              updated_at = now()
          WHERE id = $1
          RETURNING id`,
-        [id, newStatusId ?? null, body.adminNotes ?? null],
+        [id, newStatusId ?? null, body.adminNotes ?? null, newPriorityId ?? null],
       );
       if (result.rowCount === 0) throw new HttpError(404, 'Reclamo no encontrado.');
 
@@ -486,7 +514,8 @@ casesRouter.patch(
          FROM complaints c
          JOIN customers cu ON c.customer_id = cu.id
          JOIN status_catalog sc ON c.status_id = sc.id
-         JOIN complaint_types ct ON c.complaint_type_id = ct.id
+      LEFT JOIN priority_catalog pc ON c.priority_id = pc.id
+      JOIN complaint_types ct ON c.complaint_type_id = ct.id
          LEFT JOIN complaint_details cd ON c.id = cd.complaint_id
          LEFT JOIN complaint_goods cg ON c.id = cg.complaint_id
          LEFT JOIN complaint_evidences ce ON c.id = ce.complaint_id

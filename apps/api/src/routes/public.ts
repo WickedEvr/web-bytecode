@@ -158,8 +158,13 @@ router.get('/catalog/complaint-types', asyncHandler(async (_req: Request, res: R
 }));
 
 router.get('/catalog/statuses', asyncHandler(async (req: Request, res: Response) => {
-  const domain = req.query.domain ? String(req.query.domain) : 'case';
+  const domain = req.query.domain as string;
   const result = await pool.query('SELECT id, code, name, is_terminal as "isTerminal" FROM status_catalog WHERE domain = $1 AND is_active = true ORDER BY sort_order ASC', [domain]);
+  res.json({ items: result.rows });
+}));
+
+router.get('/catalog/priorities', asyncHandler(async (_req: Request, res: Response) => {
+  const result = await pool.query('SELECT id, code, name FROM priority_catalog WHERE is_active = true ORDER BY weight DESC');
   res.json({ items: result.rows });
 }));
 
@@ -448,9 +453,9 @@ router.post(
         result = await client.query(
           `
           INSERT INTO contact_cases (
-            case_code, customer_id, organization_id, service_id, status_id, subject, message, internal_notes
+            case_code, customer_id, organization_id, service_id, status_id, subject, message, internal_notes, priority_id
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, (SELECT id FROM priority_catalog WHERE code = 'normal'))
           RETURNING id, created_at
           `,
           [
@@ -468,9 +473,9 @@ router.post(
         result = await client.query(
           `
           INSERT INTO contact_cases (
-            case_code, customer_id, service_id, status_id, subject, message, internal_notes
+            case_code, customer_id, service_id, status_id, subject, message, internal_notes, priority_id
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, (SELECT id FROM priority_catalog WHERE code = 'normal'))
           RETURNING id, created_at
           `,
           [
@@ -658,9 +663,9 @@ router.post(
         `
         INSERT INTO complaints (
           complaint_code, customer_id, complaint_type_id, status_id, 
-          legal_acceptance, legal_acceptance_at, legal_response_due_at, internal_notes
+          legal_acceptance, legal_acceptance_at, legal_response_due_at, internal_notes, priority_id
         )
-        VALUES ($1, $2, $3, $4, $5, now(), now() + interval '15 days', '')
+        VALUES ($1, $2, $3, $4, $5, now(), now() + interval '15 days', '', (SELECT id FROM priority_catalog WHERE code = 'normal'))
         RETURNING id, complaint_code, created_at
         `,
         [code, customerId, complaintTypeId, statusId, body.aceptaTerminos],

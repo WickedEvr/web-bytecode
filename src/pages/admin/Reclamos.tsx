@@ -19,6 +19,8 @@ export interface Complaint {
   tipo_reclamo: string;
   status: string;
   status_name?: string;
+  priority?: string;
+  priority_name?: string;
   attachment_original_name?: string;
   created_at: string;
 }
@@ -43,6 +45,18 @@ import CustomDropdown from '../../components/ui/CustomDropdown';
 
 const PAGE_SIZE = 9;
 
+const priorityBadge = (code: string, name: string) => {
+  const colors: Record<string, string> = {
+    urgent: 'bg-red-500/20 text-red-400 border border-red-500/30',
+    high: 'bg-orange-500/20 text-orange-400 border border-orange-500/30',
+    normal: 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30',
+    low: 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+  };
+  const color = colors[code] || colors.normal;
+  return <span className={"h-fit rounded-md px-2 py-0.5 text-[10px] whitespace-nowrap " + color}>{name || 'Normal'}</span>;
+};
+
+
 // ... (skip to the component rendering)
 
 const Reclamos: React.FC = () => {
@@ -53,6 +67,8 @@ const Reclamos: React.FC = () => {
   const { isReadOnly, formProps } = useTerminalState({ isTerminal: Boolean(detail?.isTerminal) });
   const [notes, setNotes] = useState('');
   const [status, setStatus] = useState('new');
+  const [priority, setPriority] = useState('normal');
+  const [priorities, setPriorities] = useState<{ value: string, label: string }[]>([]);
   const [listLoading, setListLoading] = useState(false);
   const [statuses, setStatuses] = useState<{ value: string, label: string }[]>([]);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
@@ -66,6 +82,8 @@ const Reclamos: React.FC = () => {
     try {
       const res = await apiRequest<{ items: { id: string, code: string, name: string }[] }>('/catalog/statuses?domain=complaint');
       setStatuses(res.items.map(s => ({ value: s.code, label: s.name })));
+      const prioRes = await apiRequest<{ items: { id: string, code: string, name: string }[] }>('/catalog/priorities');
+      setPriorities(prioRes.items.map(s => ({ value: s.code, label: s.name })));
     } catch (err) {
       console.error(err);
     }
@@ -95,6 +113,7 @@ const Reclamos: React.FC = () => {
       setDetail(result.item);
       setStatusHistory(historyResult.items);
       setStatus(String(result.item.status ?? 'new'));
+      setPriority(String(result.item.priority ?? 'normal'));
       setNotes(String(result.item.admin_notes ?? ''));
       if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches) {
         setMobileDetailOpen(true);
@@ -114,7 +133,7 @@ const Reclamos: React.FC = () => {
     try {
       const result = await apiRequest<{ item: DetailItem }>(`/admin/complaints/${selectedId}`, {
         method: 'PATCH',
-        json: { status, adminNotes: notes },
+        json: { status, adminNotes: notes, priority },
       });
       setDetail(result.item);
       const historyResult = await apiRequest<{ items: StatusHistoryRecord[] }>(`/admin/complaints/${selectedId}/history`);
@@ -165,10 +184,16 @@ const Reclamos: React.FC = () => {
               ))}
           </div>
 
-          <div className="pt-6 border-t border-white/5 flex flex-col gap-5">
-            <div>
-              <label className="mb-1.5 block text-[10px] uppercase tracking-wider text-white/40">Estado</label>
-              <CustomDropdown value={status} placeholder="Seleccionar estado..." onChange={(val) => setStatus(val)} options={statuses} disabled={isReadOnly} />
+                    <div className="pt-6 border-t border-white/5 flex flex-col gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label className="mb-1.5 block text-[10px] uppercase tracking-wider text-white/40">Estado</label>
+                <CustomDropdown value={status} placeholder="Seleccionar estado..." onChange={(val) => setStatus(val)} options={statuses} disabled={isReadOnly} />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-[10px] uppercase tracking-wider text-white/40">Prioridad</label>
+                <CustomDropdown value={priority} placeholder="Seleccionar..." onChange={(val) => setPriority(val)} options={priorities} disabled={isReadOnly} />
+              </div>
             </div>
             <div>
               <label className="mb-1.5 block text-[10px] uppercase tracking-wider text-white/40">Notas Internas</label>
@@ -254,6 +279,7 @@ const Reclamos: React.FC = () => {
                     <span className="h-fit rounded-md bg-white/5 px-2 py-0.5 text-[10px] text-white/60 whitespace-nowrap">
                       {statusLabel(item.status)}
                     </span>
+                    {item.priority && priorityBadge(item.priority, item.priority_name!)}
                   </div>
                 </button>
               ))
