@@ -9,10 +9,7 @@ import { ConfirmModal, type ConfirmModalProps } from '../../components/ui/Confir
 
 type PortfolioForm = {
   name: string;
-  clientName: string;
-  description: string;
   websiteUrl: string;
-  sortOrder: number;
   isFeatured: boolean;
   status: string;
   technologyIds: string[];
@@ -20,10 +17,7 @@ type PortfolioForm = {
 
 const emptyForm: PortfolioForm = {
   name: '',
-  clientName: '',
-  description: '',
   websiteUrl: '',
-  sortOrder: 0,
   isFeatured: true,
   status: 'draft',
   technologyIds: [],
@@ -39,10 +33,7 @@ const formatDate = (value?: string | null) =>
 
 const toForm = (item: AdminPortfolioItemData): PortfolioForm => ({
   name: item.name,
-  clientName: item.client_name ?? '',
-  description: item.description ?? '',
   websiteUrl: item.website_url ?? '',
-  sortOrder: item.sort_order,
   isFeatured: item.is_featured,
   status: item.status,
   technologyIds: item.technologies.map((technology) => technology.id),
@@ -139,10 +130,7 @@ const AdminPortafolio: React.FC = () => {
       const normalizedWebsiteUrl = normalizeWebsiteUrl(form.websiteUrl);
       const payload = {
         name: form.name,
-        clientName: form.clientName,
-        description: form.description,
         websiteUrl: normalizedWebsiteUrl || undefined,
-        sortOrder: form.sortOrder,
         isFeatured: form.isFeatured,
         status: form.status,
         technologyIds: form.technologyIds,
@@ -169,10 +157,7 @@ const AdminPortafolio: React.FC = () => {
       } else {
         const formData = new FormData();
         formData.append('name', form.name);
-        formData.append('clientName', form.clientName);
-        formData.append('description', form.description);
         if (normalizedWebsiteUrl) formData.append('websiteUrl', normalizedWebsiteUrl);
-        formData.append('sortOrder', String(form.sortOrder));
         formData.append('isFeatured', String(form.isFeatured));
         formData.append('status', form.status);
         formData.append('technologyIds', JSON.stringify(form.technologyIds));
@@ -302,7 +287,7 @@ const AdminPortafolio: React.FC = () => {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-white/85">{item.client_name || item.name}</p>
+                    <p className="truncate text-sm font-semibold text-white/85">{item.name}</p>
                     <p className="truncate text-xs text-white/40">{item.item_code}</p>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {item.technologies.slice(0, 3).map((technology) => (
@@ -340,10 +325,6 @@ const AdminPortafolio: React.FC = () => {
               <label className="grid gap-1.5 md:col-span-2">
                 <span className="text-[10px] uppercase tracking-wider text-white/40">URL publica</span>
                 <input value={form.websiteUrl} onBlur={() => setForm((current) => ({ ...current, websiteUrl: normalizeWebsiteUrl(current.websiteUrl) }))} onChange={(event) => setForm({ ...form, websiteUrl: event.target.value })} placeholder="bytebox.pe" className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition focus:border-white/30" />
-              </label>
-              <label className="grid gap-1.5">
-                <span className="text-[10px] uppercase tracking-wider text-white/40">Orden</span>
-                <input type="number" min={0} value={form.sortOrder} onChange={(event) => setForm({ ...form, sortOrder: Number(event.target.value) })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition focus:border-white/30" />
               </label>
               <div className="grid gap-1.5">
                 <span className="text-[10px] uppercase tracking-wider text-white/40">Estado</span>

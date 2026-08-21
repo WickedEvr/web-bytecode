@@ -223,8 +223,7 @@ router.get('/portfolio', asyncHandler(async (_req: Request, res: Response) => {
     SELECT
       pi.id,
       pi.name,
-      pi.client_name,
-      pi.description,
+      
       pi.website_url,
       sc.code AS status,
       sc.name AS status_name,

@@ -102,7 +102,7 @@ contentRouter.post(
     const statusId = statusInfo.id;
     const result = await pool.query(
       `INSERT INTO cms_pages (slug, title, meta_title, meta_description, status_id, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6)
+       VALUES ($1, $2, $5, $6)
        RETURNING id`,
       [body.slug, body.title, body.meta_title ?? null, body.meta_description ?? null, statusId, req.admin?.id ?? null],
     );
@@ -202,8 +202,7 @@ const optionalTechnologyIdsSchema = z.preprocess(parseOptionalTechnologyIds, z.a
 
 const portfolioItemSchema = z.object({
   name: z.string().trim().min(2).max(180),
-  clientName: z.string().trim().max(180).optional().default(''),
-  description: z.string().trim().max(2000).optional().default(''),
+  
   websiteUrl: optionalUrl,
   sortOrder: z.coerce.number().int().min(0).max(100000).default(0),
   isFeatured: portfolioBoolean(true),
@@ -239,8 +238,7 @@ const selectPortfolioItemsSql = `
     pi.id,
     pi.item_code,
     pi.name,
-    pi.client_name,
-    pi.description,
+    
     pi.website_url,
     pi.sort_order,
     pi.is_featured,
@@ -394,16 +392,14 @@ contentRouter.post(
       const statusId = await getCmsStatusId(client, body.status);
       const result = await client.query(
         `INSERT INTO portfolio_items (
-          item_code, name, client_name, description, website_url, sort_order,
+          item_code, name, website_url, sort_order,
           is_featured, status_id, created_by
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        VALUES ($1, $2, $5, $6, $7, $8, $9)
         RETURNING id`,
         [
           itemCode,
           body.name,
-          body.clientName || null,
-          body.description || null,
           body.websiteUrl ?? null,
           body.sortOrder,
           body.isFeatured,
@@ -420,7 +416,7 @@ contentRouter.post(
             original_name, storage_provider, storage_key, public_url,
             mime_type, byte_size, checksum_sha256, uploaded_by, created_by
           )
-          VALUES ($1, 'cloudinary', $2, $3, $4, $5, $6, $7, $7)
+          VALUES ($1, 'cloudinary', $2, $5, $6, $7, $7)
           RETURNING id`,
           [
             validatedFile.originalName,
@@ -486,21 +482,17 @@ contentRouter.patch(
       const result = await client.query(
         `UPDATE portfolio_items
          SET name = COALESCE($2, name),
-             client_name = COALESCE($3, client_name),
-             description = COALESCE($4, description),
-             website_url = COALESCE($5, website_url),
-             sort_order = COALESCE($6, sort_order),
-             is_featured = COALESCE($7, is_featured),
-             status_id = COALESCE($8, status_id),
-             updated_by = $9,
+             website_url = COALESCE($3, website_url),
+             sort_order = COALESCE($4, sort_order),
+             is_featured = COALESCE($5, is_featured),
+             status_id = COALESCE($6, status_id),
+             updated_by = $7,
              updated_at = now()
          WHERE id = $1 AND deleted_at IS NULL
          RETURNING id`,
         [
           id,
           body.name ?? null,
-          body.clientName ?? null,
-          body.description ?? null,
           body.websiteUrl ?? null,
           body.sortOrder ?? null,
           body.isFeatured ?? null,
@@ -609,7 +601,7 @@ contentRouter.post(
           original_name, storage_provider, storage_key, public_url,
           mime_type, byte_size, checksum_sha256, uploaded_by, created_by
         )
-        VALUES ($1, 'cloudinary', $2, $3, $4, $5, $6, $7, $7)
+        VALUES ($1, 'cloudinary', $2, $5, $6, $7, $7)
         RETURNING id`,
         [
           validatedFile.originalName,
@@ -622,21 +614,19 @@ contentRouter.post(
         ],
       );
 
-      await client.query(
-        `UPDATE portfolio_item_assets
-         SET is_active = false,
-             deleted_at = now(),
-             sort_order = COALESCE((
-               SELECT max(pia2.sort_order) + 1
-               FROM portfolio_item_assets pia2
-               WHERE pia2.portfolio_item_id = portfolio_item_assets.portfolio_item_id
-                 AND pia2.asset_role = portfolio_item_assets.asset_role
-             ), sort_order + 1),
-             updated_at = now(),
-             updated_by = $2
-         WHERE portfolio_item_id = $1 AND asset_role = 'cover' AND deleted_at IS NULL`,
-        [id, req.admin?.id ?? null],
+      // 1. Obtener la imagen anterior para borrarla de cloudinary
+      const oldCover = await client.query(
+        "SELECT fa.storage_key, fa.storage_provider FROM portfolio_item_assets pia JOIN file_assets fa ON pia.file_asset_id = fa.id WHERE pia.portfolio_item_id = $1 AND pia.asset_role = 'cover'",
+        [id]
       );
+      
+      // 2. Borrar relación lógicamente para no perder consistencia o romper constraints si hay keys huérfanas
+      // El usuario pidió "borrado por completo" (hard delete).
+      await client.query("DELETE FROM portfolio_item_assets WHERE portfolio_item_id = $1 AND asset_role = 'cover'", [id]);
+      
+      if ((oldCover.rowCount ?? 0) > 0 && oldCover.rows[0].storage_provider === 'cloudinary') {
+         await deleteCloudinaryAsset(oldCover.rows[0].storage_key, 'image').catch(() => {});
+      }
 
       await client.query(
         `INSERT INTO portfolio_item_assets (
