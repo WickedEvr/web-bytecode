@@ -379,7 +379,7 @@ casesRouter.get(
     ]);
     const [result, countResult] = await Promise.all([pool.query(
       `
-      SELECT c.id, c.complaint_code as code, cu.first_name as nombres, cu.last_name as apellidos, cu.primary_email as email, cu.primary_phone as telefono, ct.name as claim_type, cg.category as tipo_reclamo, sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal", fa.original_name as attachment_original_name, c.created_at, c.updated_at
+      SELECT c.id, c.complaint_code as code, cu.first_name as nombres, cu.last_name as apellidos, cu.primary_email as email, cu.primary_phone as telefono, ct.name as claim_type, cg.category as tipo_reclamo, sc.code AS status, sc.name AS status_name, sc.is_terminal as "isTerminal", pc.code as priority, pc.name as priority_name, pc.weight as priority_weight, fa.original_name as attachment_original_name, c.created_at, c.updated_at
       FROM complaints c
       JOIN customers cu ON c.customer_id = cu.id
       JOIN status_catalog sc ON c.status_id = sc.id

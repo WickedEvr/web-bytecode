@@ -66,7 +66,7 @@ const Reclamos: React.FC = () => {
   const [detail, setDetail] = useState<DetailItem | null>(null);
   const { isReadOnly, formProps } = useTerminalState({ isTerminal: Boolean(detail?.isTerminal) });
   const [notes, setNotes] = useState('');
-  const [status, setStatus] = useState('new');
+  const [status, setStatus] = useState('registered');
   const [priority, setPriority] = useState('normal');
   const [priorities, setPriorities] = useState<{ value: string, label: string }[]>([]);
   const [listLoading, setListLoading] = useState(false);
@@ -112,7 +112,7 @@ const Reclamos: React.FC = () => {
       ]);
       setDetail(result.item);
       setStatusHistory(historyResult.items);
-      setStatus(String(result.item.status ?? 'new'));
+      setStatus(String(result.item.status ?? 'registered'));
       setPriority(String(result.item.priority ?? 'normal'));
       setNotes(String(result.item.admin_notes ?? ''));
       if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches) {
@@ -139,6 +139,7 @@ const Reclamos: React.FC = () => {
       const historyResult = await apiRequest<{ items: StatusHistoryRecord[] }>(`/admin/complaints/${selectedId}/history`);
       setStatusHistory(historyResult.items);
       await loadList();
+      addToast('Reclamo actualizado correctamente.', 'success');
     } catch (err) {
       addToast(err instanceof Error ? err.message : 'Error al guardar', 'error');
     }

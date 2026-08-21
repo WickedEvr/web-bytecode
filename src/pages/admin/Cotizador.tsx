@@ -185,7 +185,8 @@ const AdminCotizador: React.FC = () => {
             setIsModalOpen(false);
           }
           await loadData();
-        } catch (err) {
+        addToast('Operación completada con éxito', 'success');
+    } catch (err) {
           addToast(err instanceof Error ? err.message : 'Error al eliminar cotizacion', 'error');
         } finally {
           setLoading(false);
@@ -233,6 +234,7 @@ const AdminCotizador: React.FC = () => {
       setFormData({ customerName: '', customerEmail: '', notes: '', organizationId: null, acquisitionChannel: 'web_form', currencyCode: 'PEN', status: statuses[0]?.code ?? 'draft', isTerminal: false });
       resetQuoter();
       await loadData();
+    addToast('Operación completada con éxito', 'success');
     } catch (err) {
       addToast(err instanceof Error ? err.message : 'Error al generar cotizacion', 'error');
     } finally {

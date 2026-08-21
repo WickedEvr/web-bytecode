@@ -97,7 +97,8 @@ const Usuarios: React.FC = () => {
         try {
           await apiRequest(`/admin/users/${user.id}`, { method: 'DELETE' });
           await loadUsers();
-        } catch (err) {
+        addToast('Operación completada con éxito', 'success');
+    } catch (err) {
           addToast(err instanceof Error ? err.message : 'Error al eliminar usuario', 'error');
         } finally {
           setLoading(false);
@@ -168,6 +169,7 @@ const Usuarios: React.FC = () => {
 
       setIsModalOpen(false);
       await loadUsers();
+    addToast('Operación completada con éxito', 'success');
     } catch (err) {
       addToast(err instanceof Error ? err.message : 'Error al guardar usuario', 'error');
     } finally {
@@ -189,7 +191,8 @@ const Usuarios: React.FC = () => {
             json: { isActive: !user.is_active },
           });
           await loadUsers();
-        } catch (err) {
+        addToast('Operación completada con éxito', 'success');
+    } catch (err) {
           addToast(err instanceof Error ? err.message : 'Error al cambiar estado', 'error');
         } finally {
           setLoading(false);

@@ -109,6 +109,7 @@ const AdminConfiguracion: React.FC = () => {
       });
       addToast('Configuración guardada exitosamente.', 'success');
       await loadSettings();
+    addToast('Operación completada con éxito', 'success');
     } catch (err) {
       addToast(err instanceof Error ? err.message : 'Error al guardar configuración', 'error');
     } finally {

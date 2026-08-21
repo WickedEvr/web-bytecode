@@ -108,6 +108,7 @@ const AdminCMS: React.FC = () => {
       setIsModalOpen(false);
       setEditingId(null);
       await loadPages();
+    addToast('Operación completada con éxito', 'success');
     } catch (err) {
       addToast(err instanceof Error ? err.message : 'Error al guardar pagina', 'error');
     } finally {
