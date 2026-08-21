@@ -187,6 +187,7 @@ const Contactos: React.FC = () => {
       const statusResult = await apiRequest<{ items: StatusHistoryRecord[] }>(`/admin/contacts/${selectedId}/history`);
       setStatusHistory(statusResult.items);
       await loadList();
+    addToast('Operación completada con éxito', 'success');
     } catch (err) {
       addToast(err instanceof Error ? err.message : 'Error al guardar', 'error');
     }
@@ -330,6 +331,7 @@ const Contactos: React.FC = () => {
       const histResult = await apiRequest<{ items: AssignmentHistoryItem[] }>(`/admin/contacts/${selectedId}/assignment-history`);
       setHistory(histResult.items);
       await loadList();
+    addToast('Operación completada con éxito', 'success');
     } catch (err) {
       addToast(err instanceof Error ? err.message : 'Error al asignar el caso', 'error');
     } finally {

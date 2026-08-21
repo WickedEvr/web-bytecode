@@ -159,6 +159,7 @@ const Roles: React.FC = () => {
 
       setIsModalOpen(false);
       await loadData();
+    addToast('Operación completada con éxito', 'success');
     } catch (err) {
       addToast(err instanceof Error ? err.message : 'Error al guardar rol', 'error');
     } finally {

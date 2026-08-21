@@ -168,6 +168,7 @@ const ProyectoDetalle: React.FC = () => {
     try {
       await updateProjectMilestone(id, milestoneId, status);
       await loadMilestones();
+    addToast('Operación completada con éxito', 'success');
     } catch (requestError) {
       addToast(requestError instanceof Error ? requestError.message : 'No se pudo actualizar el hito.', 'error');
     }

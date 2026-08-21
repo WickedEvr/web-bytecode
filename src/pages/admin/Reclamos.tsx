@@ -139,6 +139,7 @@ const Reclamos: React.FC = () => {
       const historyResult = await apiRequest<{ items: StatusHistoryRecord[] }>(`/admin/complaints/${selectedId}/history`);
       setStatusHistory(historyResult.items);
       await loadList();
+      addToast('Reclamo actualizado correctamente.', 'success');
     } catch (err) {
       addToast(err instanceof Error ? err.message : 'Error al guardar', 'error');
     }
