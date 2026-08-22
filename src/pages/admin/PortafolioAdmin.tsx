@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useToastStore } from '../../stores/toastStore';
-import { ImageUp, Plus, RefreshCw, Save, Trash2, ArrowLeft } from 'lucide-react';
+import { ImageUp, Plus, RefreshCw, Save, Trash2, ArrowLeft, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdminPanel from '../../components/admin/AdminPanel';
 import { apiRequest, type AdminPortfolioItemData, type PortfolioTechnologyData } from '../../lib/api';
@@ -9,10 +9,7 @@ import { ConfirmModal, type ConfirmModalProps } from '../../components/ui/Confir
 
 type PortfolioForm = {
   name: string;
-  clientName: string;
-  description: string;
   websiteUrl: string;
-  sortOrder: number;
   isFeatured: boolean;
   status: string;
   technologyIds: string[];
@@ -20,10 +17,7 @@ type PortfolioForm = {
 
 const emptyForm: PortfolioForm = {
   name: '',
-  clientName: '',
-  description: '',
   websiteUrl: '',
-  sortOrder: 0,
   isFeatured: true,
   status: 'draft',
   technologyIds: [],
@@ -39,10 +33,7 @@ const formatDate = (value?: string | null) =>
 
 const toForm = (item: AdminPortfolioItemData): PortfolioForm => ({
   name: item.name,
-  clientName: item.client_name ?? '',
-  description: item.description ?? '',
   websiteUrl: item.website_url ?? '',
-  sortOrder: item.sort_order,
   isFeatured: item.is_featured,
   status: item.status,
   technologyIds: item.technologies.map((technology) => technology.id),
@@ -65,6 +56,8 @@ const AdminPortafolio: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [form, setForm] = useState<PortfolioForm>(emptyForm);
   const [newTechnology, setNewTechnology] = useState('');
+  const [techSearch, setTechSearch] = useState('');
+  const [draggedItem, setDraggedItem] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState('');
   const [imageAlt, setImageAlt] = useState('');
@@ -139,10 +132,7 @@ const AdminPortafolio: React.FC = () => {
       const normalizedWebsiteUrl = normalizeWebsiteUrl(form.websiteUrl);
       const payload = {
         name: form.name,
-        clientName: form.clientName,
-        description: form.description,
         websiteUrl: normalizedWebsiteUrl || undefined,
-        sortOrder: form.sortOrder,
         isFeatured: form.isFeatured,
         status: form.status,
         technologyIds: form.technologyIds,
@@ -169,10 +159,7 @@ const AdminPortafolio: React.FC = () => {
       } else {
         const formData = new FormData();
         formData.append('name', form.name);
-        formData.append('clientName', form.clientName);
-        formData.append('description', form.description);
         if (normalizedWebsiteUrl) formData.append('websiteUrl', normalizedWebsiteUrl);
-        formData.append('sortOrder', String(form.sortOrder));
         formData.append('isFeatured', String(form.isFeatured));
         formData.append('status', form.status);
         formData.append('technologyIds', JSON.stringify(form.technologyIds));
@@ -195,12 +182,19 @@ const AdminPortafolio: React.FC = () => {
       });
       setImageFile(null);
       setImageAlt(response.item.alt_text ?? '');
+      addToast('Proyecto guardado con éxito', 'success');
     } catch (err) {
       addToast(err instanceof Error ? err.message : 'No se pudo guardar el proyecto.', 'error');
     } finally {
       setSaving(false);
     }
   };
+
+  useEffect(() => {
+    if (newTechnology) {
+      handleCreateTechnology();
+    }
+  }, [newTechnology]);
 
   const handleCreateTechnology = async () => {
     if (!newTechnology.trim()) return;
@@ -223,6 +217,7 @@ const AdminPortafolio: React.FC = () => {
           : [...current.technologyIds, response.item.id],
       }));
       setNewTechnology('');
+      setTechSearch('');
     } catch (err) {
       addToast(err instanceof Error ? err.message : 'No se pudo crear la tecnologia.', 'error');
     } finally {
@@ -289,8 +284,38 @@ const AdminPortafolio: React.FC = () => {
               items.map((item) => (
                 <button
                   key={item.id}
+                  draggable
+                  onDragStart={(e) => {
+                    setDraggedItem(item.id);
+                    e.dataTransfer.effectAllowed = 'move';
+                  }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={async (e) => {
+                    e.preventDefault();
+                    if (!draggedItem || draggedItem === item.id) return;
+                    
+                    const newItems = [...items];
+                    const draggedIdx = newItems.findIndex(i => i.id === draggedItem);
+                    const dropIdx = newItems.findIndex(i => i.id === item.id);
+                    
+                    const [removed] = newItems.splice(draggedIdx, 1);
+                    newItems.splice(dropIdx, 0, removed);
+                    
+                    setItems(newItems);
+                    setDraggedItem(null);
+                    
+                    try {
+                      await apiRequest('/admin/portfolio/reorder', {
+                        method: 'PATCH',
+                        json: { items: newItems.map(i => i.id) }
+                      });
+                      addToast('Orden actualizado con éxito', 'success');
+                    } catch(err) {
+                      addToast('Error actualizando orden', 'error');
+                    }
+                  }}
                   onClick={() => handleSelect(item)}
-                  className={`grid w-full grid-cols-[74px_1fr] gap-4 px-5 py-4 text-left transition ${selectedId === item.id ? 'bg-white/5' : 'hover:bg-white/[0.03]'}`}
+                  className={`grid w-full grid-cols-[74px_1fr] gap-4 px-5 py-4 text-left transition duration-200 border-l-2 cursor-grab active:cursor-grabbing ${draggedItem === item.id ? 'opacity-50' : ''} ${selectedId === item.id ? 'bg-white/5 border-white/40' : 'border-transparent hover:bg-white/[0.03]'}`}
                 >
                   <div className="h-16 overflow-hidden rounded-lg border border-white/10 bg-white/5">
                     {item.image_url ? (
@@ -302,7 +327,7 @@ const AdminPortafolio: React.FC = () => {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-white/85">{item.client_name || item.name}</p>
+                    <p className="truncate text-sm font-semibold text-white/85">{item.name}</p>
                     <p className="truncate text-xs text-white/40">{item.item_code}</p>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {item.technologies.slice(0, 3).map((technology) => (
@@ -341,10 +366,6 @@ const AdminPortafolio: React.FC = () => {
                 <span className="text-[10px] uppercase tracking-wider text-white/40">URL publica</span>
                 <input value={form.websiteUrl} onBlur={() => setForm((current) => ({ ...current, websiteUrl: normalizeWebsiteUrl(current.websiteUrl) }))} onChange={(event) => setForm({ ...form, websiteUrl: event.target.value })} placeholder="bytebox.pe" className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition focus:border-white/30" />
               </label>
-              <label className="grid gap-1.5">
-                <span className="text-[10px] uppercase tracking-wider text-white/40">Orden</span>
-                <input type="number" min={0} value={form.sortOrder} onChange={(event) => setForm({ ...form, sortOrder: Number(event.target.value) })} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition focus:border-white/30" />
-              </label>
               <div className="grid gap-1.5">
                 <span className="text-[10px] uppercase tracking-wider text-white/40">Estado</span>
                 <CustomDropdown
@@ -362,24 +383,51 @@ const AdminPortafolio: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid gap-3 border-t border-white/5 pt-5">
-              <div className="flex flex-col gap-3 md:flex-row">
-                <input value={newTechnology} onChange={(event) => setNewTechnology(event.target.value)} placeholder="Nueva tecnologia" className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition focus:border-white/30" />
-                <button onClick={handleCreateTechnology} disabled={saving || !newTechnology.trim()} className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white/80 transition hover:bg-white/10 disabled:opacity-50">
-                  <Plus className="h-4 w-4" /> Agregar
-                </button>
+            <div className="grid gap-4 border-t border-white/5 pt-5 relative">
+              <div className="text-xs font-semibold uppercase tracking-widest text-white/50">Tecnologías Utilizadas</div>
+              <div className="relative">
+                <input 
+                  value={techSearch} 
+                  onChange={(e) => setTechSearch(e.target.value)} 
+                  onKeyDown={async (e) => {
+                    if (e.key === 'Enter' && techSearch.trim()) {
+                      e.preventDefault();
+                      const existing = technologies.find(t => t.name.toLowerCase() === techSearch.trim().toLowerCase());
+                      if (existing) {
+                        if (!form.technologyIds.includes(existing.id)) toggleTechnology(existing.id);
+                        setTechSearch('');
+                      } else {
+                        setNewTechnology(techSearch.trim());
+                      }
+                    }
+                  }}
+                  placeholder="Buscar o crear tecnología y presionar Enter..." 
+                  className="w-full bg-white rounded-full px-6 py-[0.6rem] shadow-sm transition-all text-[#333] placeholder:text-gray-400 outline-none ring-0 focus:ring-2 focus:ring-[#06CFD6]" 
+                />
+                
+                {techSearch && (
+                  <div className="absolute top-full left-0 mt-2 w-full bg-white border border-gray-100 shadow-xl rounded-xl z-[100] max-h-[207.5px] overflow-y-auto custom-scrollbar">
+                    {technologies.filter(t => t.name.toLowerCase().includes(techSearch.toLowerCase()) && !form.technologyIds.includes(t.id)).map(t => (
+                      <button key={t.id} type="button" onClick={() => { toggleTechnology(t.id); setTechSearch(''); }} className="w-full text-left px-6 py-2 transition-colors text-[14px] text-gray-600 hover:bg-gray-200 hover:text-gray-900">
+                        {t.name}
+                      </button>
+                    ))}
+                    {!technologies.find(t => t.name.toLowerCase() === techSearch.trim().toLowerCase()) && (
+                      <div className="px-6 py-3 text-xs text-gray-500 border-t border-gray-100">Presiona Enter para crear: <span className="font-semibold text-gray-800">{techSearch}</span></div>
+                    )}
+                  </div>
+                )}
               </div>
+              
               <div className="flex flex-wrap gap-2">
-                {technologies.map((technology) => {
-                  const active = form.technologyIds.includes(technology.id);
+                {form.technologyIds.map(id => {
+                  const t = technologies.find(tech => tech.id === id);
+                  if (!t) return null;
                   return (
-                    <button
-                      key={technology.id}
-                      onClick={() => toggleTechnology(technology.id)}
-                      className={`rounded-md border px-3 py-1.5 text-xs transition ${active ? 'border-[#06CFD6]/60 bg-[#06CFD6]/10 text-[#06CFD6]' : 'border-white/10 bg-white/5 text-white/50 hover:text-white/80'}`}
-                    >
-                      {technology.name}
-                    </button>
+                    <span key={id} className="flex items-center gap-1.5 rounded-full bg-[#06CFD6]/10 border border-[#06CFD6]/30 px-3 py-1 text-xs font-medium text-[#06CFD6]">
+                      {t.name}
+                      <button type="button" onClick={() => toggleTechnology(id)} className="text-[#06CFD6]/50 hover:text-[#06CFD6]"><X className="h-3 w-3"/></button>
+                    </span>
                   );
                 })}
               </div>
