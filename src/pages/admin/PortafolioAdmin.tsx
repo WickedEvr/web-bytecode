@@ -182,6 +182,7 @@ const AdminPortafolio: React.FC = () => {
       });
       setImageFile(null);
       setImageAlt(response.item.alt_text ?? '');
+      addToast('Proyecto guardado con éxito', 'success');
     } catch (err) {
       addToast(err instanceof Error ? err.message : 'No se pudo guardar el proyecto.', 'error');
     } finally {
