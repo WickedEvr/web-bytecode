@@ -238,7 +238,6 @@ const selectPortfolioItemsSql = `
     pi.id,
     pi.item_code,
     pi.name,
-    
     pi.website_url,
     pi.sort_order,
     pi.is_featured,
