@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useToastStore } from '../../stores/toastStore';
-import { ImageUp, Plus, RefreshCw, Save, Trash2, ArrowLeft } from 'lucide-react';
+import { ImageUp, Plus, RefreshCw, Save, Trash2, ArrowLeft, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdminPanel from '../../components/admin/AdminPanel';
 import { apiRequest, type AdminPortfolioItemData, type PortfolioTechnologyData } from '../../lib/api';
@@ -56,6 +56,8 @@ const AdminPortafolio: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [form, setForm] = useState<PortfolioForm>(emptyForm);
   const [newTechnology, setNewTechnology] = useState('');
+  const [techSearch, setTechSearch] = useState('');
+  const [draggedItem, setDraggedItem] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState('');
   const [imageAlt, setImageAlt] = useState('');
@@ -187,6 +189,12 @@ const AdminPortafolio: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    if (newTechnology) {
+      handleCreateTechnology();
+    }
+  }, [newTechnology]);
+
   const handleCreateTechnology = async () => {
     if (!newTechnology.trim()) return;
     setSaving(true);
@@ -208,6 +216,7 @@ const AdminPortafolio: React.FC = () => {
           : [...current.technologyIds, response.item.id],
       }));
       setNewTechnology('');
+      setTechSearch('');
     } catch (err) {
       addToast(err instanceof Error ? err.message : 'No se pudo crear la tecnologia.', 'error');
     } finally {
@@ -274,8 +283,38 @@ const AdminPortafolio: React.FC = () => {
               items.map((item) => (
                 <button
                   key={item.id}
+                  draggable
+                  onDragStart={(e) => {
+                    setDraggedItem(item.id);
+                    e.dataTransfer.effectAllowed = 'move';
+                  }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={async (e) => {
+                    e.preventDefault();
+                    if (!draggedItem || draggedItem === item.id) return;
+                    
+                    const newItems = [...items];
+                    const draggedIdx = newItems.findIndex(i => i.id === draggedItem);
+                    const dropIdx = newItems.findIndex(i => i.id === item.id);
+                    
+                    const [removed] = newItems.splice(draggedIdx, 1);
+                    newItems.splice(dropIdx, 0, removed);
+                    
+                    setItems(newItems);
+                    setDraggedItem(null);
+                    
+                    try {
+                      await apiRequest('/admin/portfolio/reorder', {
+                        method: 'PATCH',
+                        json: { items: newItems.map(i => i.id) }
+                      });
+                      addToast('Orden actualizado con éxito', 'success');
+                    } catch(err) {
+                      addToast('Error actualizando orden', 'error');
+                    }
+                  }}
                   onClick={() => handleSelect(item)}
-                  className={`grid w-full grid-cols-[74px_1fr] gap-4 px-5 py-4 text-left transition ${selectedId === item.id ? 'bg-white/5' : 'hover:bg-white/[0.03]'}`}
+                  className={`grid w-full grid-cols-[74px_1fr] gap-4 px-5 py-4 text-left transition duration-200 border-l-2 ${selectedId === item.id ? 'bg-white/5 border-white/40' : 'border-transparent hover:bg-white/[0.03]'}`}
                 >
                   <div className="h-16 overflow-hidden rounded-lg border border-white/10 bg-white/5">
                     {item.image_url ? (
@@ -343,24 +382,51 @@ const AdminPortafolio: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid gap-3 border-t border-white/5 pt-5">
-              <div className="flex flex-col gap-3 md:flex-row">
-                <input value={newTechnology} onChange={(event) => setNewTechnology(event.target.value)} placeholder="Nueva tecnologia" className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition focus:border-white/30" />
-                <button onClick={handleCreateTechnology} disabled={saving || !newTechnology.trim()} className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white/80 transition hover:bg-white/10 disabled:opacity-50">
-                  <Plus className="h-4 w-4" /> Agregar
-                </button>
+            <div className="grid gap-4 border-t border-white/5 pt-5 relative">
+              <div className="text-xs font-semibold uppercase tracking-widest text-white/50">Tecnologías Utilizadas</div>
+              <div className="relative">
+                <input 
+                  value={techSearch} 
+                  onChange={(e) => setTechSearch(e.target.value)} 
+                  onKeyDown={async (e) => {
+                    if (e.key === 'Enter' && techSearch.trim()) {
+                      e.preventDefault();
+                      const existing = technologies.find(t => t.name.toLowerCase() === techSearch.trim().toLowerCase());
+                      if (existing) {
+                        if (!form.technologyIds.includes(existing.id)) toggleTechnology(existing.id);
+                        setTechSearch('');
+                      } else {
+                        setNewTechnology(techSearch.trim());
+                      }
+                    }
+                  }}
+                  placeholder="Buscar o crear tecnología y presionar Enter..." 
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition focus:border-white/30" 
+                />
+                
+                {techSearch && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-neutral-900 border border-white/10 rounded-md shadow-xl z-50 max-h-48 overflow-y-auto">
+                    {technologies.filter(t => t.name.toLowerCase().includes(techSearch.toLowerCase()) && !form.technologyIds.includes(t.id)).map(t => (
+                      <button key={t.id} type="button" onClick={() => { toggleTechnology(t.id); setTechSearch(''); }} className="w-full text-left px-4 py-2 hover:bg-white/10 text-sm text-white/80">
+                        {t.name}
+                      </button>
+                    ))}
+                    {!technologies.find(t => t.name.toLowerCase() === techSearch.trim().toLowerCase()) && (
+                      <div className="px-4 py-2 text-xs text-white/50 border-t border-white/10">Presiona Enter para crear: <span className="font-semibold text-white/80">{techSearch}</span></div>
+                    )}
+                  </div>
+                )}
               </div>
+              
               <div className="flex flex-wrap gap-2">
-                {technologies.map((technology) => {
-                  const active = form.technologyIds.includes(technology.id);
+                {form.technologyIds.map(id => {
+                  const t = technologies.find(tech => tech.id === id);
+                  if (!t) return null;
                   return (
-                    <button
-                      key={technology.id}
-                      onClick={() => toggleTechnology(technology.id)}
-                      className={`rounded-md border px-3 py-1.5 text-xs transition ${active ? 'border-[#06CFD6]/60 bg-[#06CFD6]/10 text-[#06CFD6]' : 'border-white/10 bg-white/5 text-white/50 hover:text-white/80'}`}
-                    >
-                      {technology.name}
-                    </button>
+                    <span key={id} className="flex items-center gap-1.5 rounded-full bg-[#06CFD6]/10 border border-[#06CFD6]/30 px-3 py-1 text-xs font-medium text-[#06CFD6]">
+                      {t.name}
+                      <button type="button" onClick={() => toggleTechnology(id)} className="text-[#06CFD6]/50 hover:text-[#06CFD6]"><X className="h-3 w-3"/></button>
+                    </span>
                   );
                 })}
               </div>
