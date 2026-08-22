@@ -464,6 +464,33 @@ contentRouter.post(
 );
 
 contentRouter.patch(
+  '/portfolio/reorder',
+  requirePermission('admin.portafolio.manage'),
+  asyncHandler(async (req, res) => {
+    const { items } = req.body;
+    if (!Array.isArray(items)) throw new HttpError(400, 'Invalid items array');
+    
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      for (let i = 0; i < items.length; i++) {
+        await client.query(
+          'UPDATE portfolio_items SET sort_order = $1, updated_at = NOW() WHERE id = $2 AND deleted_at IS NULL',
+          [i, items[i]]
+        );
+      }
+      await client.query('COMMIT');
+      res.json({ message: 'Reordered successfully' });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  })
+);
+
+contentRouter.patch(
   '/portfolio/:id',
   requireCsrf,
   requirePermission('admin.portafolio.manage'),

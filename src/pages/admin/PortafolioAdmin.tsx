@@ -314,7 +314,7 @@ const AdminPortafolio: React.FC = () => {
                     }
                   }}
                   onClick={() => handleSelect(item)}
-                  className={`grid w-full grid-cols-[74px_1fr] gap-4 px-5 py-4 text-left transition duration-200 border-l-2 ${selectedId === item.id ? 'bg-white/5 border-white/40' : 'border-transparent hover:bg-white/[0.03]'}`}
+                  className={`grid w-full grid-cols-[74px_1fr] gap-4 px-5 py-4 text-left transition duration-200 border-l-2 cursor-grab active:cursor-grabbing ${draggedItem === item.id ? 'opacity-50' : ''} ${selectedId === item.id ? 'bg-white/5 border-white/40' : 'border-transparent hover:bg-white/[0.03]'}`}
                 >
                   <div className="h-16 overflow-hidden rounded-lg border border-white/10 bg-white/5">
                     {item.image_url ? (
