@@ -102,7 +102,7 @@ contentRouter.post(
     const statusId = statusInfo.id;
     const result = await pool.query(
       `INSERT INTO cms_pages (slug, title, meta_title, meta_description, status_id, created_by)
-       VALUES ($1, $2, $5, $6)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING id`,
       [body.slug, body.title, body.meta_title ?? null, body.meta_description ?? null, statusId, req.admin?.id ?? null],
     );
@@ -393,7 +393,7 @@ contentRouter.post(
           item_code, name, website_url, sort_order,
           is_featured, status_id, created_by
         )
-        VALUES ($1, $2, $5, $6, $7, $8, $9)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING id`,
         [
           itemCode,
