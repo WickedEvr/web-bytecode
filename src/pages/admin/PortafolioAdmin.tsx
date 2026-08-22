@@ -401,18 +401,18 @@ const AdminPortafolio: React.FC = () => {
                     }
                   }}
                   placeholder="Buscar o crear tecnología y presionar Enter..." 
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition focus:border-white/30" 
+                  className="w-full bg-white rounded-full px-6 py-[0.6rem] shadow-sm transition-all text-[#333] placeholder:text-gray-400 outline-none ring-0 focus:ring-2 focus:ring-[#06CFD6]" 
                 />
                 
                 {techSearch && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-neutral-900 border border-white/10 rounded-md shadow-xl z-50 max-h-48 overflow-y-auto">
+                  <div className="absolute top-full left-0 mt-2 w-full bg-white border border-gray-100 shadow-xl rounded-xl z-[100] max-h-[207.5px] overflow-y-auto custom-scrollbar">
                     {technologies.filter(t => t.name.toLowerCase().includes(techSearch.toLowerCase()) && !form.technologyIds.includes(t.id)).map(t => (
-                      <button key={t.id} type="button" onClick={() => { toggleTechnology(t.id); setTechSearch(''); }} className="w-full text-left px-4 py-2 hover:bg-white/10 text-sm text-white/80">
+                      <button key={t.id} type="button" onClick={() => { toggleTechnology(t.id); setTechSearch(''); }} className="w-full text-left px-6 py-2 transition-colors text-[14px] text-gray-600 hover:bg-gray-200 hover:text-gray-900">
                         {t.name}
                       </button>
                     ))}
                     {!technologies.find(t => t.name.toLowerCase() === techSearch.trim().toLowerCase()) && (
-                      <div className="px-4 py-2 text-xs text-white/50 border-t border-white/10">Presiona Enter para crear: <span className="font-semibold text-white/80">{techSearch}</span></div>
+                      <div className="px-6 py-3 text-xs text-gray-500 border-t border-gray-100">Presiona Enter para crear: <span className="font-semibold text-gray-800">{techSearch}</span></div>
                     )}
                   </div>
                 )}

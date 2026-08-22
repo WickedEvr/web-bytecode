@@ -202,9 +202,8 @@ const optionalTechnologyIdsSchema = z.preprocess(parseOptionalTechnologyIds, z.a
 
 const portfolioItemSchema = z.object({
   name: z.string().trim().min(2).max(180),
-  
   websiteUrl: optionalUrl,
-  sortOrder: z.coerce.number().int().min(0).max(100000).default(0),
+  sortOrder: z.coerce.number().int().min(0).max(100000).optional(),
   isFeatured: portfolioBoolean(true),
   status: z.string().trim().min(1).max(80),
   technologyIds: technologyIdsSchema,
@@ -216,7 +215,7 @@ const portfolioItemUpdateSchema = portfolioItemSchema.partial().extend({
 
 const technologyCreateSchema = z.object({
   name: z.string().trim().min(1).max(120),
-  sortOrder: z.coerce.number().int().min(0).max(100000).default(0),
+  sortOrder: z.coerce.number().int().min(0).max(100000).optional(),
 });
 
 const portfolioImageSchema = z.object({
