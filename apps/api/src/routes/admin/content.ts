@@ -414,7 +414,7 @@ contentRouter.post(
             original_name, storage_provider, storage_key, public_url,
             mime_type, byte_size, checksum_sha256, uploaded_by, created_by
           )
-          VALUES ($1, 'cloudinary', $2, $5, $6, $7, $7)
+          VALUES ($1, 'cloudinary', $2, $3, $4, $5, $6, $7, $8)
           RETURNING id`,
           [
             validatedFile.originalName,
@@ -423,6 +423,7 @@ contentRouter.post(
             validatedFile.mimeType,
             cloudinaryAsset.bytes || file.size,
             validatedFile.checksumSha256,
+            req.admin?.id ?? null,
             req.admin?.id ?? null,
           ],
         );
@@ -626,7 +627,7 @@ contentRouter.post(
           original_name, storage_provider, storage_key, public_url,
           mime_type, byte_size, checksum_sha256, uploaded_by, created_by
         )
-        VALUES ($1, 'cloudinary', $2, $5, $6, $7, $7)
+        VALUES ($1, 'cloudinary', $2, $3, $4, $5, $6, $7, $8)
         RETURNING id`,
         [
           validatedFile.originalName,
@@ -635,6 +636,7 @@ contentRouter.post(
           validatedFile.mimeType,
           cloudinaryAsset.bytes || file.size,
           validatedFile.checksumSha256,
+          req.admin?.id ?? null,
           req.admin?.id ?? null,
         ],
       );
