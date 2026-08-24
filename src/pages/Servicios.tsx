@@ -71,77 +71,96 @@ const ServiceBlock: React.FC<{ service: Service; index: number }> = ({ service, 
     target: imageRef,
     offset: ['start end', 'end start'],
   });
-  const imageY = useTransform(scrollYProgress, [0, 1], [-18, 18]);
+  const imageY = useTransform(scrollYProgress, [0, 1], [-14, 14]);
 
   return (
-    <article className="relative overflow-hidden">
-      <div className="pointer-events-none absolute -top-32 right-[-10rem] h-80 w-80 rounded-full bg-[#06CFD6]/10 blur-3xl" />
+    <article className="relative overflow-hidden py-16 sm:py-24 lg:py-28">
+      {/* Luz ambiental sutil y elegante de fondo acorde al tono de la web */}
+      <div
+        className={`pointer-events-none absolute top-1/2 -translate-y-1/2 ${
+          isReversed ? 'left-[-8%]' : 'right-[-8%]'
+        } h-[420px] w-[420px] rounded-full bg-[#0CA3C6]/[0.04] blur-[140px]`}
+        aria-hidden="true"
+      />
 
-      <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 px-5 py-20 sm:px-8 sm:py-24 md:gap-14 md:px-10 lg:min-h-[720px] lg:grid-cols-2 lg:gap-20 lg:px-12 lg:py-28 xl:px-8">
+      <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-14 px-6 sm:px-10 lg:grid-cols-12 lg:gap-16 xl:px-12">
+        
+        {/* Contenedor de Texto */}
         <motion.div
-          initial={reduceMotion ? false : { opacity: 0, x: isReversed ? 36 : -36, y: 12 }}
+          initial={reduceMotion ? false : { opacity: 0, x: isReversed ? 28 : -28, y: 14 }}
           whileInView={{ opacity: 1, x: 0, y: 0 }}
           viewport={{ once: true, amount: 0.25 }}
           transition={revealTransition}
-          className={isReversed ? 'lg:order-2' : 'lg:order-1'}
+          className={`lg:col-span-6 xl:col-span-6 ${isReversed ? 'lg:order-2' : 'lg:order-1'}`}
         >
+          {/* Micro-índice y Eyebrow minimalista */}
           <div className="mb-5 flex items-center gap-3">
-            <span className="h-px w-9 bg-[#0CA3C6]" aria-hidden="true" />
-            <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#0CA3C6] sm:text-base">
+            <span className="font-mono text-xs font-semibold tracking-widest text-[#0CA3C6]/90">
+              {String(index + 1).padStart(2, '0')}
+            </span>
+            <span className="h-px w-6 bg-[#0CA3C6]/50" aria-hidden="true" />
+            <p className="text-xs sm:text-sm font-bold uppercase tracking-[0.22em] text-[#0CA3C6]">
               {service.eyebrow}
             </p>
           </div>
 
-          <h2 className="max-w-xl text-[clamp(2.15rem,5vw,4.25rem)] font-bold leading-[1.02] tracking-[-0.035em] text-white">
+          {/* Título */}
+          <h2 className="max-w-xl text-[clamp(2.1rem,4vw,3.6rem)] font-bold leading-[1.08] tracking-tight text-white">
             {service.title}
           </h2>
 
-          <p className="mt-6 max-w-xl text-base font-light leading-8 text-white/70 sm:text-lg sm:leading-8">
+          {/* Descripción */}
+          <p className="mt-6 max-w-xl text-base font-light leading-relaxed text-white/70 sm:text-lg sm:leading-8">
             {service.description}
           </p>
 
-          <ul className="mt-8 grid gap-4" aria-label={`Beneficios de ${service.eyebrow}`}>
+          {/* Lista de Beneficios Minimalista */}
+          <ul className="mt-8 space-y-4" aria-label={`Beneficios de ${service.eyebrow}`}>
             {service.benefits.map((benefit, benefitIndex) => (
               <motion.li
                 key={benefit}
-                initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+                initial={reduceMotion ? false : { opacity: 0, y: 8 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ ...revealTransition, delay: 0.08 * benefitIndex }}
-                className="flex items-start gap-3 text-base text-white/85 sm:text-lg"
+                transition={{ ...revealTransition, delay: 0.06 * benefitIndex }}
+                className="flex items-start gap-3 text-base text-white/85"
               >
-                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#06CFD6]/15 text-[#06CFD6] ring-1 ring-[#06CFD6]/20">
-                  <Check size={15} strokeWidth={3} aria-hidden="true" />
+                <span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center text-[#0CA3C6]" aria-hidden="true">
+                  <Check size={16} strokeWidth={2.6} />
                 </span>
-                <span>{benefit}</span>
+                <span className="leading-snug">{benefit}</span>
               </motion.li>
             ))}
           </ul>
 
-          <Link
-            to="/contacto"
-            aria-label={`Conversemos sobre ${service.eyebrow}`}
-            className="group mt-10 inline-flex min-h-13 w-full items-center justify-center gap-2 rounded-[22px] bg-[#06CFD6] px-7 py-3.5 text-base font-bold text-white shadow-[0_10px_30px_rgba(6,207,214,0.24)] outline-none transition-all duration-300 hover:-translate-y-1 hover:bg-[#0CA3C6] hover:shadow-[0_16px_36px_rgba(12,163,198,0.3)] focus-visible:ring-4 focus-visible:ring-[#06CFD6]/30 active:translate-y-0 sm:w-auto sm:text-lg"
-          >
-            Hablemos de tu proyecto
-            <ArrowUpRight
-              size={20}
-              aria-hidden="true"
-              className="transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-            />
-          </Link>
+          {/* Botón de acción con estilo idéntico al header y web */}
+          <div className="mt-10">
+            <Link
+              to="/contacto"
+              aria-label={`Hablemos de tu proyecto - ${service.eyebrow}`}
+              className="group inline-flex items-center justify-center gap-2.5 rounded-full bg-[#0CA3C6] px-8 py-3.5 text-base font-bold text-white shadow-[0_4px_15px_rgba(6,207,214,0.35)] outline-none transition-all duration-300 hover:bg-[#098ea9] hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(6,207,214,0.55)] active:translate-y-0"
+            >
+              Hablemos de tu proyecto
+              <ArrowUpRight
+                size={18}
+                aria-hidden="true"
+                className="transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+              />
+            </Link>
+          </div>
         </motion.div>
 
+        {/* Contenedor de Imagen */}
         <motion.div
           ref={imageRef}
-          initial={reduceMotion ? false : { opacity: 0, x: isReversed ? -36 : 36, y: 18 }}
+          initial={reduceMotion ? false : { opacity: 0, x: isReversed ? -28 : 28, y: 14 }}
           whileInView={{ opacity: 1, x: 0, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
           transition={{ ...revealTransition, delay: 0.08 }}
-          className={`relative order-first ${isReversed ? 'lg:order-1' : 'lg:order-2'}`}
+          className={`lg:col-span-6 xl:col-span-6 relative ${isReversed ? 'lg:order-1' : 'lg:order-2'}`}
         >
-          <div className="absolute -inset-4 rounded-[2.4rem] bg-[linear-gradient(145deg,rgba(6,207,214,0.24),rgba(12,163,198,0.03))] blur-xl" />
-          <div className="relative aspect-[4/3] overflow-hidden rounded-[2rem] bg-[#071426] shadow-[0_28px_70px_rgba(0,0,0,0.38)] sm:rounded-[2.5rem] lg:aspect-[5/4]">
+          {/* Marco flotante de imagen */}
+          <div className="relative aspect-[4/3] overflow-hidden rounded-[2rem] bg-[#071426] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] ring-1 ring-white/10 lg:aspect-[5/4]">
             <motion.img
               src={service.image}
               alt={service.imageAlt}
@@ -150,31 +169,41 @@ const ServiceBlock: React.FC<{ service: Service; index: number }> = ({ service, 
               decoding="async"
               draggable={false}
               style={reduceMotion ? undefined : { y: imageY }}
-              className="h-[calc(100%+36px)] w-full -translate-y-[18px] object-cover transition-transform duration-700 ease-out hover:scale-[1.025]"
+              className="h-[calc(100%+28px)] w-full -translate-y-[14px] object-cover transition-transform duration-700 ease-out hover:scale-[1.02]"
             />
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-[#020611]/30 via-transparent to-[#06CFD6]/10" />
-            <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/20" />
-          </div>
-          <div className={`absolute -bottom-5 ${isReversed ? '-left-3' : '-right-3'} h-20 w-20 rounded-[1.5rem] bg-[#0CA3C6] shadow-[0_14px_30px_rgba(12,163,198,0.28)] sm:h-24 sm:w-24`} aria-hidden="true">
-            <div className="absolute inset-4 rounded-full border border-white/45" />
-            <div className="absolute left-1/2 top-1/2 h-px w-8 -translate-x-1/2 -translate-y-1/2 bg-white/70" />
+            {/* Viñeta sutil de integración */}
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#020611]/50 via-transparent to-transparent" />
+            
+            {/* Sello de autenticidad: Isotipo Bytecode */}
+            <img
+              src="/vectors/logos/isotipo.svg"
+              alt=""
+              aria-hidden="true"
+              className="pointer-events-none absolute bottom-5 right-5 z-10 w-9 opacity-70 transition-opacity duration-300 group-hover:opacity-100"
+            />
           </div>
         </motion.div>
+
       </div>
+
+      {/* Línea divisoria muy tenue entre servicios (excepto el último) */}
+      {index < services.length - 1 && (
+        <div className="mx-auto mt-16 sm:mt-24 lg:mt-28 max-w-6xl border-b border-white/[0.06]" aria-hidden="true" />
+      )}
     </article>
   );
 };
 
 const Servicios: React.FC = () => {
   return (
-    <div className="w-full overflow-x-hidden bg-[#020611] font-sansation">
+    <div className="w-full overflow-x-hidden bg-[#020611] font-sansation text-white select-none">
       <SEO
         title="Servicios"
         description="Diseño y desarrollo de páginas web, aplicaciones móviles y software de escritorio a medida."
       />
 
-      <main>
-        <section className="bg-[#020611]" aria-label="Nuestros servicios">
+      <main className="py-6 sm:py-10">
+        <section aria-label="Nuestros servicios">
           {services.map((service, index) => (
             <ServiceBlock key={service.title} service={service} index={index} />
           ))}
@@ -182,13 +211,13 @@ const Servicios: React.FC = () => {
       </main>
 
       <div className="relative w-full">
-        <div className="absolute inset-0 z-0 bg-[#020611]" aria-hidden="true" />
-        <div className="relative z-10">
-          <AltFooter />
-        </div>
+        <AltFooter />
       </div>
     </div>
   );
 };
 
 export default Servicios;
+
+
+
