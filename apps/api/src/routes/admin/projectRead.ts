@@ -3,6 +3,7 @@ import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { pool } from '../../db/pool.js';
 import { requirePermission } from '../../middleware/auth.js';
+import { requireProjectOwnership } from '../../middleware/abac.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { HttpError } from '../../utils/httpError.js';
 import { paginationQuerySchema } from './shared.js';
@@ -165,17 +166,11 @@ projectReadRouter.get(
 projectReadRouter.get(
   '/projects/:id',
   requirePermission('admin.proyectos.view'),
+  requireProjectOwnership,
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-
-    let sql = `${projectSelectSql} AND p.id = $1`;
+    const sql = `${projectSelectSql} AND p.id = $1`;
     const params: any[] = [id];
-
-    if (isRestrictedDeveloper) {
-      sql += ' AND EXISTS(SELECT 1 FROM project_assignments pa WHERE pa.project_id = p.id AND pa.user_id = $2)';
-      params.push(req.admin!.id);
-    }
 
     const result = await pool.query(sql, params);
     if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado o acceso denegado');
@@ -186,9 +181,8 @@ projectReadRouter.get(
 projectReadRouter.get(
   '/projects/:id/vercel-bypass-secret',
   requirePermission('admin.proyectos.manage'),
+  requireProjectOwnership,
   asyncHandler(async (req: Request, res: Response) => {
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para acceder a esta informacion.');
     const id = z.string().uuid().parse(req.params.id);
     const result = await pool.query(
       `SELECT vercel_bypass_secret

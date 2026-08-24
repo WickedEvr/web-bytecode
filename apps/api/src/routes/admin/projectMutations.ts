@@ -3,6 +3,7 @@ import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { pool } from '../../db/pool.js';
 import { requirePermission } from '../../middleware/auth.js';
+import { requireProjectOwnership } from '../../middleware/abac.js';
 import { requireCsrf } from '../../middleware/csrf.js';
 import { requireNonTerminalState } from '../../middleware/requireNonTerminalState.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
@@ -88,6 +89,7 @@ projectMutationsRouter.patch(
   '/projects/:id',
   requireCsrf,
   requirePermission('admin.proyectos.manage'),
+  requireProjectOwnership,
   requireNonTerminalState('projects'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
@@ -95,10 +97,6 @@ projectMutationsRouter.patch(
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
-      const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-      if (isRestrictedDeveloper) {
-        throw new HttpError(403, 'No tienes permiso para modificar la información del proyecto.');
-      }
       const current = await client.query(
         `${projectSelectSql} AND p.id = $1 FOR UPDATE OF p`,
         [id],
@@ -241,10 +239,9 @@ projectMutationsRouter.delete(
   '/projects/:id',
   requireCsrf,
   requirePermission('admin.proyectos.manage'),
+  requireProjectOwnership,
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para eliminar proyectos.');
     const result = await pool.query('UPDATE projects SET deleted_at = now(), updated_at = now() WHERE id = $1 AND deleted_at IS NULL RETURNING *', [id]);
     if (!result.rowCount) throw new HttpError(404, 'Proyecto no encontrado');
     await auditService.logAdminAction({ userId: req.admin?.id, action: 'delete_project', entityType: 'project', entity: result.rows[0], req });

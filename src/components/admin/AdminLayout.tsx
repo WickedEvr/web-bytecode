@@ -4,6 +4,7 @@ import Sidebar from './Sidebar';
 import { apiRequest } from '../../lib/api';
 import { LogOut, Menu, UserCircle } from 'lucide-react';
 import ShineBorder from '../ui/shine-border';
+import ToastContainer from '../ui/ToastContainer';
 
 export type AdminUser = {
   id: string;
@@ -132,6 +133,7 @@ const AdminLayout: React.FC = () => {
           </ShineBorder>
         </div>
       )}
+      <ToastContainer />
     </div>
   );
 };

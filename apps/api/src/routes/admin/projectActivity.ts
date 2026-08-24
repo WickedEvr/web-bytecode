@@ -3,6 +3,7 @@ import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { pool } from '../../db/pool.js';
 import { requirePermission } from '../../middleware/auth.js';
+import { requireProjectOwnership } from '../../middleware/abac.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { HttpError } from '../../utils/httpError.js';
 import { statusHistorySelect } from './shared.js';
@@ -12,14 +13,9 @@ export const projectActivityRouter = Router();
 projectActivityRouter.get(
   '/projects/:id/commits',
   requirePermission('admin.proyectos.view'),
+  requireProjectOwnership,
   asyncHandler(async (req: Request, res: Response) => {
-    const id = z.string().uuid().parse(req.params.id);
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) {
-      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [id, req.admin?.id]);
-      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para ver commits de un proyecto ajeno.');
-    }
-    const result = await pool.query(
+    const id = z.string().uuid().parse(req.params.id);    const result = await pool.query(
       `SELECT id, project_id, commit_hash, message, author_name, author_email,
               branch, github_url, committed_at, created_at
        FROM project_commits WHERE project_id = $1
@@ -33,14 +29,8 @@ projectActivityRouter.get(
 projectActivityRouter.get(
   '/projects/:id/history',
   requirePermission('admin.proyectos.view'),
-  asyncHandler(async (req: Request, res: Response) => {
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) {
-      const parsedId = z.string().uuid().parse(req.params.id);
-      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [parsedId, req.admin?.id]);
-      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para ver el historial de un proyecto ajeno.');
-    }
-    const result = await pool.query(
+  requireProjectOwnership,
+  asyncHandler(async (req: Request, res: Response) => {    const result = await pool.query(
       statusHistorySelect('project_status_history', 'project_id'),
       [z.string().uuid().parse(req.params.id)],
     );
@@ -51,14 +41,9 @@ projectActivityRouter.get(
 projectActivityRouter.get(
   '/projects/:id/adendas',
   requirePermission('admin.proyectos.view'),
+  requireProjectOwnership,
   asyncHandler(async (req: Request, res: Response) => {
-    const id = z.string().uuid().parse(req.params.id);
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) {
-      const assignmentCheck = await pool.query('SELECT 1 FROM project_assignments WHERE project_id = $1 AND user_id = $2', [id, req.admin?.id]);
-      if (assignmentCheck.rowCount === 0) throw new HttpError(403, 'No tienes permiso para ver adendas de un proyecto ajeno.');
-    }
-    const projectRes = await pool.query('SELECT customer_id FROM projects WHERE id = $1', [id]);
+    const id = z.string().uuid().parse(req.params.id);    const projectRes = await pool.query('SELECT customer_id FROM projects WHERE id = $1', [id]);
     if (projectRes.rowCount === 0) throw new HttpError(404, 'Proyecto no encontrado');
 
     const result = await pool.query(

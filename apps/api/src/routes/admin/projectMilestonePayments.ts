@@ -9,6 +9,7 @@ import {
 import { pool } from '../../db/pool.js';
 import { validateUpload } from '../../lib/validateUpload.js';
 import { requirePermission } from '../../middleware/auth.js';
+import { requireProjectOwnership } from '../../middleware/abac.js';
 import { requireCsrf } from '../../middleware/csrf.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { HttpError } from '../../utils/httpError.js';
@@ -17,26 +18,39 @@ import { upload } from './shared.js';
 
 export const projectMilestonePaymentsRouter = Router();
 
-const milestonePaymentSchema = z.object({
+const milestonePaymentBaseSchema = z.object({
   amountPaid: z.coerce.number().min(0.01),
-  paymentMethod: z.string().min(1).max(80),
+  paymentMethod: z.enum(['transfer', 'cash', 'credit_card', 'paypal']),
   referenceNumber: z.string().max(180).optional().nullable(),
   paidAt: z.string().date(),
   splitRemaining: z.string().optional().transform(v => v === 'true'),
+});
+
+const milestonePaymentSchema = milestonePaymentBaseSchema.superRefine((data, ctx) => {
+  if (data.paymentMethod !== 'cash' && (!data.referenceNumber || data.referenceNumber.trim() === '')) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'El número de operación es obligatorio para este método de pago.',
+      path: ['referenceNumber'],
+    });
+  }
 });
 
 projectMilestonePaymentsRouter.post(
   '/projects/:id/milestones/:milestone_id/payments',
   requireCsrf,
   requirePermission('admin.proyectos.manage'),
+  requireProjectOwnership,
   upload.single('receipt'),
   asyncHandler(async (req: Request, res: Response) => {
     const projectId = z.string().uuid().parse(req.params.id);
-    const isRestrictedDeveloper = req.admin?.roles.includes('developer') && !req.admin?.roles.includes('super_admin') && !req.admin?.roles.includes('admin');
-    if (isRestrictedDeveloper) throw new HttpError(403, 'No tienes permiso para gestionar hitos.');
     const milestoneId = z.string().uuid().parse(req.params.milestone_id);
     const body = milestonePaymentSchema.parse(req.body);
     const file = req.file;
+
+    if (body.paymentMethod !== 'cash' && !file) {
+      throw new HttpError(400, 'El comprobante de pago es obligatorio para este método de pago.');
+    }
 
     const client = await pool.connect();
     let cloudinaryAsset: CloudinaryStoredAsset | null = null;
@@ -157,10 +171,13 @@ projectMilestonePaymentsRouter.post(
         await auditService.logAdminAction(log);
       }
       res.status(201).json({ id: paymentRow.id });
-    } catch (error) {
+    } catch (error: any) {
       await client.query('ROLLBACK').catch(() => undefined);
       if (cloudinaryAsset) {
         await deleteCloudinaryAsset(cloudinaryAsset.publicId, cloudinaryAsset.resourceType).catch(() => undefined);
+      }
+      if (error.code === '23505') {
+        throw new HttpError(400, 'El número de operación ya ha sido registrado previamente para este método de pago.');
       }
       throw error;
     } finally {

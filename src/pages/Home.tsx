@@ -494,10 +494,8 @@ const FAQSection: React.FC = () => {
 
   return (
     <section className="relative overflow-hidden font-sansation">
-      {/* Línea Separadora superior */}
-      <div className="mx-auto mt-16 mb-7 hidden w-[86.6%] border-t border-white md:block lg:mt-28 lg:mb-10" />
 
-      <div className="relative z-10 py-10 px-6 max-w-4xl mx-auto w-full">
+      <div className="relative z-10 pb-10 px-6 max-w-4xl mx-auto w-full">
         {/* Título de la sección */}
         <div className="text-center mb-12">
           <h2 className="mb-[1.2rem] text-[clamp(34px,4.5vw,68px)] font-bold leading-[1.15] text-white">
