@@ -2,9 +2,9 @@
 -- Migración para inyectar los permisos del Módulo de Directorio y el menú en el Panel de Administrador
 
 -- 1. Insertar permisos requeridos
-INSERT INTO permissions (id, code, description, module_code) VALUES
-(gen_random_uuid(), 'admin.directorio.view', 'Ver clientes y empresas', 'directorio'),
-(gen_random_uuid(), 'admin.directorio.manage', 'Crear, editar o eliminar clientes y empresas', 'directorio')
+INSERT INTO permissions (id, code, description, module_code, action_code) VALUES
+(gen_random_uuid(), 'admin.directorio.view', 'Ver clientes y empresas', 'directorio', 'view'),
+(gen_random_uuid(), 'admin.directorio.manage', 'Crear, editar o eliminar clientes y empresas', 'directorio', 'manage')
 ON CONFLICT (code) DO NOTHING;
 
 -- 2. Asignar permisos al rol superadmin
