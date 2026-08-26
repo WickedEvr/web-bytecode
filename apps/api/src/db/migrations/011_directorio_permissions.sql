@@ -35,8 +35,7 @@ ON CONFLICT (role_id, permission_id) DO NOTHING;
 
 -- 4. Inyectar el ítem de menú en la barra lateral
 -- Se colocará con sort_order = 4 (Generalmente después de Dashboard, Contactos y Reclamos)
-INSERT INTO menu_items (id, label, icon, route, required_permission, sort_order, parent_id)
-SELECT gen_random_uuid(), 'Directorio', 'Users', '/admin/directorio', 'admin.directorio.view', 4, NULL
-WHERE NOT EXISTS (
-    SELECT 1 FROM menu_items WHERE route = '/admin/directorio'
-);
+INSERT INTO menu_items (id, label, url, route_name, icon_name, permission_id, sort_order)
+SELECT gen_random_uuid(), 'Directorio', '/admin/directorio', 'admin.directorio', 'Users', p.id, 4
+FROM permissions p WHERE p.code = 'admin.directorio.view'
+ON CONFLICT (route_name) DO NOTHING;
