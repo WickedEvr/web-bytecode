@@ -26,6 +26,7 @@ const AdminLogin = lazy(() => import('./pages/admin/Login'));
 const AdminVerifyAccount = lazy(() => import('./pages/admin/VerifyAccount'));
 const AdminSetupPassword = lazy(() => import('./pages/admin/SetupPassword'));
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
+const AdminDirectorio = lazy(() => import('./pages/admin/DirectorioAdmin'));
 const AdminContactos = lazy(() => import('./pages/admin/Contactos'));
 const AdminReclamos = lazy(() => import('./pages/admin/Reclamos'));
 const AdminCotizador = lazy(() => import('./pages/admin/Cotizador'));
@@ -104,6 +105,7 @@ const App: React.FC = () => {
           >
             <Route index element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="dashboard" element={<RoleGuard requiredPermission="admin.dashboard.view"><AdminDashboard /></RoleGuard>} />
+            <Route path="directorio" element={<RoleGuard requiredPermission="admin.directorio.view"><AdminDirectorio /></RoleGuard>} />
             <Route path="contactos" element={<RoleGuard requiredPermission="admin.contactos.view"><AdminContactos /></RoleGuard>} />
             <Route path="reclamos" element={<RoleGuard requiredPermission="admin.reclamos.view"><AdminReclamos /></RoleGuard>} />
             <Route path="cotizador" element={<RoleGuard requiredPermission="admin.cotizador.view"><AdminCotizador /></RoleGuard>} />

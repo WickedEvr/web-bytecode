@@ -11,6 +11,7 @@ import { projectMilestonePaymentsRouter } from './admin/projectMilestonePayments
 import { projectsRouter } from './admin/projects.js';
 import { projectReadRouter } from './admin/projectRead.js';
 import { quotesRouter } from './admin/quotes.js';
+import directoryRouter from './admin/directory.js';
 import { auditLogsRouter, dashboardRouter, governanceRouter } from './admin/system.js';
 
 const router = Router();
@@ -32,6 +33,7 @@ router.use('/', projectMilestonesRouter);
 router.use('/', projectMilestonePaymentsRouter);
 router.use('/', projectReadRouter);
 router.use('/', quotesRouter);
+router.use('/', directoryRouter);
 router.use('/', governanceRouter);
 
 export default router;
