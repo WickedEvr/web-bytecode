@@ -8,26 +8,30 @@ INSERT INTO permissions (id, code, name, description, module_code, action_code) 
 ON CONFLICT (code) DO NOTHING;
 
 -- 2. Asignar permisos al rol superadmin
-INSERT INTO role_permissions (role_id, permission_code)
-SELECT id, 'admin.directorio.view' FROM roles WHERE code = 'superadmin'
-ON CONFLICT (role_id, permission_code) DO NOTHING;
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id FROM roles r CROSS JOIN permissions p
+WHERE r.code = 'superadmin' AND p.code = 'admin.directorio.view'
+ON CONFLICT (role_id, permission_id) DO NOTHING;
 
-INSERT INTO role_permissions (role_id, permission_code)
-SELECT id, 'admin.directorio.manage' FROM roles WHERE code = 'superadmin'
-ON CONFLICT (role_id, permission_code) DO NOTHING;
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id FROM roles r CROSS JOIN permissions p
+WHERE r.code = 'superadmin' AND p.code = 'admin.directorio.manage'
+ON CONFLICT (role_id, permission_id) DO NOTHING;
 
 -- 3. Crear rol sales si no existe y asignarle permisos
 INSERT INTO roles (id, code, name, description, is_system) 
 VALUES (gen_random_uuid(), 'sales', 'Ventas', 'Ejecutivo de Ventas', true)
 ON CONFLICT (code) DO NOTHING;
 
-INSERT INTO role_permissions (role_id, permission_code)
-SELECT id, 'admin.directorio.view' FROM roles WHERE code = 'sales'
-ON CONFLICT (role_id, permission_code) DO NOTHING;
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id FROM roles r CROSS JOIN permissions p
+WHERE r.code = 'sales' AND p.code = 'admin.directorio.view'
+ON CONFLICT (role_id, permission_id) DO NOTHING;
 
-INSERT INTO role_permissions (role_id, permission_code)
-SELECT id, 'admin.directorio.manage' FROM roles WHERE code = 'sales'
-ON CONFLICT (role_id, permission_code) DO NOTHING;
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id FROM roles r CROSS JOIN permissions p
+WHERE r.code = 'sales' AND p.code = 'admin.directorio.manage'
+ON CONFLICT (role_id, permission_id) DO NOTHING;
 
 -- 4. Inyectar el ítem de menú en la barra lateral
 -- Se colocará con sort_order = 4 (Generalmente después de Dashboard, Contactos y Reclamos)
