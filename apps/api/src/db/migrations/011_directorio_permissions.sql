@@ -42,9 +42,9 @@ AND NOT EXISTS (
 );
 
 -- 4. Inyectar el ítem de menú en la barra lateral
--- Se colocará con sort_order = 4 (Generalmente después de Dashboard, Contactos y Reclamos)
+-- Se colocará con sort_order = 25 (Generalmente después de Contactos)
 INSERT INTO menu_items (id, label, url, route_name, icon_name, permission_id, sort_order)
-SELECT gen_random_uuid(), 'Directorio', '/admin/directorio', 'admin.directorio', 'Users', p.id, 4
+SELECT gen_random_uuid(), 'Directorio', '/admin/directorio', 'admin.directorio', 'Building2', p.id, 25
 FROM permissions p WHERE p.code = 'admin.directorio.view'
 AND NOT EXISTS (
     SELECT 1 FROM menu_items WHERE route_name = 'admin.directorio'
