@@ -103,7 +103,7 @@ async function apiRequestInternal<T>(path: string, options: RequestOptions = {},
 
 export const apiUrl = buildUrl;
 
-export const createContactSubmission = (payload: Record<string, string>) =>
+export const createContactSubmission = (payload: Record<string, any>) =>
   apiRequest<{ id: string; createdAt: string }>('/contact-submissions', {
     method: 'POST',
     json: payload,
