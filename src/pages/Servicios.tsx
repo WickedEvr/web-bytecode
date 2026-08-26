@@ -1,216 +1,269 @@
-import React, { useRef } from 'react';
-import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
+import React from 'react';
 import { ArrowUpRight, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import AltFooter from '../components/layout/AltFooter';
 import SEO from '../components/shared/SEO';
 
-type Service = {
+type ServiceCardData = {
+  num: string;
   title: string;
-  eyebrow: string;
+  tag: string;
   description: string;
-  benefits: string[];
+  deliverables: string[];
+  tags: string[];
   image: string;
-  imageAlt: string;
+  badge?: string;
 };
 
-const services: Service[] = [
+const services: ServiceCardData[] = [
   {
-    eyebrow: 'Experiencias web',
-    title: 'Páginas web que convierten visitas en oportunidades',
+    num: '01 / 06',
+    title: 'Desarrollo Web & Plataformas',
+    tag: 'Web & E-Commerce',
     description:
-      'Diseñamos y desarrollamos experiencias digitales rápidas, claras y memorables, pensadas para comunicar el valor de tu marca y acompañar cada decisión del usuario.',
-    benefits: [
-      'Diseño estratégico alineado a tu marca',
-      'Experiencia responsive y accesible',
-      'Arquitectura preparada para crecer',
+      'Construimos sitios web corporativos, landing pages de alta conversión, plataformas administrativas y tiendas virtuales con código 100% nativo, máxima velocidad y optimización SEO.',
+    deliverables: [
+      'Páginas web corporativas & Landing pages',
+      'Tiendas virtuales y e-commerce con pasarelas de pago',
+      'Paneles administrativos autoadministrables',
+      'Optimización SEO y velocidad de carga extrema (< 0.8s)',
     ],
-    image:
-      'https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?auto=format&fit=crop&w=1600&q=88',
-    imageAlt: 'Equipo analizando una experiencia web en pantallas',
+    tags: ['React 19', 'TypeScript', 'Tailwind CSS', 'Next.js / Vite', 'SEO Semántico'],
+    image: 'https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?auto=format&fit=crop&w=1200&q=80',
+    badge: 'Popular · React 19',
   },
   {
-    eyebrow: 'Aplicaciones móviles',
-    title: 'Productos móviles que las personas disfrutan usar',
+    num: '02 / 06',
+    title: 'Aplicaciones Móviles iOS & Android',
+    tag: 'Mobile Apps',
     description:
-      'Creamos aplicaciones nativas e híbridas para iOS y Android con flujos intuitivos, una interfaz cuidada y una base técnica sólida para evolucionar junto a tu negocio.',
-    benefits: [
-      'Experiencias fluidas y centradas en el usuario',
-      'Integraciones seguras con tus sistemas',
-      'Rendimiento optimizado en cada dispositivo',
+      'Desarrollamos aplicaciones móviles nativas y multiplataforma con interfaces fluidas a 60 FPS, sincronización en tiempo real, modo offline, notificaciones push y pasarelas de pago integradas.',
+    deliverables: [
+      'Desarrollo para App Store (iOS) y Google Play (Android)',
+      'Sincronización en tiempo real con bases de datos',
+      'Notificaciones push automáticas y personalizadas',
+      'Autenticación biométrica (Face ID / Huella dactilar)',
     ],
-    image:
-      'https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=1600&q=88',
-    imageAlt: 'Aplicación móvil presentada en un smartphone',
+    tags: ['React Native', 'Expo', 'iOS & Android', 'Push Notifications', 'Firebase'],
+    image: 'https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=1200&q=80',
+    badge: '60 FPS Nativo',
   },
   {
-    eyebrow: 'Software de escritorio',
-    title: 'Herramientas robustas para operaciones más eficientes',
+    num: '03 / 06',
+    title: 'Software de Escritorio & Corporativo',
+    tag: 'Sistemas a Medida',
     description:
-      'Desarrollamos software de escritorio a medida para simplificar procesos complejos, centralizar información y darle a tu equipo el control que necesita para avanzar.',
-    benefits: [
-      'Flujos adaptados a tu operación real',
-      'Interfaces intuitivas y fáciles de adoptar',
-      'Seguridad, estabilidad y soporte evolutivo',
+      'Creamos herramientas operativas de nivel corporativo para automatizar inventarios, facturación electrónica, dashboards analíticos, control de usuarios y flujos de trabajo de alta exigencia.',
+    deliverables: [
+      'Software de escritorio nativo para Windows y macOS',
+      'Módulos de facturación electrónica y gestión de ventas',
+      'Control de inventarios y trazabilidad con reportes',
+      'Bases de datos relacionales con copias de seguridad',
     ],
+    tags: ['Electron / Tauri', 'PostgreSQL', 'Node.js', 'Docker', 'Windows & Mac'],
     image: '/images/showcase/DesktopApp.webp',
-    imageAlt: 'Panel de una aplicación de escritorio desarrollada a medida',
+  },
+  {
+    num: '04 / 06',
+    title: 'E-Commerce & Pasarelas de Pago',
+    tag: 'Comercio Digital',
+    description:
+      'Diseñamos tiendas online completas con catálogo interactivo, flujos de compra sin fricción, cálculo automático de envíos e integración directa con pasarelas de pago y billeteras digitales.',
+    deliverables: [
+      'Integración con Stripe, Culqi, Mercado Pago y Yape / Plin',
+      'Gestión automática de stock y variantes de producto',
+      'Checkout rápido optimizado para celulares',
+      'Notificaciones automáticas de pedidos por WhatsApp y email',
+    ],
+    tags: ['E-Commerce', 'Pasarelas de Pago', 'Checkout Ágil', 'Gestión de Stock'],
+    image: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1200&q=80',
+    badge: 'Alta Conversión',
+  },
+  {
+    num: '05 / 06',
+    title: 'Automatización & Capa de Inteligencia Artificial',
+    tag: 'Inteligencia Artificial',
+    description:
+      'Potenciamos tu plataforma con asistentes de atención 24/7, bots para calificar y capturar leads, formularios inteligentes y flujos automatizados que conectan directamente con tu CRM.',
+    deliverables: [
+      'Chatbots con IA entrenados con la información de tu negocio',
+      'Calificación y derivación automática de prospectos',
+      'Generación de presupuestos y cotizaciones en tiempo real',
+      'Integraciones con APIs de OpenAI, Gemini y Webhooks',
+    ],
+    tags: ['Chatbots IA', 'OpenAI & Gemini', 'Automatización CRM', 'Webhooks'],
+    image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
+    badge: 'Nuevo · IA',
+  },
+  {
+    num: '06 / 06',
+    title: 'Auditoría, Optimización & Mantenimiento Cloud',
+    tag: 'Cloud & Seguridad',
+    description:
+      'Auditamos la seguridad y velocidad de tu software existente, optimizamos código para alcanzar puntuación máxima en Google Lighthouse y brindamos soporte técnico continuo para que nunca se detenga.',
+    deliverables: [
+      'Auditoría técnica de seguridad bajo estándares OWASP',
+      'Optimización de velocidad y rendimiento de bases de datos',
+      'Migración y despliegue en servidores cloud seguros',
+      'Mantenimiento correctivo y soporte técnico continuo',
+    ],
+    tags: ['Seguridad OWASP', 'Lighthouse 98+', 'Docker Cloud', 'Soporte Continuo'],
+    image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80',
   },
 ];
 
-const revealTransition = {
-  duration: 0.65,
-  ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
-};
-
-const ServiceBlock: React.FC<{ service: Service; index: number }> = ({ service, index }) => {
-  const imageRef = useRef<HTMLDivElement>(null);
-  const reduceMotion = useReducedMotion();
-  const isReversed = index % 2 === 1;
-  const { scrollYProgress } = useScroll({
-    target: imageRef,
-    offset: ['start end', 'end start'],
-  });
-  const imageY = useTransform(scrollYProgress, [0, 1], [-14, 14]);
-
-  return (
-    <article className="relative overflow-hidden py-16 sm:py-24 lg:py-28">
-      {/* Luz ambiental sutil y elegante de fondo acorde al tono de la web */}
-      <div
-        className={`pointer-events-none absolute top-1/2 -translate-y-1/2 ${
-          isReversed ? 'left-[-8%]' : 'right-[-8%]'
-        } h-[420px] w-[420px] rounded-full bg-[#0CA3C6]/[0.04] blur-[140px]`}
-        aria-hidden="true"
-      />
-
-      <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-14 px-6 sm:px-10 lg:grid-cols-12 lg:gap-16 xl:px-12">
-        
-        {/* Contenedor de Texto */}
-        <motion.div
-          initial={reduceMotion ? false : { opacity: 0, x: isReversed ? 28 : -28, y: 14 }}
-          whileInView={{ opacity: 1, x: 0, y: 0 }}
-          viewport={{ once: true, amount: 0.25 }}
-          transition={revealTransition}
-          className={`lg:col-span-6 xl:col-span-6 ${isReversed ? 'lg:order-2' : 'lg:order-1'}`}
-        >
-          {/* Micro-índice y Eyebrow minimalista */}
-          <div className="mb-5 flex items-center gap-3">
-            <span className="font-mono text-xs font-semibold tracking-widest text-[#0CA3C6]/90">
-              {String(index + 1).padStart(2, '0')}
-            </span>
-            <span className="h-px w-6 bg-[#0CA3C6]/50" aria-hidden="true" />
-            <p className="text-xs sm:text-sm font-bold uppercase tracking-[0.22em] text-[#0CA3C6]">
-              {service.eyebrow}
-            </p>
-          </div>
-
-          {/* Título */}
-          <h2 className="max-w-xl text-[clamp(2.1rem,4vw,3.6rem)] font-bold leading-[1.08] tracking-tight text-white">
-            {service.title}
-          </h2>
-
-          {/* Descripción */}
-          <p className="mt-6 max-w-xl text-base font-light leading-relaxed text-white/70 sm:text-lg sm:leading-8">
-            {service.description}
-          </p>
-
-          {/* Lista de Beneficios Minimalista */}
-          <ul className="mt-8 space-y-4" aria-label={`Beneficios de ${service.eyebrow}`}>
-            {service.benefits.map((benefit, benefitIndex) => (
-              <motion.li
-                key={benefit}
-                initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ ...revealTransition, delay: 0.06 * benefitIndex }}
-                className="flex items-start gap-3 text-base text-white/85"
-              >
-                <span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center text-[#0CA3C6]" aria-hidden="true">
-                  <Check size={16} strokeWidth={2.6} />
-                </span>
-                <span className="leading-snug">{benefit}</span>
-              </motion.li>
-            ))}
-          </ul>
-
-          {/* Botón de acción con estilo idéntico al header y web */}
-          <div className="mt-10">
-            <Link
-              to="/contacto"
-              aria-label={`Hablemos de tu proyecto - ${service.eyebrow}`}
-              className="group inline-flex items-center justify-center gap-2.5 rounded-full bg-[#0CA3C6] px-8 py-3.5 text-base font-bold text-white shadow-[0_4px_15px_rgba(6,207,214,0.35)] outline-none transition-all duration-300 hover:bg-[#098ea9] hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(6,207,214,0.55)] active:translate-y-0"
-            >
-              Hablemos de tu proyecto
-              <ArrowUpRight
-                size={18}
-                aria-hidden="true"
-                className="transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-              />
-            </Link>
-          </div>
-        </motion.div>
-
-        {/* Contenedor de Imagen */}
-        <motion.div
-          ref={imageRef}
-          initial={reduceMotion ? false : { opacity: 0, x: isReversed ? -28 : 28, y: 14 }}
-          whileInView={{ opacity: 1, x: 0, y: 0 }}
-          viewport={{ once: true, amount: 0.2 }}
-          transition={{ ...revealTransition, delay: 0.08 }}
-          className={`lg:col-span-6 xl:col-span-6 relative ${isReversed ? 'lg:order-1' : 'lg:order-2'}`}
-        >
-          {/* Marco flotante de imagen */}
-          <div className="relative aspect-[4/3] overflow-hidden rounded-[2rem] bg-[#071426] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] ring-1 ring-white/10 lg:aspect-[5/4]">
-            <motion.img
-              src={service.image}
-              alt={service.imageAlt}
-              loading={index === 0 ? 'eager' : 'lazy'}
-              fetchPriority={index === 0 ? 'high' : 'auto'}
-              decoding="async"
-              draggable={false}
-              style={reduceMotion ? undefined : { y: imageY }}
-              className="h-[calc(100%+28px)] w-full -translate-y-[14px] object-cover transition-transform duration-700 ease-out hover:scale-[1.02]"
-            />
-            {/* Viñeta sutil de integración */}
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#020611]/50 via-transparent to-transparent" />
-            
-            {/* Sello de autenticidad: Isotipo Bytecode */}
-            <img
-              src="/vectors/logos/isotipo.svg"
-              alt=""
-              aria-hidden="true"
-              className="pointer-events-none absolute bottom-5 right-5 z-10 w-9 opacity-70 transition-opacity duration-300 group-hover:opacity-100"
-            />
-          </div>
-        </motion.div>
-
-      </div>
-
-      {/* Línea divisoria muy tenue entre servicios (excepto el último) */}
-      {index < services.length - 1 && (
-        <div className="mx-auto mt-16 sm:mt-24 lg:mt-28 max-w-6xl border-b border-white/[0.06]" aria-hidden="true" />
-      )}
-    </article>
-  );
-};
-
 const Servicios: React.FC = () => {
   return (
-    <div className="w-full overflow-x-hidden bg-[#020611] font-sansation text-white select-none">
+    <div className="relative isolate overflow-x-hidden font-sansation text-white select-none">
       <SEO
-        title="Servicios"
-        description="Diseño y desarrollo de páginas web, aplicaciones móviles y software de escritorio a medida."
+        title="Servicios de Software"
+        description="Catálogo de desarrollo web, aplicaciones móviles, software corporativo y automatización con IA por Bytecode."
       />
 
-      <main className="py-6 sm:py-10">
-        <section aria-label="Nuestros servicios">
-          {services.map((service, index) => (
-            <ServiceBlock key={service.title} service={service} index={index} />
-          ))}
-        </section>
-      </main>
+      {/* ========================================= */}
+      {/* FONDO ESPACIAL LIMPIO SIN GALAXIA */}
+      {/* ========================================= */}
+      <div className="absolute inset-0 bg-[#040e1f] -z-10" aria-hidden="true">
+        <div className="absolute inset-0 bg-[url('/vectors/designs/stardust.png')] opacity-60 mix-blend-screen pointer-events-none" />
+        <div className="absolute inset-0 rotate-180 bg-[url('/vectors/designs/stardust.png')] opacity-40 mix-blend-screen pointer-events-none" />
+      </div>
 
-      <div className="relative w-full">
+      {/* Sombras y formas vectoriales del Home */}
+      <img src="/vectors/shadows/sombra-general.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-[1]" />
+      <img src="/vectors/shadows/sombra-arriba.svg" aria-hidden="true" className="absolute top-0 left-0 w-full pointer-events-none z-[2]" />
+
+      {/* ========================================= */}
+      {/* 1. HERO DE SERVICIOS CON ESTILO HOME */}
+      {/* ========================================= */}
+      <section className="relative z-10 pt-24 pb-12 px-6 md:px-12 max-w-7xl mx-auto">
+        <div className="text-center max-w-4xl mx-auto">
+          
+          {/* Eyebrow tipo badge con estilo Home */}
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#0CA3C6]/40 bg-[#0CA3C6]/10 px-5 py-2 text-xs md:text-sm font-bold text-[#06CFD6] mb-6 backdrop-blur-md">
+            <span className="h-2 w-2 rounded-full bg-[#06CFD6] animate-pulse" />
+            <span>SERVICIOS · SOLUCIONES A MEDIDA</span>
+          </div>
+
+          {/* Gran Titular con tipografía y glow del Home */}
+          <h1 className="text-[clamp(34px,5.5vw,68px)] font-bold uppercase leading-[1.1] text-white [text-shadow:0px_4px_7.3px_rgba(0,0,0,0.51)] mb-6">
+            SOLUCIONES DE <span className="text-[#0CA3C6]">SOFTWARE</span> <br />
+            DISEÑADAS PARA <span className="text-[#06CFD6]">ESCALAR</span>
+          </h1>
+
+          {/* Subtítulo con el text-shadow del Home */}
+          <p className="text-[clamp(16px,1.8vw,22px)] font-normal leading-[1.5] text-white/85 [text-shadow:0_0_8px_rgba(6,207,214,0.4)] max-w-2xl mx-auto">
+            Desarrollamos tecnología limpia y robusta desde cero. Código nativo sin plantillas para hacer realidad tus proyectos más ambiciosos.
+          </p>
+
+        </div>
+      </section>
+
+      {/* ========================================= */}
+      {/* 2. GRID DE TARJETAS (ESTILO GLASS-PANEL DEL HOME) */}
+      {/* ========================================= */}
+      <section className="relative z-10 pb-28 px-6 md:px-12 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {services.map((service) => (
+            <div
+              key={service.title}
+              className="group relative rounded-[28px] overflow-hidden glass-panel bg-white/[0.04] border border-white/15 transition-all duration-300 hover:border-[#0CA3C6] hover:shadow-[0px_0px_30px_rgba(6,207,214,0.25)] hover:-translate-y-1.5 flex flex-col justify-between"
+            >
+              <div>
+                {/* Portada Superior con Badge */}
+                <div className="relative aspect-[16/10] overflow-hidden bg-black/40">
+                  <img
+                    src={service.image}
+                    alt={service.title}
+                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#040e1f] via-transparent to-transparent" />
+                  
+                  {service.badge && (
+                    <span className="absolute top-4 right-4 bg-[#06CFD6] text-white text-[11px] font-bold uppercase px-3.5 py-1 rounded-full shadow-[0px_0px_15px_rgba(6,207,214,0.6)]">
+                      {service.badge}
+                    </span>
+                  )}
+                </div>
+
+                {/* Contenido de la Tarjeta */}
+                <div className="p-7">
+                  <div className="flex items-center justify-between text-xs font-bold text-[#06CFD6] uppercase mb-3">
+                    <span>{service.num}</span>
+                    <span>{service.tag}</span>
+                  </div>
+
+                  <h2 className="text-xl sm:text-2xl font-bold text-white mb-3 leading-tight group-hover:text-[#06CFD6] transition-colors">
+                    {service.title}
+                  </h2>
+
+                  <p className="text-sm text-white/75 leading-relaxed font-normal mb-6">
+                    {service.description}
+                  </p>
+
+                  {/* Entregables incluidos */}
+                  <div className="mb-6 space-y-2.5">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#0CA3C6] block mb-2">
+                      Lo que incluye:
+                    </span>
+                    {service.deliverables.map((item) => (
+                      <div key={item} className="flex items-start gap-2.5 text-xs text-white/90">
+                        <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#06CFD6]/20 text-[#06CFD6] mt-0.5">
+                          <Check size={11} strokeWidth={3} />
+                        </div>
+                        <span className="leading-snug">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Tags de Tecnología tipo Badge Glass */}
+                  <div className="flex flex-wrap gap-1.5 pt-4 border-t border-white/10">
+                    {service.tags.map((t) => (
+                      <span
+                        key={t}
+                        className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-white/[0.05] border border-white/10 text-white/80"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer de Tarjeta con Enlace y Estilo Botón Home */}
+              <Link
+                to="/contacto"
+                className="px-7 py-4 border-t border-white/10 flex items-center justify-between font-bold text-sm text-[#06CFD6] bg-black/20 group-hover:bg-[#06CFD6] group-hover:text-white transition-all duration-300"
+              >
+                <span>Cotizar {service.title}</span>
+                <ArrowUpRight size={18} className="transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
+              </Link>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ========================================= */}
+      {/* 3. CTA FINAL INSPIRADO EN EL HOME */}
+      {/* ========================================= */}
+      <section className="relative z-10 pb-20 px-6 max-w-4xl mx-auto w-full text-center">
+        <div className="glass-panel p-10 md:p-14 border border-white/20 hover:border-[#0CA3C6]/60 transition-all duration-300 shadow-[0px_0px_35px_rgba(6,207,214,0.15)]">
+          <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold uppercase text-white leading-tight mb-4">
+            ¿TIENES UN PROYECTO <span className="text-[#0CA3C6]">EN MENTE?</span>
+          </h3>
+          <p className="text-base sm:text-lg text-white/80 max-w-lg mx-auto mb-8 leading-relaxed">
+            Adquiere tu consulta técnica <span className="font-bold text-[#06CFD6]">GRATIS</span> y conversemos sobre la mejor arquitectura para tu negocio.
+          </p>
+          <Link
+            to="/contacto"
+            className="inline-flex items-center gap-2 rounded-full bg-[#06CFD6] px-9 py-3.5 text-base md:text-lg font-bold text-white shadow-[0px_0px_25px_rgba(6,207,214,0.5)] hover:scale-105 hover:bg-[#0CA3C6] transition-all duration-300"
+          >
+            <span>Iniciar Consulta</span>
+            <ArrowUpRight size={20} />
+          </Link>
+        </div>
+      </section>
+
+      <div className="relative z-10 w-full">
         <AltFooter />
       </div>
     </div>
