@@ -138,10 +138,13 @@ quotesRouter.get(
         ORDER BY name ASC
       `),
       pool.query(`
-        SELECT id, primary_email AS email,
-               COALESCE(NULLIF(trim(concat_ws(' ', first_name, last_name)), ''), primary_email) AS name
-        FROM customers
-        WHERE deleted_at IS NULL
+        SELECT c.id, c.primary_email AS email,
+               COALESCE(NULLIF(trim(concat_ws(' ', c.first_name, c.last_name)), ''), c.primary_email) AS name,
+               array_remove(array_agg(co.organization_id), NULL) as organization_ids
+        FROM customers c
+        LEFT JOIN customer_organizations co ON c.id = co.customer_id AND co.deleted_at IS NULL
+        WHERE c.deleted_at IS NULL
+        GROUP BY c.id
         ORDER BY name ASC
       `),
       getLiveExchangeRates(),
