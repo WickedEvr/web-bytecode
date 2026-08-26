@@ -77,6 +77,10 @@ directoryRouter.get(
         c.primary_email,
         c.primary_phone,
         c.created_at,
+        cou.iso2 AS country_iso,
+        cou.name AS country_name,
+        dt.name AS document_type_name,
+        cd.document_number,
         coalesce(
           json_agg(
             json_build_object('id', o.id, 'name', coalesce(o.trade_name, o.legal_name), 'position', co.position_title)
@@ -84,11 +88,14 @@ directoryRouter.get(
           '[]'
         ) as organizations
       FROM customers c
+      LEFT JOIN countries cou ON c.country_id = cou.id
+      LEFT JOIN customer_documents cd ON c.id = cd.customer_id AND cd.deleted_at IS NULL AND cd.is_primary = true
+      LEFT JOIN document_types dt ON cd.document_type_id = dt.id
       LEFT JOIN customer_organizations co ON c.id = co.customer_id AND co.deleted_at IS NULL
       LEFT JOIN organizations o ON co.organization_id = o.id AND o.deleted_at IS NULL
       WHERE c.deleted_at IS NULL
       AND (c.first_name ILIKE $3 OR c.last_name ILIKE $3 OR c.primary_email ILIKE $3)
-      GROUP BY c.id
+      GROUP BY c.id, cou.iso2, cou.name, dt.name, cd.document_number
       ORDER BY c.created_at DESC
       LIMIT $1 OFFSET $2
     `, [limit, offset, search]);

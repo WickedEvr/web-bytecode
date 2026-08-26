@@ -181,16 +181,17 @@ export default function DirectorioAdmin() {
               <thead className="bg-white/[0.02] text-white/50 text-xs uppercase tracking-wider">
                 <tr>
                   <th className="px-6 py-4 font-medium">Nombre y Correo</th>
-                  <th className="px-6 py-4 font-medium">Teléfono</th>
+                  <th className="px-6 py-4 font-medium">Documento</th>
+                  <th className="px-6 py-4 font-medium">Teléfono / País</th>
                   <th className="px-6 py-4 font-medium">Empresa (B2B)</th>
                   <th className="px-6 py-4 text-center font-medium">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-white/80">
                 {loading ? (
-                  <tr><td colSpan={4} className="px-6 py-12 text-center text-white/30 text-sm">Cargando personas...</td></tr>
+                  <tr><td colSpan={5} className="px-6 py-12 text-center text-white/30 text-sm">Cargando personas...</td></tr>
                 ) : customers.length === 0 ? (
-                  <tr><td colSpan={4} className="px-6 py-12 text-center text-white/30 text-sm">No hay personas registradas.</td></tr>
+                  <tr><td colSpan={5} className="px-6 py-12 text-center text-white/30 text-sm">No hay personas registradas.</td></tr>
                 ) : (
                   customers.map(cust => (
                     <tr key={cust.id} className="transition-colors hover:bg-white/[0.02]">
@@ -198,12 +199,35 @@ export default function DirectorioAdmin() {
                         <div className="font-medium text-white">{cust.display_name}</div>
                         <div className="text-xs text-white/50 mt-1">{cust.primary_email}</div>
                       </td>
-                      <td className="px-6 py-4 text-white/60 text-xs font-mono">{cust.primary_phone || '-'}</td>
                       <td className="px-6 py-4">
-                        {cust.organization_name ? (
+                        {cust.document_number ? (
+                          <div className="flex flex-col">
+                            <span className="text-white text-sm font-mono">{cust.document_number}</span>
+                            <span className="text-white/40 text-[10px] uppercase tracking-wider mt-0.5">{cust.document_type_name || 'DOC'}</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-white/30 italic">Sin documento</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          {cust.country_iso && (
+                            <img
+                              src={`https://flagcdn.com/w20/${cust.country_iso.toLowerCase()}.png`}
+                              srcSet={`https://flagcdn.com/w40/${cust.country_iso.toLowerCase()}.png 2x`}
+                              alt={cust.country_name}
+                              className="w-5 h-auto object-contain rounded-sm shadow-sm opacity-80"
+                              title={cust.country_name}
+                            />
+                          )}
+                          <span className="text-white/60 text-xs font-mono">{cust.primary_phone || '-'}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        {cust.organizations && cust.organizations.length > 0 ? (
                           <div className="flex items-center space-x-1.5 text-white/70">
                             <Building2 size={12} className="text-white/40" />
-                            <span className="text-xs truncate max-w-[200px]" title={cust.organization_name}>{cust.organization_name}</span>
+                            <span className="text-xs truncate max-w-[200px]" title={cust.organizations[0].name}>{cust.organizations[0].name}</span>
                           </div>
                         ) : (
                           <span className="text-xs text-white/30 italic">No asociado</span>

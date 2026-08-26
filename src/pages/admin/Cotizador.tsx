@@ -446,12 +446,12 @@ const AdminCotizador: React.FC = () => {
                   {editingQuoteId && <StatusHistoryTimeline records={statusHistory} />}
                 </div>
               )}
-              onCustomerNameChange={(customerName) => setFormData({ ...formData, customerName })}
-              onCustomerEmailChange={(customerEmail) => setFormData({ ...formData, customerEmail })}
-              onNotesChange={(nextNotes) => setFormData({ ...formData, notes: nextNotes })}
-              onOrganizationChange={(organizationId) => setFormData({ ...formData, organizationId })}
-              onAcquisitionChannelChange={(acquisitionChannel) => setFormData({ ...formData, acquisitionChannel })}
-              onCurrencyCodeChange={(currencyCode) => setFormData({ ...formData, currencyCode })}
+              onCustomerNameChange={(customerName) => setFormData((prev) => ({ ...prev, customerName }))}
+              onCustomerEmailChange={(customerEmail) => setFormData((prev) => ({ ...prev, customerEmail }))}
+              onNotesChange={(nextNotes) => setFormData((prev) => ({ ...prev, notes: nextNotes }))}
+              onOrganizationChange={(organizationId) => setFormData((prev) => ({ ...prev, organizationId }))}
+              onAcquisitionChannelChange={(acquisitionChannel) => setFormData((prev) => ({ ...prev, acquisitionChannel }))}
+              onCurrencyCodeChange={(currencyCode) => setFormData((prev) => ({ ...prev, currencyCode }))}
               onCancel={() => {
                 resetQuoter();
                 setIsModalOpen(false);
