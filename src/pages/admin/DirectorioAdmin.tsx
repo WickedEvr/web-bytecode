@@ -182,16 +182,17 @@ export default function DirectorioAdmin() {
                 <tr>
                   <th className="px-6 py-4 font-medium">Nombre y Correo</th>
                   <th className="px-6 py-4 font-medium">Documento</th>
-                  <th className="px-6 py-4 font-medium">Teléfono / País</th>
+                  <th className="px-6 py-4 font-medium">País</th>
+                  <th className="px-6 py-4 font-medium">Teléfono</th>
                   <th className="px-6 py-4 font-medium">Empresa (B2B)</th>
                   <th className="px-6 py-4 text-center font-medium">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-white/80">
                 {loading ? (
-                  <tr><td colSpan={5} className="px-6 py-12 text-center text-white/30 text-sm">Cargando personas...</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-12 text-center text-white/30 text-sm">Cargando personas...</td></tr>
                 ) : customers.length === 0 ? (
-                  <tr><td colSpan={5} className="px-6 py-12 text-center text-white/30 text-sm">No hay personas registradas.</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-12 text-center text-white/30 text-sm">No hay personas registradas.</td></tr>
                 ) : (
                   customers.map(cust => (
                     <tr key={cust.id} className="transition-colors hover:bg-white/[0.02]">
@@ -210,19 +211,22 @@ export default function DirectorioAdmin() {
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          {cust.country_iso && (
+                        {cust.country_iso ? (
+                          <div className="flex items-center gap-2">
                             <img
                               src={`https://flagcdn.com/w20/${cust.country_iso.toLowerCase()}.png`}
                               srcSet={`https://flagcdn.com/w40/${cust.country_iso.toLowerCase()}.png 2x`}
-                              alt={cust.country_name}
-                              className="w-5 h-auto object-contain rounded-sm shadow-sm opacity-80"
+                              alt={cust.country_name || cust.country_iso}
+                              className="w-5 h-auto object-contain rounded-sm shadow-sm"
                               title={cust.country_name}
                             />
-                          )}
-                          <span className="text-white/60 text-xs font-mono">{cust.primary_phone || '-'}</span>
-                        </div>
+                            <span className="text-white/80 text-xs font-medium">{cust.country_name}</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-white/30 italic">N/A</span>
+                        )}
                       </td>
+                      <td className="px-6 py-4 text-white/60 text-xs font-mono">{cust.primary_phone || '-'}</td>
                       <td className="px-6 py-4">
                         {cust.organizations && cust.organizations.length > 0 ? (
                           <div className="flex items-center space-x-1.5 text-white/70">
