@@ -12,6 +12,19 @@ directoryRouter.get(
   '/organizations',
   requirePermission('admin.directorio.view'),
   asyncHandler(async (req: Request, res: Response) => {
+    const limit = Number(req.query.limit) || 9;
+    const offset = Number(req.query.offset) || 0;
+    const search = req.query.search ? `%${req.query.search}%` : '%';
+    
+    const countResult = await pool.query(`
+      SELECT COUNT(*) as total
+      FROM organizations o
+      WHERE o.deleted_at IS NULL
+      AND (o.legal_name ILIKE $1 OR o.trade_name ILIKE $1 OR o.ruc ILIKE $1)
+    `, [search]);
+    
+    const total = parseInt(countResult.rows[0].total, 10);
+
     const result = await pool.query(`
       SELECT 
         o.id, 
@@ -24,10 +37,13 @@ directoryRouter.get(
       FROM organizations o
       LEFT JOIN customer_organizations co ON o.id = co.organization_id AND co.deleted_at IS NULL
       WHERE o.deleted_at IS NULL
+      AND (o.legal_name ILIKE $3 OR o.trade_name ILIKE $3 OR o.ruc ILIKE $3)
       GROUP BY o.id
       ORDER BY o.created_at DESC
-    `);
-    res.json({ items: result.rows });
+      LIMIT $1 OFFSET $2
+    `, [limit, offset, search]);
+    
+    res.json({ items: result.rows, total });
   })
 );
 
@@ -37,6 +53,19 @@ directoryRouter.get(
   '/customers',
   requirePermission('admin.directorio.view'),
   asyncHandler(async (req: Request, res: Response) => {
+    const limit = Number(req.query.limit) || 9;
+    const offset = Number(req.query.offset) || 0;
+    const search = req.query.search ? `%${req.query.search}%` : '%';
+
+    const countResult = await pool.query(`
+      SELECT COUNT(*) as total
+      FROM customers c
+      WHERE c.deleted_at IS NULL
+      AND (c.first_name ILIKE $1 OR c.last_name ILIKE $1 OR c.primary_email ILIKE $1)
+    `, [search]);
+
+    const total = parseInt(countResult.rows[0].total, 10);
+
     const result = await pool.query(`
       SELECT 
         c.id,
@@ -58,10 +87,13 @@ directoryRouter.get(
       LEFT JOIN customer_organizations co ON c.id = co.customer_id AND co.deleted_at IS NULL
       LEFT JOIN organizations o ON co.organization_id = o.id AND o.deleted_at IS NULL
       WHERE c.deleted_at IS NULL
+      AND (c.first_name ILIKE $3 OR c.last_name ILIKE $3 OR c.primary_email ILIKE $3)
       GROUP BY c.id
       ORDER BY c.created_at DESC
-    `);
-    res.json({ items: result.rows });
+      LIMIT $1 OFFSET $2
+    `, [limit, offset, search]);
+    
+    res.json({ items: result.rows, total });
   })
 );
 

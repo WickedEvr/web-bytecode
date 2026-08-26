@@ -32,6 +32,7 @@ const Contacto: React.FC = () => {
     servicio: '',
     mensaje: '',
     aceptaTerminos: false,
+    aceptaMarketing: false,
   });
   
   const [selectedCountryData, setSelectedCountryData] = useState<CountryData>({ id: 'default', iso: 'PE', name: 'Perú', dialCode: '+51', maxLength: 9 });
@@ -177,7 +178,7 @@ const Contacto: React.FC = () => {
     setSubmitError('');
 
     try {
-      const payload = { 
+      const payload: Record<string, any> = { 
         ...formData, 
         personType,
         celular: `${selectedCountryData.dialCode} ${formData.celular}`.trim()
@@ -187,7 +188,7 @@ const Contacto: React.FC = () => {
         payload.countryId = selectedCountryData.id;
       } else {
         const defaultCountry = allCountries.find(c => c.iso === selectedCountryData.iso);
-        if (defaultCountry) payload.countryId = defaultCountry.id;
+        payload.countryId = defaultCountry ? defaultCountry.id : null;
       }
 
       await createContactSubmission(payload);
@@ -427,19 +428,35 @@ const Contacto: React.FC = () => {
             />
           </div>
 
-          <div className="flex items-start gap-3 mt-4">
-            <input
-              type="checkbox"
-              id="aceptaTerminos"
-              name="aceptaTerminos"
-              required
-              checked={formData.aceptaTerminos}
-              onChange={(e) => setFormData({ ...formData, aceptaTerminos: e.target.checked })}
-              className="mt-1 w-5 h-5 rounded border-gray-600 bg-white/5 text-[#06CFD6] focus:ring-[#06CFD6] focus:ring-offset-gray-900 cursor-pointer"
-            />
-            <label htmlFor="aceptaTerminos" className="text-sm text-white/70 cursor-pointer select-none">
-              He leído y acepto la <a href="/privacidad" target="_blank" className="text-[#06CFD6] hover:underline">Política de Privacidad</a> y consiento el tratamiento de mis datos para el envío de propuestas.
-            </label>
+          <div className="flex flex-col gap-3 mt-4">
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="aceptaTerminos"
+                name="aceptaTerminos"
+                required
+                checked={formData.aceptaTerminos}
+                onChange={(e) => setFormData({ ...formData, aceptaTerminos: e.target.checked })}
+                className="mt-1 w-5 h-5 rounded border-gray-600 bg-white/5 text-[#06CFD6] focus:ring-[#06CFD6] focus:ring-offset-gray-900 cursor-pointer"
+              />
+              <label htmlFor="aceptaTerminos" className="text-sm text-white/70 cursor-pointer select-none">
+                He leído y acepto la <a href="/privacidad" target="_blank" className="text-[#06CFD6] hover:underline">Política de Privacidad</a> respecto al tratamiento de mi solicitud.
+              </label>
+            </div>
+            
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="aceptaMarketing"
+                name="aceptaMarketing"
+                checked={formData.aceptaMarketing}
+                onChange={(e) => setFormData({ ...formData, aceptaMarketing: e.target.checked })}
+                className="mt-1 w-5 h-5 rounded border-gray-600 bg-white/5 text-[#06CFD6] focus:ring-[#06CFD6] focus:ring-offset-gray-900 cursor-pointer"
+              />
+              <label htmlFor="aceptaMarketing" className="text-sm text-white/70 cursor-pointer select-none">
+                Acepto recibir comunicaciones comerciales, boletines e información sobre nuevos servicios de Bytecode.
+              </label>
+            </div>
           </div>
 
           <div className="pt-6">

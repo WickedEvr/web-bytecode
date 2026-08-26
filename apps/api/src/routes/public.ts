@@ -72,6 +72,7 @@ const contactSchemaBase = z.object({
   servicio: z.string().trim().min(2).max(120),
   mensaje: z.string().trim().min(10).max(1200),
   aceptaTerminos: z.coerce.boolean().refine((val) => val, 'Debe aceptar los términos.'),
+  aceptaMarketing: z.coerce.boolean().default(false),
 });
 
 const contactSchema = z.discriminatedUnion('personType', [
@@ -357,17 +358,17 @@ router.post(
           if ((existingDoc.rowCount ?? 0) > 0) {
             customerId = existingDoc.rows[0].customer_id;
             await client.query(
-              "UPDATE customers SET primary_email = $1, primary_phone = $2, first_name = $3, last_name = $4, country_id = $5, updated_at = NOW() WHERE id = $6",
-              [body.email.toLowerCase(), body.celular, body.nombre, body.apellido, body.countryId ?? null, customerId]
+              "UPDATE customers SET primary_email = $1, primary_phone = $2, first_name = $3, last_name = $4, country_id = $5, consent_terms = $6, consent_marketing = $7, updated_at = NOW() WHERE id = $8",
+              [body.email.toLowerCase(), body.celular, body.nombre, body.apellido, body.countryId ?? null, body.aceptaTerminos, body.aceptaMarketing, customerId]
             );
           } else {
             const customerRes = await client.query(
               `
-              INSERT INTO customers (customer_code, first_name, last_name, person_type, primary_email, primary_phone)
-              VALUES ($1, $2, $3, $4, $5, $6)
+              INSERT INTO customers (customer_code, first_name, last_name, person_type, primary_email, primary_phone, country_id, consent_terms, consent_marketing)
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
               RETURNING id
               `,
-              [`CUS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, body.nombre, body.apellido, personTypeVal, body.email.toLowerCase(), body.celular]
+              [`CUS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, body.nombre, body.apellido, personTypeVal, body.email.toLowerCase(), body.celular, body.countryId ?? null, body.aceptaTerminos, body.aceptaMarketing]
             );
             customerId = customerRes.rows[0].id;
             
@@ -383,21 +384,21 @@ router.post(
           const customerRes = await client.query(
             `
             INSERT INTO customers (customer_code, first_name, last_name, person_type, primary_email, primary_phone, country_id, consent_terms, consent_marketing)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING id
             `,
-            [`CUS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, body.nombre, body.apellido, personTypeVal, body.email.toLowerCase(), body.celular, body.countryId ?? null, body.aceptaTerminos]
+            [`CUS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, body.nombre, body.apellido, personTypeVal, body.email.toLowerCase(), body.celular, body.countryId ?? null, body.aceptaTerminos, body.aceptaMarketing]
           );
           customerId = customerRes.rows[0].id;
         }
       } else {
         const customerRes = await client.query(
           `
-          INSERT INTO customers (customer_code, first_name, last_name, person_type, primary_email, primary_phone)
-          VALUES ($1, $2, $3, $4, $5, $6)
+          INSERT INTO customers (customer_code, first_name, last_name, person_type, primary_email, primary_phone, country_id, consent_terms, consent_marketing)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
           RETURNING id
           `,
-          [`CUS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, body.nombre, body.apellido, personTypeVal, body.email.toLowerCase(), body.celular]
+          [`CUS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, body.nombre, body.apellido, personTypeVal, body.email.toLowerCase(), body.celular, body.countryId ?? null, body.aceptaTerminos, body.aceptaMarketing]
         );
         customerId = customerRes.rows[0].id;
       }
