@@ -104,4 +104,188 @@ directoryRouter.get(
   })
 );
 
+// --- ESQUEMAS DE VALIDACIÓN ZOD ---
+const organizationSchema = z.object({
+  legal_name: z.string().min(2, 'La Razón Social debe tener al menos 2 caracteres').max(200),
+  trade_name: z.string().max(200).optional().nullable(),
+  ruc: z.string().max(20).optional().nullable(),
+  industry: z.string().max(100).optional().nullable(),
+});
+
+const customerSchema = z.object({
+  first_name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(100),
+  last_name: z.string().min(2, 'El apellido debe tener al menos 2 caracteres').max(100),
+  primary_email: z.string().email('Email inválido').max(150),
+  primary_phone: z.string().max(50).optional().nullable(),
+  person_type: z.enum(['natural', 'company_contact']).default('natural'),
+  country_id: z.string().uuid('ID de país inválido').optional().nullable(),
+  document_type_id: z.string().uuid('ID de documento inválido').optional().nullable(),
+  document_number: z.string().max(50).optional().nullable(),
+  organization_id: z.string().uuid('ID de empresa inválido').optional().nullable(),
+  position_title: z.string().max(100).optional().nullable(),
+});
+
+// --- MUTACIONES DE ORGANIZACIONES ---
+directoryRouter.post(
+  '/organizations',
+  requirePermission('admin.directorio.edit'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const body = organizationSchema.parse(req.body);
+    const result = await pool.query(
+      `INSERT INTO organizations (legal_name, trade_name, ruc, industry) 
+       VALUES ($1, $2, $3, $4) RETURNING *`,
+      [body.legal_name, body.trade_name || body.legal_name, body.ruc, body.industry]
+    );
+    res.status(201).json(result.rows[0]);
+  })
+);
+
+directoryRouter.put(
+  '/organizations/:id',
+  requirePermission('admin.directorio.edit'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const body = organizationSchema.parse(req.body);
+    const result = await pool.query(
+      `UPDATE organizations 
+       SET legal_name = $1, trade_name = $2, ruc = $3, industry = $4, updated_at = NOW() 
+       WHERE id = $5 AND deleted_at IS NULL RETURNING *`,
+      [body.legal_name, body.trade_name || body.legal_name, body.ruc, body.industry, id]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ message: 'Organización no encontrada' });
+    res.json(result.rows[0]);
+  })
+);
+
+directoryRouter.delete(
+  '/organizations/:id',
+  requirePermission('admin.directorio.edit'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const result = await pool.query(
+      `UPDATE organizations SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING id`,
+      [id]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ message: 'Organización no encontrada' });
+    res.json({ message: 'Organización eliminada (Soft Delete)' });
+  })
+);
+
+// --- MUTACIONES DE CUSTOMERS ---
+directoryRouter.post(
+  '/customers',
+  requirePermission('admin.directorio.edit'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const body = customerSchema.parse(req.body);
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      
+      const { randomBytes } = await import('crypto');
+      const customerCode = `CUS-${randomBytes(4).toString('hex').toUpperCase()}`;
+
+      const customerRes = await client.query(
+        `INSERT INTO customers (customer_code, first_name, last_name, person_type, primary_email, primary_phone, country_id) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+        [customerCode, body.first_name, body.last_name, body.person_type, body.primary_email.toLowerCase(), body.primary_phone, body.country_id]
+      );
+      const customerId = customerRes.rows[0].id;
+
+      if (body.document_type_id && body.document_number) {
+        await client.query(
+          `INSERT INTO customer_documents (customer_id, document_type_id, document_number, is_primary) VALUES ($1, $2, $3, true)`,
+          [customerId, body.document_type_id, body.document_number]
+        );
+      }
+
+      if (body.organization_id) {
+        await client.query(
+          `INSERT INTO customer_organizations (customer_id, organization_id, position_title, is_primary) VALUES ($1, $2, $3, true)`,
+          [customerId, body.organization_id, body.position_title]
+        );
+      }
+
+      await client.query('COMMIT');
+      res.status(201).json({ id: customerId, message: 'Contacto creado exitosamente' });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  })
+);
+
+directoryRouter.put(
+  '/customers/:id',
+  requirePermission('admin.directorio.edit'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const body = customerSchema.parse(req.body);
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+      
+      const updateRes = await client.query(
+        `UPDATE customers 
+         SET first_name = $1, last_name = $2, person_type = $3, primary_email = $4, primary_phone = $5, country_id = $6, updated_at = NOW() 
+         WHERE id = $7 AND deleted_at IS NULL RETURNING id`,
+        [body.first_name, body.last_name, body.person_type, body.primary_email.toLowerCase(), body.primary_phone, body.country_id, id]
+      );
+      
+      if (updateRes.rowCount === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ message: 'Contacto no encontrado' });
+      }
+
+      // Actualizar documento primario
+      if (body.document_type_id && body.document_number) {
+        const docExist = await client.query(`SELECT id FROM customer_documents WHERE customer_id = $1 AND is_primary = true AND deleted_at IS NULL`, [id]);
+        if (docExist.rowCount && docExist.rowCount > 0) {
+          await client.query(`UPDATE customer_documents SET document_type_id = $1, document_number = $2 WHERE customer_id = $3 AND is_primary = true`, [body.document_type_id, body.document_number, id]);
+        } else {
+          await client.query(`INSERT INTO customer_documents (customer_id, document_type_id, document_number, is_primary) VALUES ($1, $2, $3, true)`, [id, body.document_type_id, body.document_number]);
+        }
+      } else {
+        await client.query(`UPDATE customer_documents SET deleted_at = NOW() WHERE customer_id = $1 AND is_primary = true`, [id]);
+      }
+
+      // Actualizar organización primaria
+      if (body.organization_id) {
+        const orgExist = await client.query(`SELECT id FROM customer_organizations WHERE customer_id = $1 AND is_primary = true AND deleted_at IS NULL`, [id]);
+        if (orgExist.rowCount && orgExist.rowCount > 0) {
+          await client.query(`UPDATE customer_organizations SET organization_id = $1, position_title = $2 WHERE customer_id = $3 AND is_primary = true`, [body.organization_id, body.position_title, id]);
+        } else {
+          await client.query(`INSERT INTO customer_organizations (customer_id, organization_id, position_title, is_primary) VALUES ($1, $2, $3, true)`, [id, body.organization_id, body.position_title]);
+        }
+      } else {
+        await client.query(`UPDATE customer_organizations SET deleted_at = NOW() WHERE customer_id = $1 AND is_primary = true`, [id]);
+      }
+
+      await client.query('COMMIT');
+      res.json({ id, message: 'Contacto actualizado exitosamente' });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  })
+);
+
+directoryRouter.delete(
+  '/customers/:id',
+  requirePermission('admin.directorio.edit'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const result = await pool.query(
+      `UPDATE customers SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING id`,
+      [id]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ message: 'Contacto no encontrado' });
+    res.json({ message: 'Contacto eliminado (Soft Delete)' });
+  })
+);
+
 export default directoryRouter;
