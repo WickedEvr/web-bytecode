@@ -5,6 +5,7 @@ import SEO from '../components/shared/SEO';
 import LazyGalaxyBackground from '../components/effects/LazyGalaxyBackground';
 import ContactFooter from '../components/layout/ContactFooter';
 import CustomDropdown, { type DropdownOption } from '../components/ui/CustomDropdown';
+import AnimatedCheckbox from '../components/ui/AnimatedCheckbox';
 import AnimatedSubmitButton from '../components/ui/AnimatedSubmitButton';
 import PhoneInputGroup from '../components/ui/PhoneInputGroup';
 import { Label } from '../components/ui/Label';
@@ -429,34 +430,24 @@ const Contacto: React.FC = () => {
           </div>
 
           <div className="flex flex-col gap-3 mt-4">
-            <div className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                id="aceptaTerminos"
-                name="aceptaTerminos"
-                required
-                checked={formData.aceptaTerminos}
-                onChange={(e) => setFormData({ ...formData, aceptaTerminos: e.target.checked })}
-                className="mt-1 w-5 h-5 rounded border-gray-600 bg-white/5 text-[#06CFD6] focus:ring-[#06CFD6] focus:ring-offset-gray-900 cursor-pointer"
-              />
-              <label htmlFor="aceptaTerminos" className="text-sm text-white/70 cursor-pointer select-none">
-                He leído y acepto la <a href="/privacidad" target="_blank" className="text-[#06CFD6] hover:underline">Política de Privacidad</a> respecto al tratamiento de mi solicitud.
-              </label>
-            </div>
+            <AnimatedCheckbox
+              name="aceptaTerminos"
+              checked={formData.aceptaTerminos}
+              onChange={(checked) => setFormData({ ...formData, aceptaTerminos: checked })}
+              required
+              label={
+                <>
+                  He leído y acepto la <a href="/privacidad" target="_blank" className="text-[#06CFD6] hover:underline" onClick={(e) => e.stopPropagation()}>Política de Privacidad</a> respecto al tratamiento de mi solicitud.
+                </>
+              }
+            />
             
-            <div className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                id="aceptaMarketing"
-                name="aceptaMarketing"
-                checked={formData.aceptaMarketing}
-                onChange={(e) => setFormData({ ...formData, aceptaMarketing: e.target.checked })}
-                className="mt-1 w-5 h-5 rounded border-gray-600 bg-white/5 text-[#06CFD6] focus:ring-[#06CFD6] focus:ring-offset-gray-900 cursor-pointer"
-              />
-              <label htmlFor="aceptaMarketing" className="text-sm text-white/70 cursor-pointer select-none">
-                Acepto recibir comunicaciones comerciales, boletines e información sobre nuevos servicios de Bytecode.
-              </label>
-            </div>
+            <AnimatedCheckbox
+              name="aceptaMarketing"
+              checked={formData.aceptaMarketing}
+              onChange={(checked) => setFormData({ ...formData, aceptaMarketing: checked })}
+              label="Acepto recibir comunicaciones comerciales, boletines e información sobre nuevos servicios de Bytecode."
+            />
           </div>
 
           <div className="pt-6">
