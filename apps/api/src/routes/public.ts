@@ -140,8 +140,10 @@ const parseClaimedAmount = (value: string) => {
 let normalizedContactSchema: boolean | null = null;
 
 router.get('/catalog/countries', asyncHandler(async (_req: Request, res: Response) => {
-  const result = await pool.query('SELECT id, iso2 as iso, name, dial_code as "dialCode", phone_max_length as "maxLength" FROM countries WHERE is_active = true ORDER BY name ASC');
-  res.json({ items: result.rows });
+  const result = await pool.query('SELECT id, iso2, name, dial_code as "dialCode", phone_max_length as "maxLength", tax_id_regex, tax_id_format FROM countries WHERE is_active = true ORDER BY name ASC');
+  // Aseguramos iso2 en vez de iso por compatibilidad con el front
+  const mapped = result.rows.map(r => ({ ...r, iso: r.iso2 }));
+  res.json({ items: mapped });
 }));
 
 router.get('/catalog/services', asyncHandler(async (_req: Request, res: Response) => {

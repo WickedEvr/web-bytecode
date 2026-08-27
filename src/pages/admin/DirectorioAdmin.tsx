@@ -200,6 +200,12 @@ export default function DirectorioAdmin() {
                         {org.trade_name && org.trade_name !== org.legal_name && (
                           <div className="text-xs text-white/40 mt-1">{org.trade_name}</div>
                         )}
+                        {org.country_iso && (
+                          <div className="flex items-center gap-1.5 mt-1.5">
+                            <img src={`https://flagcdn.com/w20/${org.country_iso.toLowerCase()}.png`} className="w-3.5 h-auto rounded-[1px] opacity-70" alt={org.country_name}/>
+                            <span className="text-[10px] text-white/40">{org.country_name}</span>
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 font-mono text-white/50 text-xs">{org.ruc}</td>
                       <td className="px-6 py-4">
@@ -302,13 +308,12 @@ export default function DirectorioAdmin() {
       <AnimatePresence>
         {actionsMenu && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: actionsMenu.placement === 'top' ? 10 : -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: actionsMenu.placement === 'top' ? 10 : -10 }}
-            transition={{ duration: 0.15 }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.1 }}
             style={{ position: 'absolute', top: actionsMenu.top, left: actionsMenu.left }}
-            onClick={(e) => e.stopPropagation()}
-            className="w-36 bg-[#121212] border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden"
+            className={`absolute z-50 w-36 rounded-xl border border-white/10 bg-[#1a1a1a] p-1 shadow-2xl backdrop-blur-md origin-${actionsMenu.placement === 'bottom' ? 'top' : 'bottom'}`}
           >
             <div className="py-1 px-1 flex flex-col gap-1">
               <button
@@ -348,6 +353,7 @@ export default function DirectorioAdmin() {
         }}
         editingId={editingId}
         initialData={editingData}
+        countries={countries}
       />
 
       <CustomerModal

@@ -123,6 +123,8 @@ export interface CountryData {
   name: string;
   dialCode: string;
   maxLength: number;
+  tax_id_regex?: string;
+  tax_id_format?: string;
   is_active?: boolean;
 }
 

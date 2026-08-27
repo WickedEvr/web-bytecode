@@ -12,8 +12,8 @@ directoryRouter.get(
   '/organizations',
   requirePermission('admin.directorio.view'),
   asyncHandler(async (req: Request, res: Response) => {
-    const limit = Number(req.query.limit) || 9;
-    const offset = Number(req.query.offset) || 0;
+    const limit = parseInt(req.query.limit as string) || 9;
+    const offset = parseInt(req.query.offset as string) || 0;
     const search = req.query.search ? `%${req.query.search}%` : '%';
     
     const countResult = await pool.query(`
@@ -32,13 +32,17 @@ directoryRouter.get(
         o.trade_name, 
         o.ruc, 
         o.industry,
+        o.country_id,
         o.created_at,
+        c.iso2 AS country_iso,
+        c.name AS country_name,
         COUNT(co.customer_id) as contacts_count
       FROM organizations o
       LEFT JOIN customer_organizations co ON o.id = co.organization_id AND co.deleted_at IS NULL
+      LEFT JOIN countries c ON o.country_id = c.id
       WHERE o.deleted_at IS NULL
       AND (o.legal_name ILIKE $3 OR o.trade_name ILIKE $3 OR o.ruc ILIKE $3)
-      GROUP BY o.id
+      GROUP BY o.id, c.iso2, c.name
       ORDER BY o.created_at DESC
       LIMIT $1 OFFSET $2
     `, [limit, offset, search]);
@@ -108,8 +112,9 @@ directoryRouter.get(
 const organizationSchema = z.object({
   legal_name: z.string().min(2, 'La Razón Social debe tener al menos 2 caracteres').max(200),
   trade_name: z.string().max(200).optional().nullable(),
-  ruc: z.string().max(20).optional().nullable(),
+  ruc: z.string().max(50).optional().nullable(),
   industry: z.string().max(100).optional().nullable(),
+  country_id: z.string().uuid('ID de país inválido').optional().nullable(),
 });
 
 const customerSchema = z.object({
@@ -132,9 +137,9 @@ directoryRouter.post(
   asyncHandler(async (req: Request, res: Response) => {
     const body = organizationSchema.parse(req.body);
     const result = await pool.query(
-      `INSERT INTO organizations (legal_name, trade_name, ruc, industry) 
-       VALUES ($1, $2, $3, $4) RETURNING *`,
-      [body.legal_name, body.trade_name || body.legal_name, body.ruc, body.industry]
+      `INSERT INTO organizations (legal_name, trade_name, ruc, industry, country_id) 
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [body.legal_name, body.trade_name || body.legal_name, body.ruc, body.industry, body.country_id]
     );
     res.status(201).json(result.rows[0]);
   })
@@ -148,9 +153,9 @@ directoryRouter.put(
     const body = organizationSchema.parse(req.body);
     const result = await pool.query(
       `UPDATE organizations 
-       SET legal_name = $1, trade_name = $2, ruc = $3, industry = $4, updated_at = NOW() 
-       WHERE id = $5 AND deleted_at IS NULL RETURNING *`,
-      [body.legal_name, body.trade_name || body.legal_name, body.ruc, body.industry, id]
+       SET legal_name = $1, trade_name = $2, ruc = $3, industry = $4, country_id = $5, updated_at = NOW() 
+       WHERE id = $6 AND deleted_at IS NULL RETURNING *`,
+      [body.legal_name, body.trade_name || body.legal_name, body.ruc, body.industry, body.country_id, id]
     );
     if (result.rowCount === 0) return res.status(404).json({ message: 'Organización no encontrada' });
     res.json(result.rows[0]);
