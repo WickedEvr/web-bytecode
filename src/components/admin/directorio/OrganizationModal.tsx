@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { Input } from '../../ui/Input';
-import { Label } from '../../ui/Label';
 import AnimatedSubmitButton from '../../ui/AnimatedSubmitButton';
 import { apiRequest } from '../../../lib/api';
 
@@ -91,46 +89,50 @@ export default function OrganizationModal({ isOpen, onClose, onSuccess, editingI
           )}
 
           <div className="grid gap-5 md:grid-cols-2">
-            <div className="md:col-span-2">
-              <Label text="Razón Social (Legal)" required />
-              <Input
+            <label className="grid gap-1.5 md:col-span-2">
+              <span className="text-[10px] uppercase tracking-wider text-white/40">Razón Social (Legal) *</span>
+              <input
                 name="legal_name"
                 value={formData.legal_name}
                 onChange={(e) => setFormData({ ...formData, legal_name: e.target.value })}
                 required
                 placeholder="Ej. TechCorp S.A.C."
+                className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition focus:border-white/30"
               />
-            </div>
+            </label>
             
-            <div className="md:col-span-2">
-              <Label text="Nombre Comercial (Opcional)" />
-              <Input
+            <label className="grid gap-1.5 md:col-span-2">
+              <span className="text-[10px] uppercase tracking-wider text-white/40">Nombre Comercial (Opcional)</span>
+              <input
                 name="trade_name"
                 value={formData.trade_name}
                 onChange={(e) => setFormData({ ...formData, trade_name: e.target.value })}
                 placeholder="Ej. TechCorp"
+                className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition focus:border-white/30"
               />
-            </div>
+            </label>
 
-            <div>
-              <Label text="RUC / Tax ID" />
-              <Input
+            <label className="grid gap-1.5">
+              <span className="text-[10px] uppercase tracking-wider text-white/40">RUC / Tax ID</span>
+              <input
                 name="ruc"
                 value={formData.ruc}
                 onChange={(e) => setFormData({ ...formData, ruc: e.target.value })}
                 placeholder="Ej. 20123456789"
+                className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition focus:border-white/30"
               />
-            </div>
+            </label>
 
-            <div>
-              <Label text="Industria / Sector" />
-              <Input
+            <label className="grid gap-1.5">
+              <span className="text-[10px] uppercase tracking-wider text-white/40">Industria / Sector</span>
+              <input
                 name="industry"
                 value={formData.industry}
                 onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
                 placeholder="Ej. Desarrollo de Software"
+                className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition focus:border-white/30"
               />
-            </div>
+            </label>
           </div>
 
           <div className="mt-4 flex justify-end gap-3 border-t border-white/5 pt-5">
