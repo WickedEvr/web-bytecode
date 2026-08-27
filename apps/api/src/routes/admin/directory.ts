@@ -15,12 +15,17 @@ directoryRouter.get(
     const limit = parseInt(req.query.limit as string) || 9;
     const offset = parseInt(req.query.offset as string) || 0;
     const search = req.query.search ? `%${req.query.search}%` : '%';
+    const status = (req.query.status as string) || 'active';
+    
+    let statusFilter = '';
+    if (status === 'active') statusFilter = 'AND o.deleted_at IS NULL';
+    else if (status === 'inactive') statusFilter = 'AND o.deleted_at IS NOT NULL';
     
     const countResult = await pool.query(`
       SELECT COUNT(*) as total
       FROM organizations o
-      WHERE o.deleted_at IS NULL
-      AND (o.legal_name ILIKE $1 OR o.trade_name ILIKE $1 OR o.ruc ILIKE $1)
+      WHERE (o.legal_name ILIKE $1 OR o.trade_name ILIKE $1 OR o.ruc ILIKE $1)
+      ${statusFilter}
     `, [search]);
     
     const total = parseInt(countResult.rows[0].total, 10);
@@ -36,12 +41,13 @@ directoryRouter.get(
         o.created_at,
         c.iso2 AS country_iso,
         c.name AS country_name,
+        o.deleted_at IS NULL as is_active,
         COUNT(co.customer_id) as contacts_count
       FROM organizations o
       LEFT JOIN customer_organizations co ON o.id = co.organization_id AND co.deleted_at IS NULL
       LEFT JOIN countries c ON o.country_id = c.id
-      WHERE o.deleted_at IS NULL
-      AND (o.legal_name ILIKE $3 OR o.trade_name ILIKE $3 OR o.ruc ILIKE $3)
+      WHERE (o.legal_name ILIKE $3 OR o.trade_name ILIKE $3 OR o.ruc ILIKE $3)
+      ${statusFilter}
       GROUP BY o.id, c.iso2, c.name
       ORDER BY o.created_at DESC
       LIMIT $1 OFFSET $2
@@ -60,12 +66,17 @@ directoryRouter.get(
     const limit = Number(req.query.limit) || 9;
     const offset = Number(req.query.offset) || 0;
     const search = req.query.search ? `%${req.query.search}%` : '%';
+    const status = (req.query.status as string) || 'active';
+    
+    let statusFilter = '';
+    if (status === 'active') statusFilter = 'AND c.deleted_at IS NULL';
+    else if (status === 'inactive') statusFilter = 'AND c.deleted_at IS NOT NULL';
 
     const countResult = await pool.query(`
       SELECT COUNT(*) as total
       FROM customers c
-      WHERE c.deleted_at IS NULL
-      AND (c.first_name ILIKE $1 OR c.last_name ILIKE $1 OR c.primary_email ILIKE $1)
+      WHERE (c.first_name ILIKE $1 OR c.last_name ILIKE $1 OR c.primary_email ILIKE $1)
+      ${statusFilter}
     `, [search]);
 
     const total = parseInt(countResult.rows[0].total, 10);
@@ -85,6 +96,7 @@ directoryRouter.get(
         cou.name AS country_name,
         dt.name AS document_type_name,
         cd.document_number,
+        c.deleted_at IS NULL as is_active,
         coalesce(
           json_agg(
             json_build_object('id', o.id, 'name', coalesce(o.trade_name, o.legal_name), 'position', co.position_title)
@@ -97,8 +109,8 @@ directoryRouter.get(
       LEFT JOIN document_types dt ON cd.document_type_id = dt.id
       LEFT JOIN customer_organizations co ON c.id = co.customer_id AND co.deleted_at IS NULL
       LEFT JOIN organizations o ON co.organization_id = o.id AND o.deleted_at IS NULL
-      WHERE c.deleted_at IS NULL
-      AND (c.first_name ILIKE $3 OR c.last_name ILIKE $3 OR c.primary_email ILIKE $3)
+      WHERE (c.first_name ILIKE $3 OR c.last_name ILIKE $3 OR c.primary_email ILIKE $3)
+      ${statusFilter}
       GROUP BY c.id, cou.iso2, cou.name, dt.name, cd.document_number
       ORDER BY c.created_at DESC
       LIMIT $1 OFFSET $2
@@ -173,6 +185,20 @@ directoryRouter.delete(
     );
     if (result.rowCount === 0) return res.status(404).json({ message: 'Organización no encontrada' });
     res.json({ message: 'Organización eliminada (Soft Delete)' });
+  })
+);
+
+directoryRouter.patch(
+  '/organizations/:id/restore',
+  requirePermission('admin.directorio.edit'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const result = await pool.query(
+      `UPDATE organizations SET deleted_at = NULL WHERE id = $1 RETURNING id`,
+      [id]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ message: 'Organización no encontrada' });
+    res.json({ message: 'Organización restaurada' });
   })
 );
 
@@ -290,6 +316,20 @@ directoryRouter.delete(
     );
     if (result.rowCount === 0) return res.status(404).json({ message: 'Contacto no encontrado' });
     res.json({ message: 'Contacto eliminado (Soft Delete)' });
+  })
+);
+
+directoryRouter.patch(
+  '/customers/:id/restore',
+  requirePermission('admin.directorio.edit'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const result = await pool.query(
+      `UPDATE customers SET deleted_at = NULL WHERE id = $1 RETURNING id`,
+      [id]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ message: 'Contacto no encontrado' });
+    res.json({ message: 'Contacto restaurado' });
   })
 );
 

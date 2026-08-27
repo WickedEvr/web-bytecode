@@ -19,6 +19,7 @@ export default function DirectorioAdmin() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('active');
   const addToast = useToastStore((state) => state.addToast);
   const [actionsMenu, setActionsMenu] = useState<{ id: string, top: number, left: number, placement: string } | null>(null);
 
@@ -46,7 +47,7 @@ export default function DirectorioAdmin() {
 
   useEffect(() => {
     fetchData();
-  }, [page, activeTab]);
+  }, [page, activeTab, statusFilter]);
 
   useEffect(() => {
     const handleGlobalClick = () => setActionsMenu(null);
@@ -59,12 +60,12 @@ export default function DirectorioAdmin() {
     setActionsMenu(null);
     try {
       if (activeTab === 'empresas') {
-        const res = await apiRequest<{ items: any[], total: number }>(`/admin/organizations?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`);
+        const res = await apiRequest<{ items: any[], total: number }>(`/admin/organizations?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}&status=${statusFilter}`);
         if (res.items.length === 0 && res.total > 0 && page > 1) { setPage(page - 1); return; }
         setOrganizations(res.items || []);
         setTotal(res.total || 0);
       } else {
-        const res = await apiRequest<{ items: any[], total: number }>(`/admin/customers?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`);
+        const res = await apiRequest<{ items: any[], total: number }>(`/admin/customers?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}&status=${statusFilter}`);
         if (res.items.length === 0 && res.total > 0 && page > 1) { setPage(page - 1); return; }
         setCustomers(res.items || []);
         setTotal(res.total || 0);
@@ -111,6 +112,17 @@ export default function DirectorioAdmin() {
     }
   };
 
+  const handleRestore = async (id: string) => {
+    try {
+      const endpoint = activeTab === 'empresas' ? `/admin/organizations/${id}/restore` : `/admin/customers/${id}/restore`;
+      await apiRequest(endpoint, { method: 'PATCH' });
+      addToast('Registro restaurado correctamente', 'success');
+      fetchData();
+    } catch (err: any) {
+      addToast(err.message || 'Error al restaurar', 'error');
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6 font-sansation">
       <div className="flex items-center justify-between gap-4 pb-4 border-b border-white/5">
@@ -125,30 +137,39 @@ export default function DirectorioAdmin() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex space-x-1 rounded-xl bg-white/5 p-1 w-fit border border-white/10">
-        <button
-          onClick={() => handleTabChange('empresas')}
-          className={`flex items-center justify-center space-x-2 rounded-lg py-2 px-6 text-sm font-medium transition-all ${
-            activeTab === 'empresas' 
-              ? 'bg-white text-black shadow' 
-              : 'text-white/50 hover:text-white hover:bg-white/10'
-          }`}
-        >
-          <Building2 size={16} />
-          <span>Empresas</span>
-        </button>
-        <button
-          onClick={() => handleTabChange('personas')}
-          className={`flex items-center justify-center space-x-2 rounded-lg py-2 px-6 text-sm font-medium transition-all ${
-            activeTab === 'personas' 
-              ? 'bg-white text-black shadow' 
-              : 'text-white/50 hover:text-white hover:bg-white/10'
-          }`}
-        >
-          <Users size={16} />
-          <span>Personas</span>
-        </button>
+      {/* Controles: Tabs y Filtros */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex space-x-1 rounded-xl bg-white/5 p-1 w-fit border border-white/10">
+          <button
+            onClick={() => handleTabChange('empresas')}
+            className={`flex items-center justify-center space-x-2 rounded-lg py-2 px-6 text-sm font-medium transition-all ${
+              activeTab === 'empresas' 
+                ? 'bg-white text-black shadow' 
+                : 'text-white/50 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            <Building2 size={16} />
+            <span>Empresas</span>
+          </button>
+          <button
+            onClick={() => handleTabChange('personas')}
+            className={`flex items-center justify-center space-x-2 rounded-lg py-2 px-6 text-sm font-medium transition-all ${
+              activeTab === 'personas' 
+                ? 'bg-white text-black shadow' 
+                : 'text-white/50 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            <Users size={16} />
+            <span>Personas</span>
+          </button>
+        </div>
+
+        {/* Filtros de Estado */}
+        <div className="flex space-x-1 bg-white/5 p-1 rounded-lg border border-white/10">
+          <button onClick={() => { setStatusFilter('all'); setPage(1); }} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${statusFilter === 'all' ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white/80'}`}>Todos</button>
+          <button onClick={() => { setStatusFilter('active'); setPage(1); }} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${statusFilter === 'active' ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white/80'}`}>Activos</button>
+          <button onClick={() => { setStatusFilter('inactive'); setPage(1); }} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${statusFilter === 'inactive' ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white/80'}`}>Inactivos</button>
+        </div>
       </div>
 
       <AdminPanel className="flex flex-col overflow-hidden">
@@ -184,18 +205,19 @@ export default function DirectorioAdmin() {
                   <th className="px-6 py-4 font-medium">RUC</th>
                   <th className="px-6 py-4 font-medium">País</th>
                   <th className="px-6 py-4 font-medium">Industria</th>
+                  <th className="px-6 py-4 font-medium">Estado</th>
                   <th className="px-6 py-4 text-center font-medium">Contactos</th>
                   <th className="px-6 py-4 text-center font-medium">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-white/80">
                 {loading ? (
-                  <tr><td colSpan={6} className="px-6 py-12 text-center text-white/30 text-sm">Cargando empresas...</td></tr>
+                  <tr><td colSpan={7} className="px-6 py-12 text-center text-white/30 text-sm">Cargando empresas...</td></tr>
                 ) : organizations.length === 0 ? (
-                  <tr><td colSpan={6} className="px-6 py-12 text-center text-white/30 text-sm">No hay empresas registradas.</td></tr>
+                  <tr><td colSpan={7} className="px-6 py-12 text-center text-white/30 text-sm">No hay empresas registradas.</td></tr>
                 ) : (
                   organizations.map(org => (
-                    <tr key={org.id} className="transition-colors hover:bg-white/[0.02]">
+                    <tr key={org.id} className={`transition-colors hover:bg-white/[0.02] ${!org.is_active ? 'opacity-50' : ''}`}>
                       <td className="px-6 py-4">
                         <div className="font-medium text-white">{org.legal_name}</div>
                         {org.trade_name && org.trade_name !== org.legal_name && (
@@ -225,6 +247,11 @@ export default function DirectorioAdmin() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium border ${org.is_active ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                          {org.is_active ? 'Activo' : 'Inactivo'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
                         <div className="flex items-center justify-center space-x-1 text-white/50">
                           <Users size={12} />
                           <span className="text-xs">{org.contacts_count}</span>
@@ -249,17 +276,18 @@ export default function DirectorioAdmin() {
                   <th className="px-6 py-4 font-medium">País</th>
                   <th className="px-6 py-4 font-medium">Teléfono</th>
                   <th className="px-6 py-4 font-medium">Empresa (B2B)</th>
+                  <th className="px-6 py-4 font-medium">Estado</th>
                   <th className="px-6 py-4 text-center font-medium">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-white/80">
                 {loading ? (
-                  <tr><td colSpan={6} className="px-6 py-12 text-center text-white/30 text-sm">Cargando personas...</td></tr>
+                  <tr><td colSpan={7} className="px-6 py-12 text-center text-white/30 text-sm">Cargando personas...</td></tr>
                 ) : customers.length === 0 ? (
-                  <tr><td colSpan={6} className="px-6 py-12 text-center text-white/30 text-sm">No hay personas registradas.</td></tr>
+                  <tr><td colSpan={7} className="px-6 py-12 text-center text-white/30 text-sm">No hay personas registradas.</td></tr>
                 ) : (
                   customers.map(cust => (
-                    <tr key={cust.id} className="transition-colors hover:bg-white/[0.02]">
+                    <tr key={cust.id} className={`transition-colors hover:bg-white/[0.02] ${!cust.is_active ? 'opacity-50' : ''}`}>
                       <td className="px-6 py-4">
                         <div className="font-medium text-white">{cust.display_name}</div>
                         <div className="text-xs text-white/50 mt-1">{cust.primary_email}</div>
@@ -301,6 +329,11 @@ export default function DirectorioAdmin() {
                           <span className="text-xs text-white/30 italic">No asociado</span>
                         )}
                       </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium border ${cust.is_active ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                          {cust.is_active ? 'Activo' : 'Inactivo'}
+                        </span>
+                      </td>
                       <td className="px-6 py-4 text-center">
                         <button onClick={(e) => handleOpenActions(e, cust.id)} className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors">
                           <MoreVertical className="h-4 w-4" />
@@ -340,15 +373,33 @@ export default function DirectorioAdmin() {
               >
                 Editar
               </button>
-              <button
-                onClick={() => {
-                  setConfirmModalState({ isOpen: true, id: actionsMenu.id, type: activeTab === 'empresas' ? 'empresa' : 'persona' });
-                  setActionsMenu(null);
-                }}
-                className="w-full text-left px-3 py-2 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
-              >
-                Eliminar
-              </button>
+              
+              {(() => {
+                const item = activeTab === 'empresas' ? organizations.find(o => o.id === actionsMenu.id) : customers.find(c => c.id === actionsMenu.id);
+                const isActive = item?.is_active ?? true;
+                
+                return !isActive ? (
+                  <button
+                    onClick={() => {
+                      handleRestore(actionsMenu.id);
+                      setActionsMenu(null);
+                    }}
+                    className="w-full text-left px-3 py-2 text-xs font-medium text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 rounded-lg transition-colors"
+                  >
+                    Restaurar
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setConfirmModalState({ isOpen: true, id: actionsMenu.id, type: activeTab === 'empresas' ? 'empresa' : 'persona' });
+                      setActionsMenu(null);
+                    }}
+                    className="w-full text-left px-3 py-2 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
+                  >
+                    Eliminar
+                  </button>
+                );
+              })()}
             </div>
           </motion.div>
         )}
