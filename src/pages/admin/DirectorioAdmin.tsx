@@ -182,6 +182,7 @@ export default function DirectorioAdmin() {
                 <tr>
                   <th className="px-6 py-4 font-medium">Razón Social / Comercial</th>
                   <th className="px-6 py-4 font-medium">RUC</th>
+                  <th className="px-6 py-4 font-medium">País</th>
                   <th className="px-6 py-4 font-medium">Industria</th>
                   <th className="px-6 py-4 text-center font-medium">Contactos</th>
                   <th className="px-6 py-4 text-center font-medium">Acciones</th>
@@ -189,9 +190,9 @@ export default function DirectorioAdmin() {
               </thead>
               <tbody className="divide-y divide-white/5 text-white/80">
                 {loading ? (
-                  <tr><td colSpan={5} className="px-6 py-12 text-center text-white/30 text-sm">Cargando empresas...</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-12 text-center text-white/30 text-sm">Cargando empresas...</td></tr>
                 ) : organizations.length === 0 ? (
-                  <tr><td colSpan={5} className="px-6 py-12 text-center text-white/30 text-sm">No hay empresas registradas.</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-12 text-center text-white/30 text-sm">No hay empresas registradas.</td></tr>
                 ) : (
                   organizations.map(org => (
                     <tr key={org.id} className="transition-colors hover:bg-white/[0.02]">
@@ -200,14 +201,24 @@ export default function DirectorioAdmin() {
                         {org.trade_name && org.trade_name !== org.legal_name && (
                           <div className="text-xs text-white/40 mt-1">{org.trade_name}</div>
                         )}
-                        {org.country_iso && (
-                          <div className="flex items-center gap-1.5 mt-1.5">
-                            <img src={`https://flagcdn.com/w20/${org.country_iso.toLowerCase()}.png`} className="w-3.5 h-auto rounded-[1px] opacity-70" alt={org.country_name}/>
-                            <span className="text-[10px] text-white/40">{org.country_name}</span>
-                          </div>
-                        )}
                       </td>
                       <td className="px-6 py-4 font-mono text-white/50 text-xs">{org.ruc}</td>
+                      <td className="px-6 py-4">
+                        {org.country_iso ? (
+                          <div className="flex items-center gap-2">
+                            <img
+                              src={`https://flagcdn.com/w20/${org.country_iso.toLowerCase()}.png`}
+                              srcSet={`https://flagcdn.com/w40/${org.country_iso.toLowerCase()}.png 2x`}
+                              alt={org.country_name || org.country_iso}
+                              className="w-5 h-auto object-contain rounded-sm shadow-sm"
+                              title={org.country_name}
+                            />
+                            <span className="text-white/80 text-xs font-medium">{org.country_name}</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-white/30 italic">N/A</span>
+                        )}
+                      </td>
                       <td className="px-6 py-4">
                         <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium border bg-white/5 border-white/10 text-white/70">
                           {org.industry || 'No especificada'}

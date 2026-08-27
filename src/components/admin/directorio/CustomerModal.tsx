@@ -159,7 +159,7 @@ export default function CustomerModal({ isOpen, onClose, onSuccess, editingId, i
             </label>
 
             <div className="grid gap-1.5">
-              <span className="text-[10px] uppercase tracking-wider text-white/40">País</span>
+              <span className="text-xs uppercase tracking-wider text-white/40">País</span>
               <CustomDropdown
                 value={formData.country_id}
                 onChange={(val) => setFormData({ ...formData, country_id: val || '' })}

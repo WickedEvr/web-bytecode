@@ -123,7 +123,7 @@ export default function OrganizationModal({ isOpen, onClose, onSuccess, editingI
 
           <div className="grid gap-5 md:grid-cols-2">
             <label className="grid gap-1.5 md:col-span-2">
-              <span className="text-[10px] uppercase tracking-wider text-white/40">Razón Social (Legal) *</span>
+              <span className="text-xs uppercase tracking-wider text-white/40">Razón Social (Legal) *</span>
               <input
                 name="legal_name"
                 value={formData.legal_name}
@@ -135,7 +135,7 @@ export default function OrganizationModal({ isOpen, onClose, onSuccess, editingI
             </label>
             
             <label className="grid gap-1.5 md:col-span-2">
-              <span className="text-[10px] uppercase tracking-wider text-white/40">Nombre Comercial (Opcional)</span>
+              <span className="text-xs uppercase tracking-wider text-white/40">Nombre Comercial (Opcional)</span>
               <input
                 name="trade_name"
                 value={formData.trade_name}
@@ -146,7 +146,7 @@ export default function OrganizationModal({ isOpen, onClose, onSuccess, editingI
             </label>
 
             <div className="grid gap-1.5">
-              <span className="text-[10px] uppercase tracking-wider text-white/40">País de Facturación</span>
+              <span className="text-xs uppercase tracking-wider text-white/40">País de Facturación</span>
               <CustomDropdown
                 value={formData.country_id}
                 onChange={(val) => {
@@ -167,7 +167,7 @@ export default function OrganizationModal({ isOpen, onClose, onSuccess, editingI
             </div>
 
             <label className="grid gap-1.5">
-              <span className="text-[10px] uppercase tracking-wider text-white/40">RUC / Tax ID</span>
+              <span className="text-xs uppercase tracking-wider text-white/40">RUC / Tax ID</span>
               <input
                 name="ruc"
                 value={formData.ruc}
@@ -178,7 +178,7 @@ export default function OrganizationModal({ isOpen, onClose, onSuccess, editingI
             </label>
 
             <label className="grid gap-1.5 md:col-span-2">
-              <span className="text-[10px] uppercase tracking-wider text-white/40">Industria / Sector</span>
+              <span className="text-xs uppercase tracking-wider text-white/40">Industria / Sector</span>
               <input
                 name="industry"
                 value={formData.industry}
