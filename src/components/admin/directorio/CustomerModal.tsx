@@ -125,7 +125,7 @@ export default function CustomerModal({ isOpen, onClose, onSuccess, editingId, i
 
           <div className="grid gap-5 md:grid-cols-2">
             <label className="grid gap-1.5">
-              <span className="text-[10px] uppercase tracking-wider text-white/40">Nombres *</span>
+              <span className="text-xs uppercase tracking-wider text-white/40">Nombres *</span>
               <input
                 name="first_name"
                 value={formData.first_name}
@@ -136,7 +136,7 @@ export default function CustomerModal({ isOpen, onClose, onSuccess, editingId, i
             </label>
             
             <label className="grid gap-1.5">
-              <span className="text-[10px] uppercase tracking-wider text-white/40">Apellidos *</span>
+              <span className="text-xs uppercase tracking-wider text-white/40">Apellidos *</span>
               <input
                 name="last_name"
                 value={formData.last_name}
@@ -147,7 +147,7 @@ export default function CustomerModal({ isOpen, onClose, onSuccess, editingId, i
             </label>
 
             <label className="grid gap-1.5 md:col-span-2">
-              <span className="text-[10px] uppercase tracking-wider text-white/40">Correo Electrónico *</span>
+              <span className="text-xs uppercase tracking-wider text-white/40">Correo Electrónico *</span>
               <input
                 type="email"
                 name="primary_email"
@@ -159,7 +159,7 @@ export default function CustomerModal({ isOpen, onClose, onSuccess, editingId, i
             </label>
 
             <div className="grid gap-1.5">
-              <span className="text-[10px] uppercase tracking-wider text-white/40">País</span>
+              <span className="text-xs uppercase tracking-wider text-white/40">País</span>
               <CustomDropdown
                 value={formData.country_id}
                 onChange={(val) => setFormData({ ...formData, country_id: val || '' })}
@@ -172,7 +172,7 @@ export default function CustomerModal({ isOpen, onClose, onSuccess, editingId, i
             </div>
             
             <label className="grid gap-1.5">
-              <span className="text-[10px] uppercase tracking-wider text-white/40">Teléfono Primario</span>
+              <span className="text-xs uppercase tracking-wider text-white/40">Teléfono Primario</span>
               <input
                 name="primary_phone"
                 value={formData.primary_phone}
@@ -183,7 +183,7 @@ export default function CustomerModal({ isOpen, onClose, onSuccess, editingId, i
             </label>
 
             <div className="grid gap-1.5">
-              <span className="text-[10px] uppercase tracking-wider text-white/40">Tipo de Contacto</span>
+              <span className="text-xs uppercase tracking-wider text-white/40">Tipo de Contacto</span>
               <CustomDropdown
                 value={formData.person_type}
                 onChange={(val) => setFormData({ ...formData, person_type: val || 'natural' })}
@@ -198,7 +198,7 @@ export default function CustomerModal({ isOpen, onClose, onSuccess, editingId, i
             {formData.person_type === 'company_contact' && (
               <>
                 <div className="grid gap-1.5">
-                  <span className="text-[10px] uppercase tracking-wider text-white/40">Empresa (B2B)</span>
+                  <span className="text-xs uppercase tracking-wider text-white/40">Empresa (B2B)</span>
                   <CustomDropdown
                     value={formData.organization_id}
                     onChange={(val) => setFormData({ ...formData, organization_id: val || '' })}
@@ -210,7 +210,7 @@ export default function CustomerModal({ isOpen, onClose, onSuccess, editingId, i
                   />
                 </div>
                 <label className="grid gap-1.5 md:col-span-2">
-                  <span className="text-[10px] uppercase tracking-wider text-white/40">Cargo</span>
+                  <span className="text-xs uppercase tracking-wider text-white/40">Cargo</span>
                   <input
                     name="position_title"
                     value={formData.position_title}
@@ -224,7 +224,7 @@ export default function CustomerModal({ isOpen, onClose, onSuccess, editingId, i
 
             <div className="md:col-span-2 grid gap-5 md:grid-cols-2 p-4 border border-white/5 rounded-xl bg-white/[0.01]">
               <div className="grid gap-1.5">
-                <span className="text-[10px] uppercase tracking-wider text-white/40">Tipo de Documento</span>
+                <span className="text-xs uppercase tracking-wider text-white/40">Tipo de Documento</span>
                 <CustomDropdown
                   value={formData.document_type_id}
                   onChange={(val) => setFormData({ ...formData, document_type_id: val || '' })}
@@ -236,7 +236,7 @@ export default function CustomerModal({ isOpen, onClose, onSuccess, editingId, i
                 />
               </div>
               <label className="grid gap-1.5">
-                <span className="text-[10px] uppercase tracking-wider text-white/40">Número de Documento</span>
+                <span className="text-xs uppercase tracking-wider text-white/40">Número de Documento</span>
                 <input
                   name="document_number"
                   value={formData.document_number}
