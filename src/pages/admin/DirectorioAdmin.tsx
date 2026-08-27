@@ -4,6 +4,10 @@ import { Users, Building2, Search, Plus, MoreVertical, RefreshCw } from 'lucide-
 import { useToastStore } from '../../stores/toastStore';
 import AdminPanel from '../../components/admin/AdminPanel';
 import PaginationControl from '../../components/ui/PaginationControl';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
+import OrganizationModal from '../../components/admin/directorio/OrganizationModal';
+import CustomerModal from '../../components/admin/directorio/CustomerModal';
+import { fetchCountries, fetchDocumentTypes } from '../../lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const PAGE_SIZE = 9;
@@ -17,6 +21,28 @@ export default function DirectorioAdmin() {
   const [total, setTotal] = useState(0);
   const addToast = useToastStore((state) => state.addToast);
   const [actionsMenu, setActionsMenu] = useState<{ id: string, top: number, left: number, placement: string } | null>(null);
+
+  const [isOrgModalOpen, setIsOrgModalOpen] = useState(false);
+  const [isCustModalOpen, setIsCustModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingData, setEditingData] = useState<any>(null);
+  const [confirmModalState, setConfirmModalState] = useState<{isOpen: boolean; id: string; type: 'empresa'|'persona'} | null>(null);
+
+  const [countries, setCountries] = useState<any[]>([]);
+  const [documentTypes, setDocumentTypes] = useState<any[]>([]);
+  const [allOrgs, setAllOrgs] = useState<any[]>([]);
+
+  useEffect(() => {
+    Promise.all([
+      fetchCountries(),
+      fetchDocumentTypes(),
+      apiRequest<{items: any[]}>('/admin/organizations?limit=1000').catch(() => ({items: []}))
+    ]).then(([cRes, dRes, orgRes]) => {
+      setCountries(cRes);
+      setDocumentTypes(dRes);
+      setAllOrgs(orgRes.items);
+    });
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -72,6 +98,19 @@ export default function DirectorioAdmin() {
     });
   };
 
+  const handleDelete = async () => {
+    if (!confirmModalState) return;
+    try {
+      const endpoint = confirmModalState.type === 'empresa' ? `/admin/organizations/${confirmModalState.id}` : `/admin/customers/${confirmModalState.id}`;
+      await apiRequest(endpoint, { method: 'DELETE' });
+      addToast('Registro eliminado correctamente', 'success');
+      setConfirmModalState(null);
+      fetchData();
+    } catch (err: any) {
+      addToast(err.message || 'Error al eliminar', 'error');
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6 font-sansation">
       <div className="flex items-center justify-between gap-4 pb-4 border-b border-white/5">
@@ -122,7 +161,15 @@ export default function DirectorioAdmin() {
               className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-white/30 transition-all"
             />
           </div>
-          <button className="flex items-center space-x-2 px-4 py-2 bg-white text-black rounded-lg text-sm font-medium hover:bg-white/90 transition-colors">
+          <button 
+            onClick={() => {
+              setEditingId(null);
+              setEditingData(null);
+              if (activeTab === 'empresas') setIsOrgModalOpen(true);
+              else setIsCustModalOpen(true);
+            }}
+            className="flex items-center space-x-2 px-4 py-2 bg-white text-black rounded-lg text-sm font-medium hover:bg-white/90 transition-colors"
+          >
             <Plus size={16} />
             <span>{activeTab === 'empresas' ? 'Nueva Empresa' : 'Nuevo Contacto'}</span>
           </button>
@@ -266,7 +313,11 @@ export default function DirectorioAdmin() {
             <div className="py-1 px-1 flex flex-col gap-1">
               <button
                 onClick={() => {
-                  addToast('Función editar en construcción', 'info');
+                  const item = activeTab === 'empresas' ? organizations.find(o => o.id === actionsMenu.id) : customers.find(c => c.id === actionsMenu.id);
+                  setEditingId(actionsMenu.id);
+                  setEditingData(item);
+                  if (activeTab === 'empresas') setIsOrgModalOpen(true);
+                  else setIsCustModalOpen(true);
                   setActionsMenu(null);
                 }}
                 className="w-full text-left px-3 py-2 text-xs font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
@@ -275,7 +326,7 @@ export default function DirectorioAdmin() {
               </button>
               <button
                 onClick={() => {
-                  addToast('Función eliminar en construcción', 'info');
+                  setConfirmModalState({ isOpen: true, id: actionsMenu.id, type: activeTab === 'empresas' ? 'empresa' : 'persona' });
                   setActionsMenu(null);
                 }}
                 className="w-full text-left px-3 py-2 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
@@ -286,6 +337,43 @@ export default function DirectorioAdmin() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <OrganizationModal
+        isOpen={isOrgModalOpen}
+        onClose={() => setIsOrgModalOpen(false)}
+        onSuccess={() => {
+          setIsOrgModalOpen(false);
+          addToast(editingId ? 'Empresa actualizada' : 'Empresa guardada', 'success');
+          fetchData();
+        }}
+        editingId={editingId}
+        initialData={editingData}
+      />
+
+      <CustomerModal
+        isOpen={isCustModalOpen}
+        onClose={() => setIsCustModalOpen(false)}
+        onSuccess={() => {
+          setIsCustModalOpen(false);
+          addToast(editingId ? 'Contacto actualizado' : 'Contacto guardado', 'success');
+          fetchData();
+        }}
+        editingId={editingId}
+        initialData={editingData}
+        countries={countries}
+        documentTypes={documentTypes}
+        organizations={allOrgs}
+      />
+
+      <ConfirmModal
+        isOpen={confirmModalState?.isOpen || false}
+        title="Eliminar Registro"
+        message="¿Estás seguro de que deseas eliminar este registro? La acción preservará el historial de operaciones relacionadas (soft-delete)."
+        type="danger"
+        confirmText="Eliminar"
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmModalState(null)}
+      />
     </div>
   );
 }
