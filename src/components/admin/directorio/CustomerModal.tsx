@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { useToastStore } from '../../../stores/toastStore';
 import CustomDropdown from '../../ui/CustomDropdown';
 import AnimatedSubmitButton from '../../ui/AnimatedSubmitButton';
 import { apiRequest } from '../../../lib/api';
@@ -29,7 +30,7 @@ export default function CustomerModal({ isOpen, onClose, onSuccess, editingId, i
     position_title: '',
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const addToast = useToastStore((state) => state.addToast);
 
   useEffect(() => {
     if (isOpen) {
@@ -61,14 +62,12 @@ export default function CustomerModal({ isOpen, onClose, onSuccess, editingId, i
           position_title: '',
         });
       }
-      setError(null);
     }
   }, [isOpen, editingId, initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError(null);
 
     try {
       const payload = {
@@ -81,17 +80,17 @@ export default function CustomerModal({ isOpen, onClose, onSuccess, editingId, i
       if (editingId) {
         await apiRequest(`/admin/customers/${editingId}`, {
           method: 'PUT',
-          body: JSON.stringify(payload)
+          json: payload
         });
       } else {
         await apiRequest('/admin/customers', {
           method: 'POST',
-          body: JSON.stringify(payload)
+          json: payload
         });
       }
       onSuccess();
     } catch (err: any) {
-      setError(err.message || 'Error al guardar contacto');
+      addToast(err.message || 'Error al guardar contacto', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -117,12 +116,6 @@ export default function CustomerModal({ isOpen, onClose, onSuccess, editingId, i
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          {error && (
-            <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-              {error}
-            </p>
-          )}
-
           <div className="grid gap-5 md:grid-cols-2">
             <label className="grid gap-1.5">
               <span className="text-xs uppercase tracking-wider text-white/40">Nombres *</span>

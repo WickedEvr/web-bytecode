@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { useToastStore } from '../../../stores/toastStore';
 import AnimatedSubmitButton from '../../ui/AnimatedSubmitButton';
 import CustomDropdown from '../../ui/CustomDropdown';
 import { apiRequest } from '../../../lib/api';
@@ -22,7 +23,7 @@ export default function OrganizationModal({ isOpen, onClose, onSuccess, editingI
     country_id: '',
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const addToast = useToastStore((state) => state.addToast);
 
   useEffect(() => {
     if (isOpen) {
@@ -37,7 +38,6 @@ export default function OrganizationModal({ isOpen, onClose, onSuccess, editingI
       } else {
         setFormData({ legal_name: '', trade_name: '', ruc: '', industry: '', country_id: '' });
       }
-      setError(null);
     }
   }, [isOpen, editingId, initialData]);
 
@@ -61,11 +61,10 @@ export default function OrganizationModal({ isOpen, onClose, onSuccess, editingI
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError(null);
 
     const regex = getRucRegex();
     if (regex && formData.ruc && !regex.test(formData.ruc)) {
-      setError(`El RUC / Tax ID no tiene un formato válido para este país. Formato esperado: ${getRucPlaceholder()}`);
+      addToast(`El identificador no tiene un formato válido. Esperado: ${getRucPlaceholder()}`, 'error');
       setIsLoading(false);
       return;
     }
@@ -79,17 +78,17 @@ export default function OrganizationModal({ isOpen, onClose, onSuccess, editingI
       if (editingId) {
         await apiRequest(`/admin/organizations/${editingId}`, {
           method: 'PUT',
-          body: JSON.stringify(payload)
+          json: payload
         });
       } else {
         await apiRequest('/admin/organizations', {
           method: 'POST',
-          body: JSON.stringify(payload)
+          json: payload
         });
       }
       onSuccess();
     } catch (err: any) {
-      setError(err.message || 'Error al guardar empresa');
+      addToast(err.message || 'Error al guardar empresa', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -115,12 +114,6 @@ export default function OrganizationModal({ isOpen, onClose, onSuccess, editingI
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          {error && (
-            <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-              {error}
-            </p>
-          )}
-
           <div className="grid gap-5 md:grid-cols-2">
             <label className="grid gap-1.5 md:col-span-2">
               <span className="text-xs uppercase tracking-wider text-white/40">Razón Social (Legal) *</span>
