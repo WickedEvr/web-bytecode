@@ -159,14 +159,18 @@ export default function CustomerModal({ isOpen, onClose, onSuccess, editingId, i
             </label>
 
             <div className="grid gap-1.5">
-              <span className="text-xs uppercase tracking-wider text-white/40">País</span>
+              <span className="text-[10px] uppercase tracking-wider text-white/40">País</span>
               <CustomDropdown
                 value={formData.country_id}
                 onChange={(val) => setFormData({ ...formData, country_id: val || '' })}
                 placeholder="Seleccionar..."
                 options={[
                   { value: '', label: 'Seleccionar...' },
-                  ...countries.map(c => ({ value: c.id, label: c.name, meta: c.iso2 }))
+                  ...countries.map(c => ({ 
+                    value: c.id, 
+                    label: c.name, 
+                    icon: c.iso2 ? <img src={`https://flagcdn.com/w20/${c.iso2.toLowerCase()}.png`} alt="" className="w-5 h-auto object-contain rounded-sm" /> : undefined 
+                  }))
                 ]}
               />
             </div>
