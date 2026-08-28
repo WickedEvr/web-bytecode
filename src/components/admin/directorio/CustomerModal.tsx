@@ -65,9 +65,31 @@ export default function CustomerModal({ isOpen, onClose, onSuccess, editingId, i
     }
   }, [isOpen, editingId, initialData]);
 
+  const selectedCountry = countries.find(c => c.id === formData.country_id);
+  const selectedDocType = documentTypes.find(d => d.id === formData.document_type_id);
+  const filteredDocTypes = documentTypes.filter(d => !formData.country_id || d.countryId === formData.country_id);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+
+    if (formData.primary_phone && selectedCountry?.phone_regex) {
+      const regex = new RegExp(selectedCountry.phone_regex);
+      if (!regex.test(formData.primary_phone)) {
+        addToast(`Formato de teléfono inválido para ${selectedCountry.name}. ${selectedCountry.phone_format || ''}`, 'error');
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    if (formData.document_number && selectedDocType?.validationRegex) {
+      const regex = new RegExp(selectedDocType.validationRegex);
+      if (!regex.test(formData.document_number)) {
+        addToast(`Formato de documento inválido. ${selectedDocType.placeholder || ''}`, 'error');
+        setIsLoading(false);
+        return;
+      }
+    }
 
     try {
       const payload = {
@@ -155,7 +177,15 @@ export default function CustomerModal({ isOpen, onClose, onSuccess, editingId, i
               <span className="text-xs uppercase tracking-wider text-white/40">País</span>
               <CustomDropdown
                 value={formData.country_id}
-                onChange={(val) => setFormData({ ...formData, country_id: val || '' })}
+                onChange={(val) => {
+                  setFormData({ 
+                    ...formData, 
+                    country_id: val || '', 
+                    primary_phone: '', 
+                    document_type_id: '', 
+                    document_number: '' 
+                  });
+                }}
                 placeholder="Seleccionar..."
                 options={[
                   { value: '', label: 'Seleccionar...' },
@@ -174,7 +204,8 @@ export default function CustomerModal({ isOpen, onClose, onSuccess, editingId, i
                 name="primary_phone"
                 value={formData.primary_phone}
                 onChange={(e) => setFormData({ ...formData, primary_phone: e.target.value })}
-                placeholder="+51 987654321"
+                placeholder={selectedCountry?.phone_format || "+51 987654321"}
+                maxLength={selectedCountry?.maxLength}
                 className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition focus:border-white/30"
               />
             </label>
@@ -224,11 +255,11 @@ export default function CustomerModal({ isOpen, onClose, onSuccess, editingId, i
                 <span className="text-xs uppercase tracking-wider text-white/40">Tipo de Documento</span>
                 <CustomDropdown
                   value={formData.document_type_id}
-                  onChange={(val) => setFormData({ ...formData, document_type_id: val || '' })}
+                  onChange={(val) => setFormData({ ...formData, document_type_id: val || '', document_number: '' })}
                   placeholder="Ej. DNI"
                   options={[
                     { value: '', label: 'Seleccionar...' },
-                    ...documentTypes.map(d => ({ value: d.id, label: d.name }))
+                    ...filteredDocTypes.map(d => ({ value: d.id, label: d.name }))
                   ]}
                 />
               </div>
@@ -238,6 +269,8 @@ export default function CustomerModal({ isOpen, onClose, onSuccess, editingId, i
                   name="document_number"
                   value={formData.document_number}
                   onChange={(e) => setFormData({ ...formData, document_number: e.target.value })}
+                  placeholder={selectedDocType?.placeholder || "Ej. 12345678"}
+                  maxLength={selectedDocType?.maxLength || undefined}
                   className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition focus:border-white/30"
                 />
               </label>
