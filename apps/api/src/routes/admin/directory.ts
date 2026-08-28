@@ -154,7 +154,7 @@ directoryRouter.post(
        VALUES ($1, $2, $3, $4, $5) RETURNING *`,
       [body.legal_name, body.trade_name || body.legal_name, body.ruc, body.industry, body.country_id]
     );
-    await auditService.logAdminAction({ userId: req.admin?.id, action: 'create', entityType: 'organizations', entity: result.rows[0].id, req });
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'create', entityType: 'organizations', entity: result.rows[0], req });
     res.status(201).json(result.rows[0]);
   })
 );
@@ -165,6 +165,8 @@ directoryRouter.put(
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
     const body = organizationSchema.parse(req.body);
+    const oldRes = await pool.query('SELECT * FROM organizations WHERE id = $1', [id]);
+    const previousState = oldRes.rows[0];
     const result = await pool.query(
       `UPDATE organizations 
        SET legal_name = $1, trade_name = $2, ruc = $3, industry = $4, country_id = $5, updated_at = NOW() 
@@ -172,7 +174,7 @@ directoryRouter.put(
       [body.legal_name, body.trade_name || body.legal_name, body.ruc, body.industry, body.country_id, id]
     );
     if (result.rowCount === 0) return res.status(404).json({ message: 'Organización no encontrada' });
-    await auditService.logAdminAction({ userId: req.admin?.id, action: 'update', entityType: 'organizations', entity: id, req });
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'update', entityType: 'organizations', entity: result.rows[0], previousState, req });
     res.json(result.rows[0]);
   })
 );
@@ -182,12 +184,14 @@ directoryRouter.delete(
   requirePermission('admin.directorio.edit'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
+    const oldRes = await pool.query('SELECT * FROM organizations WHERE id = $1', [id]);
+    const previousState = oldRes.rows[0];
     const result = await pool.query(
-      `UPDATE organizations SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING id`,
+      `UPDATE organizations SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING *`,
       [id]
     );
     if (result.rowCount === 0) return res.status(404).json({ message: 'Organización no encontrada' });
-    await auditService.logAdminAction({ userId: req.admin?.id, action: 'delete', entityType: 'organizations', entity: id, req });
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'delete', entityType: 'organizations', entity: result.rows[0], previousState, req });
     res.json({ message: 'Organización eliminada (Soft Delete)' });
   })
 );
@@ -197,12 +201,14 @@ directoryRouter.patch(
   requirePermission('admin.directorio.edit'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
+    const oldRes = await pool.query('SELECT * FROM organizations WHERE id = $1', [id]);
+    const previousState = oldRes.rows[0];
     const result = await pool.query(
-      `UPDATE organizations SET deleted_at = NULL WHERE id = $1 RETURNING id`,
+      `UPDATE organizations SET deleted_at = NULL WHERE id = $1 RETURNING *`,
       [id]
     );
     if (result.rowCount === 0) return res.status(404).json({ message: 'Organización no encontrada' });
-    await auditService.logAdminAction({ userId: req.admin?.id, action: 'restore', entityType: 'organizations', entity: id, req });
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'restore', entityType: 'organizations', entity: result.rows[0], previousState, req });
     res.json({ message: 'Organización restaurada' });
   })
 );
@@ -222,7 +228,7 @@ directoryRouter.post(
 
       const customerRes = await client.query(
         `INSERT INTO customers (customer_code, first_name, last_name, person_type, primary_email, primary_phone, country_id) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
         [customerCode, body.first_name, body.last_name, body.person_type, body.primary_email.toLowerCase(), body.primary_phone, body.country_id]
       );
       const customerId = customerRes.rows[0].id;
@@ -242,7 +248,7 @@ directoryRouter.post(
       }
 
       await client.query('COMMIT');
-      await auditService.logAdminAction({ userId: req.admin?.id, action: 'create', entityType: 'customers', entity: customerId, req });
+      await auditService.logAdminAction({ userId: req.admin?.id, action: 'create', entityType: 'customers', entity: customerRes.rows[0], req });
       res.status(201).json({ id: customerId, message: 'Contacto creado exitosamente' });
     } catch (err) {
       await client.query('ROLLBACK');
@@ -263,11 +269,13 @@ directoryRouter.put(
     
     try {
       await client.query('BEGIN');
+      const oldRes = await client.query('SELECT * FROM customers WHERE id = $1', [id]);
+      const previousState = oldRes.rows[0];
       
       const updateRes = await client.query(
         `UPDATE customers 
          SET first_name = $1, last_name = $2, person_type = $3, primary_email = $4, primary_phone = $5, country_id = $6, updated_at = NOW() 
-         WHERE id = $7 AND deleted_at IS NULL RETURNING id`,
+         WHERE id = $7 AND deleted_at IS NULL RETURNING *`,
         [body.first_name, body.last_name, body.person_type, body.primary_email.toLowerCase(), body.primary_phone, body.country_id, id]
       );
       
@@ -301,7 +309,7 @@ directoryRouter.put(
       }
 
       await client.query('COMMIT');
-      await auditService.logAdminAction({ userId: req.admin?.id, action: 'update', entityType: 'customers', entity: id, req });
+      await auditService.logAdminAction({ userId: req.admin?.id, action: 'update', entityType: 'customers', entity: updateRes.rows[0], previousState, req });
       res.json({ id, message: 'Contacto actualizado exitosamente' });
     } catch (err) {
       await client.query('ROLLBACK');
@@ -317,12 +325,14 @@ directoryRouter.delete(
   requirePermission('admin.directorio.edit'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
+    const oldRes = await pool.query('SELECT * FROM customers WHERE id = $1', [id]);
+    const previousState = oldRes.rows[0];
     const result = await pool.query(
-      `UPDATE customers SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING id`,
+      `UPDATE customers SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING *`,
       [id]
     );
     if (result.rowCount === 0) return res.status(404).json({ message: 'Contacto no encontrado' });
-    await auditService.logAdminAction({ userId: req.admin?.id, action: 'delete', entityType: 'customers', entity: id, req });
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'delete', entityType: 'customers', entity: result.rows[0], previousState, req });
     res.json({ message: 'Contacto eliminado (Soft Delete)' });
   })
 );
@@ -332,12 +342,14 @@ directoryRouter.patch(
   requirePermission('admin.directorio.edit'),
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
+    const oldRes = await pool.query('SELECT * FROM customers WHERE id = $1', [id]);
+    const previousState = oldRes.rows[0];
     const result = await pool.query(
-      `UPDATE customers SET deleted_at = NULL WHERE id = $1 RETURNING id`,
+      `UPDATE customers SET deleted_at = NULL WHERE id = $1 RETURNING *`,
       [id]
     );
     if (result.rowCount === 0) return res.status(404).json({ message: 'Contacto no encontrado' });
-    await auditService.logAdminAction({ userId: req.admin?.id, action: 'restore', entityType: 'customers', entity: id, req });
+    await auditService.logAdminAction({ userId: req.admin?.id, action: 'restore', entityType: 'customers', entity: result.rows[0], previousState, req });
     res.json({ message: 'Contacto restaurado' });
   })
 );
