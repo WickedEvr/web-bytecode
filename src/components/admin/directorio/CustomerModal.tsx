@@ -121,8 +121,9 @@ export default function CustomerModal({ isOpen, onClose, onSuccess, editingId, i
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-      <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 shadow-2xl custom-scrollbar md:p-8">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm">
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="w-full max-w-3xl rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 shadow-2xl md:p-8">
         <div className="mb-6 flex items-center justify-between border-b border-white/5 pb-4">
           <h2 className="text-lg font-semibold text-white/90">
             {editingId ? 'Editar Contacto' : 'Nuevo Contacto'}
@@ -257,7 +258,7 @@ export default function CustomerModal({ isOpen, onClose, onSuccess, editingId, i
                   value={formData.document_type_id}
                   onChange={(val) => setFormData({ ...formData, document_type_id: val || '', document_number: '' })}
                   placeholder="Ej. DNI"
-                  menuPlacement="top"
+                  disabled={!formData.country_id}
                   options={[
                     { value: '', label: 'Seleccionar...' },
                     ...filteredDocTypes.map(d => ({ value: d.id, label: d.name }))
@@ -296,6 +297,7 @@ export default function CustomerModal({ isOpen, onClose, onSuccess, editingId, i
             />
           </div>
         </form>
+      </div>
       </div>
     </div>
   );

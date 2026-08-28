@@ -97,9 +97,10 @@ export default function OrganizationModal({ isOpen, onClose, onSuccess, editingI
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 shadow-2xl custom-scrollbar md:p-8">
-        <div className="mb-6 flex items-center justify-between border-b border-white/5 pb-4">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm">
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 shadow-2xl md:p-8">
+          <div className="mb-6 flex items-center justify-between border-b border-white/5 pb-4">
           <h2 className="text-lg font-semibold text-white/90">
             {editingId ? 'Editar Empresa' : 'Nueva Empresa'}
           </h2>
@@ -200,6 +201,7 @@ export default function OrganizationModal({ isOpen, onClose, onSuccess, editingI
             />
           </div>
         </form>
+      </div>
       </div>
     </div>
   );
