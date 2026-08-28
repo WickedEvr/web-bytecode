@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { pool } from '../../db/pool.js';
 import { requirePermission } from '../../middleware/auth.js';
+import { requireCsrf } from '../../middleware/csrf.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { auditService } from '../../services/audit.js';
 
@@ -149,6 +150,7 @@ const customerSchema = z.object({
 directoryRouter.post(
   '/organizations',
   requirePermission('admin.directorio.edit'),
+  requireCsrf,
   asyncHandler(async (req: Request, res: Response) => {
     const body = organizationSchema.parse(req.body);
     const result = await pool.query(
@@ -164,6 +166,7 @@ directoryRouter.post(
 directoryRouter.put(
   '/organizations/:id',
   requirePermission('admin.directorio.edit'),
+  requireCsrf,
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
     const body = organizationSchema.parse(req.body);
@@ -184,6 +187,7 @@ directoryRouter.put(
 directoryRouter.delete(
   '/organizations/:id',
   requirePermission('admin.directorio.edit'),
+  requireCsrf,
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
     const oldRes = await pool.query('SELECT * FROM organizations WHERE id = $1', [id]);
@@ -201,6 +205,7 @@ directoryRouter.delete(
 directoryRouter.patch(
   '/organizations/:id/restore',
   requirePermission('admin.directorio.edit'),
+  requireCsrf,
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
     const oldRes = await pool.query('SELECT * FROM organizations WHERE id = $1', [id]);
@@ -241,6 +246,7 @@ directoryRouter.get(
 directoryRouter.delete(
   '/organizations/:id/customers/:customerId',
   requirePermission('admin.directorio.edit'),
+  requireCsrf,
   asyncHandler(async (req: Request, res: Response) => {
     const orgId = z.string().uuid().parse(req.params.id);
     const customerId = z.string().uuid().parse(req.params.customerId);
@@ -268,6 +274,7 @@ directoryRouter.delete(
 directoryRouter.post(
   '/customers',
   requirePermission('admin.directorio.edit'),
+  requireCsrf,
   asyncHandler(async (req: Request, res: Response) => {
     const body = customerSchema.parse(req.body);
     const client = await pool.connect();
@@ -313,6 +320,7 @@ directoryRouter.post(
 directoryRouter.put(
   '/customers/:id',
   requirePermission('admin.directorio.edit'),
+  requireCsrf,
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
     const body = customerSchema.parse(req.body);
@@ -374,6 +382,7 @@ directoryRouter.put(
 directoryRouter.delete(
   '/customers/:id',
   requirePermission('admin.directorio.edit'),
+  requireCsrf,
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
     const oldRes = await pool.query('SELECT * FROM customers WHERE id = $1', [id]);
@@ -391,6 +400,7 @@ directoryRouter.delete(
 directoryRouter.patch(
   '/customers/:id/restore',
   requirePermission('admin.directorio.edit'),
+  requireCsrf,
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
     const oldRes = await pool.query('SELECT * FROM customers WHERE id = $1', [id]);
