@@ -9,10 +9,11 @@ export interface CustomDropdownProps {
   placeholder: string; 
   required?: boolean; 
   disabled?: boolean;
-  variant?: 'admin' | 'public'; 
+  variant?: 'admin' | 'public';
+  menuPlacement?: 'top' | 'bottom';
 }
 
-const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChange, placeholder, required, disabled = false, variant = 'admin'}) => {
+const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChange, placeholder, required, disabled = false, variant = 'admin', menuPlacement = 'bottom' }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const selectedOption = options.find((opt) => opt.value === value);
@@ -29,6 +30,8 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChang
   const isPublic = variant === 'public';
   const triggerTextSize = isPublic ? 'text-[20px]' : 'text-[15px]';
   const optionTextSize = isPublic ? 'text-[20px] py-3' : 'text-[14px] py-1.5';
+  
+  const placementClass = menuPlacement === 'top' ? 'bottom-full left-0 mb-2' : 'top-full left-0 mt-2';
 
   return (
     <div className="relative w-full" ref={dropdownRef}>
@@ -38,13 +41,13 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChang
           {selectedOption?.icon}
           {selectedLabel}
         </span>
-        <svg className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isOpen ? (menuPlacement === 'top' ? '-rotate-180' : 'rotate-180') : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </div>
       <AnimatePresence>
         {isOpen && (
-          <motion.div initial={{ opacity: 0, y: -10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.95 }} transition={{ duration: 0.2 }} className="absolute top-full left-0 mt-2 w-full bg-white border border-gray-100 shadow-xl rounded-xl overflow-hidden z-[100]">
+          <motion.div initial={{ opacity: 0, y: menuPlacement === 'top' ? 10 : -10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: menuPlacement === 'top' ? 10 : -10, scale: 0.95 }} transition={{ duration: 0.2 }} className={`absolute ${placementClass} w-full bg-white border border-gray-100 shadow-xl rounded-xl overflow-hidden z-[100]`}>
             <div className="py-2 max-h-[207.5px] overflow-y-auto custom-scrollbar">
               {options.map((option) => (
                 <div key={option.value} onClick={() => { onChange(option.value); setIsOpen(false); }} className={`flex items-center gap-2 px-6 cursor-pointer transition-colors ${optionTextSize} ${value === option.value ? 'bg-[#06CFD6]/15 text-[#06CFD6] font-bold' : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'}`}>

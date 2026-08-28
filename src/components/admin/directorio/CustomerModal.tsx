@@ -257,6 +257,7 @@ export default function CustomerModal({ isOpen, onClose, onSuccess, editingId, i
                   value={formData.document_type_id}
                   onChange={(val) => setFormData({ ...formData, document_type_id: val || '', document_number: '' })}
                   placeholder="Ej. DNI"
+                  menuPlacement="top"
                   options={[
                     { value: '', label: 'Seleccionar...' },
                     ...filteredDocTypes.map(d => ({ value: d.id, label: d.name }))
