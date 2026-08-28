@@ -286,7 +286,7 @@ directoryRouter.put(
 
       // Actualizar documento primario
       if (body.document_type_id && body.document_number) {
-        const docExist = await client.query(`SELECT id FROM customer_documents WHERE customer_id = $1 AND is_primary = true AND deleted_at IS NULL`, [id]);
+        const docExist = await client.query(`SELECT customer_id FROM customer_documents WHERE customer_id = $1 AND is_primary = true AND deleted_at IS NULL`, [id]);
         if (docExist.rowCount && docExist.rowCount > 0) {
           await client.query(`UPDATE customer_documents SET document_type_id = $1, document_number = $2 WHERE customer_id = $3 AND is_primary = true`, [body.document_type_id, body.document_number, id]);
         } else {
@@ -298,7 +298,7 @@ directoryRouter.put(
 
       // Actualizar organización primaria
       if (body.organization_id) {
-        const orgExist = await client.query(`SELECT id FROM customer_organizations WHERE customer_id = $1 AND is_primary = true AND deleted_at IS NULL`, [id]);
+        const orgExist = await client.query(`SELECT customer_id FROM customer_organizations WHERE customer_id = $1 AND is_primary = true AND deleted_at IS NULL`, [id]);
         if (orgExist.rowCount && orgExist.rowCount > 0) {
           await client.query(`UPDATE customer_organizations SET organization_id = $1, position_title = $2 WHERE customer_id = $3 AND is_primary = true`, [body.organization_id, body.position_title, id]);
         } else {
