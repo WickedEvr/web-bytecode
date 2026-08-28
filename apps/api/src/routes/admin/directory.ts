@@ -215,6 +215,55 @@ directoryRouter.patch(
   })
 );
 
+directoryRouter.get(
+  '/organizations/:id/customers',
+  requirePermission('admin.directorio.view'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const orgId = z.string().uuid().parse(req.params.id);
+    const result = await pool.query(`
+      SELECT 
+        c.id as customer_id,
+        c.first_name,
+        c.last_name,
+        c.display_name,
+        c.primary_email,
+        co.position_title,
+        co.created_at
+      FROM customer_organizations co
+      JOIN customers c ON co.customer_id = c.id
+      WHERE co.organization_id = $1 AND co.deleted_at IS NULL AND c.deleted_at IS NULL
+      ORDER BY co.created_at DESC
+    `, [orgId]);
+    res.json(result.rows);
+  })
+);
+
+directoryRouter.delete(
+  '/organizations/:id/customers/:customerId',
+  requirePermission('admin.directorio.edit'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const orgId = z.string().uuid().parse(req.params.id);
+    const customerId = z.string().uuid().parse(req.params.customerId);
+    
+    // Check old state for audit
+    const oldRes = await pool.query('SELECT * FROM customer_organizations WHERE organization_id = $1 AND customer_id = $2 AND deleted_at IS NULL', [orgId, customerId]);
+    
+    const result = await pool.query(
+      `UPDATE customer_organizations SET deleted_at = NOW() WHERE organization_id = $1 AND customer_id = $2 AND deleted_at IS NULL RETURNING *`,
+      [orgId, customerId]
+    );
+
+    if (result.rowCount === 0) return res.status(404).json({ message: 'Relación no encontrada' });
+    
+    // Registrar auditoria
+    if (oldRes.rowCount && oldRes.rowCount > 0) {
+       await auditService.logAdminAction({ userId: req.admin?.id, action: 'delete_relationship', entityType: 'customer_organizations', entity: result.rows[0], previousState: oldRes.rows[0], req });
+    }
+
+    res.json({ message: 'Contacto desvinculado de la empresa' });
+  })
+);
+
 // --- MUTACIONES DE CUSTOMERS ---
 directoryRouter.post(
   '/customers',

@@ -7,6 +7,7 @@ import PaginationControl from '../../components/ui/PaginationControl';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import OrganizationModal from '../../components/admin/directorio/OrganizationModal';
 import CustomerModal from '../../components/admin/directorio/CustomerModal';
+import OrganizationContactsModal from '../../components/admin/directorio/OrganizationContactsModal';
 import { fetchCountries, fetchDocumentTypes } from '../../lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -28,6 +29,9 @@ export default function DirectorioAdmin() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingData, setEditingData] = useState<any>(null);
   const [confirmModalState, setConfirmModalState] = useState<{isOpen: boolean; id: string; type: 'empresa'|'persona'} | null>(null);
+
+  const [isOrgContactsModalOpen, setIsOrgContactsModalOpen] = useState(false);
+  const [selectedOrgForContacts, setSelectedOrgForContacts] = useState<any>(null);
 
   const [countries, setCountries] = useState<any[]>([]);
   const [documentTypes, setDocumentTypes] = useState<any[]>([]);
@@ -374,6 +378,19 @@ export default function DirectorioAdmin() {
                 Editar
               </button>
               
+              {activeTab === 'empresas' && (
+                <button
+                  onClick={() => {
+                    const item = organizations.find(o => o.id === actionsMenu.id);
+                    setSelectedOrgForContacts(item);
+                    setIsOrgContactsModalOpen(true);
+                    setActionsMenu(null);
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  Ver Contactos
+                </button>
+              )}
               {(() => {
                 const item = activeTab === 'empresas' ? organizations.find(o => o.id === actionsMenu.id) : customers.find(c => c.id === actionsMenu.id);
                 const isActive = item?.is_active ?? true;
@@ -431,6 +448,17 @@ export default function DirectorioAdmin() {
         countries={countries}
         documentTypes={documentTypes}
         organizations={allOrgs}
+      />
+
+      <OrganizationContactsModal
+        isOpen={isOrgContactsModalOpen}
+        onClose={() => {
+          setIsOrgContactsModalOpen(false);
+          setSelectedOrgForContacts(null);
+          // Refrescar data para reflejar contador de contactos actualizado
+          fetchData();
+        }}
+        organization={selectedOrgForContacts}
       />
 
       <ConfirmModal
