@@ -46,7 +46,8 @@ export default function OrganizationModal({ isOpen, onClose, onSuccess, editingI
     const country = countries.find(c => c.id === formData.country_id);
     if (!country || !country.tax_id_regex) return null;
     try {
-      return new RegExp(country.tax_id_regex);
+      const cleanRegex = country.tax_id_regex.replace(/\\\\/g, '\\');
+      return new RegExp(cleanRegex);
     } catch {
       return null;
     }

@@ -74,7 +74,9 @@ export default function CustomerModal({ isOpen, onClose, onSuccess, editingId, i
     setIsLoading(true);
 
     if (formData.primary_phone && selectedCountry?.phone_regex) {
-      const regex = new RegExp(selectedCountry.phone_regex);
+      // Limpiamos posible doble escape proveniente de la BD (ej. \\d en lugar de \d)
+      const cleanRegex = selectedCountry.phone_regex.replace(/\\\\/g, '\\');
+      const regex = new RegExp(cleanRegex);
       if (!regex.test(formData.primary_phone)) {
         addToast(`Formato de teléfono inválido para ${selectedCountry.name}. ${selectedCountry.phone_format || ''}`, 'error');
         setIsLoading(false);
@@ -83,7 +85,8 @@ export default function CustomerModal({ isOpen, onClose, onSuccess, editingId, i
     }
 
     if (formData.document_number && selectedDocType?.validationRegex) {
-      const regex = new RegExp(selectedDocType.validationRegex);
+      const cleanRegex = selectedDocType.validationRegex.replace(/\\\\/g, '\\');
+      const regex = new RegExp(cleanRegex);
       if (!regex.test(formData.document_number)) {
         addToast(`Formato de documento inválido. ${selectedDocType.placeholder || ''}`, 'error');
         setIsLoading(false);
