@@ -148,7 +148,7 @@ casesRouter.get(
       FROM contact_cases c
       ${normalized ? contactJoins : legacyContactJoins}
       ${whereSql}
-      ORDER BY pc.weight DESC NULLS LAST, c.created_at ASC
+      ORDER BY pc.weight DESC NULLS LAST, c.created_at DESC
       LIMIT $${params.length + 1} OFFSET $${params.length + 2}
       `,
       [...params, query.limit, query.offset],
@@ -389,7 +389,7 @@ casesRouter.get(
       LEFT JOIN complaint_evidences ce ON c.id = ce.complaint_id
       LEFT JOIN file_assets fa ON ce.file_asset_id = fa.id
       ${whereSql}
-      ORDER BY pc.weight DESC NULLS LAST, c.created_at ASC
+      ORDER BY pc.weight DESC NULLS LAST, c.created_at DESC
       LIMIT $${params.length + 1} OFFSET $${params.length + 2}
       `,
       [...params, query.limit, query.offset],
