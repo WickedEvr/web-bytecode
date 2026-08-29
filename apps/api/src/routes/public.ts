@@ -287,7 +287,7 @@ router.post(
       if (body.countryId) {
         const countryRes = await client.query(
           `
-          SELECT phone_max_length
+          SELECT phone_max_length, dial_code
           FROM countries
           WHERE id = $1 AND is_active = true
           LIMIT 1
@@ -301,10 +301,20 @@ router.post(
 
         const country = countryRes.rows[0] as {
           phone_max_length: number | null;
+          dial_code: string | null;
         };
 
-        if (country.phone_max_length && body.celular.length !== Number(country.phone_max_length)) {
-          throw new HttpError(400, `El celular debe tener ${country.phone_max_length} dígitos.`);
+        if (country.phone_max_length) {
+          // Extraemos el dial_code del principio y limpiamos espacios/símbolos extras para contar solo dígitos puros ingresados
+          let rawPhone = body.celular;
+          if (country.dial_code && rawPhone.startsWith(country.dial_code)) {
+             rawPhone = rawPhone.substring(country.dial_code.length);
+          }
+          rawPhone = rawPhone.replace(/\D/g, ''); // Deja solo los dígitos
+
+          if (rawPhone.length !== Number(country.phone_max_length)) {
+            throw new HttpError(400, `El celular debe tener ${country.phone_max_length} dígitos.`);
+          }
         }
 
         // Fetch validation regex from document_types based on personType
