@@ -466,6 +466,7 @@ contentRouter.post(
 contentRouter.patch(
   '/portfolio/reorder',
   requirePermission('admin.portafolio.manage'),
+  requireCsrf,
   asyncHandler(async (req, res) => {
     const { items } = req.body;
     if (!Array.isArray(items)) throw new HttpError(400, 'Invalid items array');

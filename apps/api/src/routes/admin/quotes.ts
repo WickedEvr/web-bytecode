@@ -132,16 +132,20 @@ quotesRouter.get(
   asyncHandler(async (_req: Request, res: Response) => {
     const [organizationsRes, customersRes, exchangeRates] = await Promise.all([
       pool.query(`
-        SELECT id, COALESCE(NULLIF(trade_name, ''), legal_name) AS name, ruc
-        FROM organizations
-        WHERE deleted_at IS NULL
-        ORDER BY name ASC
+        SELECT o.id, COALESCE(NULLIF(o.trade_name, ''), o.legal_name) AS name, o.ruc, split_part(c.tax_id_format, ' ', 1) as tax_name
+        FROM organizations o
+        LEFT JOIN countries c ON o.country_id = c.id
+        WHERE o.deleted_at IS NULL
+        ORDER BY o.legal_name ASC
       `),
       pool.query(`
-        SELECT id, primary_email AS email,
-               COALESCE(NULLIF(trim(concat_ws(' ', first_name, last_name)), ''), primary_email) AS name
-        FROM customers
-        WHERE deleted_at IS NULL
+        SELECT c.id, c.primary_email AS email,
+               COALESCE(NULLIF(trim(concat_ws(' ', c.first_name, c.last_name)), ''), c.primary_email) AS name,
+               array_remove(array_agg(co.organization_id), NULL) as organization_ids
+        FROM customers c
+        LEFT JOIN customer_organizations co ON c.id = co.customer_id AND co.deleted_at IS NULL
+        WHERE c.deleted_at IS NULL
+        GROUP BY c.id
         ORDER BY name ASC
       `),
       getLiveExchangeRates(),

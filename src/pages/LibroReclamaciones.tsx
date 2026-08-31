@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import ContactFooter from '../components/layout/ContactFooter';
 import LazyGalaxyBackground from '../components/effects/LazyGalaxyBackground';
 import CustomDropdown, { type DropdownOption } from '../components/ui/CustomDropdown';
+import AnimatedCheckbox from '../components/ui/AnimatedCheckbox';
 import AnimatedSubmitButton from '../components/ui/AnimatedSubmitButton';
 import PhoneInputGroup from '../components/ui/PhoneInputGroup';
 import { Label } from '../components/ui/Label';
@@ -412,41 +413,20 @@ const LibroReclamaciones: React.FC = () => {
           </div>
 
           {/* ── Checkbox Términos ── */}
-          <label className="flex items-start gap-4 cursor-pointer group px-2">
-            <span className={`relative w-6 h-6 rounded-md border-[2.5px] mt-0.5 shrink-0 flex items-center justify-center transition-colors duration-300 ${formData.aceptaTerminos ? 'border-[#06CFD6] bg-[#06CFD6]' : 'border-white/40 lg:group-hover:border-white/70'}`}>
-              <AnimatePresence>
-                {formData.aceptaTerminos && (
-                  <motion.svg 
-                    initial={{ scale: 0.5, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.5, opacity: 0 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                    viewBox="0 0 12 10" 
-                    fill="none" 
-                    stroke="white" 
-                    strokeWidth="2.5" 
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="w-3.5 h-3"
-                  >
-                    {/* motion.polyline permite animar el "trazado" del check */}
-                    <motion.polyline 
-                      initial={{ pathLength: 0 }}
-                      animate={{ pathLength: 1 }}
-                      exit={{ pathLength: 0 }}
-                      transition={{ duration: 0.3, ease: "easeOut" }}
-                      points="1,5 4,8 11,1" 
-                    />
-                  </motion.svg>
-                )}
-              </AnimatePresence>
-            </span>
-            <input type="checkbox" name="aceptaTerminos" checked={formData.aceptaTerminos} onChange={handleChange} required className="sr-only" />
-
-            <span className={`text-[16px] md:text-[18px] leading-snug select-none transition-colors duration-300 ${formData.aceptaTerminos ? 'text-white' : 'text-white/80 lg:group-hover:text-white'}`}>
-              Declaro que los datos consignados son correctos y <span className="font-bold">acepto estar de acuerdo con el contenido</span> de mi reclamo o queja.
-            </span>
-          </label>
+          <div className="px-2">
+            <AnimatedCheckbox
+              name="aceptaTerminos"
+              checked={formData.aceptaTerminos}
+              onChange={(checked) => setFormData({ ...formData, aceptaTerminos: checked })}
+              required
+              textSizeClassName="text-[16px] md:text-[18px]"
+              label={
+                <>
+                  Declaro que los datos consignados son correctos y <span className="font-bold">acepto estar de acuerdo con el contenido</span> de mi reclamo o queja.
+                </>
+              }
+            />
+          </div>
 
           {/* ── Submit ── */}
           <div className="pt-4">

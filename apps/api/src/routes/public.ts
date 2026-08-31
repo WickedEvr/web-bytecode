@@ -71,6 +71,8 @@ const contactSchemaBase = z.object({
   celular: digitsOnly.min(4).max(20),
   servicio: z.string().trim().min(2).max(120),
   mensaje: z.string().trim().min(10).max(1200),
+  aceptaTerminos: z.coerce.boolean().refine((val) => val, 'Debe aceptar los términos.'),
+  aceptaMarketing: z.coerce.boolean().default(false),
 });
 
 const contactSchema = z.discriminatedUnion('personType', [
@@ -138,8 +140,10 @@ const parseClaimedAmount = (value: string) => {
 let normalizedContactSchema: boolean | null = null;
 
 router.get('/catalog/countries', asyncHandler(async (_req: Request, res: Response) => {
-  const result = await pool.query('SELECT id, iso2 as iso, name, dial_code as "dialCode", phone_max_length as "maxLength" FROM countries WHERE is_active = true ORDER BY name ASC');
-  res.json({ items: result.rows });
+  const result = await pool.query('SELECT id, iso2, name, dial_code as "dialCode", phone_max_length as "maxLength", tax_id_regex, tax_id_format, phone_regex, phone_format FROM countries WHERE is_active = true ORDER BY name ASC');
+  // Aseguramos iso2 en vez de iso por compatibilidad con el front
+  const mapped = result.rows.map(r => ({ ...r, iso: r.iso2 }));
+  res.json({ items: mapped });
 }));
 
 router.get('/catalog/services', asyncHandler(async (_req: Request, res: Response) => {
@@ -283,7 +287,7 @@ router.post(
       if (body.countryId) {
         const countryRes = await client.query(
           `
-          SELECT phone_max_length
+          SELECT phone_max_length, dial_code
           FROM countries
           WHERE id = $1 AND is_active = true
           LIMIT 1
@@ -297,10 +301,20 @@ router.post(
 
         const country = countryRes.rows[0] as {
           phone_max_length: number | null;
+          dial_code: string | null;
         };
 
-        if (country.phone_max_length && body.celular.length !== Number(country.phone_max_length)) {
-          throw new HttpError(400, `El celular debe tener ${country.phone_max_length} dígitos.`);
+        if (country.phone_max_length) {
+          // Extraemos el dial_code del principio y limpiamos espacios/símbolos extras para contar solo dígitos puros ingresados
+          let rawPhone = body.celular;
+          if (country.dial_code && rawPhone.startsWith(country.dial_code)) {
+             rawPhone = rawPhone.substring(country.dial_code.length);
+          }
+          rawPhone = rawPhone.replace(/\D/g, ''); // Deja solo los dígitos
+
+          if (rawPhone.length !== Number(country.phone_max_length)) {
+            throw new HttpError(400, `El celular debe tener ${country.phone_max_length} dígitos.`);
+          }
         }
 
         // Fetch validation regex from document_types based on personType
@@ -356,17 +370,17 @@ router.post(
           if ((existingDoc.rowCount ?? 0) > 0) {
             customerId = existingDoc.rows[0].customer_id;
             await client.query(
-              "UPDATE customers SET primary_email = $1, primary_phone = $2, first_name = $3, last_name = $4, updated_at = NOW() WHERE id = $5",
-              [body.email.toLowerCase(), body.celular, body.nombre, body.apellido, customerId]
+              "UPDATE customers SET primary_email = $1, primary_phone = $2, first_name = $3, last_name = $4, country_id = $5, consent_terms = $6, consent_marketing = $7, updated_at = NOW() WHERE id = $8",
+              [body.email.toLowerCase(), body.celular, body.nombre, body.apellido, body.countryId ?? null, body.aceptaTerminos, body.aceptaMarketing, customerId]
             );
           } else {
             const customerRes = await client.query(
               `
-              INSERT INTO customers (customer_code, first_name, last_name, person_type, primary_email, primary_phone)
-              VALUES ($1, $2, $3, $4, $5, $6)
+              INSERT INTO customers (customer_code, first_name, last_name, person_type, primary_email, primary_phone, country_id, consent_terms, consent_marketing)
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
               RETURNING id
               `,
-              [`CUS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, body.nombre, body.apellido, personTypeVal, body.email.toLowerCase(), body.celular]
+              [`CUS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, body.nombre, body.apellido, personTypeVal, body.email.toLowerCase(), body.celular, body.countryId ?? null, body.aceptaTerminos, body.aceptaMarketing]
             );
             customerId = customerRes.rows[0].id;
             
@@ -381,22 +395,22 @@ router.post(
         } else {
           const customerRes = await client.query(
             `
-            INSERT INTO customers (customer_code, first_name, last_name, person_type, primary_email, primary_phone)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO customers (customer_code, first_name, last_name, person_type, primary_email, primary_phone, country_id, consent_terms, consent_marketing)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING id
             `,
-            [`CUS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, body.nombre, body.apellido, personTypeVal, body.email.toLowerCase(), body.celular]
+            [`CUS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, body.nombre, body.apellido, personTypeVal, body.email.toLowerCase(), body.celular, body.countryId ?? null, body.aceptaTerminos, body.aceptaMarketing]
           );
           customerId = customerRes.rows[0].id;
         }
       } else {
         const customerRes = await client.query(
           `
-          INSERT INTO customers (customer_code, first_name, last_name, person_type, primary_email, primary_phone)
-          VALUES ($1, $2, $3, $4, $5, $6)
+          INSERT INTO customers (customer_code, first_name, last_name, person_type, primary_email, primary_phone, country_id, consent_terms, consent_marketing)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
           RETURNING id
           `,
-          [`CUS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, body.nombre, body.apellido, personTypeVal, body.email.toLowerCase(), body.celular]
+          [`CUS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`, body.nombre, body.apellido, personTypeVal, body.email.toLowerCase(), body.celular, body.countryId ?? null, body.aceptaTerminos, body.aceptaMarketing]
         );
         customerId = customerRes.rows[0].id;
       }

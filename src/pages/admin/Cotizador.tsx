@@ -62,7 +62,8 @@ const AdminCotizador: React.FC = () => {
     status: 'draft',
     isTerminal: false,
   });
-  const [organizations, setOrganizations] = useState<Array<{ id: string; name: string; ruc?: string }>>([]);
+  const [organizations, setOrganizations] = useState<Array<{ id: string; name: string; ruc?: string; tax_name?: string }>>([]);
+  const [customers, setCustomers] = useState<Array<{ id: string; email: string; name: string; organization_ids: string[] }>>([]);
   const [exchangeRates, setExchangeRates] = useState<{ USD: number; EUR: number; PEN: number }>({ USD: 3.75, EUR: 4.05, PEN: 1 });
   const [statuses, setStatuses] = useState<StatusCatalogItem[]>([]);
   const [statusHistory, setStatusHistory] = useState<StatusHistoryRecord[]>([]);
@@ -81,7 +82,7 @@ const AdminCotizador: React.FC = () => {
         apiRequest<{ data: Quote[]; total: number }>(`/admin/quotes?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}`),
         apiRequest<{ items: PricingCatalogItem[] }>('/admin/catalog/pricing'),
         apiRequest<{ items: StatusCatalogItem[] }>('/catalog/statuses?domain=quote'),
-        apiRequest<{ organizations: Array<{ id: string; name: string; ruc?: string }>; exchangeRates?: { USD: number; EUR: number; PEN: number } }>('/admin/quotes/options'),
+        apiRequest<{ organizations: Array<{ id: string; name: string; ruc?: string; tax_name?: string }>; customers: Array<{ id: string; email: string; name: string; organization_ids: string[] }>; exchangeRates?: { USD: number; EUR: number; PEN: number } }>('/admin/quotes/options'),
       ]);
       if (quotesRes.data.length === 0 && quotesRes.total > 0 && page > 1) { setPage(page - 1); return; }
       setQuotes(quotesRes.data);
@@ -89,6 +90,7 @@ const AdminCotizador: React.FC = () => {
       setCatalog(catalogRes.items);
       setStatuses(statusesRes.items);
       setOrganizations(optionsRes.organizations || []);
+      setCustomers(optionsRes.customers || []);
       if (optionsRes.exchangeRates) setExchangeRates(optionsRes.exchangeRates);
     } catch (err) {
       addToast(err instanceof Error ? err.message : 'Error al cargar cotizaciones', 'error');
@@ -424,6 +426,7 @@ const AdminCotizador: React.FC = () => {
               currencyCode={formData.currencyCode}
               exchangeRates={exchangeRates}
               organizations={organizations}
+              customers={customers}
               loading={loading}
               error={''}
               primaryFieldsAfter={(
@@ -443,12 +446,12 @@ const AdminCotizador: React.FC = () => {
                   {editingQuoteId && <StatusHistoryTimeline records={statusHistory} />}
                 </div>
               )}
-              onCustomerNameChange={(customerName) => setFormData({ ...formData, customerName })}
-              onCustomerEmailChange={(customerEmail) => setFormData({ ...formData, customerEmail })}
-              onNotesChange={(nextNotes) => setFormData({ ...formData, notes: nextNotes })}
-              onOrganizationChange={(organizationId) => setFormData({ ...formData, organizationId })}
-              onAcquisitionChannelChange={(acquisitionChannel) => setFormData({ ...formData, acquisitionChannel })}
-              onCurrencyCodeChange={(currencyCode) => setFormData({ ...formData, currencyCode })}
+              onCustomerNameChange={(customerName) => setFormData((prev) => ({ ...prev, customerName }))}
+              onCustomerEmailChange={(customerEmail) => setFormData((prev) => ({ ...prev, customerEmail }))}
+              onNotesChange={(nextNotes) => setFormData((prev) => ({ ...prev, notes: nextNotes }))}
+              onOrganizationChange={(organizationId) => setFormData((prev) => ({ ...prev, organizationId }))}
+              onAcquisitionChannelChange={(acquisitionChannel) => setFormData((prev) => ({ ...prev, acquisitionChannel }))}
+              onCurrencyCodeChange={(currencyCode) => setFormData((prev) => ({ ...prev, currencyCode }))}
               onCancel={() => {
                 resetQuoter();
                 setIsModalOpen(false);

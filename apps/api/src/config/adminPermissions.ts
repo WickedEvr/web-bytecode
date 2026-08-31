@@ -17,6 +17,8 @@ export type AdminMenuSeed = {
 
 export const adminPermissions = [
   { moduleCode: 'admin.dashboard', actionCode: 'view', code: 'admin.dashboard.view', name: 'Ver Dashboard' },
+  { moduleCode: 'admin.directorio', actionCode: 'view', code: 'admin.directorio.view', name: 'Ver Directorio' },
+  { moduleCode: 'admin.directorio', actionCode: 'manage', code: 'admin.directorio.manage', name: 'Gestionar Directorio' },
   { moduleCode: 'admin.contactos', actionCode: 'view', code: 'admin.contactos.view', name: 'Ver Contactos' },
   { moduleCode: 'admin.contactos', actionCode: 'manage', code: 'admin.contactos.manage', name: 'Gestionar Contactos' },
   { moduleCode: 'admin.contactos', actionCode: 'assign', code: 'admin.contactos.assign', name: 'Asignar Contactos' },
@@ -44,10 +46,11 @@ export const adminPermissions = [
 ] as const satisfies readonly AdminPermissionSeed[];
 
 export type AdminPermissionCode = (typeof adminPermissions)[number]['code'];
-export type SystemRoleCode = 'super_admin' | 'admin' | 'support_agent' | 'legal_reviewer' | 'partner_designer' | 'developer';
+export type SystemRoleCode = 'super_admin' | 'admin' | 'support_agent' | 'legal_reviewer' | 'partner_designer' | 'developer' | 'sales';
 
 export const adminMenuItems: AdminMenuSeed[] = [
   { label: 'Dashboard', url: '/admin/dashboard', routeName: 'admin.dashboard', iconName: 'LayoutDashboard', permissionCode: 'admin.dashboard.view', sortOrder: 10 },
+  { label: 'Directorio', url: '/admin/directorio', routeName: 'admin.directorio', iconName: 'Users', permissionCode: 'admin.directorio.view', sortOrder: 15 },
   { label: 'Contactos', url: '/admin/contactos', routeName: 'admin.contactos', iconName: 'Users', permissionCode: 'admin.contactos.view', sortOrder: 20 },
   { label: 'Reclamos', url: '/admin/reclamos', routeName: 'admin.reclamos', iconName: 'MessageSquareText', permissionCode: 'admin.reclamos.view', sortOrder: 30 },
   { label: 'Cotizador', url: '/admin/cotizador', routeName: 'admin.cotizador', iconName: 'Calculator', permissionCode: 'admin.cotizador.view', sortOrder: 40 },
@@ -67,6 +70,8 @@ export const initialRolePermissions: Record<SystemRoleCode, AdminPermissionCode[
     'admin.contactos.view',
     'admin.contactos.manage',
     'admin.contactos.assign',
+    'admin.directorio.view',
+    'admin.directorio.manage',
     'admin.reclamos.view',
     'admin.reclamos.manage',
     'admin.cotizador.view',
@@ -92,6 +97,15 @@ export const initialRolePermissions: Record<SystemRoleCode, AdminPermissionCode[
     'admin.contactos.assign',
     'admin.reclamos.view',
     'admin.reclamos.manage',
+  ],
+  sales: [
+    'admin.dashboard.view',
+    'admin.contactos.view',
+    'admin.contactos.manage',
+    'admin.cotizador.view',
+    'admin.cotizador.manage',
+    'admin.directorio.view',
+    'admin.directorio.manage',
   ],
   legal_reviewer: [
     'admin.dashboard.view',

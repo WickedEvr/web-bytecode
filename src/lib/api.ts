@@ -103,7 +103,7 @@ async function apiRequestInternal<T>(path: string, options: RequestOptions = {},
 
 export const apiUrl = buildUrl;
 
-export const createContactSubmission = (payload: Record<string, string>) =>
+export const createContactSubmission = (payload: Record<string, any>) =>
   apiRequest<{ id: string; createdAt: string }>('/contact-submissions', {
     method: 'POST',
     json: payload,
@@ -123,6 +123,10 @@ export interface CountryData {
   name: string;
   dialCode: string;
   maxLength: number;
+  tax_id_regex?: string;
+  tax_id_format?: string;
+  phone_regex?: string;
+  phone_format?: string;
   is_active?: boolean;
 }
 

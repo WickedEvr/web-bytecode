@@ -5,6 +5,7 @@ import SEO from '../components/shared/SEO';
 import LazyGalaxyBackground from '../components/effects/LazyGalaxyBackground';
 import ContactFooter from '../components/layout/ContactFooter';
 import CustomDropdown, { type DropdownOption } from '../components/ui/CustomDropdown';
+import AnimatedCheckbox from '../components/ui/AnimatedCheckbox';
 import AnimatedSubmitButton from '../components/ui/AnimatedSubmitButton';
 import PhoneInputGroup from '../components/ui/PhoneInputGroup';
 import { Label } from '../components/ui/Label';
@@ -31,6 +32,8 @@ const Contacto: React.FC = () => {
     documentNumber: '',
     servicio: '',
     mensaje: '',
+    aceptaTerminos: false,
+    aceptaMarketing: false,
   });
   
   const [selectedCountryData, setSelectedCountryData] = useState<CountryData>({ id: 'default', iso: 'PE', name: 'Perú', dialCode: '+51', maxLength: 9 });
@@ -176,7 +179,20 @@ const Contacto: React.FC = () => {
     setSubmitError('');
 
     try {
-      await createContactSubmission({ ...formData, personType });
+      const payload: Record<string, any> = { 
+        ...formData, 
+        personType,
+        celular: `${selectedCountryData.dialCode} ${formData.celular}`.trim()
+      };
+      
+      if (selectedCountryData.id && selectedCountryData.id !== 'default') {
+        payload.countryId = selectedCountryData.id;
+      } else {
+        const defaultCountry = allCountries.find(c => c.iso === selectedCountryData.iso);
+        payload.countryId = defaultCountry ? defaultCountry.id : null;
+      }
+
+      await createContactSubmission(payload);
       setIsLoading(false);
       setIsSuccess(true);
       
@@ -410,6 +426,27 @@ const Contacto: React.FC = () => {
               maxLength={1200}
               value={formData.mensaje}
               onChange={handleChange}
+            />
+          </div>
+
+          <div className="flex flex-col gap-3 mt-4">
+            <AnimatedCheckbox
+              name="aceptaTerminos"
+              checked={formData.aceptaTerminos}
+              onChange={(checked) => setFormData({ ...formData, aceptaTerminos: checked })}
+              required
+              label={
+                <>
+                  He leído y acepto la <a href="/privacidad" target="_blank" className="text-[#06CFD6] hover:underline" onClick={(e) => e.stopPropagation()}>Política de Privacidad</a> respecto al tratamiento de mi solicitud.
+                </>
+              }
+            />
+            
+            <AnimatedCheckbox
+              name="aceptaMarketing"
+              checked={formData.aceptaMarketing}
+              onChange={(checked) => setFormData({ ...formData, aceptaMarketing: checked })}
+              label="Acepto recibir comunicaciones comerciales, boletines e información sobre nuevos servicios de Bytecode."
             />
           </div>
 

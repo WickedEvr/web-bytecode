@@ -50,7 +50,8 @@ type DynamicQuoterProps = {
   acquisitionChannel?: string;
   currencyCode?: string;
   exchangeRates?: { USD: number; EUR: number; PEN: number };
-  organizations?: Array<{ id: string; name: string; ruc?: string }>;
+  organizations?: Array<{ id: string; name: string; ruc?: string; tax_name?: string }>;
+  customers?: Array<{ id: string; email: string; name: string; organization_ids: string[] }>;
   onOrganizationChange?: (value: string | null) => void;
   onAcquisitionChannelChange?: (value: string) => void;
   onCurrencyCodeChange?: (value: string) => void;
@@ -195,7 +196,6 @@ const ToggleSwitch = ({ checked, label, onChange }: { checked: boolean; label: s
 
 const DynamicQuoter = ({
   initialCatalog,
-  customerName,
   customerEmail,
   notes,
   loading = false,
@@ -209,9 +209,10 @@ const DynamicQuoter = ({
   isReadOnly = false,
   organizationId,
   acquisitionChannel,
-  currencyCode,
+  currencyCode = 'PEN',
   exchangeRates,
-  organizations,
+  organizations = [],
+  customers = [],
   onOrganizationChange,
   onAcquisitionChannelChange,
   onCurrencyCodeChange,
@@ -281,44 +282,55 @@ const DynamicQuoter = ({
       )}
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium uppercase tracking-wider text-white/55">Nombre del Cliente</span>
-          <input
-            type="text"
-            required
-            value={customerName}
-            onChange={(event) => onCustomerNameChange(event.target.value)}
-            disabled={isReadOnly}
-            className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition-colors focus:border-[#06CFD6]/70"
-          />
-        </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium uppercase tracking-wider text-white/55">Correo Electronico</span>
-          <input
-            type="email"
-            required
-            value={customerEmail}
-            onChange={(event) => onCustomerEmailChange(event.target.value)}
-            disabled={isReadOnly}
-            className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition-colors focus:border-[#06CFD6]/70"
-          />
-        </label>
         <div className="flex flex-col gap-1.5">
           <span className="text-xs font-medium uppercase tracking-wider text-white/55">Empresa / B2B</span>
           <CustomDropdown
             value={organizationId ?? ''}
-            onChange={(val) => onOrganizationChange?.(val || null)}
+            onChange={(val) => {
+              onOrganizationChange?.(val || null);
+              // Limpiar contacto al cambiar empresa
+              onCustomerEmailChange('');
+              onCustomerNameChange('');
+            }}
             placeholder="Seleccionar empresa..."
             disabled={isReadOnly}
             options={[
               { value: '', label: 'Cliente Independiente (Sin Empresa)' },
               ...(organizations?.map((org) => ({
                 value: org.id,
-                label: org.ruc ? `${org.name} (RUC: ${org.ruc})` : org.name,
+                label: org.ruc ? `${org.name} (${org.tax_name || 'Doc'}: ${org.ruc})` : org.name,
               })) ?? []),
             ]}
           />
         </div>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium uppercase tracking-wider text-white/55">Contacto Asociado</span>
+          {(() => {
+            const availableContacts = customers?.filter(c => {
+              if (organizationId) return c.organization_ids?.includes(organizationId);
+              return !c.organization_ids || c.organization_ids.length === 0;
+            }) ?? [];
+            return (
+              <CustomDropdown
+                value={customerEmail}
+                onChange={(val) => {
+                  const customer = customers?.find(c => c.email === val);
+                  onCustomerEmailChange(val);
+                  onCustomerNameChange(customer ? customer.name : '');
+                }}
+                placeholder={availableContacts.length === 0 ? "Sin contactos disponibles" : "Seleccionar contacto..."}
+                disabled={isReadOnly || !customers || availableContacts.length === 0}
+                options={[
+                  ...availableContacts.map((cust) => ({
+                    value: cust.email,
+                    label: `${cust.name} (${cust.email})`,
+                  })),
+                ]}
+              />
+            );
+          })()}
+        </div>
+
         <div className="flex flex-col gap-1.5">
           <span className="text-xs font-medium uppercase tracking-wider text-white/55">Canal de Adquisicion</span>
           <CustomDropdown
