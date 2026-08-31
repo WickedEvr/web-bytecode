@@ -5,6 +5,7 @@ import { requirePermission } from '../../middleware/auth.js';
 import { requireCsrf } from '../../middleware/csrf.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { auditService } from '../../services/audit.js';
+import { HttpError } from '../../utils/httpError.js';
 
 const directoryRouter = Router();
 
@@ -153,13 +154,20 @@ directoryRouter.post(
   requireCsrf,
   asyncHandler(async (req: Request, res: Response) => {
     const body = organizationSchema.parse(req.body);
-    const result = await pool.query(
-      `INSERT INTO organizations (legal_name, trade_name, ruc, industry, country_id) 
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [body.legal_name, body.trade_name || body.legal_name, body.ruc, body.industry, body.country_id]
-    );
-    await auditService.logAdminAction({ userId: req.admin?.id, action: 'create', entityType: 'organizations', entity: result.rows[0], req });
-    res.status(201).json(result.rows[0]);
+    try {
+      const result = await pool.query(
+        `INSERT INTO organizations (legal_name, trade_name, ruc, industry, country_id) 
+         VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+        [body.legal_name, body.trade_name || body.legal_name, body.ruc, body.industry, body.country_id]
+      );
+      await auditService.logAdminAction({ userId: req.admin?.id, action: 'create', entityType: 'organizations', entity: result.rows[0], req });
+      res.status(201).json(result.rows[0]);
+    } catch (err: any) {
+      if (err.code === '23505') {
+        throw new HttpError(409, 'El RUC o documento de la empresa ya se encuentra registrado.');
+      }
+      throw err;
+    }
   })
 );
 
@@ -172,15 +180,22 @@ directoryRouter.put(
     const body = organizationSchema.parse(req.body);
     const oldRes = await pool.query('SELECT * FROM organizations WHERE id = $1', [id]);
     const previousState = oldRes.rows[0];
-    const result = await pool.query(
-      `UPDATE organizations 
-       SET legal_name = $1, trade_name = $2, ruc = $3, industry = $4, country_id = $5, updated_at = NOW() 
-       WHERE id = $6 AND deleted_at IS NULL RETURNING *`,
-      [body.legal_name, body.trade_name || body.legal_name, body.ruc, body.industry, body.country_id, id]
-    );
-    if (result.rowCount === 0) return res.status(404).json({ message: 'Organización no encontrada' });
-    await auditService.logAdminAction({ userId: req.admin?.id, action: 'update', entityType: 'organizations', entity: result.rows[0], previousState, req });
-    res.json(result.rows[0]);
+    try {
+      const result = await pool.query(
+        `UPDATE organizations 
+         SET legal_name = $1, trade_name = $2, ruc = $3, industry = $4, country_id = $5, updated_at = NOW() 
+         WHERE id = $6 AND deleted_at IS NULL RETURNING *`,
+        [body.legal_name, body.trade_name || body.legal_name, body.ruc, body.industry, body.country_id, id]
+      );
+      if (result.rowCount === 0) return res.status(404).json({ message: 'Organización no encontrada' });
+      await auditService.logAdminAction({ userId: req.admin?.id, action: 'update', entityType: 'organizations', entity: result.rows[0], previousState, req });
+      res.json(result.rows[0]);
+    } catch (err: any) {
+      if (err.code === '23505') {
+        throw new HttpError(409, 'El RUC o documento de la empresa ya se encuentra registrado por otra.');
+      }
+      throw err;
+    }
   })
 );
 
@@ -308,8 +323,11 @@ directoryRouter.post(
       await client.query('COMMIT');
       await auditService.logAdminAction({ userId: req.admin?.id, action: 'create', entityType: 'customers', entity: customerRes.rows[0], req });
       res.status(201).json({ id: customerId, message: 'Contacto creado exitosamente' });
-    } catch (err) {
+    } catch (err: any) {
       await client.query('ROLLBACK');
+      if (err.code === '23505') {
+        throw new HttpError(409, 'El documento o correo electrónico ya se encuentra registrado.');
+      }
       throw err;
     } finally {
       client.release();
@@ -370,8 +388,11 @@ directoryRouter.put(
       await client.query('COMMIT');
       await auditService.logAdminAction({ userId: req.admin?.id, action: 'update', entityType: 'customers', entity: updateRes.rows[0], previousState, req });
       res.json({ id, message: 'Contacto actualizado exitosamente' });
-    } catch (err) {
+    } catch (err: any) {
       await client.query('ROLLBACK');
+      if (err.code === '23505') {
+        throw new HttpError(409, 'El documento o correo electrónico ya se encuentra registrado por otro contacto.');
+      }
       throw err;
     } finally {
       client.release();
