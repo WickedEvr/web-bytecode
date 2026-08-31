@@ -132,10 +132,11 @@ quotesRouter.get(
   asyncHandler(async (_req: Request, res: Response) => {
     const [organizationsRes, customersRes, exchangeRates] = await Promise.all([
       pool.query(`
-        SELECT id, COALESCE(NULLIF(trade_name, ''), legal_name) AS name, ruc
-        FROM organizations
-        WHERE deleted_at IS NULL
-        ORDER BY name ASC
+        SELECT o.id, COALESCE(NULLIF(o.trade_name, ''), o.legal_name) AS name, o.ruc, split_part(c.tax_id_format, ' ', 1) as tax_name
+        FROM organizations o
+        LEFT JOIN countries c ON o.country_id = c.id
+        WHERE o.deleted_at IS NULL
+        ORDER BY o.legal_name ASC
       `),
       pool.query(`
         SELECT c.id, c.primary_email AS email,
