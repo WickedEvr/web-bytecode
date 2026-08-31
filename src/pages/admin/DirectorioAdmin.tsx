@@ -64,10 +64,14 @@ export default function DirectorioAdmin() {
     setActionsMenu(null);
     try {
       if (activeTab === 'empresas') {
-        const res = await apiRequest<{ items: any[], total: number }>(`/admin/organizations?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}&status=${statusFilter}`);
+        const [res, allOrgsRes] = await Promise.all([
+          apiRequest<{ items: any[], total: number }>(`/admin/organizations?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}&status=${statusFilter}`),
+          apiRequest<{items: any[]}>('/admin/organizations?limit=1000').catch(() => ({items: []}))
+        ]);
         if (res.items.length === 0 && res.total > 0 && page > 1) { setPage(page - 1); return; }
         setOrganizations(res.items || []);
         setTotal(res.total || 0);
+        setAllOrgs(allOrgsRes.items || []);
       } else {
         const res = await apiRequest<{ items: any[], total: number }>(`/admin/customers?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}&status=${statusFilter}`);
         if (res.items.length === 0 && res.total > 0 && page > 1) { setPage(page - 1); return; }
