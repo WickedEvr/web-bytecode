@@ -46,3 +46,31 @@ export async function sendInAppNotification(
     console.error(`Failed to send in-app notification for event ${eventType}:`, error);
   }
 }
+
+export async function enqueueEmail(
+  templateCode: string,
+  recipientEmail: string,
+  payload: Record<string, unknown>,
+  entityType?: string,
+  entityId?: string
+) {
+  try {
+    const res = await pool.query('SELECT id FROM notification_templates WHERE code = $1 AND is_active = true', [templateCode]);
+    if (res.rowCount === 0) {
+      console.warn(`Template ${templateCode} not found or inactive. Cannot enqueue email.`);
+      return;
+    }
+    const templateId = res.rows[0].id;
+
+    // Guardaremos el payload JSON en 'error_message' temporalmente para que el Worker pueda 
+    // compilar las variables antes de enviar.
+    // Esto es un hack limpio ya que no hay una columna 'payload' y error_message es text.
+    await pool.query(`
+      INSERT INTO notification_events (template_id, recipient_email, channel, status, error_message, entity_type, entity_id)
+      VALUES ($1, $2, 'email', 'pending', $3, $4, $5)
+    `, [templateId, recipientEmail, JSON.stringify(payload), entityType || null, entityId || null]);
+
+  } catch (error) {
+    console.error(`Failed to enqueue email for ${recipientEmail}:`, error);
+  }
+}
