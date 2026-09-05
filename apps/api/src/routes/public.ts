@@ -11,6 +11,7 @@ import { allowedUploadMimeTypeList, validateUpload, type ValidatedUpload } from 
 import { publicFormLimiter } from '../middleware/rateLimiters.js';
 import { notifyAdmins, sendCustomerAcknowledgement } from '../services/email.js';
 import { buildContactReceipt, buildComplaintReceipt, capitalize } from '../services/emailTemplates.js';
+import { sendInAppNotification } from '../services/notificationService.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { HttpError } from '../utils/httpError.js';
 
@@ -540,6 +541,7 @@ router.post(
       }
 
       notifyAdmins('Nueva solicitud de contacto web', contactNotificationPayload, ['support_agent', 'super_admin'], 'contact').catch(console.error);
+      sendInAppNotification('contact_created', 'Nuevo Lead de Contacto', `El prospecto ${body.nombre} ${body.apellido} ha dejado un mensaje.`, 'contact_cases', result.rows[0].id);
       sendCustomerAcknowledgement(
         body.email,
         'Hemos recibido tu mensaje - Bytecode',
@@ -750,6 +752,7 @@ router.post(
       };
 
       notifyAdmins(`Alerta: Nuevo Reclamo ${code}`, complaintNotificationPayload, ['legal_reviewer', 'admin', 'super_admin'], 'complaint').catch(console.error);
+      sendInAppNotification('complaint_created', `Nuevo Reclamo ${code}`, `El usuario ${body.nombres} ${body.apellidos} ha registrado un nuevo reclamo/queja.`, 'complaints', complaintId);
       sendCustomerAcknowledgement(
         body.email,
         `Constancia de Reclamo ${code} - Bytecode`,
