@@ -15,17 +15,17 @@ ALTER TABLE public.notification_rules OWNER TO bytecode_user;
 CREATE TRIGGER trg_notification_rules_updated_at BEFORE UPDATE ON public.notification_rules FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 -- 2. Permisos para gestionar notificaciones (Si no existen, se crean)
-INSERT INTO public.permissions (id, name, description, category, created_at, updated_at) 
+INSERT INTO public.permissions (id, module_code, action_code, code, name, description, created_at, updated_at) 
 VALUES 
-    (gen_random_uuid(), 'admin.notificaciones.view', 'Permite ver las preferencias de notificaciones', 'Configuración', NOW(), NOW()),
-    (gen_random_uuid(), 'admin.notificaciones.edit', 'Permite editar las preferencias de notificaciones', 'Configuración', NOW(), NOW())
-ON CONFLICT (name) DO NOTHING;
+    (gen_random_uuid(), 'notificaciones', 'view', 'admin.notificaciones.view', 'Ver Notificaciones', 'Permite ver las preferencias de notificaciones', NOW(), NOW()),
+    (gen_random_uuid(), 'notificaciones', 'manage', 'admin.notificaciones.manage', 'Gestionar Notificaciones', 'Permite editar las preferencias de notificaciones', NOW(), NOW())
+ON CONFLICT (code) DO NOTHING;
 
 -- 3. Asignar estos permisos estrictamente al rol Super Admin
 INSERT INTO public.role_permissions (role_id, permission_id)
 SELECT r.id, p.id 
 FROM public.roles r, public.permissions p
-WHERE r.name = 'super_admin' AND p.name IN ('admin.notificaciones.view', 'admin.notificaciones.edit')
+WHERE r.name = 'super_admin' AND p.code IN ('admin.notificaciones.view', 'admin.notificaciones.manage')
 ON CONFLICT DO NOTHING;
 
 -- 4. Inserción del menú item en la base de datos (con ícono BellRing y sort_order 105)
@@ -43,5 +43,5 @@ SELECT
     NOW(), 
     NOW()
 FROM public.permissions p 
-WHERE p.name = 'admin.notificaciones.view'
+WHERE p.code = 'admin.notificaciones.view'
 LIMIT 1;
