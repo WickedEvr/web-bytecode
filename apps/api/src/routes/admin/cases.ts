@@ -621,8 +621,7 @@ casesRouter.post(
     
     try {
       await client.query('BEGIN');
-      
-      const current = await client.query('SELECT * FROM complaints WHERE id = $1', [id]);
+      const current = await client.query('SELECT id, complaint_code, customer_id, status_id, priority_id, assigned_to FROM complaints WHERE id = $1', [id]);
       if (current.rowCount === 0) throw new HttpError(404, 'Reclamo no encontrado.');
 
       await client.query(
