@@ -23,9 +23,21 @@ export interface Complaint {
   priority_name?: string;
   attachment_original_name?: string;
   created_at: string;
+  assigned_to?: string;
 }
 
 type ComplaintItem = Complaint;
+
+type AssignmentHistoryItem = {
+  id: string;
+  assigned_to: string;
+  assigned_by: string;
+  assigned_at: string;
+  unassigned_at: string | null;
+  notes: string | null;
+  assigned_to_name: string;
+  assigned_by_name: string | null;
+};
 
 type DetailItem = Record<string, string | number | null | undefined>;
 
@@ -76,6 +88,10 @@ const Reclamos: React.FC = () => {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
 
+  const [adminsList, setAdminsList] = useState<{ value: string, label: string }[]>([]);
+  const [history, setHistory] = useState<AssignmentHistoryItem[]>([]);
+  const [isAssigning, setIsAssigning] = useState(false);
+
   const statusLabel = (statusCode: string) => statuses.find((item) => item.value === statusCode)?.label ?? statusCode;
 
   const loadCatalogs = async () => {
@@ -84,6 +100,8 @@ const Reclamos: React.FC = () => {
       setStatuses(res.items.map(s => ({ value: s.code, label: s.name })));
       const prioRes = await apiRequest<{ items: { id: string, code: string, name: string }[] }>('/catalog/priorities');
       setPriorities(prioRes.items.map(s => ({ value: s.code, label: s.name })));
+      const adminRes = await apiRequest<{ data: { id: string, name: string }[]; total: number }>('/admin/users?limit=100&offset=0');
+      setAdminsList(adminRes.data.map(a => ({ value: a.id, label: a.name })));
     } catch (err) {
       console.error(err);
     }
@@ -106,12 +124,14 @@ const Reclamos: React.FC = () => {
   const loadDetail = async (id: string) => {
     setSelectedId(id);
     try {
-      const [result, historyResult] = await Promise.all([
+      const [result, historyResult, assignmentResult] = await Promise.all([
         apiRequest<{ item: DetailItem }>(`/admin/complaints/${id}`),
         apiRequest<{ items: StatusHistoryRecord[] }>(`/admin/complaints/${id}/history`),
+        apiRequest<{ items: AssignmentHistoryItem[] }>(`/admin/complaints/${id}/assignment-history`),
       ]);
       setDetail(result.item);
       setStatusHistory(historyResult.items);
+      setHistory(assignmentResult.items);
       setStatus(String(result.item.status ?? 'registered'));
       setPriority(String(result.item.priority ?? 'normal'));
       setNotes(String(result.item.admin_notes ?? ''));
@@ -120,6 +140,26 @@ const Reclamos: React.FC = () => {
       }
     } catch (requestError) {
       addToast(requestError instanceof Error ? requestError.message : 'No se pudo cargar el detalle.', 'error');
+    }
+  };
+
+  const handleAssignCase = async (adminId: string) => {
+    if (!selectedId) return;
+    setIsAssigning(true);
+    try {
+      const result = await apiRequest<{ item: DetailItem }>(`/admin/complaints/${selectedId}/assign`, {
+        method: 'POST',
+        json: { assigned_to: adminId },
+      });
+      setDetail(result.item);
+      const histResult = await apiRequest<{ items: AssignmentHistoryItem[] }>(`/admin/complaints/${selectedId}/assignment-history`);
+      setHistory(histResult.items);
+      addToast('Asignación actualizada exitosamente.', 'success');
+      loadList();
+    } catch (requestError) {
+      addToast(requestError instanceof Error ? requestError.message : 'Error al asignar el caso.', 'error');
+    } finally {
+      setIsAssigning(false);
     }
   };
 
@@ -195,6 +235,41 @@ const Reclamos: React.FC = () => {
                 <label className="mb-1.5 block text-[10px] uppercase tracking-wider text-white/40">Prioridad</label>
                 <CustomDropdown value={priority} placeholder="Seleccionar..." onChange={(val) => setPriority(val)} options={priorities} disabled={isReadOnly} />
               </div>
+            </div>
+
+            <div className="pt-2 border-t border-white/5 mt-2">
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/70 flex justify-between items-center">
+                <span>Agente Asignado</span>
+                {isAssigning && <RefreshCw className="w-3 h-3 animate-spin text-[#06CFD6]" />}
+              </label>
+              <div className="bg-white/5 p-3 rounded-lg border border-white/10 mb-4">
+                <CustomDropdown 
+                  options={[{ value: "", label: "Sin Asignar" }, ...adminsList]}
+                  value={String(detail.assigned_to ?? "")}
+                  placeholder="Seleccionar agente..."
+                  onChange={handleAssignCase}
+                  disabled={isAssigning || isReadOnly}
+                />
+              </div>
+              {history.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-[10px] uppercase tracking-wider text-white/40 mb-2">Historial de Asignación</h4>
+                  <div className="space-y-2 max-h-32 overflow-y-auto custom-scrollbar pr-2">
+                    {history.map((item) => (
+                      <div key={item.id} className="bg-white/5 p-2 rounded-md border border-white/5 text-xs flex justify-between">
+                        <div>
+                          Asignado a <span className="font-medium text-white">{item.assigned_to_name}</span>
+                          <span className="block text-white/45">por {item.assigned_by_name || 'Sistema'}</span>
+                        </div>
+                        <div className="text-white/30 text-[10px] text-right">
+                          {formatDate(item.assigned_at)}
+                          {item.unassigned_at && <span className="block text-red-400/50">Removido {formatDate(item.unassigned_at)}</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             <div>
               <label className="mb-1.5 block text-[10px] uppercase tracking-wider text-white/40">Notas Internas</label>

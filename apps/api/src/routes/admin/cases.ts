@@ -6,6 +6,7 @@ import { requirePermission } from '../../middleware/auth.js';
 import { requireCsrf } from '../../middleware/csrf.js';
 import { requireNonTerminalState } from '../../middleware/requireNonTerminalState.js';
 import { auditService } from '../../services/audit.js';
+import { sendDirectInAppNotification } from '../../services/notificationService.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { HttpError } from '../../utils/httpError.js';
 import { listQuerySchema, statusHistorySelect } from './shared.js';
@@ -580,3 +581,103 @@ casesRouter.get(
   }),
 );
 
+casesRouter.post(
+  '/complaints/:id/assign',
+  requireCsrf,
+  requirePermission('admin.reclamos.assign'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = String(req.params.id);
+    const body = assignSchema.parse(req.body);
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+      
+      const current = await client.query('SELECT * FROM complaints WHERE id = $1', [id]);
+      if (current.rowCount === 0) throw new HttpError(404, 'Reclamo no encontrado.');
+
+      await client.query(
+        'UPDATE complaint_assignments SET unassigned_at = NOW() WHERE complaint_id = $1 AND unassigned_at IS NULL',
+        [id]
+      );
+      
+      await client.query(
+        'INSERT INTO complaint_assignments (complaint_id, assigned_to, assigned_by, notes) VALUES ($1, $2, $3, $4)',
+        [id, body.assigned_to, req.admin?.id, body.notes ?? null]
+      );
+      
+      const updateResult = await client.query(
+        'UPDATE complaints SET assigned_to = $2, updated_at = NOW() WHERE id = $1 RETURNING id, complaint_code',
+        [id, body.assigned_to]
+      );
+      
+      if (updateResult.rowCount === 0) {
+        throw new HttpError(404, 'Reclamo no encontrado.');
+      }
+      
+      await client.query('COMMIT');
+
+      // Notificación directa
+      const complaintCode = updateResult.rows[0].complaint_code;
+      if (body.assigned_to !== req.admin?.id) {
+        await sendDirectInAppNotification(
+          body.assigned_to,
+          "Reclamo Asignado",
+          `Te han asignado el reclamo ${complaintCode}.`,
+          "complaints",
+          id
+        );
+      }
+
+      const updated = await client.query(
+        `SELECT ${complaintColumns} 
+        FROM complaints c
+        JOIN customers cu ON c.customer_id = cu.id
+        JOIN status_catalog sc ON c.status_id = sc.id
+        LEFT JOIN priority_catalog pc ON c.priority_id = pc.id
+        JOIN complaint_types ct ON c.complaint_type_id = ct.id
+        WHERE c.id = $1`, 
+        [id]
+      );
+
+      await auditService.logAdminAction({
+        userId: req.admin?.id,
+        action: 'assign_complaint',
+        entityType: 'complaint',
+        entity: updated.rows[0],
+        previousState: current.rows[0],
+        req
+      });
+
+      res.json({ item: updated.rows[0] });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  })
+);
+
+casesRouter.get(
+  '/complaints/:id/assignment-history',
+  requirePermission('admin.reclamos.view'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = String(req.params.id);
+    const result = await pool.query(
+      `
+      SELECT 
+        ca.id, ca.assigned_to, ca.assigned_by, ca.assigned_at, ca.unassigned_at, ca.notes,
+        u1.name as assigned_to_name,
+        u2.name as assigned_by_name
+      FROM complaint_assignments ca
+      LEFT JOIN admin_users u1 ON ca.assigned_to = u1.id
+      LEFT JOIN admin_users u2 ON ca.assigned_by = u2.id
+      WHERE ca.complaint_id = $1
+      ORDER BY ca.assigned_at DESC
+      `,
+      [id]
+    );
+    res.json({ items: result.rows });
+  })
+);
