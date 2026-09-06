@@ -8,7 +8,7 @@ import Timeline from '../../components/ui/Timeline';
 import type { StatusHistoryRecord } from '../../types/status';
 import PaginationControl from '../../components/ui/PaginationControl';
 import { useTerminalState } from '../../hooks/useTerminalState';
-import { useOutletContext, useSearchParams } from 'react-router-dom';
+import { useOutletContext, useLocation } from 'react-router-dom';
 import type { AdminUser } from '../../components/admin/AdminLayout';
 
 export interface Complaint {
@@ -168,17 +168,20 @@ const Reclamos: React.FC = () => {
     }
   };
 
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
 
   useEffect(() => {
     void loadCatalogs();
     void loadList();
     
-    const idFromUrl = searchParams.get('id');
-    if (idFromUrl) {
-      void loadDetail(idFromUrl);
+    if (location.state && typeof location.state === 'object' && 'autoOpenId' in location.state) {
+      const autoOpenId = (location.state as { autoOpenId: string }).autoOpenId;
+      if (autoOpenId) {
+        void loadDetail(autoOpenId);
+        window.history.replaceState({}, '');
+      }
     }
-  }, [page, searchParams]);
+  }, [page, location.state]);
 
   const handleSave = async () => {
     if (!selectedId) return;

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Bell, Check } from 'lucide-react';
 import { apiRequest } from '../../lib/api';
 import { useToastStore } from '../../stores/toastStore';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 interface Notification {
   id: string;
@@ -21,7 +21,6 @@ const NotificationBell: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const addToast = useToastStore((state) => state.addToast);
   const navigate = useNavigate();
-  const location = useLocation();
 
   const fetchNotifications = async () => {
     try {
@@ -68,22 +67,24 @@ const NotificationBell: React.FC = () => {
     handleMarkAsRead(notification.id);
     setIsOpen(false);
 
-    let targetPath = '';
+    let basePath = '';
     if (notification.entity_type === 'quotes') {
-      targetPath = '/admin/cotizador';
+      basePath = '/admin/cotizador';
     } else if (notification.entity_type === 'complaints') {
-      targetPath = '/admin/reclamos';
+      basePath = '/admin/reclamos';
     } else if (notification.entity_type === 'contact_cases' || notification.entity_type === 'contacts') {
-      targetPath = '/admin/contactos';
+      basePath = '/admin/contactos';
     } else if (notification.entity_type === 'projects') {
-      targetPath = '/admin/proyectos';
+      basePath = '/admin/proyectos';
     }
 
-    if (targetPath) {
-      if (location.pathname === targetPath || location.pathname.startsWith(`${targetPath}/`)) {
-        window.location.reload();
+    if (basePath) {
+      if (notification.entity_id) {
+        navigate(basePath, {
+          state: { autoOpenId: notification.entity_id }
+        });
       } else {
-        navigate(targetPath);
+        navigate(basePath);
       }
     }
   };

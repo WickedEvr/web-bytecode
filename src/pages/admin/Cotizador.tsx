@@ -11,6 +11,7 @@ import StatusHistoryTimeline from '../../components/admin/StatusHistoryTimeline'
 import type { StatusCatalogItem, StatusHistoryRecord } from '../../types/status';
 import PaginationControl from '../../components/ui/PaginationControl';
 import { ConfirmModal, type ConfirmModalProps } from '../../components/ui/ConfirmModal';
+import { useLocation } from 'react-router-dom';
 import { formatCurrencyValue, useQuoterState, type EditableQuoteItemData, type PreparedQuotePayload, type PricingCatalogItem } from '../../hooks/useQuoterState';
 
 const PAGE_SIZE = 9;
@@ -243,6 +244,18 @@ const AdminCotizador: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state && typeof location.state === 'object' && 'autoOpenId' in location.state) {
+      const autoOpenId = (location.state as { autoOpenId: string }).autoOpenId;
+      if (autoOpenId && catalog.length > 0 && !loading) {
+        void handleEditQuote(autoOpenId);
+        window.history.replaceState({}, '');
+      }
+    }
+  }, [location.state, catalog.length, loading]);
 
   const formatDate = (val: string) =>
     new Intl.DateTimeFormat('es-PE', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(val));
