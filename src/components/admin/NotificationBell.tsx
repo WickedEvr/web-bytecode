@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Bell, Check } from 'lucide-react';
 import { apiRequest } from '../../lib/api';
 import { useToastStore } from '../../stores/toastStore';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface Notification {
   id: string;
@@ -21,6 +21,7 @@ const NotificationBell: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const addToast = useToastStore((state) => state.addToast);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const fetchNotifications = async () => {
     try {
@@ -64,17 +65,26 @@ const NotificationBell: React.FC = () => {
   };
 
   const handleNotificationClick = (notification: Notification) => {
-    // Primero marcamos como leída
     handleMarkAsRead(notification.id);
     setIsOpen(false);
 
-    // Navegar a la entidad correspondiente si la hay
-    if (notification.entity_type === 'quotes' && notification.entity_id) {
-      navigate('/admin/cotizador');
-    } else if (notification.entity_type === 'complaints' && notification.entity_id) {
-      navigate('/admin/reclamos');
-    } else if (notification.entity_type === 'contact_cases' && notification.entity_id) {
-      navigate('/admin/contactos');
+    let targetPath = '';
+    if (notification.entity_type === 'quotes') {
+      targetPath = '/admin/cotizador';
+    } else if (notification.entity_type === 'complaints') {
+      targetPath = '/admin/reclamos';
+    } else if (notification.entity_type === 'contact_cases' || notification.entity_type === 'contacts') {
+      targetPath = '/admin/contactos';
+    } else if (notification.entity_type === 'projects') {
+      targetPath = '/admin/proyectos';
+    }
+
+    if (targetPath) {
+      if (location.pathname === targetPath || location.pathname.startsWith(`${targetPath}/`)) {
+        window.location.reload();
+      } else {
+        navigate(targetPath);
+      }
     }
   };
 
