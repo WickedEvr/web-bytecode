@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useToastStore } from '../../stores/toastStore';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CalendarDays, Download, Mail, MessageSquareText, RefreshCw, Tag, X } from 'lucide-react';
+import { CalendarDays, Download, Mail, MessageSquareText, RefreshCw, Tag, X, UserCheck } from 'lucide-react';
 import { apiRequest, apiUrl } from '../../lib/api';
 import StatusHistoryTimeline from '../../components/admin/StatusHistoryTimeline';
+import Timeline from '../../components/ui/Timeline';
 import type { StatusHistoryRecord } from '../../types/status';
 import PaginationControl from '../../components/ui/PaginationControl';
 import { useTerminalState } from '../../hooks/useTerminalState';
@@ -229,51 +230,58 @@ const Reclamos: React.FC = () => {
               ))}
           </div>
 
-                    <div className="pt-6 border-t border-white/5 flex flex-col gap-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <Timeline
+            heading="Historial de Asignaciones"
+            emptyMessage="No hay asignaciones registradas."
+            items={history.map((item) => ({
+              date: item.assigned_at,
+              icon: <UserCheck className="h-4 w-4" />,
+              title: (
+                <>
+                  Asignado a <span className="font-medium text-white">{item.assigned_to_name}</span>
+                  <span className="block text-white/45">por {item.assigned_by_name || 'Sistema'}</span>
+                  {item.notes && <span className="mt-2 block border-l border-white/20 pl-2 text-white/55">“{item.notes}”</span>}
+                </>
+              ),
+            }))}
+          />
+
+          <div className="pt-6 border-t border-white/5 flex flex-col gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div>
+                <label className="mb-1.5 block text-[10px] uppercase tracking-wider text-white/40">Agente</label>
+                {isAssigning ? (
+                  <div className="w-full rounded-lg bg-white/5 border border-white/5 px-3 py-2.5 text-sm text-white/40 text-center animate-pulse">Asignando...</div>
+                ) : (
+                  <CustomDropdown
+                            value={String(detail.assigned_to ?? "")}
+                            placeholder="Seleccionar..."
+                            onChange={handleAssignCase}
+                            options={[{ value: "", label: "Sin Asignar" }, ...adminsList]}
+                            disabled={isReadOnly || !canAssign}
+                          />
+                )}
+              </div>
               <div>
                 <label className="mb-1.5 block text-[10px] uppercase tracking-wider text-white/40">Estado</label>
-                <CustomDropdown value={status} placeholder="Seleccionar estado..." onChange={(val) => setStatus(val)} options={statuses} disabled={isReadOnly} />
+                <CustomDropdown
+                          value={status}
+                          placeholder="Seleccionar estado..."
+                          onChange={(val) => setStatus(val)}
+                          options={statuses}
+                          disabled={isReadOnly}
+                        />
               </div>
               <div>
                 <label className="mb-1.5 block text-[10px] uppercase tracking-wider text-white/40">Prioridad</label>
-                <CustomDropdown value={priority} placeholder="Seleccionar..." onChange={(val) => setPriority(val)} options={priorities} disabled={isReadOnly} />
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-white/5 mt-2">
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/70 flex justify-between items-center">
-                <span>Agente Asignado</span>
-                {isAssigning && <RefreshCw className="w-3 h-3 animate-spin text-[#06CFD6]" />}
-              </label>
-              <div className="bg-white/5 p-3 rounded-lg border border-white/10 mb-4">
-                <CustomDropdown 
-                  options={[{ value: "", label: "Sin Asignar" }, ...adminsList]}
-                  value={String(detail.assigned_to ?? "")}
-                  placeholder="Seleccionar agente..."
-                  onChange={handleAssignCase}
-                  disabled={isAssigning || isReadOnly || !canAssign}
+                <CustomDropdown
+                  value={priority}
+                  placeholder="Seleccionar..."
+                  onChange={(val) => setPriority(val)}
+                  options={priorities}
+                  disabled={isReadOnly}
                 />
               </div>
-              {history.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="text-[10px] uppercase tracking-wider text-white/40 mb-2">Historial de Asignación</h4>
-                  <div className="space-y-2 max-h-32 overflow-y-auto custom-scrollbar pr-2">
-                    {history.map((item) => (
-                      <div key={item.id} className="bg-white/5 p-2 rounded-md border border-white/5 text-xs flex justify-between">
-                        <div>
-                          Asignado a <span className="font-medium text-white">{item.assigned_to_name}</span>
-                          <span className="block text-white/45">por {item.assigned_by_name || 'Sistema'}</span>
-                        </div>
-                        <div className="text-white/30 text-[10px] text-right">
-                          {formatDate(item.assigned_at)}
-                          {item.unassigned_at && <span className="block text-red-400/50">Removido {formatDate(item.unassigned_at)}</span>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
             <div>
               <label className="mb-1.5 block text-[10px] uppercase tracking-wider text-white/40">Notas Internas</label>
@@ -281,7 +289,7 @@ const Reclamos: React.FC = () => {
                 {...formProps}
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
-                rows={3}
+                rows={2}
                 placeholder="Observaciones..."
                 className="w-full resize-none rounded-lg bg-white/5 border border-white/5 px-3 py-2.5 text-sm text-white/80 outline-none focus:border-white/20 transition-colors custom-scrollbar"
               />
