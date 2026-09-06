@@ -65,7 +65,7 @@ notificationsRouter.get(
   requirePermission('admin.notificaciones.view'),
   asyncHandler(async (req: Request, res: Response) => {
     const result = await pool.query(`
-      SELECT nr.id, nr.event_type, nr.role_id, nr.is_active, r.name as role_name, r.display_name as role_display_name
+      SELECT nr.id, nr.event_type, nr.role_id, nr.is_active, r.code as role_code, r.name as role_name
       FROM notification_rules nr
       JOIN roles r ON nr.role_id = r.id
       WHERE nr.is_active = true

@@ -6,8 +6,8 @@ import RoleGuard from '../../components/admin/RoleGuard';
 
 interface Role {
   id: string;
+  code: string;
   name: string;
-  display_name: string;
 }
 
 interface NotificationRule {
@@ -15,8 +15,8 @@ interface NotificationRule {
   event_type: string;
   role_id: string;
   is_active: boolean;
+  role_code?: string;
   role_name?: string;
-  role_display_name?: string;
 }
 
 // Lista de eventos disponibles en el sistema (Triggers)
@@ -107,7 +107,7 @@ const NotificacionesAdmin: React.FC = () => {
                       <th key={role.id} className="p-4 border-b border-white/10 border-l border-white/5 bg-[#050505] font-medium text-white/70 text-center min-w-[120px]">
                         <div className="flex items-center justify-center gap-2">
                           <ShieldCheck className="w-4 h-4 text-[#06CFD6]/50" />
-                          {role.display_name}
+                          {role.name}
                         </div>
                       </th>
                     ))}
