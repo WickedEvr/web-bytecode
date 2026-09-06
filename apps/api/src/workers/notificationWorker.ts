@@ -5,16 +5,51 @@ import { masterLayout } from '../services/emailTemplates.js';
 // Tiempo en milisegundos entre cada chequeo de cola
 const POLLING_INTERVAL = 10000; 
 
+let lastCleanup = 0;
+
 export async function startNotificationWorker() {
   console.log('Notification Worker started. Polling every 10 seconds...');
   
   setInterval(async () => {
     try {
       await processPendingEvents();
+
+      // Ejecutar Garbage Collection 1 vez al día
+      const now = Date.now();
+      if (now - lastCleanup > 24 * 60 * 60 * 1000) {
+        lastCleanup = now;
+        await performGarbageCollection();
+      }
     } catch (error) {
       console.error('Error in Notification Worker:', error);
     }
   }, POLLING_INTERVAL);
+}
+
+async function performGarbageCollection() {
+  try {
+    // Elimina notificaciones in-app leídas con más de 30 días de antigüedad
+    const res = await pool.query(`
+      DELETE FROM admin_notifications 
+      WHERE read_at IS NOT NULL 
+      AND created_at < NOW() - INTERVAL '30 days'
+    `);
+    if (res.rowCount && res.rowCount > 0) {
+      console.log(`[Garbage Collection] Removed ${res.rowCount} old read in-app notifications.`);
+    }
+
+    // Opcional: También limpia eventos de email fallidos o exitosos de más de 30 días para no llenar notification_events
+    const resEvents = await pool.query(`
+      DELETE FROM notification_events
+      WHERE status IN ('sent', 'failed')
+      AND created_at < NOW() - INTERVAL '30 days'
+    `);
+    if (resEvents.rowCount && resEvents.rowCount > 0) {
+      console.log(`[Garbage Collection] Removed ${resEvents.rowCount} old email events.`);
+    }
+  } catch (err) {
+    console.error('Failed to run Notification Garbage Collection:', err);
+  }
 }
 
 async function processPendingEvents() {

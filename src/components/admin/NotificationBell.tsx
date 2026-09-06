@@ -36,8 +36,8 @@ const NotificationBell: React.FC = () => {
     // Fetch initial notifications
     fetchNotifications();
 
-    // Set up polling every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000);
+    // Set up polling every 10 seconds (más fluido para el panel)
+    const interval = setInterval(fetchNotifications, 10000);
     return () => clearInterval(interval);
   }, []);
 
