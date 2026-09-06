@@ -14,6 +14,7 @@ import {
   Users,
   X,
   BellRing,
+  BookUser,
 } from 'lucide-react';
 import type { AdminUser } from './AdminLayout';
 import { apiRequest } from '../../lib/api';
@@ -44,6 +45,7 @@ const iconMap = {
   UserCog,
   Users,
   BellRing,
+  BookUser,
 };
 
 const Sidebar: React.FC<SidebarProps> = ({ admin, onClose }) => {
@@ -71,7 +73,7 @@ const Sidebar: React.FC<SidebarProps> = ({ admin, onClose }) => {
       </div>
       <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto custom-scrollbar">
         {menuItems.map((item) => {
-          const Icon = iconMap[item.icon_name as keyof typeof iconMap] ?? LayoutDashboard;
+          const Icon = iconMap[item.icon_name as keyof typeof iconMap] ?? (item.label === 'Directorio' ? BookUser : LayoutDashboard);
 
           return (
             <NavLink

@@ -105,8 +105,9 @@ const AdminLayout: React.FC = () => {
                 </a>
               </>
             )}
-            <button onClick={handleLogout} className="inline-flex items-center gap-2 rounded-lg bg-white/5 border border-white/10 px-4 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white">
-              <LogOut className="h-4 w-4" /> <span className="hidden sm:inline">Cerrar Sesión</span>
+            <button onClick={handleLogout} className="inline-flex items-center gap-2 rounded-xl bg-white/5 border border-transparent px-4 py-2 text-sm font-medium text-white/70 transition-all hover:bg-red-500/10 hover:border-red-500/30 group">
+              <LogOut className="h-4 w-4 group-hover:text-red-500 group-hover:[filter:drop-shadow(0_0_4px_rgba(239,68,68,0.5))] transition-all" /> 
+              <span className="hidden sm:inline group-hover:text-red-500 group-hover:[text-shadow:0_0_8px_rgba(239,68,68,0.5)] transition-all">Cerrar Sesión</span>
             </button>
           </div>
         </header>
