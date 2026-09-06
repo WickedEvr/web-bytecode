@@ -37,11 +37,11 @@ const NotificacionesAdmin: React.FC = () => {
     try {
       setLoading(true);
       const [rolesRes, rulesRes] = await Promise.all([
-        apiRequest<{ roles: Role[] }>('/admin/roles'),
+        apiRequest<{ data: Role[] }>('/admin/roles'),
         apiRequest<NotificationRule[]>('/admin/notification-rules')
       ]);
-      setRoles(rolesRes.roles);
-      setRules(rulesRes);
+      setRoles(rolesRes.data || []);
+      setRules(rulesRes || []);
     } catch (error) {
       addToast('Error cargando configuración', 'error');
     } finally {
