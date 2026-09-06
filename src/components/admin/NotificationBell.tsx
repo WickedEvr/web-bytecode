@@ -34,11 +34,28 @@ const NotificationBell: React.FC = () => {
 
   useEffect(() => {
     // Fetch initial notifications
-    fetchNotifications();
+    void fetchNotifications();
 
-    // Set up polling every 10 seconds (más fluido para el panel)
-    const interval = setInterval(fetchNotifications, 10000);
-    return () => clearInterval(interval);
+    // Set up Server-Sent Events (SSE) instead of polling
+    const sse = new EventSource('/api/admin/notifications/stream', { withCredentials: true });
+    
+    sse.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'new_unread') {
+          void fetchNotifications();
+        }
+      } catch (e) {
+        console.error('Error parsing SSE data', e);
+      }
+    };
+
+    sse.onerror = (error) => {
+      console.error('SSE connection error:', error);
+      // EventSource intentará reconectarse automáticamente
+    };
+
+    return () => sse.close();
   }, []);
 
   // Handle clicking outside to close

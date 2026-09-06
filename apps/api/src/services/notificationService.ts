@@ -1,4 +1,5 @@
 import { pool } from '../db/pool.js';
+import { notificationEmitter, EVENTS } from './notificationEmitter.js';
 
 export async function sendInAppNotification(
   eventType: string,
@@ -8,7 +9,6 @@ export async function sendInAppNotification(
   entityId?: string
 ) {
   try {
-    // Buscar a todos los administradores (usuarios) cuyos roles estén suscritos a este evento
     const res = await pool.query(`
       SELECT DISTINCT au.id as admin_user_id
       FROM admin_users au
@@ -24,7 +24,6 @@ export async function sendInAppNotification(
       return;
     }
 
-    // Insertar notificaciones masivas para todos los usuarios encontrados
     const values: any[] = [];
     let queryArgs = '';
     let argIndex = 1;
@@ -34,15 +33,17 @@ export async function sendInAppNotification(
       values.push(userId, title, body, entityType || null, entityId || null);
     });
 
-    queryArgs = queryArgs.slice(0, -1); // Eliminar la última coma
+    queryArgs = queryArgs.slice(0, -1);
 
     await pool.query(`
       INSERT INTO admin_notifications (admin_user_id, title, body, entity_type, entity_id)
       VALUES ${queryArgs}
     `, values);
 
-    // Opcional: Si usan WebSockets o SSE, se podría emitir un evento aquí a los adminUserIds
-    // io.to(userId).emit('new_notification')
+    // Emitir eventos a los túneles SSE
+    adminUserIds.forEach(userId => {
+      notificationEmitter.emit(EVENTS.NEW_NOTIFICATION, userId);
+    });
   } catch (error) {
     console.error(`Failed to send in-app notification for event ${eventType}:`, error);
   }
@@ -60,6 +61,9 @@ export async function sendDirectInAppNotification(
       INSERT INTO admin_notifications (admin_user_id, title, body, entity_type, entity_id)
       VALUES ($1, $2, $3, $4, $5)
     `, [targetUserId, title, body, entityType || null, entityId || null]);
+    
+    // Emitir al túnel SSE del usuario directo
+    notificationEmitter.emit(EVENTS.NEW_NOTIFICATION, targetUserId);
   } catch (error) {
     console.error(`Failed to send direct notification to user ${targetUserId}:`, error);
   }

@@ -5,10 +5,46 @@ import { requirePermission } from '../../middleware/auth.js';
 import { requireCsrf } from '../../middleware/csrf.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { auditService } from '../../services/audit.js';
+import { notificationEmitter, EVENTS } from '../../services/notificationEmitter.js';
 
 const notificationsRouter = Router();
 
 // --- NOTIFICACIONES IN-APP (Bandeja del Usuario) ---
+
+// SSE: Conexión en tiempo real
+notificationsRouter.get(
+  '/notifications/stream',
+  (req: Request, res: Response) => {
+    const adminId = req.admin?.id;
+    if (!adminId) {
+      res.status(401).end();
+      return;
+    }
+
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    });
+
+    // Enviar algo de inmediato para forzar a Express/Nginx a abrir el canal
+    res.write('data: {"type":"connected"}\n\n');
+
+    const listener = (targetAdminId: string) => {
+      // Si la notificación va dirigida al admin actual (o si quisiéramos enviar a un "role" en específico tendríamos que cambiar la lógica, pero por ahora se dirige a IDs)
+      if (targetAdminId === adminId) {
+        res.write(`data: {"type":"new_unread"}\n\n`);
+      }
+    };
+
+    notificationEmitter.on(EVENTS.NEW_NOTIFICATION, listener);
+
+    req.on('close', () => {
+      notificationEmitter.off(EVENTS.NEW_NOTIFICATION, listener);
+      res.end();
+    });
+  }
+);
 
 // Obtener notificaciones no leídas para la campana
 notificationsRouter.get(
