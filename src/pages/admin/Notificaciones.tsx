@@ -65,7 +65,7 @@ const NotificacionesAdmin: React.FC = () => {
         // Crear regla
         const newRule = await apiRequest<NotificationRule>('/admin/notification-rules', {
           method: 'POST',
-          body: JSON.stringify({ event_type: eventType, role_id: roleId })
+          json: { event_type: eventType, role_id: roleId }
         });
         setRules(prev => [...prev, newRule]);
         addToast('Regla activada', 'success');
