@@ -62,13 +62,11 @@ export async function enqueueEmail(
     }
     const templateId = res.rows[0].id;
 
-    // Guardaremos el payload JSON en 'error_message' temporalmente para que el Worker pueda 
-    // compilar las variables antes de enviar.
-    // Esto es un hack limpio ya que no hay una columna 'payload' y error_message es text.
+    // Guardaremos el payload de variables en la columna 'payload_json' recién creada.
     await pool.query(`
-      INSERT INTO notification_events (template_id, recipient_email, channel, status, error_message, entity_type, entity_id)
+      INSERT INTO notification_events (template_id, recipient_email, channel, status, payload_json, entity_type, entity_id)
       VALUES ($1, $2, 'email', 'pending', $3, $4, $5)
-    `, [templateId, recipientEmail, JSON.stringify(payload), entityType || null, entityId || null]);
+    `, [templateId, recipientEmail, payload, entityType || null, entityId || null]);
 
   } catch (error) {
     console.error(`Failed to enqueue email for ${recipientEmail}:`, error);

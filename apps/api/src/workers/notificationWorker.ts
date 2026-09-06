@@ -54,20 +54,22 @@ async function processPendingEvents() {
       // Vamos a asumir que "body_template" trae el contenido FINAL o que el servicio de envio 
       // guarda un 'body' temporal, o el HTML está pre-procesado.
       
-      // Como esto es un worker genérico, vamos a enviar "error_message" como el JSON del payload si existe,
+      // Como esto es un worker genérico, usamos 'payload_json'
       // para hacer los reemplazos.
       let finalHtml = event.body_template;
+      let finalSubject = event.subject;
       
-      if (event.error_message && event.error_message.startsWith('{')) {
-        const payload = JSON.parse(event.error_message);
+      if (event.payload_json) {
+        const payload = typeof event.payload_json === 'string' ? JSON.parse(event.payload_json) : event.payload_json;
         for (const [key, value] of Object.entries(payload)) {
           finalHtml = finalHtml.replace(new RegExp(`{{${key}}}`, 'g'), String(value));
+          finalSubject = finalSubject.replace(new RegExp(`{{${key}}}`, 'g'), String(value));
         }
       }
 
       // Proteger con el layout
       const secureHtml = masterLayout(finalHtml);
-      const secureSubject = event.subject; // Igual se podría interpolar el subject si quisieramos
+      const secureSubject = finalSubject; // Ya fue interpolado arriba
 
       const message = {
         from: getSenderConfig('system'),

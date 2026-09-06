@@ -20,7 +20,8 @@ notificationsRouter.get(
     }
 
     const result = await pool.query(`
-      SELECT * FROM admin_notifications 
+      SELECT id, admin_user_id, title, body, entity_type, entity_id, read_at, created_at 
+      FROM admin_notifications 
       WHERE admin_user_id = $1 AND read_at IS NULL 
       ORDER BY created_at DESC 
       LIMIT 50
@@ -67,6 +68,7 @@ notificationsRouter.get(
       SELECT nr.id, nr.event_type, nr.role_id, nr.is_active, r.name as role_name, r.display_name as role_display_name
       FROM notification_rules nr
       JOIN roles r ON nr.role_id = r.id
+      WHERE nr.is_active = true
       ORDER BY nr.event_type ASC
     `);
     res.json(result.rows);
@@ -76,7 +78,7 @@ notificationsRouter.get(
 // Crear/asignar un rol a un tipo de evento
 notificationsRouter.post(
   '/notification-rules',
-  requirePermission('admin.notificaciones.edit'),
+  requirePermission('admin.notificaciones.manage'),
   requireCsrf,
   asyncHandler(async (req: Request, res: Response) => {
     const schema = z.object({
@@ -101,7 +103,7 @@ notificationsRouter.post(
 // Desactivar (soft-delete / toggle) una regla
 notificationsRouter.delete(
   '/notification-rules/:id',
-  requirePermission('admin.notificaciones.edit'),
+  requirePermission('admin.notificaciones.manage'),
   requireCsrf,
   asyncHandler(async (req: Request, res: Response) => {
     const id = z.string().uuid().parse(req.params.id);
@@ -110,9 +112,8 @@ notificationsRouter.delete(
     if (oldRes.rowCount === 0) return res.status(404).json({ message: 'Regla no encontrada' });
     const previousState = oldRes.rows[0];
 
-    // Simplemente la eliminamos de manera dura o lógica (ahora usaremos dura para limpiar, o desactivar)
-    // Para no dejar basura, la eliminamos duro, ya que es sólo una tabla de cruce.
-    await pool.query('DELETE FROM notification_rules WHERE id = $1', [id]);
+    // Desactivamos la regla en lugar de eliminarla físicamente para mantener la consistencia con el campo is_active.
+    await pool.query('UPDATE notification_rules SET is_active = false, updated_at = NOW() WHERE id = $1', [id]);
     
     await auditService.logAdminAction({ userId: req.admin?.id, action: 'delete', entityType: 'notification_rules', entity: previousState, previousState, req });
     res.json({ message: 'Regla eliminada' });
