@@ -8,6 +8,8 @@ import PaginationControl from '../../components/ui/PaginationControl';
 import { useTerminalState } from '../../hooks/useTerminalState';
 import type { StatusHistoryRecord } from '../../types/status';
 import { useToastStore } from '../../stores/toastStore';
+import { useOutletContext } from 'react-router-dom';
+import type { AdminUser } from '../../components/admin/AdminLayout';
 
 export interface ContactCase {
   id: string;
@@ -117,6 +119,8 @@ const Contactos: React.FC = () => {
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const { admin } = useOutletContext<{ admin: AdminUser }>();
+  const canAssign = admin.roles.includes('super_admin') || admin.permissions?.includes('admin.contactos.assign') === true;
 
   const statusLabel = (statusCode: string) => statuses.find((item) => item.value === statusCode)?.label ?? statusCode;
 
@@ -125,7 +129,7 @@ const Contactos: React.FC = () => {
       const res = await apiRequest<{ items: { id: string, code: string, name: string }[] }>('/catalog/statuses?domain=case');
       setStatuses(res.items.map(s => ({ value: s.code, label: s.name })));
       
-      const adminRes = await apiRequest<{ data: { id: string, name: string }[]; total: number }>('/admin/users?limit=100&offset=0');
+      const adminRes = await apiRequest<{ data: { id: string, name: string }[] }>('/admin/cases/assignment-options?domain=contact');
       setAdminsList(adminRes.data.map(a => ({ value: a.id, label: a.name })));
       const prioRes = await apiRequest<{ items: { id: string, code: string, name: string }[] }>('/catalog/priorities');
       setPriorities(prioRes.items.map(s => ({ value: s.code, label: s.name })));
@@ -256,7 +260,7 @@ const Contactos: React.FC = () => {
                             placeholder="Seleccionar..."
                             onChange={handleAssignCase}
                             options={adminsList}
-                            disabled={isReadOnly}
+                            disabled={isReadOnly || !canAssign}
                           />
                 )}
               </div>

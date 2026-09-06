@@ -134,6 +134,35 @@ const buildWhere = (status?: string, search?: string, fields: string[] = []) => 
 };
 
 casesRouter.get(
+  '/cases/assignment-options',
+  asyncHandler(async (req: Request, res: Response) => {
+    const domain = req.query.domain as string;
+    let allowedRoles = ['super_admin', 'admin'];
+    
+    if (domain === 'contact') {
+      allowedRoles.push('support_agent');
+    } else if (domain === 'complaint') {
+      allowedRoles.push('legal_reviewer');
+    }
+
+    const result = await pool.query(
+      `
+      SELECT DISTINCT u.id, u.name
+      FROM admin_users u
+      JOIN admin_user_roles aur ON u.id = aur.admin_user_id
+      JOIN roles r ON aur.role_id = r.id
+      WHERE u.is_active = true AND u.deleted_at IS NULL
+      AND r.code = ANY($1::varchar[])
+      ORDER BY u.name ASC
+      `,
+      [allowedRoles]
+    );
+
+    res.json({ data: result.rows });
+  })
+);
+
+casesRouter.get(
   '/contacts',
   requirePermission('admin.contactos.view'),
   asyncHandler(async (req: Request, res: Response) => {

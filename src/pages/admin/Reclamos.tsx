@@ -7,6 +7,8 @@ import StatusHistoryTimeline from '../../components/admin/StatusHistoryTimeline'
 import type { StatusHistoryRecord } from '../../types/status';
 import PaginationControl from '../../components/ui/PaginationControl';
 import { useTerminalState } from '../../hooks/useTerminalState';
+import { useOutletContext } from 'react-router-dom';
+import type { AdminUser } from '../../components/admin/AdminLayout';
 
 export interface Complaint {
   id: string;
@@ -91,6 +93,8 @@ const Reclamos: React.FC = () => {
   const [adminsList, setAdminsList] = useState<{ value: string, label: string }[]>([]);
   const [history, setHistory] = useState<AssignmentHistoryItem[]>([]);
   const [isAssigning, setIsAssigning] = useState(false);
+  const { admin } = useOutletContext<{ admin: AdminUser }>();
+  const canAssign = admin.roles.includes('super_admin') || admin.permissions?.includes('admin.reclamos.assign') === true;
 
   const statusLabel = (statusCode: string) => statuses.find((item) => item.value === statusCode)?.label ?? statusCode;
 
@@ -100,7 +104,7 @@ const Reclamos: React.FC = () => {
       setStatuses(res.items.map(s => ({ value: s.code, label: s.name })));
       const prioRes = await apiRequest<{ items: { id: string, code: string, name: string }[] }>('/catalog/priorities');
       setPriorities(prioRes.items.map(s => ({ value: s.code, label: s.name })));
-      const adminRes = await apiRequest<{ data: { id: string, name: string }[]; total: number }>('/admin/users?limit=100&offset=0');
+      const adminRes = await apiRequest<{ data: { id: string, name: string }[] }>('/admin/cases/assignment-options?domain=complaint');
       setAdminsList(adminRes.data.map(a => ({ value: a.id, label: a.name })));
     } catch (err) {
       console.error(err);
@@ -248,7 +252,7 @@ const Reclamos: React.FC = () => {
                   value={String(detail.assigned_to ?? "")}
                   placeholder="Seleccionar agente..."
                   onChange={handleAssignCase}
-                  disabled={isAssigning || isReadOnly}
+                  disabled={isAssigning || isReadOnly || !canAssign}
                 />
               </div>
               {history.length > 0 && (
