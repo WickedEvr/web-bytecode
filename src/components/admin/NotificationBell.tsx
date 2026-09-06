@@ -93,10 +93,10 @@ const NotificationBell: React.FC = () => {
     <div className="relative" ref={dropdownRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-white/70 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 hover:text-white rounded-lg shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#06CFD6]/50 cursor-pointer flex items-center justify-center"
+        className="relative p-2 text-white/70 bg-white/5 hover:bg-[#06CFD6]/10 border border-transparent hover:border-[#06CFD6]/20 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-[#06CFD6]/50 cursor-pointer flex items-center justify-center group"
         title="Notificaciones"
       >
-        <Bell className="w-5 h-5" />
+        <Bell className="w-5 h-5 group-hover:text-[#06CFD6] group-hover:[filter:drop-shadow(0_0_4px_rgba(6,207,214,0.5))] transition-all" />
         {unreadCount > 0 && (
           <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
