@@ -664,6 +664,10 @@ casesRouter.post(
         JOIN status_catalog sc ON c.status_id = sc.id
         LEFT JOIN priority_catalog pc ON c.priority_id = pc.id
         JOIN complaint_types ct ON c.complaint_type_id = ct.id
+        LEFT JOIN complaint_details cd ON c.id = cd.complaint_id
+        LEFT JOIN complaint_goods cg ON c.id = cg.complaint_id
+        LEFT JOIN complaint_evidences ce ON c.id = ce.complaint_id
+        LEFT JOIN file_assets fa ON ce.file_asset_id = fa.id
         WHERE c.id = $1`, 
         [id]
       );
