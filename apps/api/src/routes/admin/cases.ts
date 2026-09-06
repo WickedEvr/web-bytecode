@@ -270,6 +270,18 @@ casesRouter.patch(
            VALUES ($1, $2, $3, $4)`,
           [id, oldStatusId, newStatusId, req.admin?.id ?? null],
         );
+
+        const assignedTo = currentRow.assigned_to as string | undefined;
+        if (assignedTo && assignedTo !== req.admin?.id) {
+          const caseCode = currentRow.case_code || id.split('-')[0];
+          await sendDirectInAppNotification(
+            assignedTo,
+            "Actualización de Contacto",
+            `El estado del ticket #${caseCode} ha sido modificado.`,
+            "contacts",
+            id
+          );
+        }
       }
 
       const updated = await client.query(
@@ -299,7 +311,7 @@ casesRouter.patch(
 );
 
 const assignSchema = z.object({
-  assigned_to: z.string().uuid(),
+  assigned_to: z.string().uuid().or(z.literal('')).optional().nullable(),
   notes: z.string().max(3000).optional(),
 });
 
@@ -318,19 +330,23 @@ casesRouter.post(
       const current = await client.query('SELECT * FROM contact_cases WHERE id = $1', [id]);
       if (current.rowCount === 0) throw new HttpError(404, 'Mensaje no encontrado.');
 
+      const assignedTo = body.assigned_to ? body.assigned_to : null;
+
       await client.query(
         'UPDATE contact_case_assignments SET unassigned_at = NOW() WHERE contact_case_id = $1 AND unassigned_at IS NULL',
         [id]
       );
       
-      await client.query(
-        'INSERT INTO contact_case_assignments (contact_case_id, assigned_to, assigned_by, notes) VALUES ($1, $2, $3, $4)',
-        [id, body.assigned_to, req.admin?.id, body.notes ?? null]
-      );
+      if (assignedTo) {
+        await client.query(
+          'INSERT INTO contact_case_assignments (contact_case_id, assigned_to, assigned_by, notes) VALUES ($1, $2, $3, $4)',
+          [id, assignedTo, req.admin?.id, body.notes ?? null]
+        );
+      }
       
       const updateResult = await client.query(
         'UPDATE contact_cases SET assigned_to = $2, updated_at = NOW() WHERE id = $1 RETURNING id',
-        [id, body.assigned_to]
+        [id, assignedTo]
       );
       
       if (updateResult.rowCount === 0) {
@@ -339,6 +355,25 @@ casesRouter.post(
       
       await client.query('COMMIT');
 
+      const caseCode = current.rows[0].case_code || current.rows[0].id.split('-')[0];
+
+      if (assignedTo && assignedTo !== req.admin?.id) {
+        await sendDirectInAppNotification(
+          assignedTo,
+          "Contacto Asignado",
+          `Te han asignado el ticket de contacto #${caseCode}.`,
+          "contacts",
+          id
+        );
+      } else if (!assignedTo && current.rows[0].assigned_to && current.rows[0].assigned_to !== req.admin?.id) {
+        await sendDirectInAppNotification(
+          current.rows[0].assigned_to,
+          "Asignación Removida",
+          `Has sido removido del ticket de contacto #${caseCode}.`,
+          "contacts",
+          id
+        );
+      }
       
       const normalized = await hasNormalizedContactSchema();
       const updated = await client.query(
@@ -537,6 +572,18 @@ casesRouter.patch(
            VALUES ($1, $2, $3, $4)`,
           [id, oldStatusId, newStatusId, req.admin?.id ?? null],
         );
+
+        const assignedTo = currentRow.assigned_to as string | undefined;
+        if (assignedTo && assignedTo !== req.admin?.id) {
+          const complaintCode = currentRow.complaint_code || id.split('-')[0];
+          await sendDirectInAppNotification(
+            assignedTo,
+            "Actualización de Reclamo",
+            `El estado del reclamo #${complaintCode} ha sido modificado.`,
+            "complaints",
+            id
+          );
+        }
       }
 
       const updated = await client.query(
@@ -624,19 +671,23 @@ casesRouter.post(
       const current = await client.query('SELECT id, complaint_code, customer_id, status_id, priority_id, assigned_to FROM complaints WHERE id = $1', [id]);
       if (current.rowCount === 0) throw new HttpError(404, 'Reclamo no encontrado.');
 
+      const assignedTo = body.assigned_to ? body.assigned_to : null;
+
       await client.query(
         'UPDATE complaint_assignments SET unassigned_at = NOW() WHERE complaint_id = $1 AND unassigned_at IS NULL',
         [id]
       );
       
-      await client.query(
-        'INSERT INTO complaint_assignments (complaint_id, assigned_to, assigned_by, notes) VALUES ($1, $2, $3, $4)',
-        [id, body.assigned_to, req.admin?.id, body.notes ?? null]
-      );
+      if (assignedTo) {
+        await client.query(
+          'INSERT INTO complaint_assignments (complaint_id, assigned_to, assigned_by, notes) VALUES ($1, $2, $3, $4)',
+          [id, assignedTo, req.admin?.id, body.notes ?? null]
+        );
+      }
       
       const updateResult = await client.query(
         'UPDATE complaints SET assigned_to = $2, updated_at = NOW() WHERE id = $1 RETURNING id, complaint_code',
-        [id, body.assigned_to]
+        [id, assignedTo]
       );
       
       if (updateResult.rowCount === 0) {
@@ -645,13 +696,21 @@ casesRouter.post(
       
       await client.query('COMMIT');
 
-      // Notificación directa
-      const complaintCode = updateResult.rows[0].complaint_code;
-      if (body.assigned_to !== req.admin?.id) {
+      const complaintCode = current.rows[0].complaint_code || current.rows[0].id.split('-')[0];
+
+      if (assignedTo && assignedTo !== req.admin?.id) {
         await sendDirectInAppNotification(
-          body.assigned_to,
+          assignedTo,
           "Reclamo Asignado",
-          `Te han asignado el reclamo ${complaintCode}.`,
+          `Te han asignado el reclamo #${complaintCode}.`,
+          "complaints",
+          id
+        );
+      } else if (!assignedTo && current.rows[0].assigned_to && current.rows[0].assigned_to !== req.admin?.id) {
+        await sendDirectInAppNotification(
+          current.rows[0].assigned_to,
+          "Asignación Removida",
+          `Has sido removido del reclamo #${complaintCode}.`,
           "complaints",
           id
         );
