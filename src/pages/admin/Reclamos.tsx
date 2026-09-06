@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useToastStore } from '../../stores/toastStore';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CalendarDays, Download, Mail, MessageSquareText, RefreshCw, Tag, X, UserCheck } from 'lucide-react';
@@ -169,6 +169,7 @@ const Reclamos: React.FC = () => {
   };
 
   const location = useLocation();
+  const processedAutoOpenId = useRef<string | null>(null);
 
   useEffect(() => {
     void loadCatalogs();
@@ -176,7 +177,8 @@ const Reclamos: React.FC = () => {
     
     if (location.state && typeof location.state === 'object' && 'autoOpenId' in location.state) {
       const autoOpenId = (location.state as { autoOpenId: string }).autoOpenId;
-      if (autoOpenId) {
+      if (autoOpenId && autoOpenId !== processedAutoOpenId.current) {
+        processedAutoOpenId.current = autoOpenId;
         void loadDetail(autoOpenId);
         window.history.replaceState({}, '');
       }

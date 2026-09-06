@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useToastStore } from '../../stores/toastStore';
 import { Calculator, Edit, MoreVertical, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -246,11 +246,14 @@ const AdminCotizador: React.FC = () => {
   };
 
   const location = useLocation();
+  const processedAutoOpenId = useRef<string | null>(null);
 
   useEffect(() => {
     if (location.state && typeof location.state === 'object' && 'autoOpenId' in location.state) {
       const autoOpenId = (location.state as { autoOpenId: string }).autoOpenId;
-      if (autoOpenId && catalog.length > 0 && !loading) {
+      
+      if (autoOpenId && autoOpenId !== processedAutoOpenId.current && catalog.length > 0 && !loading) {
+        processedAutoOpenId.current = autoOpenId;
         void handleEditQuote(autoOpenId);
         window.history.replaceState({}, '');
       }

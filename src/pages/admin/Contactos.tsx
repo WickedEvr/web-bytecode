@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BriefcaseBusiness, CalendarDays, Mail, MessageSquareText, RefreshCw, UserCheck, X } from 'lucide-react';
 import { apiRequest } from '../../lib/api';
@@ -176,6 +176,7 @@ const Contactos: React.FC = () => {
   };
 
   const location = useLocation();
+  const processedAutoOpenId = useRef<string | null>(null);
 
   useEffect(() => {
     void loadCatalogs();
@@ -183,9 +184,9 @@ const Contactos: React.FC = () => {
     
     if (location.state && typeof location.state === 'object' && 'autoOpenId' in location.state) {
       const autoOpenId = (location.state as { autoOpenId: string }).autoOpenId;
-      if (autoOpenId) {
+      if (autoOpenId && autoOpenId !== processedAutoOpenId.current) {
+        processedAutoOpenId.current = autoOpenId;
         void loadDetail(autoOpenId);
-        // Opcional: Limpiar el state para que no se reabra al recargar
         window.history.replaceState({}, '');
       }
     }
