@@ -13,6 +13,7 @@ import {
   UserCog,
   Users,
   X,
+  BellRing,
 } from 'lucide-react';
 import type { AdminUser } from './AdminLayout';
 import { apiRequest } from '../../lib/api';
@@ -42,6 +43,7 @@ const iconMap = {
   ShieldCheck,
   UserCog,
   Users,
+  BellRing,
 };
 
 const Sidebar: React.FC<SidebarProps> = ({ admin, onClose }) => {

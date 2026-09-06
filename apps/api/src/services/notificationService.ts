@@ -47,6 +47,23 @@ export async function sendInAppNotification(
   }
 }
 
+export async function sendDirectInAppNotification(
+  targetUserId: string,
+  title: string,
+  body: string,
+  entityType?: string,
+  entityId?: string
+) {
+  try {
+    await pool.query(`
+      INSERT INTO admin_notifications (admin_user_id, title, body, entity_type, entity_id)
+      VALUES ($1, $2, $3, $4, $5)
+    `, [targetUserId, title, body, entityType || null, entityId || null]);
+  } catch (error) {
+    console.error(`Failed to send direct notification to user ${targetUserId}:`, error);
+  }
+}
+
 export async function enqueueEmail(
   templateCode: string,
   recipientEmail: string,

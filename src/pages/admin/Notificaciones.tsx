@@ -79,9 +79,9 @@ const NotificacionesAdmin: React.FC = () => {
 
   return (
     <RoleGuard requiredPermission="admin.notificaciones.view">
-      <div className="max-w-6xl mx-auto space-y-8">
+      <div className="flex flex-col gap-6 font-sansation">
         <div>
-          <h1 className="text-2xl font-semibold text-white/90 flex items-center gap-3">
+          <h1 className="text-2xl font-semibold tracking-wide text-white/90 flex items-center gap-3">
             <BellRing className="w-6 h-6 text-[#06CFD6]" />
             Reglas de Notificación In-App
           </h1>
