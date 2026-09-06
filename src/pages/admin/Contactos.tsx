@@ -8,7 +8,7 @@ import PaginationControl from '../../components/ui/PaginationControl';
 import { useTerminalState } from '../../hooks/useTerminalState';
 import type { StatusHistoryRecord } from '../../types/status';
 import { useToastStore } from '../../stores/toastStore';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
 import type { AdminUser } from '../../components/admin/AdminLayout';
 
 export interface ContactCase {
@@ -175,10 +175,18 @@ const Contactos: React.FC = () => {
     }
   };
 
+  const [searchParams] = useSearchParams();
+
   useEffect(() => {
     void loadCatalogs();
     void loadList();
-  }, [page]);
+    
+    const idFromUrl = searchParams.get('id');
+    if (idFromUrl) {
+      void loadDetail(idFromUrl);
+      // Removemos el id de la url para que si recarga no se quede pegado, o lo dejamos. Lo dejamos es mejor.
+    }
+  }, [page, searchParams]);
 
   const handleSave = async () => {
     if (!selectedId) return;
@@ -390,11 +398,15 @@ const Contactos: React.FC = () => {
                       {statusLabel(item.status)}
                     </span>
                     {item.priority && priorityBadge(item.priority, item.priority_name!)}
-                    {item.assigned_to && (
-                      <span className="inline-flex items-center gap-1 text-[10px] text-[#06CFD6]/70">
+                    {item.assigned_to === admin.id ? (
+                      <span className="h-fit rounded-md bg-[#06CFD6]/10 px-2 py-0.5 text-[10px] text-[#06CFD6] whitespace-nowrap flex items-center gap-1 border border-[#06CFD6]/20 shadow-[0_0_8px_rgba(6,207,214,0.15)]" title="Asignado a ti">
+                        <UserCheck className="w-3 h-3" /> Mío
+                      </span>
+                    ) : item.assigned_to ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] text-white/30" title="Asignado a otro">
                         <UserCheck className="h-3 w-3" />
                       </span>
-                    )}
+                    ) : null}
                   </div>
                 </button>
               ))

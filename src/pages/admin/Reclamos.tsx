@@ -8,7 +8,7 @@ import Timeline from '../../components/ui/Timeline';
 import type { StatusHistoryRecord } from '../../types/status';
 import PaginationControl from '../../components/ui/PaginationControl';
 import { useTerminalState } from '../../hooks/useTerminalState';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
 import type { AdminUser } from '../../components/admin/AdminLayout';
 
 export interface Complaint {
@@ -168,10 +168,17 @@ const Reclamos: React.FC = () => {
     }
   };
 
+  const [searchParams] = useSearchParams();
+
   useEffect(() => {
     void loadCatalogs();
     void loadList();
-  }, [page]);
+    
+    const idFromUrl = searchParams.get('id');
+    if (idFromUrl) {
+      void loadDetail(idFromUrl);
+    }
+  }, [page, searchParams]);
 
   const handleSave = async () => {
     if (!selectedId) return;
@@ -364,6 +371,11 @@ const Reclamos: React.FC = () => {
                     </span>
                   </div>
                   <div className="flex flex-col items-end gap-1.5 justify-start">
+                    {item.assigned_to === admin.id && (
+                      <span className="h-fit rounded-md bg-[#06CFD6]/10 px-2 py-0.5 text-[10px] text-[#06CFD6] whitespace-nowrap flex items-center gap-1 border border-[#06CFD6]/20 shadow-[0_0_8px_rgba(6,207,214,0.15)]" title="Asignado a ti">
+                        <UserCheck className="w-3 h-3" /> Mío
+                      </span>
+                    )}
                     <span className="h-fit rounded-md bg-white/5 px-2 py-0.5 text-[10px] text-white/60 whitespace-nowrap">
                       {statusLabel(item.status)}
                     </span>
