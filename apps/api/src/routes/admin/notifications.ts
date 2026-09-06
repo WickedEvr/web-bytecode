@@ -23,17 +23,24 @@ notificationsRouter.get(
 
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
+      'Cache-Control': 'no-cache, no-transform',
       'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',
     });
+    res.flushHeaders?.();
 
     // Enviar algo de inmediato para forzar a Express/Nginx a abrir el canal
     res.write('data: {"type":"connected"}\n\n');
+    if ('flush' in res && typeof res.flush === 'function') {
+      res.flush();
+    }
 
     const listener = (targetAdminId: string) => {
-      // Si la notificación va dirigida al admin actual (o si quisiéramos enviar a un "role" en específico tendríamos que cambiar la lógica, pero por ahora se dirige a IDs)
       if (targetAdminId === adminId) {
         res.write(`data: {"type":"new_unread"}\n\n`);
+        if ('flush' in res && typeof res.flush === 'function') {
+          res.flush();
+        }
       }
     };
 
