@@ -10,9 +10,10 @@ export async function sendInAppNotification(
   try {
     // Buscar a todos los administradores (usuarios) cuyos roles estén suscritos a este evento
     const res = await pool.query(`
-      SELECT au.id as admin_user_id
+      SELECT DISTINCT au.id as admin_user_id
       FROM admin_users au
-      JOIN notification_rules nr ON au.role_id = nr.role_id
+      JOIN admin_user_roles aur ON au.id = aur.admin_user_id
+      JOIN notification_rules nr ON aur.role_id = nr.role_id
       WHERE nr.event_type = $1 AND nr.is_active = true AND au.is_active = true
     `, [eventType]);
 
