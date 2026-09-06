@@ -6,6 +6,7 @@ import { requirePermission } from '../../middleware/auth.js';
 import { requireCsrf } from '../../middleware/csrf.js';
 import { requireNonTerminalState } from '../../middleware/requireNonTerminalState.js';
 import { auditService } from '../../services/audit.js';
+import { sendInAppNotification } from '../../services/notificationService.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { HttpError } from '../../utils/httpError.js';
 import { createBusinessCode, paginationQuerySchema } from './shared.js';
@@ -476,6 +477,16 @@ quotesRouter.post(
              VALUES ($1, $2, $3, $4)`,
             [quoteId, oldStatusId, newStatusId, req.admin?.id ?? null],
           );
+          
+          if (body.status === 'accepted') {
+            sendInAppNotification(
+              'quote_accepted', 
+              'Cotización Aceptada', 
+              `La cotización ${previousQuoteState.quote_code} ha sido aprobada. Iniciar asignación y Kick-off.`, 
+              'quotes', 
+              quoteId
+            ).catch(console.error);
+          }
         }
         await client.query('DELETE FROM quote_items WHERE quote_id = $1', [quoteId]);
       } else {
