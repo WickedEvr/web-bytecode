@@ -93,7 +93,7 @@ const NotificationBell: React.FC = () => {
     <div className="relative" ref={dropdownRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors focus:outline-none"
+        className="relative p-2 text-white/70 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 hover:text-white rounded-lg shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#06CFD6]/50 cursor-pointer flex items-center justify-center"
         title="Notificaciones"
       >
         <Bell className="w-5 h-5" />
